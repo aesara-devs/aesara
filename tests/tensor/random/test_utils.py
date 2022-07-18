@@ -3,7 +3,7 @@ import pytest
 
 from aesara import config, function
 from aesara.compile.mode import Mode
-from aesara.graph.optdb import OptimizationQuery
+from aesara.graph.optdb import RewriteDatabaseQuery
 from aesara.tensor.random.utils import RandomStream, broadcast_params
 from aesara.tensor.type import matrix, tensor
 from tests import unittest_tools as utt
@@ -11,7 +11,7 @@ from tests import unittest_tools as utt
 
 @pytest.fixture(scope="module", autouse=True)
 def set_aesara_flags():
-    opts = OptimizationQuery(include=[None], exclude=[])
+    opts = RewriteDatabaseQuery(include=[None], exclude=[])
     py_mode = Mode("py", opts)
     with config.change_flags(mode=py_mode, compute_test_value="warn"):
         yield

@@ -9,7 +9,7 @@ from aesara import tensor as at
 from aesara.compile.mode import Mode
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant, applys_between
-from aesara.graph.optdb import OptimizationQuery
+from aesara.graph.optdb import RewriteDatabaseQuery
 from aesara.raise_op import Assert
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.extra_ops import (
@@ -1285,7 +1285,7 @@ class TestBroadcastTo(utt.InferShapeTester):
         q = b[np.r_[0, 1, 3]]
         e = at.set_subtensor(q, np.r_[0, 0, 0])
 
-        opts = OptimizationQuery(include=["inplace"])
+        opts = RewriteDatabaseQuery(include=["inplace"])
         py_mode = Mode("py", opts)
         e_fn = function([d], e, mode=py_mode)
 

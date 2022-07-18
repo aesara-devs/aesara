@@ -12,7 +12,7 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable, ancestors
 from aesara.graph.opt import check_stack_trace
 from aesara.graph.opt_utils import optimize_graph
-from aesara.graph.optdb import OptimizationQuery
+from aesara.graph.optdb import RewriteDatabaseQuery
 from aesara.graph.type import Type
 from aesara.raise_op import Assert
 from aesara.tensor import inplace
@@ -1994,7 +1994,7 @@ def test_local_subtensor_SpecifyShape_lift(x, s, idx, x_val, s_val):
     y = specify_shape(x, s)[idx]
     assert isinstance(y.owner.inputs[0].owner.op, SpecifyShape)
 
-    opts = OptimizationQuery(include=[None])
+    opts = RewriteDatabaseQuery(include=[None])
     no_opt_mode = Mode(optimizer=opts)
 
     y_val_fn = function([x] + list(s), y, on_unused_input="ignore", mode=no_opt_mode)

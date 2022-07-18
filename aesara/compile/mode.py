@@ -19,8 +19,8 @@ from aesara.graph.opt import (
 from aesara.graph.optdb import (
     EquilibriumDB,
     LocalGroupDB,
-    OptimizationQuery,
     RewriteDatabase,
+    RewriteDatabaseQuery,
     SequenceDB,
     TopoDB,
 )
@@ -64,15 +64,15 @@ def register_linker(name, linker):
 exclude = []
 if not config.cxx:
     exclude = ["cxx_only"]
-OPT_NONE = OptimizationQuery(include=[], exclude=exclude)
+OPT_NONE = RewriteDatabaseQuery(include=[], exclude=exclude)
 # Even if multiple merge optimizer call will be there, this shouldn't
 # impact performance.
-OPT_MERGE = OptimizationQuery(include=["merge"], exclude=exclude)
-OPT_FAST_RUN = OptimizationQuery(include=["fast_run"], exclude=exclude)
+OPT_MERGE = RewriteDatabaseQuery(include=["merge"], exclude=exclude)
+OPT_FAST_RUN = RewriteDatabaseQuery(include=["fast_run"], exclude=exclude)
 OPT_FAST_RUN_STABLE = OPT_FAST_RUN.requiring("stable")
 
-OPT_FAST_COMPILE = OptimizationQuery(include=["fast_compile"], exclude=exclude)
-OPT_STABILIZE = OptimizationQuery(include=["fast_run"], exclude=exclude)
+OPT_FAST_COMPILE = RewriteDatabaseQuery(include=["fast_compile"], exclude=exclude)
+OPT_STABILIZE = RewriteDatabaseQuery(include=["fast_run"], exclude=exclude)
 OPT_STABILIZE.position_cutoff = 1.5000001
 OPT_NONE.name = "OPT_NONE"
 OPT_MERGE.name = "OPT_MERGE"
@@ -302,7 +302,7 @@ class Mode:
     def __init__(
         self,
         linker: Optional[Union[str, Linker]] = None,
-        optimizer: Union[str, OptimizationQuery] = "default",
+        optimizer: Union[str, RewriteDatabaseQuery] = "default",
         db: RewriteDatabase = None,
     ):
         if linker is None:
@@ -320,7 +320,7 @@ class Mode:
 
         # self.provided_optimizer - typically the `optimizer` arg.
         # But if the `optimizer` arg is keyword corresponding to a predefined
-        # OptimizationQuery, then this stores the query
+        # RewriteDatabaseQuery, then this stores the query
         # self._optimizer - typically same as provided_optimizer??
 
         # self.__get_optimizer - returns self._optimizer (possibly querying
@@ -342,7 +342,7 @@ class Mode:
         self.linker = linker
         if isinstance(optimizer, str) or optimizer is None:
             optimizer = predefined_optimizers[optimizer]
-        if isinstance(optimizer, OptimizationQuery):
+        if isinstance(optimizer, RewriteDatabaseQuery):
             self.provided_optimizer = optimizer
         self._optimizer = optimizer
         self.call_time = 0
@@ -357,7 +357,7 @@ class Mode:
         )
 
     def __get_optimizer(self):
-        if isinstance(self._optimizer, OptimizationQuery):
+        if isinstance(self._optimizer, RewriteDatabaseQuery):
             return self.optdb.query(self._optimizer)
         else:
             return self._optimizer
@@ -375,7 +375,7 @@ class Mode:
         link, opt = self.get_linker_optimizer(
             self.provided_linker, self.provided_optimizer
         )
-        # N.B. opt might be a OptimizationQuery instance, not sure what else it might be...
+        # N.B. opt might be a RewriteDatabaseQuery instance, not sure what else it might be...
         #     string? Optimizer? OptDB? who knows???
         return self.clone(optimizer=opt.including(*tags), linker=link)
 
@@ -448,11 +448,11 @@ else:
 
 JAX = Mode(
     JAXLinker(),
-    OptimizationQuery(include=["fast_run"], exclude=["cxx_only", "BlasOpt"]),
+    RewriteDatabaseQuery(include=["fast_run"], exclude=["cxx_only", "BlasOpt"]),
 )
 NUMBA = Mode(
     NumbaLinker(),
-    OptimizationQuery(include=["fast_run"], exclude=["cxx_only", "BlasOpt"]),
+    RewriteDatabaseQuery(include=["fast_run"], exclude=["cxx_only", "BlasOpt"]),
 )
 
 

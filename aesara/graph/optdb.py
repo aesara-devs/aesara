@@ -137,10 +137,10 @@ class RewriteDatabase:
         return variables
 
     def query(self, *tags, **kwtags):
-        if len(tags) >= 1 and isinstance(tags[0], OptimizationQuery):
+        if len(tags) >= 1 and isinstance(tags[0], RewriteDatabaseQuery):
             if len(tags) > 1 or kwtags:
                 raise TypeError(
-                    "If the first argument to query is an `OptimizationQuery`,"
+                    "If the first argument to query is an `RewriteDatabaseQuery`,"
                     " there should be no other arguments."
                 )
             return self.__query__(tags[0])
@@ -153,7 +153,7 @@ class RewriteDatabase:
                 " characters: '+', '&' or '-'"
             )
         return self.__query__(
-            OptimizationQuery(
+            RewriteDatabaseQuery(
                 include=include, require=require, exclude=exclude, subquery=kwtags
             )
         )
@@ -176,7 +176,7 @@ class RewriteDatabase:
         print("  db", self.__db__, file=stream)
 
 
-class OptimizationQuery:
+class RewriteDatabaseQuery:
     """An object that specifies a set of optimizations by tag/name."""
 
     def __init__(
@@ -184,11 +184,11 @@ class OptimizationQuery:
         include: Iterable[str],
         require: Optional[Union[OrderedSet, Sequence[str]]] = None,
         exclude: Optional[Union[OrderedSet, Sequence[str]]] = None,
-        subquery: Optional[Dict[str, "OptimizationQuery"]] = None,
+        subquery: Optional[Dict[str, "RewriteDatabaseQuery"]] = None,
         position_cutoff: float = math.inf,
         extra_optimizations: Optional[
             Sequence[
-                Tuple[Union["OptimizationQuery", OptimizersType], Union[int, float]]
+                Tuple[Union["RewriteDatabaseQuery", OptimizersType], Union[int, float]]
             ]
         ] = None,
     ):
@@ -198,19 +198,19 @@ class OptimizationQuery:
         ==========
         include:
             A set of tags such that every optimization obtained through this
-            `OptimizationQuery` must have **one** of the tags listed. This
+            `RewriteDatabaseQuery` must have **one** of the tags listed. This
             field is required and basically acts as a starting point for the
             search.
         require:
             A set of tags such that every optimization obtained through this
-            `OptimizationQuery` must have **all** of these tags.
+            `RewriteDatabaseQuery` must have **all** of these tags.
         exclude:
             A set of tags such that every optimization obtained through this
-            ``OptimizationQuery` must have **none** of these tags.
+            ``RewriteDatabaseQuery` must have **none** of these tags.
         subquery:
             A dictionary mapping the name of a sub-database to a special
-            `OptimizationQuery`.  If no subquery is given for a sub-database,
-            the original `OptimizationQuery` will be used again.
+            `RewriteDatabaseQuery`.  If no subquery is given for a sub-database,
+            the original `RewriteDatabaseQuery` will be used again.
         position_cutoff:
             Only optimizations with position less than the cutoff are returned.
         extra_optimizations:
@@ -229,7 +229,7 @@ class OptimizationQuery:
 
     def __str__(self):
         return (
-            "OptimizationQuery("
+            "RewriteDatabaseQuery("
             + f"inc={self.include},ex={self.exclude},"
             + f"require={self.require},subquery={self.subquery},"
             + f"position_cutoff={self.position_cutoff},"
@@ -241,9 +241,9 @@ class OptimizationQuery:
         if not hasattr(self, "extra_optimizations"):
             self.extra_optimizations = []
 
-    def including(self, *tags: str) -> "OptimizationQuery":
+    def including(self, *tags: str) -> "RewriteDatabaseQuery":
         """Add rewrites with the given tags."""
-        return OptimizationQuery(
+        return RewriteDatabaseQuery(
             self.include.union(tags),
             self.require,
             self.exclude,
@@ -252,9 +252,9 @@ class OptimizationQuery:
             self.extra_optimizations,
         )
 
-    def excluding(self, *tags: str) -> "OptimizationQuery":
+    def excluding(self, *tags: str) -> "RewriteDatabaseQuery":
         """Remove rewrites with the given tags."""
-        return OptimizationQuery(
+        return RewriteDatabaseQuery(
             self.include,
             self.require,
             self.exclude.union(tags),
@@ -263,9 +263,9 @@ class OptimizationQuery:
             self.extra_optimizations,
         )
 
-    def requiring(self, *tags: str) -> "OptimizationQuery":
+    def requiring(self, *tags: str) -> "RewriteDatabaseQuery":
         """Filter for rewrites with the given tags."""
-        return OptimizationQuery(
+        return RewriteDatabaseQuery(
             self.include,
             self.require.union(tags),
             self.exclude,
@@ -275,10 +275,10 @@ class OptimizationQuery:
         )
 
     def register(
-        self, *optimizations: Tuple["OptimizationQuery", Union[int, float]]
-    ) -> "OptimizationQuery":
+        self, *optimizations: Tuple["RewriteDatabaseQuery", Union[int, float]]
+    ) -> "RewriteDatabaseQuery":
         """Include the given optimizations."""
-        return OptimizationQuery(
+        return RewriteDatabaseQuery(
             self.include,
             self.require,
             self.exclude,
@@ -417,13 +417,13 @@ class SequenceDB(RewriteDatabase):
 
         position_dict = self.__position__
 
-        if len(tags) >= 1 and isinstance(tags[0], OptimizationQuery):
+        if len(tags) >= 1 and isinstance(tags[0], RewriteDatabaseQuery):
             # the call to super should have raise an error with a good message
             assert len(tags) == 1
             if getattr(tags[0], "position_cutoff", None):
                 position_cutoff = tags[0].position_cutoff
 
-            # The OptimizationQuery instance might contain extra optimizations which need
+            # The RewriteDatabaseQuery instance might contain extra optimizations which need
             # to be added the the sequence of optimizations (don't alter the
             # original dictionary)
             if len(tags[0].extra_optimizations) > 0:
@@ -544,13 +544,18 @@ DEPRECATED_NAMES = [
     ),
     (
         "Query",
-        "`Query` is deprecated; use `OptimizationQuery` instead.",
-        OptimizationQuery,
+        "`Query` is deprecated; use `RewriteDatabaseQuery` instead.",
+        RewriteDatabaseQuery,
     ),
     (
         "OptimizationDatabase",
         "`OptimizationDatabase` is deprecated; use `RewriteDatabase` instead.",
         RewriteDatabase,
+    ),
+    (
+        "OptimizationQuery",
+        "`OptimizationQuery` is deprecated; use `RewriteDatabaseQuery` instead.",
+        RewriteDatabaseQuery,
     ),
 ]
 

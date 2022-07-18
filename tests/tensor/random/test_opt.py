@@ -8,7 +8,7 @@ from aesara.compile.mode import Mode
 from aesara.graph.basic import Constant
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.opt import EquilibriumGraphRewriter
-from aesara.graph.optdb import OptimizationQuery
+from aesara.graph.optdb import RewriteDatabaseQuery
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.random.basic import (
     dirichlet,
@@ -28,7 +28,7 @@ from aesara.tensor.subtensor import AdvancedSubtensor, AdvancedSubtensor1, Subte
 from aesara.tensor.type import iscalar, vector
 
 
-no_mode = Mode("py", OptimizationQuery(include=[], exclude=[]))
+no_mode = Mode("py", RewriteDatabaseQuery(include=[], exclude=[]))
 
 
 def apply_local_opt_to_rv(opt, op_fn, dist_op, dist_params, size, rng, name=None):

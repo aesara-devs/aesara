@@ -15,6 +15,6 @@ from aesara.graph.type import Type
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.opt import node_rewriter, graph_rewriter
 from aesara.graph.opt_utils import optimize_graph
-from aesara.graph.optdb import OptimizationQuery
+from aesara.graph.optdb import RewriteDatabaseQuery
 
 # isort: on

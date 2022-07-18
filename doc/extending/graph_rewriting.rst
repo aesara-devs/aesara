@@ -585,23 +585,23 @@ Definition of :obj:`optdb`
 :class:`SequenceDB <optdb.SequenceDB>`,
 itself a subclass of :class:`RewriteDatabase <optdb.RewriteDatabase>`.
 There exist (for now) two types of :class:`RewriteDatabase`, :class:`SequenceDB` and :class:`EquilibriumDB`.
-When given an appropriate :class:`OptimizationQuery`, :class:`RewriteDatabase` objects build an :class:`Optimizer` matching
+When given an appropriate :class:`RewriteDatabaseQuery`, :class:`RewriteDatabase` objects build an :class:`Optimizer` matching
 the query.
 
 A :class:`SequenceDB` contains :class:`Optimizer` or :class:`RewriteDatabase` objects. Each of them
 has a name, an arbitrary number of tags and an integer representing their order
-in the sequence. When a :class:`OptimizationQuery` is applied to a :class:`SequenceDB`, all :class:`Optimizer`\s whose
+in the sequence. When a :class:`RewriteDatabaseQuery` is applied to a :class:`SequenceDB`, all :class:`Optimizer`\s whose
 tags match the query are inserted in proper order in a :class:`SequenceOptimizer`, which
 is returned. If the :class:`SequenceDB` contains :class:`RewriteDatabase`
-instances, the :class:`OptimizationQuery` will be passed to them as well and the
+instances, the :class:`RewriteDatabaseQuery` will be passed to them as well and the
 optimizers they return will be put in their places.
 
 An :class:`EquilibriumDB` contains :class:`NodeRewriter` or :class:`RewriteDatabase` objects. Each of them
-has a name and an arbitrary number of tags. When a :class:`OptimizationQuery` is applied to
+has a name and an arbitrary number of tags. When a :class:`RewriteDatabaseQuery` is applied to
 an :class:`EquilibriumDB`, all :class:`NodeRewriter`\s that match the query are
 inserted into an :class:`EquilibriumGraphRewriter`, which is returned. If the
 :class:`SequenceDB` contains :class:`RewriteDatabase` instances, the
-:class:`OptimizationQuery` will be passed to them as well and the
+:class:`RewriteDatabaseQuery` will be passed to them as well and the
 :class:`NodeRewriter`\s they return will be put in their places
 (note that as of yet no :class:`RewriteDatabase` can produce :class:`NodeRewriter` objects, so this
 is a moot point).
@@ -613,68 +613,68 @@ optdb is a :class:`SequenceDB`, so, at the top level, Aesara applies a sequence
 of global optimizations to the computation graphs.
 
 
-:class:`OptimizationQuery`
---------------------------
+:class:`RewriteDatabaseQuery`
+-----------------------------
 
-A :class:`OptimizationQuery` is built by the following call:
+A :class:`RewriteDatabaseQuery` is built by the following call:
 
 .. code-block:: python
 
-   aesara.graph.optdb.OptimizationQuery(include, require=None, exclude=None, subquery=None)
+   aesara.graph.optdb.RewriteDatabaseQuery(include, require=None, exclude=None, subquery=None)
 
-.. class:: OptimizationQuery
+.. class:: RewriteDatabaseQuery
 
     .. attribute:: include
 
        A set of tags (a tag being a string) such that every
-       optimization obtained through this :class:`OptimizationQuery` must have **one** of the tags
+       optimization obtained through this :class:`RewriteDatabaseQuery` must have **one** of the tags
        listed. This field is required and basically acts as a starting point
        for the search.
 
     .. attribute:: require
 
        A set of tags such that every optimization obtained
-       through this :class:`OptimizationQuery` must have **all** of these tags.
+       through this :class:`RewriteDatabaseQuery` must have **all** of these tags.
 
     .. attribute:: exclude
 
        A set of tags such that every optimization obtained
-       through this :class:`OptimizationQuery` must have **none** of these tags.
+       through this :class:`RewriteDatabaseQuery` must have **none** of these tags.
 
     .. attribute:: subquery
 
        :obj:`optdb` can contain sub-databases; subquery is a
-       dictionary mapping the name of a sub-database to a special :class:`OptimizationQuery`.
-       If no subquery is given for a sub-database, the original :class:`OptimizationQuery` will be
+       dictionary mapping the name of a sub-database to a special :class:`RewriteDatabaseQuery`.
+       If no subquery is given for a sub-database, the original :class:`RewriteDatabaseQuery` will be
        used again.
 
-Furthermore, a :class:`OptimizationQuery` object includes three methods, :meth:`including`,
-:meth:`requiring` and :meth:`excluding`, which each produce a new :class:`OptimizationQuery` object
+Furthermore, a :class:`RewriteDatabaseQuery` object includes three methods, :meth:`including`,
+:meth:`requiring` and :meth:`excluding`, which each produce a new :class:`RewriteDatabaseQuery` object
 with the include, require, and exclude sets refined to contain the new entries.
 
 
 Examples
 --------
 
-Here are a few examples of how to use a :class:`OptimizationQuery` on :obj:`optdb` to produce an
+Here are a few examples of how to use a :class:`RewriteDatabaseQuery` on :obj:`optdb` to produce an
 :class:`Optimizer`:
 
 .. testcode::
 
-   from aesara.graph.optdb import OptimizationQuery
+   from aesara.graph.optdb import RewriteDatabaseQuery
    from aesara.compile import optdb
 
    # This is how the optimizer for the fast_run mode is defined
-   fast_run = optdb.query(OptimizationQuery(include=['fast_run']))
+   fast_run = optdb.query(RewriteDatabaseQuery(include=['fast_run']))
 
    # This is how the optimizer for the fast_compile mode is defined
-   fast_compile = optdb.query(OptimizationQuery(include=['fast_compile']))
+   fast_compile = optdb.query(RewriteDatabaseQuery(include=['fast_compile']))
 
    # This is the same as fast_run but no optimizations will replace
    # any operation by an inplace version. This assumes, of course,
    # that all inplace operations are tagged as 'inplace' (as they
    # should!)
-   fast_run_no_inplace = optdb.query(OptimizationQuery(include=['fast_run'],
+   fast_run_no_inplace = optdb.query(RewriteDatabaseQuery(include=['fast_run'],
                                            exclude=['inplace']))
 
 
@@ -733,7 +733,7 @@ optimizations:
 
 
 For each group, all optimizations of the group that are selected by
-the :class:`OptimizationQuery` will be applied on the graph over and over again until none
+the :class:`RewriteDatabaseQuery` will be applied on the graph over and over again until none
 of them is applicable, so keep that in mind when designing it: check
 carefully that your optimization leads to a fixpoint (a point where it
 cannot apply anymore) at which point it returns ``False`` to indicate its

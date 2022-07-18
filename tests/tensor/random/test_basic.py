@@ -14,7 +14,7 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable, graph_inputs
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import get_test_value
-from aesara.graph.optdb import OptimizationQuery
+from aesara.graph.optdb import RewriteDatabaseQuery
 from aesara.tensor.basic_opt import ShapeFeature
 from aesara.tensor.random.basic import (
     bernoulli,
@@ -60,7 +60,7 @@ from aesara.tensor.type import iscalar, scalar, tensor
 from tests.unittest_tools import create_aesara_param
 
 
-opts = OptimizationQuery(include=[None], exclude=["cxx_only", "BlasOpt"])
+opts = RewriteDatabaseQuery(include=[None], exclude=["cxx_only", "BlasOpt"])
 py_mode = Mode("py", opts)
 
 

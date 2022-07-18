@@ -26,7 +26,7 @@ from aesara.graph.opt import (
     out2in,
 )
 from aesara.graph.opt_utils import is_same_graph, optimize_graph
-from aesara.graph.optdb import OptimizationQuery
+from aesara.graph.optdb import RewriteDatabaseQuery
 from aesara.misc.safe_asarray import _asarray
 from aesara.tensor import inplace
 from aesara.tensor.basic import Alloc, join, switch
@@ -132,15 +132,15 @@ mode_opt = get_mode(mode_opt)
 
 dimshuffle_lift = out2in(local_dimshuffle_lift)
 
-_optimizer_stabilize = OptimizationQuery(include=["fast_run"])
+_optimizer_stabilize = RewriteDatabaseQuery(include=["fast_run"])
 _optimizer_stabilize.position_cutoff = 1.51
 _optimizer_stabilize = optdb.query(_optimizer_stabilize)
 
-_optimizer_specialize = OptimizationQuery(include=["fast_run"])
+_optimizer_specialize = RewriteDatabaseQuery(include=["fast_run"])
 _optimizer_specialize.position_cutoff = 2.01
 _optimizer_specialize = optdb.query(_optimizer_specialize)
 
-_optimizer_fast_run = OptimizationQuery(include=["fast_run"])
+_optimizer_fast_run = RewriteDatabaseQuery(include=["fast_run"])
 _optimizer_fast_run = optdb.query(_optimizer_fast_run)
 
 
@@ -366,7 +366,7 @@ class TestAlgebraicCanonizer:
         # We must be sure that the AlgebraicCanonizer is working, but that we don't have other
         # optimisation that could hide bug in the AlgebraicCanonizer as local_elemwise_fusion
         mode = get_default_mode()
-        opt = OptimizationQuery(["canonicalize"])
+        opt = RewriteDatabaseQuery(["canonicalize"])
         opt = opt.excluding("local_elemwise_fusion")
         mode = mode.__class__(linker=mode.linker, optimizer=opt)
         for id, [g, sym_inputs, val_inputs, nb_elemwise, out_dtype] in enumerate(cases):
@@ -500,7 +500,7 @@ class TestAlgebraicCanonizer:
         # We must be sure that the AlgebraicCanonizer is working, but that we don't have other
         # optimisation that could hide bug in the AlgebraicCanonizer as local_elemwise_fusion
         mode = get_default_mode()
-        mode._optimizer = OptimizationQuery(["canonicalize"])
+        mode._optimizer = RewriteDatabaseQuery(["canonicalize"])
         mode._optimizer = mode._optimizer.excluding("local_elemwise_fusion")
         for id, [g, sym_inputs, val_inputs, nb_elemwise, out_dtype] in enumerate(cases):
             f = function(
@@ -547,7 +547,7 @@ class TestAlgebraicCanonizer:
         # optimisation that could hide bug in the AlgebraicCanonizer as local_elemwise_fusion
         mode = get_default_mode()
 
-        opt = OptimizationQuery(["canonicalize"])
+        opt = RewriteDatabaseQuery(["canonicalize"])
         opt = opt.including("ShapeOpt", "local_fill_to_alloc")
         opt = opt.excluding("local_elemwise_fusion")
         mode = mode.__class__(linker=mode.linker, optimizer=opt)
@@ -907,7 +907,7 @@ class TestAlgebraicCanonizer:
         # optimisation that could hide bug in the AlgebraicCanonizer as local_elemwise_fusion
         mode = get_default_mode()
 
-        opt = OptimizationQuery(["canonicalize"])
+        opt = RewriteDatabaseQuery(["canonicalize"])
         opt = opt.excluding("local_elemwise_fusion")
         mode = mode.__class__(linker=mode.linker, optimizer=opt)
         # test fail!
@@ -1074,7 +1074,7 @@ def test_cast_in_mul_canonizer():
 
 
 class TestFusion:
-    opts = OptimizationQuery(
+    opts = RewriteDatabaseQuery(
         include=[
             "local_elemwise_fusion",
             "composite_elemwise_fusion",
@@ -1782,7 +1782,7 @@ class TestFusion:
 
     def test_add_mul_fusion_inplace(self):
 
-        opts = OptimizationQuery(
+        opts = RewriteDatabaseQuery(
             include=[
                 "local_elemwise_fusion",
                 "composite_elemwise_fusion",
