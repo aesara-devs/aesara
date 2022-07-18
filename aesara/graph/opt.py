@@ -3091,13 +3091,12 @@ def check_stack_trace(f_or_fgraph, ops_to_check="last", bug_print="raise"):
 
 class CheckStackTraceFeature(Feature):
     def on_import(self, fgraph, node, reason):
-        # In optdb we only register the CheckStackTraceOptimization when
-        # config.check_stack_trace is not off but we also double check here.
+        # In `optdb` we only register the `CheckStackTraceRewriter` when
+        # `config.check_stack_trace` is not off, but we also double check here.
         if config.check_stack_trace != "off" and not check_stack_trace(fgraph, "all"):
             if config.check_stack_trace == "raise":
                 raise AssertionError(
-                    "Empty stack trace! The optimization that inserted this variable is "
-                    + str(reason)
+                    f"Empty stack trace. The rewrite that inserted this variable is {reason}."
                 )
             elif config.check_stack_trace in ("log", "warn"):
                 apply_nodes_to_check = fgraph.apply_nodes
@@ -3109,22 +3108,19 @@ class CheckStackTraceFeature(Feature):
                                     (
                                         "",
                                         0,
-                                        "Empty stack trace! The optimization that"
-                                        + "inserted this variable is "
-                                        + str(reason),
+                                        f"Empty stack trace. The rewrite that inserted this variable is {reason}.",
                                         "",
                                     )
                                 ]
                             ]
                 if config.check_stack_trace == "warn":
                     warnings.warn(
-                        "Empty stack trace! The optimization that inserted this variable is"
-                        + str(reason)
+                        f"Empty stack trace. The rewrite that inserted this variable is {reason}."
                     )
 
 
-class CheckStackTraceOptimization(GraphRewriter):
-    """Optimizer that serves to add `CheckStackTraceOptimization` as a feature."""
+class CheckStackTraceRewriter(GraphRewriter):
+    """Rewriter that serves to add `CheckStackTraceRewriter` as a feature."""
 
     def add_requirements(self, fgraph):
         if not hasattr(fgraph, "CheckStackTraceFeature"):
