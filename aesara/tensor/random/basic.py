@@ -569,6 +569,26 @@ class BetaBinomialRV(ScipyRandomVariable):
 betabinom = BetaBinomialRV()
 
 
+class GenGammaRV(ScipyRandomVariable):
+    name = "gengamma"
+    ndim_supp = 0
+    ndims_params = [0, 0, 0]
+    dtype = "floatX"
+    _print_name = ("GG", "\\operatorname{GG}")
+
+    def __call__(self, alpha=1.0, p=1.0, lambd=1.0, size=None, **kwargs):
+        return super().__call__(alpha, p, lambd, size=size, **kwargs)
+
+    @classmethod
+    def rng_fn_scipy(cls, rng, alpha, p, lambd, size):
+        return stats.gengamma.rvs(
+            alpha / p, p, scale=lambd, size=size, random_state=rng
+        )
+
+
+gengamma = GenGammaRV()
+
+
 class MultinomialRV(RandomVariable):
     """A Multinomial random variable type.
 
@@ -794,4 +814,5 @@ __all__ = [
     "uniform",
     "standard_normal",
     "negative_binomial",
+    "gengamma",
 ]
