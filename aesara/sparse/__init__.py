@@ -13,7 +13,7 @@ from aesara.sparse.type import SparseTensorType, _is_sparse
 
 
 if enable_sparse:
-    from aesara.sparse import opt, sharedvar
+    from aesara.sparse import rewriting, sharedvar
     from aesara.sparse.basic import *
     from aesara.sparse.sharedvar import sparse_constructor as shared
 

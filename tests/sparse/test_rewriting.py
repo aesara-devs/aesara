@@ -1,14 +1,12 @@
-import pytest
-
-
-sp = pytest.importorskip("scipy", minversion="0.7.0")
-
 import numpy as np
+import pytest
+import scipy as sp
 
 import aesara
 from aesara import sparse
 from aesara.compile.mode import Mode, get_default_mode
 from aesara.configdefaults import config
+from aesara.sparse.rewriting import SamplingDotCSR, sd_csc
 from aesara.tensor.basic import as_tensor_variable
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.type import ivector, matrix, vector
@@ -38,7 +36,7 @@ def test_local_csm_properties_csm():
         f(v.data, v.indices, v.indptr, v.shape)
 
 
-@pytest.mark.skip(reason="Opt disabled as it don't support unsorted indices")
+@pytest.mark.skip(reason="Rewrite disabled as it don't support unsorted indices")
 @pytest.mark.skipif(
     not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
 )
@@ -143,7 +141,7 @@ def test_local_sampling_dot_csr():
             # SamplingDotCSR's C implementation needs blas, so it should not
             # be inserted
             assert not any(
-                isinstance(node.op, sparse.opt.SamplingDotCSR)
+                isinstance(node.op, SamplingDotCSR)
                 for node in f.maker.fgraph.toposort()
             )
 
@@ -174,6 +172,6 @@ def test_sd_csc():
     nrows = as_tensor_variable(np.int32(A.shape[0]))
     b = as_tensor_variable(b)
 
-    res = aesara.sparse.opt.sd_csc(a_val, a_ind, a_ptr, nrows, b).eval()
+    res = sd_csc(a_val, a_ind, a_ptr, nrows, b).eval()
 
     utt.assert_allclose(res, target)
