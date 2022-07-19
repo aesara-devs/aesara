@@ -84,7 +84,12 @@ from aesara.sparse.basic import (
     _is_sparse_variable,
     _mtypes,
 )
-from aesara.sparse.opt import CSMGradC, StructuredDotCSC, UsmmCscDense
+from aesara.sparse.rewriting import (
+    AddSD_ccode,
+    CSMGradC,
+    StructuredDotCSC,
+    UsmmCscDense,
+)
 from aesara.tensor.basic import MakeVector
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.math import sum as at_sum
@@ -491,7 +496,7 @@ class TestSparseInferShape(utt.InferShapeTester):
                 sp.sparse.csr_matrix(random_lil((10, 40), config.floatX, 3)),
                 np.random.standard_normal((10, 40)).astype(config.floatX),
             ],
-            (AddSD, sparse.opt.AddSD_ccode),
+            (AddSD, AddSD_ccode),
         )
 
     def test_mul_ss(self):
