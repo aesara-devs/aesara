@@ -1275,6 +1275,66 @@ def test_Join_view():
 
 
 @pytest.mark.parametrize(
+    "n_splits, axis, values, sizes",
+    [
+        (
+            0,
+            0,
+            set_test_value(at.vector(), rng.normal(size=20).astype(config.floatX)),
+            set_test_value(at.vector(dtype="int64"), []),
+        ),
+        (
+            5,
+            0,
+            set_test_value(at.vector(), rng.normal(size=5).astype(config.floatX)),
+            set_test_value(
+                at.vector(dtype="int64"), rng.multinomial(5, np.ones(5) / 5)
+            ),
+        ),
+        (
+            5,
+            0,
+            set_test_value(at.vector(), rng.normal(size=10).astype(config.floatX)),
+            set_test_value(
+                at.vector(dtype="int64"), rng.multinomial(10, np.ones(5) / 5)
+            ),
+        ),
+        (
+            5,
+            -1,
+            set_test_value(at.matrix(), rng.normal(size=(11, 7)).astype(config.floatX)),
+            set_test_value(
+                at.vector(dtype="int64"), rng.multinomial(7, np.ones(5) / 5)
+            ),
+        ),
+        (
+            5,
+            -2,
+            set_test_value(at.matrix(), rng.normal(size=(11, 7)).astype(config.floatX)),
+            set_test_value(
+                at.vector(dtype="int64"), rng.multinomial(11, np.ones(5) / 5)
+            ),
+        ),
+    ],
+)
+def test_Split(n_splits, axis, values, sizes):
+    g = at.split(values, sizes, n_splits, axis=axis)
+    assert len(g) == n_splits
+    if n_splits == 0:
+        return
+    g_fg = FunctionGraph(outputs=[g] if n_splits == 1 else g)
+
+    compare_numba_and_py(
+        g_fg,
+        [
+            i.tag.test_value
+            for i in g_fg.inputs
+            if not isinstance(i, (SharedVariable, Constant))
+        ],
+    )
+
+
+@pytest.mark.parametrize(
     "val, offset",
     [
         (

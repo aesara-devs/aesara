@@ -15,6 +15,7 @@ from aesara.tensor.basic import (
     Join,
     MakeVector,
     ScalarFromTensor,
+    Split,
     TensorFromScalar,
 )
 from aesara.tensor.shape import Unbroadcast
@@ -136,6 +137,18 @@ def numba_funcify_Join(op, **kwargs):
         return np.concatenate(tensors, numba_basic.to_scalar(axis))
 
     return join
+
+
+@numba_funcify.register(Split)
+def numba_funcify_Split(op, **kwargs):
+    @numba_basic.numba_njit
+    def split(tensor, axis, indices):
+        # Work around for https://github.com/numba/numba/issues/8257
+        axis = axis % tensor.ndim
+        axis = numba_basic.to_scalar(axis)
+        return np.split(tensor, np.cumsum(indices)[:-1], axis=axis)
+
+    return split
 
 
 @numba_funcify.register(ExtractDiag)
