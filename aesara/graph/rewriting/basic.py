@@ -40,10 +40,10 @@ from aesara.utils import flatten
 
 
 if TYPE_CHECKING:
-    from aesara.graph.unify import Var
+    from aesara.graph.rewriting.unify import Var
 
 
-_logger = logging.getLogger("aesara.graph.opt")
+_logger = logging.getLogger("aesara.graph.rewriting.basic")
 
 RemoveKeyType = Literal["remove"]
 TransformOutputType = Union[
@@ -1586,7 +1586,7 @@ class PatternNodeRewriter(NodeRewriter):
         often.
 
         """
-        from aesara.graph.unify import convert_strs_to_vars
+        from aesara.graph.rewriting.unify import convert_strs_to_vars
 
         var_map: Dict[str, "Var"] = {}
         self.in_pattern = convert_strs_to_vars(in_pattern, var_map=var_map)

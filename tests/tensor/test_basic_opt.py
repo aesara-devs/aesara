@@ -16,9 +16,9 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
-from aesara.graph.opt import check_stack_trace, node_rewriter, out2in
-from aesara.graph.opt_utils import rewrite_graph
-from aesara.graph.optdb import RewriteDatabaseQuery
+from aesara.graph.rewriting.basic import check_stack_trace, node_rewriter, out2in
+from aesara.graph.rewriting.db import RewriteDatabaseQuery
+from aesara.graph.rewriting.utils import rewrite_graph
 from aesara.graph.type import Type
 from aesara.misc.safe_asarray import _asarray
 from aesara.printing import pprint

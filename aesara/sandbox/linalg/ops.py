@@ -1,6 +1,6 @@
 import logging
 
-from aesara.graph.opt import node_rewriter
+from aesara.graph.rewriting.basic import node_rewriter
 from aesara.tensor import basic as at
 from aesara.tensor.basic_opt import (
     register_canonicalize,

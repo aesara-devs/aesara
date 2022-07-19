@@ -15,7 +15,7 @@ repos:
               aesara/breakpoint\.py|
               aesara/graph/op\.py|
               aesara/compile/nanguardmode\.py|
-              aesara/graph/opt\.py|
+              aesara/graph/rewriting/basic\.py|
               aesara/tensor/var\.py|
           )$
       - id: check-merge-conflict

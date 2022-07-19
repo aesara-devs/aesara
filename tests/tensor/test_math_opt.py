@@ -18,15 +18,15 @@ from aesara.compile.ops import DeepCopyOp, deep_copy_op
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Constant, equal_computations
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.opt import (
+from aesara.graph.rewriting.basic import (
     SequentialNodeRewriter,
     WalkingGraphRewriter,
     check_stack_trace,
     in2out,
     out2in,
 )
-from aesara.graph.opt_utils import is_same_graph, rewrite_graph
-from aesara.graph.optdb import RewriteDatabaseQuery
+from aesara.graph.rewriting.db import RewriteDatabaseQuery
+from aesara.graph.rewriting.utils import is_same_graph, rewrite_graph
 from aesara.misc.safe_asarray import _asarray
 from aesara.tensor import inplace
 from aesara.tensor.basic import Alloc, join, switch
@@ -945,12 +945,12 @@ class TestAlgebraicCanonizer:
         sio = StringIO()
         handler = logging.StreamHandler(sio)
         handler.setLevel(logging.ERROR)
-        logging.getLogger("aesara.graph.opt").addHandler(handler)
+        logging.getLogger("aesara.graph.rewriting.basic").addHandler(handler)
         try:
             x = vector()
             function([x], x + np.nan)
         finally:
-            logging.getLogger("aesara.graph.opt").removeHandler(handler)
+            logging.getLogger("aesara.graph.rewriting.basic").removeHandler(handler)
         # Ideally this test would only catch the maxed out equilibrium
         # rewriter error message, but to be safe in case this message
         # is modified in the future, we assert that there is no error

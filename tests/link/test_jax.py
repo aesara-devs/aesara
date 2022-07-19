@@ -15,7 +15,7 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Apply
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op, get_test_value
-from aesara.graph.optdb import RewriteDatabaseQuery
+from aesara.graph.rewriting.db import RewriteDatabaseQuery
 from aesara.ifelse import ifelse
 from aesara.link.jax import JAXLinker
 from aesara.raise_op import assert_op

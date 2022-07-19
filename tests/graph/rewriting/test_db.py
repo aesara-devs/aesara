@@ -1,7 +1,7 @@
 import pytest
 
-from aesara.graph import opt
-from aesara.graph.optdb import (
+from aesara.graph.rewriting.basic import GraphRewriter, SequentialGraphRewriter
+from aesara.graph.rewriting.db import (
     EquilibriumDB,
     LocalGroupDB,
     ProxyDB,
@@ -10,7 +10,7 @@ from aesara.graph.optdb import (
 )
 
 
-class TestOpt(opt.GraphRewriter):
+class TestRewriter(GraphRewriter):
     name = "blah"
 
     def apply(self, fgraph):
@@ -20,24 +20,24 @@ class TestOpt(opt.GraphRewriter):
 class TestDB:
     def test_register(self):
         db = RewriteDatabase()
-        db.register("a", TestOpt())
+        db.register("a", TestRewriter())
 
-        db.register("b", TestOpt())
+        db.register("b", TestRewriter())
 
-        db.register("c", TestOpt(), "z", "asdf")
+        db.register("c", TestRewriter(), "z", "asdf")
 
         assert "a" in db
         assert "b" in db
         assert "c" in db
 
         with pytest.raises(ValueError, match=r"The tag.*"):
-            db.register("c", TestOpt())  # name taken
+            db.register("c", TestRewriter())  # name taken
 
         with pytest.raises(ValueError, match=r"The tag.*"):
-            db.register("z", TestOpt())  # name collides with tag
+            db.register("z", TestRewriter())  # name collides with tag
 
         with pytest.raises(ValueError, match=r"The tag.*"):
-            db.register("u", TestOpt(), "b")  # name new but tag collides with name
+            db.register("u", TestRewriter(), "b")  # name new but tag collides with name
 
         with pytest.raises(TypeError, match=r".* is not a valid.*"):
             db.register("d", 1)
@@ -46,17 +46,17 @@ class TestDB:
         eq_db = EquilibriumDB()
 
         with pytest.raises(ValueError, match=r"`final_rewriter` and.*"):
-            eq_db.register("d", TestOpt(), final_rewriter=True, cleanup=True)
+            eq_db.register("d", TestRewriter(), final_rewriter=True, cleanup=True)
 
     def test_SequenceDB(self):
         seq_db = SequenceDB(failure_callback=None)
 
         res = seq_db.query("+a")
 
-        assert isinstance(res, opt.SequentialGraphRewriter)
+        assert isinstance(res, SequentialGraphRewriter)
         assert res.data == []
 
-        seq_db.register("b", TestOpt(), position=1)
+        seq_db.register("b", TestRewriter(), position=1)
 
         from io import StringIO
 
@@ -69,17 +69,17 @@ class TestDB:
         assert "names {'b'}" in res
 
         with pytest.raises(TypeError, match=r"`position` must be.*"):
-            seq_db.register("c", TestOpt(), position=object())
+            seq_db.register("c", TestRewriter(), position=object())
 
     def test_LocalGroupDB(self):
         lg_db = LocalGroupDB()
 
-        lg_db.register("a", TestOpt(), 1)
+        lg_db.register("a", TestRewriter(), 1)
 
         assert "a" in lg_db.__position__
 
         with pytest.raises(TypeError, match=r"`position` must be.*"):
-            lg_db.register("b", TestOpt(), position=object())
+            lg_db.register("b", TestRewriter(), position=object())
 
     def test_ProxyDB(self):
         with pytest.raises(TypeError, match=r"`db` must be.*"):

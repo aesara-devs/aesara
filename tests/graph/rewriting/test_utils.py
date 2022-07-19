@@ -1,6 +1,6 @@
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.opt import graph_rewriter
-from aesara.graph.opt_utils import is_same_graph, rewrite_graph
+from aesara.graph.rewriting.basic import graph_rewriter
+from aesara.graph.rewriting.utils import is_same_graph, rewrite_graph
 from aesara.tensor.math import neg
 from aesara.tensor.type import vectors
 

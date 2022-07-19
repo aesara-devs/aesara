@@ -10,7 +10,7 @@ from aesara.compile.mode import OPT_FAST_RUN, optdb
 from aesara.configdefaults import config
 from aesara.gradient import grad
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.opt import check_stack_trace
+from aesara.graph.rewriting.basic import check_stack_trace
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
 from aesara.tensor.math import (
     Argmax,

@@ -4,7 +4,7 @@ import aesara
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
-from aesara.graph.opt import copy_stack_trace, node_rewriter
+from aesara.graph.rewriting.basic import copy_stack_trace, node_rewriter
 from aesara.scalar import Composite, add, as_common_dtype, mul, sub, true_div
 from aesara.tensor import basic as at
 from aesara.tensor.basic import as_tensor_variable
@@ -896,7 +896,7 @@ def local_abstract_batch_norm_inference(fgraph, node):
 
 
 # Register Cpu Optimization
-bn_groupopt = aesara.graph.optdb.LocalGroupDB()
+bn_groupopt = aesara.graph.rewriting.db.LocalGroupDB()
 bn_groupopt.__name__ = "batchnorm_opts"
 register_specialize_device(bn_groupopt, "fast_compile", "fast_run")
 

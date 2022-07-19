@@ -12,7 +12,7 @@ from aesara.gradient import DisconnectedType, Rop, disconnected_type, grad
 from aesara.graph.basic import equal_computations
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.null_type import NullType
-from aesara.graph.opt_utils import rewrite_graph
+from aesara.graph.rewriting.utils import rewrite_graph
 from aesara.graph.utils import MissingInputError
 from aesara.printing import debugprint
 from aesara.tensor.basic import as_tensor

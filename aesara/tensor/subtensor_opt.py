@@ -7,7 +7,7 @@ import aesara
 import aesara.scalar.basic as aes
 from aesara import compile
 from aesara.graph.basic import Constant, Variable
-from aesara.graph.opt import (
+from aesara.graph.rewriting.basic import (
     WalkingGraphRewriter,
     copy_stack_trace,
     in2out,

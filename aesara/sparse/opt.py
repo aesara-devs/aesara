@@ -4,7 +4,11 @@ import aesara
 import aesara.scalar as aes
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply
-from aesara.graph.opt import PatternNodeRewriter, WalkingGraphRewriter, node_rewriter
+from aesara.graph.rewriting.basic import (
+    PatternNodeRewriter,
+    WalkingGraphRewriter,
+    node_rewriter,
+)
 from aesara.link.c.op import COp, _NoPythonCOp
 from aesara.misc.safe_asarray import _asarray
 from aesara.sparse import basic as sparse

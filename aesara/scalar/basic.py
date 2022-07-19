@@ -27,7 +27,7 @@ from aesara.configdefaults import config
 from aesara.gradient import DisconnectedType, grad_undefined
 from aesara.graph.basic import Apply, Constant, Variable, clone, list_of_nodes
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.opt import MergeOptimizer
+from aesara.graph.rewriting.basic import MergeOptimizer
 from aesara.graph.type import HasDataType, HasShape
 from aesara.graph.utils import MetaObject, MethodNotDefined
 from aesara.link.c.op import COp

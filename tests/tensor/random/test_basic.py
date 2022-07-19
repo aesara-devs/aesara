@@ -14,7 +14,7 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable, graph_inputs
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import get_test_value
-from aesara.graph.optdb import RewriteDatabaseQuery
+from aesara.graph.rewriting.db import RewriteDatabaseQuery
 from aesara.tensor.basic_opt import ShapeFeature
 from aesara.tensor.random.basic import (
     bernoulli,

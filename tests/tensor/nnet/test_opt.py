@@ -1,5 +1,5 @@
 import aesara
-from aesara.graph.opt import check_stack_trace
+from aesara.graph.rewriting.basic import check_stack_trace
 from aesara.tensor.nnet.blocksparse import (
     sparse_block_dot,
     sparse_block_gemv,

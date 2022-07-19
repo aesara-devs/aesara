@@ -24,7 +24,7 @@ from aesara.gradient import DisconnectedType, grad_not_implemented, grad_undefin
 from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
-from aesara.graph.opt_utils import rewrite_graph
+from aesara.graph.rewriting.utils import rewrite_graph
 from aesara.graph.type import Type
 from aesara.link.c.op import COp
 from aesara.link.c.params_type import ParamsType

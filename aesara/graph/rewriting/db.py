@@ -6,7 +6,7 @@ from io import StringIO
 from typing import Dict, Iterable, Optional, Sequence, Tuple, Union
 
 from aesara.configdefaults import config
-from aesara.graph import opt as aesara_rewriting
+from aesara.graph.rewriting import basic as aesara_rewriting
 from aesara.misc.ordered_set import OrderedSet
 from aesara.utils import DefaultOrderedDict
 

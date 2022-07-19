@@ -6,7 +6,7 @@ import aesara
 from aesara import compile
 from aesara.compile import optdb
 from aesara.configdefaults import config
-from aesara.graph.opt import (
+from aesara.graph.rewriting.basic import (
     MetaNodeRewriterSkip,
     WalkingGraphRewriter,
     copy_stack_trace,
@@ -486,7 +486,7 @@ def local_conv2d_gradinputs_cpu(fgraph, node):
 
 
 # Register Cpu Optimization
-conv_groupopt = aesara.graph.optdb.LocalGroupDB()
+conv_groupopt = aesara.graph.rewriting.db.LocalGroupDB()
 conv_groupopt.__name__ = "conv_opts"
 register_specialize_device(conv_groupopt, "fast_compile", "fast_run")
 

@@ -17,7 +17,7 @@ from aesara.compile.sharedvalue import shared
 from aesara.configdefaults import config
 from aesara.gradient import grad
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.opt import in2out
+from aesara.graph.rewriting.basic import in2out
 from aesara.graph.utils import InconsistencyError
 from aesara.misc.safe_asarray import _asarray
 from aesara.tensor import inplace

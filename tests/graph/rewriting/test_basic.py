@@ -5,7 +5,7 @@ from aesara.graph.basic import Apply, Constant, equal_computations
 from aesara.graph.features import Feature
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
-from aesara.graph.opt import (
+from aesara.graph.rewriting.basic import (
     EquilibriumGraphRewriter,
     MergeOptimizer,
     OpKeyGraphRewriter,
@@ -487,8 +487,8 @@ class TestEquilibrium:
         g = FunctionGraph([x, y, z], [e])
         # print 'before', g
         # display pesky warnings along with stdout
-        # also silence logger for 'aesara.graph.opt'
-        _logger = logging.getLogger("aesara.graph.opt")
+        # also silence logger for 'aesara.graph.rewriting.basic'
+        _logger = logging.getLogger("aesara.graph.rewriting.basic")
         oldlevel = _logger.level
         _logger.setLevel(logging.CRITICAL)
         try:

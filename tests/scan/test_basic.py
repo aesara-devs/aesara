@@ -32,7 +32,7 @@ from aesara.gradient import NullTypeGradError, Rop, disconnected_grad, grad, hes
 from aesara.graph.basic import Apply, ancestors, equal_computations
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
-from aesara.graph.opt import MergeOptimizer
+from aesara.graph.rewriting.basic import MergeOptimizer
 from aesara.graph.utils import MissingInputError
 from aesara.misc.safe_asarray import _asarray
 from aesara.raise_op import assert_op

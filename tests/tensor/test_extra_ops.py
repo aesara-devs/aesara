@@ -9,7 +9,7 @@ from aesara import tensor as at
 from aesara.compile.mode import Mode
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant, applys_between
-from aesara.graph.optdb import RewriteDatabaseQuery
+from aesara.graph.rewriting.db import RewriteDatabaseQuery
 from aesara.raise_op import Assert
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.extra_ops import (

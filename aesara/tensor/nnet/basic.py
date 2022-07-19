@@ -18,7 +18,7 @@ from aesara.compile import optdb
 from aesara.gradient import DisconnectedType, grad_not_implemented
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
-from aesara.graph.opt import copy_stack_trace, graph_rewriter, node_rewriter
+from aesara.graph.rewriting.basic import copy_stack_trace, graph_rewriter, node_rewriter
 from aesara.link.c.op import COp
 from aesara.raise_op import Assert
 from aesara.scalar import UnaryScalarOp

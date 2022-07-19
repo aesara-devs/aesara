@@ -4,7 +4,7 @@ Implementations of BLAS Ops based on scipy's BLAS bindings.
 
 import numpy as np
 
-from aesara.graph.opt import in2out
+from aesara.graph.rewriting.basic import in2out
 from aesara.tensor.blas import (
     Ger,
     blas_optdb,

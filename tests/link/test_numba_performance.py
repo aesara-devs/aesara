@@ -7,7 +7,7 @@ import aesara.tensor as aet
 from aesara import config
 from aesara.compile.function import function
 from aesara.compile.mode import Mode
-from aesara.graph.optdb import RewriteDatabaseQuery
+from aesara.graph.rewriting.db import RewriteDatabaseQuery
 from aesara.link.numba.linker import NumbaLinker
 from aesara.tensor.math import Max
 

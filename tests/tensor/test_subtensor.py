@@ -13,7 +13,7 @@ from aesara.compile import DeepCopyOp, shared
 from aesara.compile.io import In
 from aesara.configdefaults import config
 from aesara.graph.op import get_test_value
-from aesara.graph.opt_utils import is_same_graph
+from aesara.graph.rewriting.utils import is_same_graph
 from aesara.printing import pprint
 from aesara.scalar.basic import as_scalar
 from aesara.tensor import get_vector_length
@@ -351,7 +351,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         t = n[7]
         assert isinstance(t.owner.op, Subtensor)
         # Silence expected error messages
-        _logger = logging.getLogger("aesara.graph.opt")
+        _logger = logging.getLogger("aesara.graph.rewriting.basic")
         oldlevel = _logger.level
         _logger.setLevel(logging.CRITICAL)
         try:
@@ -432,7 +432,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
             t = n[idx]
             assert isinstance(t.owner.op, Subtensor)
             # Silence expected warnings
-            _logger = logging.getLogger("aesara.graph.opt")
+            _logger = logging.getLogger("aesara.graph.rewriting.basic")
             oldlevel = _logger.level
             _logger.setLevel(logging.CRITICAL)
             try:

@@ -10,13 +10,13 @@ from typing import Optional, Tuple, Union
 from aesara.compile.function.types import Supervisor
 from aesara.configdefaults import config
 from aesara.graph.destroyhandler import DestroyHandler
-from aesara.graph.opt import (
+from aesara.graph.rewriting.basic import (
     CheckStackTraceRewriter,
     GraphRewriter,
     MergeOptimizer,
     NodeProcessingGraphRewriter,
 )
-from aesara.graph.optdb import (
+from aesara.graph.rewriting.db import (
     EquilibriumDB,
     LocalGroupDB,
     RewriteDatabase,

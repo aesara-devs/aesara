@@ -1,7 +1,7 @@
 from aesara.compile.function import function
 from aesara.compile.mode import AddFeatureOptimizer, Mode
 from aesara.graph.features import NoOutputFromInplace
-from aesara.graph.optdb import RewriteDatabaseQuery, SequenceDB
+from aesara.graph.rewriting.db import RewriteDatabaseQuery, SequenceDB
 from aesara.tensor.math import dot, tanh
 from aesara.tensor.type import matrix
 

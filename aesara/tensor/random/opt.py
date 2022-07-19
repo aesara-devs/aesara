@@ -1,7 +1,7 @@
 from aesara.compile import optdb
 from aesara.configdefaults import config
 from aesara.graph.op import compute_test_value
-from aesara.graph.opt import in2out, node_rewriter
+from aesara.graph.rewriting.basic import in2out, node_rewriter
 from aesara.tensor.basic import constant, get_vector_length
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.extra_ops import broadcast_to
