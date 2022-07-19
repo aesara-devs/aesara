@@ -27,6 +27,7 @@ from aesara.scalar.basic import (
     Second,
     Switch,
 )
+from aesara.scalar.math import Sigmoid
 
 
 @numba_funcify.register(ScalarOp)
@@ -241,3 +242,12 @@ def numba_funcify_Inv(op, node, **kwargs):
         return 1 / x
 
     return inv
+
+
+@numba_funcify.register(Sigmoid)
+def numba_funcify_Sigmoid(op, node, **kwargs):
+    @numba_basic.numba_njit(inline="always", fastmath=config.numba__fastmath)
+    def sigmoid(x):
+        return 1 / (1 + np.exp(-x))
+
+    return sigmoid
