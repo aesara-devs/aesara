@@ -1,3 +1,7 @@
+import sys
+
+import pytest
+
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.rewriting.basic import graph_rewriter
 from aesara.graph.rewriting.utils import is_same_graph, rewrite_graph
@@ -156,3 +160,17 @@ def test_rewrite_graph():
     )
 
     assert x_rewritten.outputs[0] is y
+
+
+def test_deprecations():
+    """Make sure we can import deprecated classes from current and deprecated modules."""
+    with pytest.deprecated_call():
+        from aesara.graph.rewriting.utils import optimize_graph  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.graph.opt_utils import optimize_graph  # noqa: F401 F811
+
+    del sys.modules["aesara.graph.opt_utils"]
+
+    with pytest.deprecated_call():
+        from aesara.graph.opt_utils import rewrite_graph  # noqa: F401

@@ -1,3 +1,5 @@
+import sys
+
 import pytest
 
 from aesara.configdefaults import config
@@ -830,3 +832,17 @@ def test_OpToRewriterTracker():
         local_rewriter_2,
         local_rewriter_1,
     ]
+
+
+def test_deprecations():
+    """Make sure we can import deprecated classes from current and deprecated modules."""
+    with pytest.deprecated_call():
+        from aesara.graph.rewriting.basic import GlobalOptimizer
+
+    with pytest.deprecated_call():
+        from aesara.graph.opt import GlobalOptimizer, LocalOptimizer  # noqa: F401 F811
+
+    del sys.modules["aesara.graph.opt"]
+
+    with pytest.deprecated_call():
+        from aesara.graph.opt import GraphRewriter  # noqa: F401
