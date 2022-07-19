@@ -25,7 +25,7 @@ from aesara.graph.opt import (
     in2out,
     out2in,
 )
-from aesara.graph.opt_utils import is_same_graph, optimize_graph
+from aesara.graph.opt_utils import is_same_graph, rewrite_graph
 from aesara.graph.optdb import RewriteDatabaseQuery
 from aesara.misc.safe_asarray import _asarray
 from aesara.tensor import inplace
@@ -251,7 +251,7 @@ class TestAlgebraicCanonizer:
         ],
     )
     def test_muldiv(self, e, exp_g):
-        g_rewritten = optimize_graph(e, custom_opt=mul_canonizer)
+        g_rewritten = rewrite_graph(e, custom_rewrite=mul_canonizer)
         assert equal_computations([g_rewritten], [exp_g])
 
     def test_elemwise_multiple_inputs_rewrites(self):
@@ -966,8 +966,8 @@ class TestAlgebraicCanonizer:
             z.owner.op, z.owner.inputs, [tensor("float64", (None, None))]
         ).outputs[0]
 
-        z_rewritten = optimize_graph(
-            z, custom_opt=in2out(local_mul_canonizer, name="blah")
+        z_rewritten = rewrite_graph(
+            z, custom_rewrite=in2out(local_mul_canonizer, name="blah")
         )
         # No rewrite was applied
         assert z_rewritten is z
@@ -4140,7 +4140,7 @@ def test_local_log_sum_exp_inf():
 def test_local_reciprocal_1_plus_exp():
     x = vector("x")
     y = at.reciprocal(1 + exp(x))
-    z = optimize_graph(y, include=["canonicalization", "stabilize", "specialize"])
+    z = rewrite_graph(y, include=["canonicalization", "stabilize", "specialize"])
     assert z.owner.op == sigmoid
 
 

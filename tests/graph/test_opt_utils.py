@@ -1,6 +1,6 @@
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.opt import optimizer
-from aesara.graph.opt_utils import is_same_graph, optimize_graph
+from aesara.graph.opt import graph_rewriter
+from aesara.graph.opt_utils import is_same_graph, rewrite_graph
 from aesara.tensor.math import neg
 from aesara.tensor.type import vectors
 
@@ -139,20 +139,20 @@ class TestIsSameGraph:
         )
 
 
-def test_optimize_graph():
+def test_rewrite_graph():
 
     x, y = vectors("xy")
 
-    @optimizer
-    def custom_opt(fgraph):
+    @graph_rewriter
+    def custom_rewrite(fgraph):
         fgraph.replace(x, y, import_missing=True)
 
-    x_opt = optimize_graph(x, custom_opt=custom_opt)
+    x_rewritten = rewrite_graph(x, custom_rewrite=custom_rewrite)
 
-    assert x_opt is y
+    assert x_rewritten is y
 
-    x_opt = optimize_graph(
-        FunctionGraph(outputs=[x], clone=False), custom_opt=custom_opt
+    x_rewritten = rewrite_graph(
+        FunctionGraph(outputs=[x], clone=False), custom_rewrite=custom_rewrite
     )
 
-    assert x_opt.outputs[0] is y
+    assert x_rewritten.outputs[0] is y

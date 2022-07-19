@@ -24,7 +24,7 @@ from aesara.gradient import DisconnectedType, grad_not_implemented, grad_undefin
 from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
-from aesara.graph.opt_utils import optimize_graph
+from aesara.graph.opt_utils import rewrite_graph
 from aesara.graph.type import Type
 from aesara.link.c.op import COp
 from aesara.link.c.params_type import ParamsType
@@ -1336,7 +1336,7 @@ def infer_broadcastable(shape):
         features=[ShapeFeature()],
         clone=True,
     )
-    folded_shape = optimize_graph(shape_fg, custom_opt=topo_constant_folding).outputs
+    folded_shape = rewrite_graph(shape_fg, custom_rewrite=topo_constant_folding).outputs
 
     bcast = tuple(getattr(s, "data", s) == 1 for s in folded_shape)
     return sh, bcast

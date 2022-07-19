@@ -446,7 +446,7 @@ The following is an example that distributes dot products across additions.
     import aesara.tensor as at
     from aesara.graph.kanren import KanrenRelationSub
     from aesara.graph.opt import EquilibriumGraphRewriter
-    from aesara.graph.opt_utils import optimize_graph
+    from aesara.graph.opt_utils import rewrite_graph
     from aesara.tensor.math import _dot
     from etuples import etuple
     from kanren import conso, eq, fact, heado, tailo
@@ -499,7 +499,7 @@ Below, we apply `dot_distribute_rewrite` to a few example graphs.  First we crea
 
 Next we apply the rewrite to the graph:
 
->>> res = optimize_graph(test_at, include=[], custom_opt=dot_distribute_rewrite, clone=False)
+>>> res = rewrite_graph(test_at, include=[], custom_rewrite=dot_distribute_rewrite, clone=False)
 >>> print(aesara.pprint(res))
 ((A @ x) + (A @ y))
 
@@ -511,7 +511,7 @@ few more test cases:
 >>> test_at = A_at.dot((x_at + y_at) + (z_at + w_at))
 >>> print(aesara.pprint(test_at))
 (A @ ((x + y) + (z + w)))
->>> res = optimize_graph(test_at, include=[], custom_opt=dot_distribute_rewrite, clone=False)
+>>> res = rewrite_graph(test_at, include=[], custom_rewrite=dot_distribute_rewrite, clone=False)
 >>> print(aesara.pprint(res))
 (((A @ x) + (A @ y)) + ((A @ z) + (A @ w)))
 
@@ -520,7 +520,7 @@ few more test cases:
 >>> test_at = A_at.dot(x_at + (y_at + B_at.dot(z_at + w_at)))
 >>> print(aesara.pprint(test_at))
 (A @ (x + (y + ((B @ z) + (B @ w)))))
->>> res = optimize_graph(test_at, include=[], custom_opt=dot_distribute_rewrite, clone=False)
+>>> res = rewrite_graph(test_at, include=[], custom_rewrite=dot_distribute_rewrite, clone=False)
 >>> print(aesara.pprint(res))
 ((A @ x) + ((A @ y) + ((A @ (B @ z)) + (A @ (B @ w)))))
 
@@ -533,7 +533,7 @@ To do that, we will create another :class:`Rewriter` that simply reverses the ar
 to the relation :func:`dot_distributeo` and apply it to the distributed result in ``res``:
 
 >>> dot_gather_rewrite = EquilibriumGraphRewriter([KanrenRelationSub(lambda x, y: dot_distributeo(y, x))], max_use_ratio=10)
->>> rev_res = optimize_graph(res, include=[], custom_opt=dot_gather_rewrite, clone=False)
+>>> rev_res = rewrite_graph(res, include=[], custom_rewrite=dot_gather_rewrite, clone=False)
 >>> print(aesara.pprint(rev_res))
 (A @ (x + (y + (B @ (z + w)))))
 

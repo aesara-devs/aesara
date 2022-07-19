@@ -1433,10 +1433,10 @@ class ShapeFeature(Feature):
             clone=True,
             # copy_inputs=False,
         )
-        from aesara.graph.opt_utils import optimize_graph
+        from aesara.graph.opt_utils import rewrite_graph
 
-        canon_shapes = optimize_graph(
-            shapes_fg, custom_opt=topo_constant_folding
+        canon_shapes = rewrite_graph(
+            shapes_fg, custom_rewrite=topo_constant_folding
         ).outputs
 
         sx = canon_shapes[: len(sx)]
