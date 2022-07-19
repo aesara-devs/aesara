@@ -12,7 +12,7 @@ from aesara.gradient import grad, jacobian
 from aesara.graph.basic import clone_replace, equal_computations
 from aesara.graph.fg import FunctionGraph
 from aesara.scan.op import Scan
-from aesara.scan.opt import ScanInplaceOptimizer, ScanMerge
+from aesara.scan.rewriting import ScanInplaceOptimizer, ScanMerge
 from aesara.scan.utils import until
 from aesara.tensor.blas import Dot22
 from aesara.tensor.elemwise import Elemwise

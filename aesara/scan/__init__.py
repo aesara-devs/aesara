@@ -51,7 +51,7 @@ from aesara import configdefaults
 
 configdefaults.add_scan_configvars()
 
-from aesara.scan import opt
+from aesara.scan import rewriting
 from aesara.scan.basic import scan
 from aesara.scan.checkpoints import scan_checkpoints
 from aesara.scan.utils import until
