@@ -6,7 +6,7 @@ from aesara import function
 from aesara import scalar as aes
 from aesara.configdefaults import config
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.opt import out2in
+from aesara.graph.rewriting.basic import out2in
 from aesara.link.basic import PerformLinker
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
 from aesara.tensor.math import MaxAndArgmax

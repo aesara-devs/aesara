@@ -11,11 +11,11 @@ from unification import var, vars
 import aesara.tensor as at
 from aesara.graph.basic import Apply
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.kanren import KanrenRelationSub
 from aesara.graph.op import Op
-from aesara.graph.opt import EquilibriumGraphRewriter
-from aesara.graph.opt_utils import rewrite_graph
-from aesara.graph.unify import eval_if_etuple
+from aesara.graph.rewriting.basic import EquilibriumGraphRewriter
+from aesara.graph.rewriting.kanren import KanrenRelationSub
+from aesara.graph.rewriting.unify import eval_if_etuple
+from aesara.graph.rewriting.utils import rewrite_graph
 from aesara.tensor.math import Dot, _dot
 from tests.graph.utils import MyType, MyVariable
 

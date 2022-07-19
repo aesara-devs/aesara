@@ -10,9 +10,9 @@ from aesara.compile.mode import Mode, get_default_mode, get_mode
 from aesara.compile.ops import DeepCopyOp
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable, ancestors
-from aesara.graph.opt import check_stack_trace
-from aesara.graph.opt_utils import rewrite_graph
-from aesara.graph.optdb import RewriteDatabaseQuery
+from aesara.graph.rewriting.basic import check_stack_trace
+from aesara.graph.rewriting.db import RewriteDatabaseQuery
+from aesara.graph.rewriting.utils import rewrite_graph
 from aesara.graph.type import Type
 from aesara.raise_op import Assert
 from aesara.tensor import inplace

@@ -3,7 +3,7 @@ import pytest
 
 from aesara import config, function
 from aesara.compile.mode import Mode
-from aesara.graph.optdb import RewriteDatabaseQuery
+from aesara.graph.rewriting.db import RewriteDatabaseQuery
 from aesara.tensor.random.utils import RandomStream, broadcast_params
 from aesara.tensor.type import matrix, tensor
 from tests import unittest_tools as utt

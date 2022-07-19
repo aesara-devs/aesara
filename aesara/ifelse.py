@@ -22,7 +22,7 @@ from aesara.compile import optdb
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable, clone_replace, is_in_ancestors
 from aesara.graph.op import _NoPythonOp
-from aesara.graph.opt import GraphRewriter, in2out, node_rewriter
+from aesara.graph.rewriting.basic import GraphRewriter, in2out, node_rewriter
 from aesara.graph.type import HasDataType, HasShape
 from aesara.tensor.shape import Reshape, Shape, SpecifyShape, Unbroadcast
 
@@ -435,8 +435,8 @@ optdb.register(
 # XXX: Optimizations commented pending further debugging (certain optimizations
 # make computation less lazy than it should be currently).
 #
-# ifelse_equilibrium = graph.optdb.EquilibriumDB()
-# ifelse_seqopt = graph.optdb.SequenceDB()
+# ifelse_equilibrium = graph.rewriting.db.EquilibriumDB()
+# ifelse_seqopt = graph.rewriting.db.SequenceDB()
 # ifelse_equilibrium.register('seq_ifelse', ifelse_seqopt, 'fast_run',
 #                             'ifelse')
 """ Comments:
@@ -738,7 +738,7 @@ def cond_merge_random_op(fgraph, main_node):
 # XXX: Optimizations commented pending further debugging (certain optimizations
 # make computation less lazy than it should be currently).
 #
-# pushout_equilibrium = graph.optdb.EquilibriumDB()
+# pushout_equilibrium = graph.rewriting.db.EquilibriumDB()
 #
 # XXX: This optimization doesn't seem to exist anymore?
 # pushout_equilibrium.register("cond_lift_single_if",

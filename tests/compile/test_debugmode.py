@@ -18,8 +18,8 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.features import BadOptimization
 from aesara.graph.op import Op
-from aesara.graph.opt import node_rewriter
-from aesara.graph.optdb import EquilibriumDB
+from aesara.graph.rewriting.basic import node_rewriter
+from aesara.graph.rewriting.db import EquilibriumDB
 from aesara.link.c.op import COp
 from aesara.tensor.math import add, dot, log
 from aesara.tensor.type import TensorType, dvector, fmatrix, fvector, scalar, vector

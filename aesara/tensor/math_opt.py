@@ -9,7 +9,7 @@ import numpy as np
 import aesara.scalar.basic as aes
 import aesara.scalar.math as aes_math
 from aesara.graph.basic import Constant, Variable
-from aesara.graph.opt import (
+from aesara.graph.rewriting.basic import (
     NodeRewriter,
     PatternNodeRewriter,
     SequentialNodeRewriter,
@@ -17,7 +17,7 @@ from aesara.graph.opt import (
     in2out,
     node_rewriter,
 )
-from aesara.graph.opt_utils import get_clients_at_depth
+from aesara.graph.rewriting.utils import get_clients_at_depth
 from aesara.misc.safe_asarray import _asarray
 from aesara.raise_op import assert_op
 from aesara.tensor.basic import (
@@ -1941,7 +1941,7 @@ def local_pow_specialize_device(fgraph, node):
 
         # the next line is needed to fix a strange case that I don't
         # know how to make a separate test.
-        # That happen in the test_opt.py:test_log_erfc test.
+        # That happen in the `test_log_erfc` test.
         # y is a ndarray with dtype int8 and value 2,4 or 6. This make
         # the abs(y) <= 512 fail!
         # taking the value outside ndarray solve the problem.

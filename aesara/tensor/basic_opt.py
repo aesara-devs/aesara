@@ -26,7 +26,7 @@ from aesara.graph.basic import (
 from aesara.graph.features import AlreadyThere, Feature, ReplaceValidate
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import compute_test_value, get_test_value
-from aesara.graph.opt import (
+from aesara.graph.rewriting.basic import (
     GraphRewriter,
     NodeRewriter,
     RemovalNodeRewriter,
@@ -36,7 +36,7 @@ from aesara.graph.opt import (
     in2out,
     node_rewriter,
 )
-from aesara.graph.optdb import RewriteDatabase, SequenceDB
+from aesara.graph.rewriting.db import RewriteDatabase, SequenceDB
 from aesara.graph.utils import (
     InconsistencyError,
     MethodNotDefined,
@@ -1433,7 +1433,7 @@ class ShapeFeature(Feature):
             clone=True,
             # copy_inputs=False,
         )
-        from aesara.graph.opt_utils import rewrite_graph
+        from aesara.graph.rewriting.utils import rewrite_graph
 
         canon_shapes = rewrite_graph(
             shapes_fg, custom_rewrite=topo_constant_folding

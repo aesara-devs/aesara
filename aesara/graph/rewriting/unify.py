@@ -69,7 +69,7 @@ class ConstrainedVar(Var):
         return f"~{self.token} [{self.constraint}]"
 
     def __repr__(self):
-        return f"ConstrainedVar({repr(self.constraint)}, {self.token})"
+        return f"{type(self).__name__}({repr(self.constraint)}, {self.token})"
 
 
 def car_Variable(x):

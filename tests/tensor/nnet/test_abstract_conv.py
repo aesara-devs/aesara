@@ -5,7 +5,7 @@ import aesara
 import aesara.tensor as at
 from aesara.compile.mode import Mode
 from aesara.configdefaults import config
-from aesara.graph.opt import check_stack_trace
+from aesara.graph.rewriting.basic import check_stack_trace
 from aesara.tensor.nnet import abstract_conv as conv
 from aesara.tensor.nnet import conv2d_transpose, corr, corr3d
 from aesara.tensor.nnet.abstract_conv import (

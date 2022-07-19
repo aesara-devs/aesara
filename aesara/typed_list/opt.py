@@ -1,5 +1,5 @@
 from aesara.compile import optdb
-from aesara.graph.opt import WalkingGraphRewriter, node_rewriter
+from aesara.graph.rewriting.basic import WalkingGraphRewriter, node_rewriter
 from aesara.typed_list.basic import Append, Extend, Insert, Remove, Reverse
 
 

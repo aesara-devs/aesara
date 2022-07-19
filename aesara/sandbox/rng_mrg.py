@@ -25,7 +25,7 @@ from aesara.compile import optdb
 from aesara.configdefaults import config
 from aesara.gradient import undefined_grad
 from aesara.graph.basic import Apply, Constant, Variable
-from aesara.graph.opt import in2out, node_rewriter
+from aesara.graph.rewriting.basic import in2out, node_rewriter
 from aesara.link.c.op import COp, Op
 from aesara.link.c.params_type import ParamsType
 from aesara.sandbox import multinomial

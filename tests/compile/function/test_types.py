@@ -13,7 +13,7 @@ from aesara.compile.io import In, Out
 from aesara.compile.mode import Mode, get_default_mode
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant
-from aesara.graph.opt import OpKeyGraphRewriter, PatternNodeRewriter
+from aesara.graph.rewriting.basic import OpKeyGraphRewriter, PatternNodeRewriter
 from aesara.graph.utils import MissingInputError
 from aesara.link.vm import VMLinker
 from aesara.tensor.math import dot

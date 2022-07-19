@@ -5,7 +5,7 @@ import aesara.tensor as at
 from aesara.configdefaults import config
 from aesara.gradient import grad_undefined
 from aesara.graph.basic import Apply
-from aesara.graph.opt import node_rewriter
+from aesara.graph.rewriting.basic import node_rewriter
 from aesara.link.c.cmodule import GCC_compiler
 from aesara.link.c.op import ExternalCOp, OpenMPOp
 from aesara.tensor.basic_opt import register_canonicalize

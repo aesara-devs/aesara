@@ -11,7 +11,7 @@ import aesara.scalar as aes
 import aesara.tensor as at
 from aesara.graph.basic import Apply, Constant, equal_computations
 from aesara.graph.op import Op
-from aesara.graph.unify import ConstrainedVar, convert_strs_to_vars
+from aesara.graph.rewriting.unify import ConstrainedVar, convert_strs_to_vars
 from aesara.tensor.type import TensorType
 from tests.graph.utils import MyType
 

@@ -1,5 +1,5 @@
 from aesara.configdefaults import config
-from aesara.graph.opt import in2out
+from aesara.graph.rewriting.basic import in2out
 from aesara.link.c.op import COp
 from aesara.link.c.params_type import ParamsType
 from aesara.scalar import bool as bool_t

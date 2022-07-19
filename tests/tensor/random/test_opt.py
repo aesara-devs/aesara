@@ -7,8 +7,8 @@ from aesara.compile.function import function
 from aesara.compile.mode import Mode
 from aesara.graph.basic import Constant
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.opt import EquilibriumGraphRewriter
-from aesara.graph.optdb import RewriteDatabaseQuery
+from aesara.graph.rewriting.basic import EquilibriumGraphRewriter
+from aesara.graph.rewriting.db import RewriteDatabaseQuery
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.random.basic import (
     dirichlet,

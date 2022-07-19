@@ -102,7 +102,7 @@ simplification described above:
 .. testcode::
 
    import aesara
-   from aesara.graph.opt import GraphRewriter
+   from aesara.graph.rewriting.basic import GraphRewriter
    from aesara.graph.features import ReplaceValidate
 
    class Simplify(GraphRewriter):
@@ -184,9 +184,9 @@ Nothing happened here. The reason is: ``add(y, z) != add(y,
 z)``. That is the case for efficiency reasons. To fix this problem we
 first need to merge the parts of the graph that represent the same
 computation, using the :class:`MergeOptimizer` defined in
-:mod:`aesara.graph.opt`.
+:mod:`aesara.graph.rewriting.basic`.
 
->>> from aesara.graph.opt import MergeOptimizer
+>>> from aesara.graph.rewriting.basic import MergeOptimizer
 >>> MergeOptimizer().rewrite(e)  # doctest: +ELLIPSIS
 (0, ..., None, None, {}, 1, 0)
 >>> e
@@ -219,7 +219,7 @@ The local version of the above code would be the following:
 
 .. testcode::
 
-   from aesara.graph.opt import NodeRewriter
+   from aesara.graph.rewriting.basic import NodeRewriter
 
 
    class LocalSimplify(NodeRewriter):
@@ -265,9 +265,9 @@ subset of them) and applies one or several node rewriters.
 >>> e = aesara.graph.fg.FunctionGraph([x, y, z], [a])
 >>> e
 FunctionGraph(add(z, mul(true_div(mul(y, x), y), true_div(z, x))))
->>> simplify = aesara.graph.opt.WalkingGraphRewriter(local_simplify)
+>>> simplify = aesara.graph.rewriting.basic.WalkingGraphRewriter(local_simplify)
 >>> simplify.rewrite(e)
-(<aesara.graph.opt.WalkingGraphRewriter object at 0x...>, 1, 5, 3, ..., ..., ...)
+(<aesara.graph.rewriting.basic.WalkingGraphRewriter object at 0x...>, 1, 5, 3, ..., ..., ...)
 >>> e
 FunctionGraph(add(z, mul(x, true_div(z, x))))
 
@@ -297,7 +297,7 @@ Aesara defines some shortcuts to make :class:`NodeRewriter`\s:
 .. code::
 
    from aesara.scalar import identity
-   from aesara.graph.opt import SubstitutionNodeRewriter, RemovalNodeRewriter, PatternNodeRewriter
+   from aesara.graph.rewriting.basic import SubstitutionNodeRewriter, RemovalNodeRewriter, PatternNodeRewriter
 
    # Replacing `add` by `mul` (this is not recommended for primarily
    # mathematical reasons):
@@ -444,9 +444,9 @@ The following is an example that distributes dot products across additions.
 
     import aesara
     import aesara.tensor as at
-    from aesara.graph.kanren import KanrenRelationSub
-    from aesara.graph.opt import EquilibriumGraphRewriter
-    from aesara.graph.opt_utils import rewrite_graph
+    from aesara.graph.rewriting.kanren import KanrenRelationSub
+    from aesara.graph.rewriting.basic import EquilibriumGraphRewriter
+    from aesara.graph.rewriting.utils import rewrite_graph
     from aesara.tensor.math import _dot
     from etuples import etuple
     from kanren import conso, eq, fact, heado, tailo
@@ -585,8 +585,8 @@ Definition of :obj:`optdb`
 --------------------------
 
 :obj:`optdb` is an object which is an instance of
-:class:`SequenceDB <optdb.SequenceDB>`,
-itself a subclass of :class:`RewriteDatabase <optdb.RewriteDatabase>`.
+:class:`SequenceDB`,
+itself a subclass of :class:`RewriteDatabase`.
 There exist (for now) two types of :class:`RewriteDatabase`, :class:`SequenceDB` and :class:`EquilibriumDB`.
 When given an appropriate :class:`RewriteDatabaseQuery`, :class:`RewriteDatabase` objects build an :class:`Rewriter` matching
 the query.
@@ -623,7 +623,7 @@ A :class:`RewriteDatabaseQuery` is built by the following call:
 
 .. code-block:: python
 
-   aesara.graph.optdb.RewriteDatabaseQuery(include, require=None, exclude=None, subquery=None)
+   aesara.graph.rewriting.db.RewriteDatabaseQuery(include, require=None, exclude=None, subquery=None)
 
 .. class:: RewriteDatabaseQuery
 
@@ -664,7 +664,7 @@ Here are a few examples of how to use a :class:`RewriteDatabaseQuery` on :obj:`o
 
 .. testcode::
 
-   from aesara.graph.optdb import RewriteDatabaseQuery
+   from aesara.graph.rewriting.db import RewriteDatabaseQuery
    from aesara.compile import optdb
 
    # This is how the rewrites for the fast_run mode are defined
@@ -801,7 +801,7 @@ under the assumption there are no inplace operations.
 :class:`NodeProcessingGraphRewriter`
 ------------------------------------
 
-.. autoclass:: aesara.graph.opt.NodeProcessingGraphRewriter
+.. autoclass:: aesara.graph.rewriting.basic.NodeProcessingGraphRewriter
     :noindex:
 
 

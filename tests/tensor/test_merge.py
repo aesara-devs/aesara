@@ -4,7 +4,7 @@ import aesara.tensor.basic as at
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
-from aesara.graph.opt import MergeOptimizer
+from aesara.graph.rewriting.basic import MergeOptimizer
 from aesara.graph.type import Type
 
 

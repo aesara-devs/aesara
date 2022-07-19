@@ -24,7 +24,7 @@ from aesara.compile.sharedvalue import SharedVariable
 from aesara.graph.basic import Apply, Constant
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op, get_test_value
-from aesara.graph.optdb import RewriteDatabaseQuery
+from aesara.graph.rewriting.db import RewriteDatabaseQuery
 from aesara.graph.type import Type
 from aesara.ifelse import ifelse
 from aesara.link.numba.dispatch import basic as numba_basic

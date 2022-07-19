@@ -34,7 +34,7 @@ supposed to be canonical.
 import logging
 
 from aesara import scalar as aes
-from aesara.graph.opt import copy_stack_trace, node_rewriter
+from aesara.graph.rewriting.basic import copy_stack_trace, node_rewriter
 from aesara.tensor.basic import Alloc, alloc, constant
 from aesara.tensor.basic_opt import register_uncanonicalize
 from aesara.tensor.elemwise import CAReduce, DimShuffle

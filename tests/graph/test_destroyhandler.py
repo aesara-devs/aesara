@@ -8,7 +8,7 @@ from aesara.graph.destroyhandler import DestroyHandler
 from aesara.graph.features import ReplaceValidate
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
-from aesara.graph.opt import (
+from aesara.graph.rewriting.basic import (
     NodeProcessingGraphRewriter,
     OpKeyGraphRewriter,
     PatternNodeRewriter,

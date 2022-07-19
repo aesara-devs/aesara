@@ -11,7 +11,7 @@ except ImportError:
 
 import tests.unittest_tools as utt
 from aesara.compile.sharedvalue import shared
-from aesara.graph.opt import check_stack_trace
+from aesara.graph.rewriting.basic import check_stack_trace
 from aesara.tensor.nnet.conv3d2d import (
     DiagonalSubtensor,
     IncDiagonalSubtensor,

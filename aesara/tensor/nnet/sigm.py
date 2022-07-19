@@ -9,7 +9,7 @@ stability.
 import aesara
 from aesara import printing
 from aesara import scalar as aes
-from aesara.graph.opt import copy_stack_trace, node_rewriter
+from aesara.graph.rewriting.basic import copy_stack_trace, node_rewriter
 from aesara.printing import pprint
 from aesara.scalar import sigmoid as scalar_sigmoid
 from aesara.scalar.math import Sigmoid

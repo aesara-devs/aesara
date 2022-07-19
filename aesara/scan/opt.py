@@ -28,8 +28,8 @@ from aesara.graph.destroyhandler import DestroyHandler
 from aesara.graph.features import ReplaceValidate
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import compute_test_value
-from aesara.graph.opt import GraphRewriter, in2out, node_rewriter
-from aesara.graph.optdb import EquilibriumDB, SequenceDB
+from aesara.graph.rewriting.basic import GraphRewriter, in2out, node_rewriter
+from aesara.graph.rewriting.db import EquilibriumDB, SequenceDB
 from aesara.graph.type import HasShape
 from aesara.graph.utils import InconsistencyError
 from aesara.scan.op import Scan, ScanInfo

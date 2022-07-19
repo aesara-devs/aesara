@@ -11,11 +11,11 @@ from aesara.graph.basic import (
     vars_between,
 )
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.optdb import RewriteDatabaseQuery
+from aesara.graph.rewriting.db import RewriteDatabaseQuery
 
 
 if TYPE_CHECKING:
-    from aesara.graph.opt import GraphRewriter
+    from aesara.graph.rewriting.basic import GraphRewriter
 
 
 def rewrite_graph(
@@ -89,7 +89,7 @@ def is_same_graph_with_merge(var1, var2, givens=None):
     See help on `aesara.graph.basic.is_same_graph` for additional documentation.
 
     """
-    from aesara.graph.opt import MergeOptimizer
+    from aesara.graph.rewriting.basic import MergeOptimizer
 
     if givens is None:
         givens = {}

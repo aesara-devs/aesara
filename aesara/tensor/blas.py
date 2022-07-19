@@ -145,14 +145,14 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Apply, view_roots
 from aesara.graph.features import ReplacementDidNotRemoveError, ReplaceValidate
 from aesara.graph.op import Op
-from aesara.graph.opt import (
+from aesara.graph.rewriting.basic import (
     EquilibriumGraphRewriter,
     GraphRewriter,
     copy_stack_trace,
     in2out,
     node_rewriter,
 )
-from aesara.graph.optdb import SequenceDB
+from aesara.graph.rewriting.db import SequenceDB
 from aesara.graph.utils import InconsistencyError, MethodNotDefined, TestValueError
 from aesara.link.c.op import COp
 from aesara.link.c.params_type import ParamsType
@@ -1526,7 +1526,7 @@ class GemmOptimizer(GraphRewriter):
             if new_node is not node:
                 nodelist.append(new_node)
 
-        u = aesara.graph.opt.DispatchingFeature(
+        u = aesara.graph.rewriting.basic.DispatchingFeature(
             on_import, None, None, name="GemmOptimizer"
         )
         fgraph.attach_feature(u)

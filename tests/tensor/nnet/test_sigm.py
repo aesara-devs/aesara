@@ -4,7 +4,7 @@ import pytest
 import aesara
 from aesara.compile.mode import get_default_mode, get_mode
 from aesara.configdefaults import config
-from aesara.graph.opt import check_stack_trace
+from aesara.graph.rewriting.basic import check_stack_trace
 from aesara.scalar.basic import Composite
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.inplace import sigmoid_inplace
