@@ -17,7 +17,9 @@ class TestInplace:
         )()
 
         z = Reverse()(mySymbolicMatricesList)
-        m = aesara.compile.mode.get_default_mode().including("typed_list_inplace_opt")
+        m = aesara.compile.mode.get_default_mode().including(
+            "typed_list_inplace_rewrite"
+        )
         f = aesara.function(
             [In(mySymbolicMatricesList, borrow=True, mutable=True)],
             z,
@@ -38,7 +40,9 @@ class TestInplace:
         )()
         mySymbolicMatrix = matrix()
         z = Append()(mySymbolicMatricesList, mySymbolicMatrix)
-        m = aesara.compile.mode.get_default_mode().including("typed_list_inplace_opt")
+        m = aesara.compile.mode.get_default_mode().including(
+            "typed_list_inplace_rewrite"
+        )
         f = aesara.function(
             [
                 In(mySymbolicMatricesList, borrow=True, mutable=True),
@@ -66,7 +70,9 @@ class TestInplace:
         )()
 
         z = Extend()(mySymbolicMatricesList1, mySymbolicMatricesList2)
-        m = aesara.compile.mode.get_default_mode().including("typed_list_inplace_opt")
+        m = aesara.compile.mode.get_default_mode().including(
+            "typed_list_inplace_rewrite"
+        )
         f = aesara.function(
             [
                 In(mySymbolicMatricesList1, borrow=True, mutable=True),
@@ -91,7 +97,9 @@ class TestInplace:
         mySymbolicMatrix = matrix()
 
         z = Insert()(mySymbolicMatricesList, mySymbolicIndex, mySymbolicMatrix)
-        m = aesara.compile.mode.get_default_mode().including("typed_list_inplace_opt")
+        m = aesara.compile.mode.get_default_mode().including(
+            "typed_list_inplace_rewrite"
+        )
 
         f = aesara.function(
             [
@@ -117,7 +125,9 @@ class TestInplace:
         )()
         mySymbolicMatrix = matrix()
         z = Remove()(mySymbolicMatricesList, mySymbolicMatrix)
-        m = aesara.compile.mode.get_default_mode().including("typed_list_inplace_opt")
+        m = aesara.compile.mode.get_default_mode().including(
+            "typed_list_inplace_rewrite"
+        )
         f = aesara.function(
             [
                 In(mySymbolicMatricesList, borrow=True, mutable=True),
