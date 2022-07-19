@@ -1316,7 +1316,7 @@ def infer_broadcastable(shape):
     `shape` will be validated and constant folded in order to determine
     which dimensions are broadcastable (i.e. equal to ``1``).
     """
-    from aesara.tensor.basic_opt import ShapeFeature, topo_constant_folding
+    from aesara.tensor.rewriting.basic import ShapeFeature, topo_constant_folding
 
     def check_type(s):
         if s.type.dtype in integer_dtypes:

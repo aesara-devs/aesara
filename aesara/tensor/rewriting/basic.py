@@ -103,7 +103,7 @@ from aesara.tensor.var import TensorConstant
 from aesara.utils import NoDuplicateOptWarningFilter
 
 
-_logger = logging.getLogger("aesara.tensor.basic_opt")
+_logger = logging.getLogger("aesara.tensor.rewriting.basic")
 _logger.addFilter(NoDuplicateOptWarningFilter())
 
 

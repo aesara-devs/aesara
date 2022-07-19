@@ -16,12 +16,12 @@ from aesara.graph.rewriting.utils import rewrite_graph
 from aesara.graph.utils import MissingInputError
 from aesara.printing import debugprint
 from aesara.tensor.basic import as_tensor
-from aesara.tensor.basic_opt import ShapeOptimizer
 from aesara.tensor.math import dot, exp
 from aesara.tensor.math import round as at_round
 from aesara.tensor.math import sigmoid
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.random.utils import RandomStream
+from aesara.tensor.rewriting.basic import ShapeOptimizer
 from aesara.tensor.shape import specify_shape
 from aesara.tensor.type import TensorType, matrices, matrix, scalar, vector, vectors
 from tests import unittest_tools

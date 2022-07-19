@@ -8,10 +8,10 @@ from aesara.graph.rewriting.basic import copy_stack_trace, node_rewriter
 from aesara.scalar import Composite, add, as_common_dtype, mul, sub, true_div
 from aesara.tensor import basic as at
 from aesara.tensor.basic import as_tensor_variable
-from aesara.tensor.basic_opt import register_specialize_device
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.math import mean, prod, reciprocal, sqrt
 from aesara.tensor.math import sum as at_sum
+from aesara.tensor.rewriting.basic import register_specialize_device
 from aesara.tensor.shape import specify_broadcastable
 from aesara.tensor.type import TensorType
 

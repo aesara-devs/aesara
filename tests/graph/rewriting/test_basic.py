@@ -23,8 +23,8 @@ from aesara.graph.rewriting.basic import (
     pre_greedy_node_rewriter,
 )
 from aesara.raise_op import assert_op
-from aesara.tensor.basic_opt import constant_folding
 from aesara.tensor.math import Dot, add, dot
+from aesara.tensor.rewriting.basic import constant_folding
 from aesara.tensor.subtensor import AdvancedSubtensor
 from aesara.tensor.type import matrix, values_eq_approx_always_true
 from aesara.tensor.type_other import MakeSlice, SliceConstant, slicetype

@@ -30,7 +30,6 @@ from aesara.graph.rewriting.utils import is_same_graph, rewrite_graph
 from aesara.misc.safe_asarray import _asarray
 from aesara.tensor import inplace
 from aesara.tensor.basic import Alloc, join, switch
-from aesara.tensor.basic_opt import local_dimshuffle_lift
 from aesara.tensor.blas import Dot22, Gemv
 from aesara.tensor.blas_c import CGemv
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
@@ -80,7 +79,8 @@ from aesara.tensor.math import round as at_round
 from aesara.tensor.math import sgn, sigmoid, sin, sinh, softplus, sqr, sqrt, sub
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tan, tanh, true_div, xor
-from aesara.tensor.math_opt import (
+from aesara.tensor.rewriting.basic import local_dimshuffle_lift
+from aesara.tensor.rewriting.math import (
     compute_mul,
     is_1pexp,
     local_grad_log_erfc_neg,

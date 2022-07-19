@@ -17,10 +17,10 @@ from aesara.link.basic import PerformLinker
 from aesara.link.c.basic import CLinker, OpWiseCLinker
 from aesara.tensor import as_tensor_variable
 from aesara.tensor.basic import second
-from aesara.tensor.basic_opt import ShapeError
 from aesara.tensor.elemwise import CAReduce, CAReduceDtype, DimShuffle, Elemwise
 from aesara.tensor.math import all as at_all
 from aesara.tensor.math import any as at_any
+from aesara.tensor.rewriting.basic import ShapeError
 from aesara.tensor.type import (
     TensorType,
     bmatrix,

@@ -25,8 +25,8 @@ They are grouped into the following sections:
     elemwise
     extra_ops
     io
-    basic_opt
     slinalg
     nlinalg
     fft
     math_opt
+    basic_opt

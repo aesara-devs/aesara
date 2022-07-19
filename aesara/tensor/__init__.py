@@ -103,15 +103,13 @@ from aesara.gradient import consider_constant, grad, hessian, jacobian  # noqa
 # adds shared-variable constructors
 from aesara.tensor import sharedvar  # noqa
 from aesara.tensor import (  # noqa
-    basic_opt,
     blas,
     blas_c,
     blas_scipy,
     nnet,
-    opt_uncanonicalize,
-    subtensor_opt,
     xlogx,
 )
+import aesara.tensor.rewriting
 
 
 # isort: off

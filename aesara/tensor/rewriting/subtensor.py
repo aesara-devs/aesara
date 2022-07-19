@@ -28,11 +28,6 @@ from aesara.tensor.basic import (
     get_scalar_constant_value,
     switch,
 )
-from aesara.tensor.basic_opt import (
-    register_canonicalize,
-    register_specialize,
-    register_stabilize,
-)
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import Dot, add
@@ -49,6 +44,11 @@ from aesara.tensor.math import (
     maximum,
     minimum,
     or_,
+)
+from aesara.tensor.rewriting.basic import (
+    register_canonicalize,
+    register_specialize,
+    register_stabilize,
 )
 from aesara.tensor.shape import (
     Shape,
@@ -1390,7 +1390,10 @@ def local_setsubtensor_of_constants(fgraph, node):
 def local_adv_sub1_adv_inc_sub1(fgraph, node):
     """Rewrite graphs like ``AdvancedSubtensor1(AdvancedSetSubtensor1(...), ...)``.
 
+    .. code::
+
         AdvancedSubtensor1(AdvancedSetSubtensor1(x, y, idx), idx) -> y
+
 
     Notes
     -----

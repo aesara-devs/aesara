@@ -13,7 +13,6 @@ from aesara.graph.rewriting.basic import (
     in2out,
     node_rewriter,
 )
-from aesara.tensor.basic_opt import register_specialize_device
 from aesara.tensor.nnet.abstract_conv import (
     AbstractConv2d,
     AbstractConv2d_gradInputs,
@@ -34,6 +33,7 @@ from aesara.tensor.nnet.blocksparse import (
 from aesara.tensor.nnet.conv import ConvOp, conv2d
 from aesara.tensor.nnet.corr import CorrMM, CorrMM_gradInputs, CorrMM_gradWeights
 from aesara.tensor.nnet.corr3d import Corr3dMM, Corr3dMMGradInputs, Corr3dMMGradWeights
+from aesara.tensor.rewriting.basic import register_specialize_device
 from aesara.tensor.type import TensorType
 
 

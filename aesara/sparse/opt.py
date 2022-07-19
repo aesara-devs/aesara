@@ -24,8 +24,8 @@ from aesara.sparse.basic import (
 )
 from aesara.tensor import blas
 from aesara.tensor.basic import as_tensor_variable, cast
-from aesara.tensor.basic_opt import register_canonicalize, register_specialize
 from aesara.tensor.math import mul, neg, sub
+from aesara.tensor.rewriting.basic import register_canonicalize, register_specialize
 from aesara.tensor.shape import shape, specify_shape
 from aesara.tensor.type import TensorType, tensor
 

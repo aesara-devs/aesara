@@ -24,11 +24,6 @@ from aesara.raise_op import Assert
 from aesara.scalar import UnaryScalarOp
 from aesara.tensor import basic as at
 from aesara.tensor.basic import ARange, as_tensor_variable
-from aesara.tensor.basic_opt import (
-    register_canonicalize,
-    register_specialize,
-    register_stabilize,
-)
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.extra_ops import Unique
@@ -50,8 +45,13 @@ from aesara.tensor.math import (
 )
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tanh, tensordot, true_div
-from aesara.tensor.math_opt import local_mul_canonizer
 from aesara.tensor.nnet.blocksparse import sparse_block_dot
+from aesara.tensor.rewriting.basic import (
+    register_canonicalize,
+    register_specialize,
+    register_stabilize,
+)
+from aesara.tensor.rewriting.math import local_mul_canonizer
 from aesara.tensor.shape import Shape, shape_padleft
 from aesara.tensor.subtensor import AdvancedIncSubtensor, AdvancedSubtensor
 from aesara.tensor.type import (

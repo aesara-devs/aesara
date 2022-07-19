@@ -159,11 +159,11 @@ from aesara.link.c.params_type import ParamsType
 from aesara.printing import FunctionPrinter, debugprint, pprint
 from aesara.scalar import bool as bool_t
 from aesara.tensor import basic as at
-from aesara.tensor.basic_opt import local_dimshuffle_lift
 from aesara.tensor.blas_headers import blas_header_text, blas_header_version
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import Dot, add, mul, neg, sub
+from aesara.tensor.rewriting.basic import local_dimshuffle_lift
 from aesara.tensor.shape import specify_broadcastable
 from aesara.tensor.type import (
     DenseTensorType,

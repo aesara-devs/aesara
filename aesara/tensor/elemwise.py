@@ -806,7 +806,7 @@ class Elemwise(OpenMPOp):
     def infer_shape(self, fgraph, node, i_shapes) -> List[Tuple[TensorVariable, ...]]:
 
         if len(node.outputs) > 1:
-            from aesara.tensor.basic_opt import ShapeError
+            from aesara.tensor.exceptions import ShapeError
 
             raise ShapeError(
                 "Multiple outputs are not supported by the default `Elemwise.infer_shape`"

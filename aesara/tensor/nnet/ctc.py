@@ -8,9 +8,9 @@ from aesara.graph.basic import Apply
 from aesara.graph.rewriting.basic import node_rewriter
 from aesara.link.c.cmodule import GCC_compiler
 from aesara.link.c.op import ExternalCOp, OpenMPOp
-from aesara.tensor.basic_opt import register_canonicalize
 from aesara.tensor.blas import batched_dot
 from aesara.tensor.extra_ops import cpu_contiguous
+from aesara.tensor.rewriting.basic import register_canonicalize
 from aesara.tensor.type import ftensor3, fvector
 
 

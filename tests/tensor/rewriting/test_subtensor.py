@@ -19,6 +19,10 @@ from aesara.tensor import inplace
 from aesara.tensor.basic import Alloc, MakeVector, _convert_to_int8, make_vector
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.math import Dot, add, dot, exp, sqr
+from aesara.tensor.rewriting.subtensor import (
+    local_replace_AdvancedSubtensor,
+    local_subtensor_shape_constant,
+)
 from aesara.tensor.shape import SpecifyShape, Unbroadcast, _shape, shape, specify_shape
 from aesara.tensor.subtensor import (
     AdvancedIncSubtensor,
@@ -29,10 +33,6 @@ from aesara.tensor.subtensor import (
     Subtensor,
     inc_subtensor,
     set_subtensor,
-)
-from aesara.tensor.subtensor_opt import (
-    local_replace_AdvancedSubtensor,
-    local_subtensor_shape_constant,
 )
 from aesara.tensor.type import (
     bmatrix,
