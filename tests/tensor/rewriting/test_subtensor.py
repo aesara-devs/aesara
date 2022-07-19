@@ -2154,3 +2154,9 @@ def test_local_join_subtensors(axis, slices_fn, expected_nodes):
     f_val = np.concatenate([x_val[slice_val] for slice_val in slices_val], axis=axis)
 
     np.testing.assert_array_equal(f(x_val, stop_val), f_val)
+
+
+def test_deprecations():
+    """Make sure we can import from deprecated modules."""
+    with pytest.deprecated_call():
+        from aesara.tensor.subtensor_opt import get_advsubtensor_axis  # noqa: F401 F811
