@@ -60,8 +60,8 @@ from aesara.tensor.type import iscalar, scalar, tensor
 from tests.unittest_tools import create_aesara_param
 
 
-opts = RewriteDatabaseQuery(include=[None], exclude=["cxx_only", "BlasOpt"])
-py_mode = Mode("py", opts)
+rewrites_query = RewriteDatabaseQuery(include=[None], exclude=["cxx_only", "BlasOpt"])
+py_mode = Mode("py", rewrites_query)
 
 
 def fixed_scipy_rvs(rvs_name):

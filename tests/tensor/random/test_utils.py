@@ -11,8 +11,8 @@ from tests import unittest_tools as utt
 
 @pytest.fixture(scope="module", autouse=True)
 def set_aesara_flags():
-    opts = RewriteDatabaseQuery(include=[None], exclude=[])
-    py_mode = Mode("py", opts)
+    rewrites_query = RewriteDatabaseQuery(include=[None], exclude=[])
+    py_mode = Mode("py", rewrites_query)
     with config.change_flags(mode=py_mode, compute_test_value="warn"):
         yield
 
