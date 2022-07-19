@@ -350,3 +350,9 @@ def test_convert_strs_to_vars():
     res = convert_strs_to_vars((val,))
     assert isinstance(res[0], Constant)
     assert np.array_equal(res[0].data, val)
+
+
+def test_deprecations():
+    """Make sure we can import deprecated classes from current and deprecated modules."""
+    with pytest.deprecated_call():
+        from aesara.graph.unify import eval_if_etuple  # noqa: F401 F811
