@@ -230,6 +230,7 @@ class VM(ABC):
         self.call_counts = [0] * len(nodes)
         self.call_times = [0] * len(nodes)
         self.time_thunks = False
+        self.storage_map: Optional[StorageMapType] = None
 
     @abstractmethod
     def __call__(self):
