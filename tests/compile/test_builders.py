@@ -12,7 +12,7 @@ from aesara.gradient import DisconnectedType, Rop, disconnected_type, grad
 from aesara.graph.basic import equal_computations
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.null_type import NullType
-from aesara.graph.opt_utils import optimize_graph
+from aesara.graph.opt_utils import rewrite_graph
 from aesara.graph.utils import MissingInputError
 from aesara.printing import debugprint
 from aesara.tensor.basic import as_tensor
@@ -455,7 +455,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         op_var = op_graph(x, y, z)
 
         fg = FunctionGraph(outputs=[op_var[1]], clone=False)
-        opt_res = optimize_graph(fg, custom_opt=ShapeOptimizer())
+        opt_res = rewrite_graph(fg, custom_rewrite=ShapeOptimizer())
 
         assert opt_res.shape_feature.shape_of[x] is None
         assert opt_res.shape_feature.shape_of[z][0].data == 2

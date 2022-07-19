@@ -14,7 +14,7 @@ from aesara.graph.fg import FunctionGraph
 from aesara.graph.kanren import KanrenRelationSub
 from aesara.graph.op import Op
 from aesara.graph.opt import EquilibriumGraphRewriter
-from aesara.graph.opt_utils import optimize_graph
+from aesara.graph.opt_utils import rewrite_graph
 from aesara.graph.unify import eval_if_etuple
 from aesara.tensor.math import Dot, _dot
 from tests.graph.utils import MyType, MyVariable
@@ -155,7 +155,7 @@ def test_KanrenRelationSub_dot():
         [KanrenRelationSub(distributes)], max_use_ratio=10
     )
 
-    fgraph_opt = optimize_graph(fgraph, custom_opt=distribute_opt)
+    fgraph_opt = rewrite_graph(fgraph, custom_rewrite=distribute_opt)
     (expr_opt,) = fgraph_opt.outputs
 
     assert expr_opt.owner.op == at.add

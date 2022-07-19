@@ -1,5 +1,6 @@
 import copy
-from typing import Generator, Sequence, Union, cast
+import warnings
+from typing import TYPE_CHECKING, Generator, Optional, Sequence, Union, cast
 
 import aesara
 from aesara.graph.basic import (
@@ -13,46 +14,72 @@ from aesara.graph.fg import FunctionGraph
 from aesara.graph.optdb import RewriteDatabaseQuery
 
 
-def optimize_graph(
-    fgraph: Union[Variable, FunctionGraph],
-    include: Sequence[str] = ["canonicalize"],
-    custom_opt=None,
+if TYPE_CHECKING:
+    from aesara.graph.opt import GraphRewriter
+
+
+def rewrite_graph(
+    graph: Union[Variable, Sequence[Variable], FunctionGraph],
+    include: Sequence[str] = ("canonicalize",),
+    custom_rewrite: Optional["GraphRewriter"] = None,
     clone: bool = False,
-    **kwargs
-) -> Union[Variable, FunctionGraph]:
-    """Easily optimize a graph.
+    custom_opt: Optional["GraphRewriter"] = None,
+    **kwargs,
+) -> Union[Variable, Sequence[Variable], FunctionGraph]:
+    """Easily apply rewrites to a graph.
 
     Parameters
-    ==========
-    fgraph:
-        A ``FunctionGraph`` or ``Variable`` to be optimized.
-    include:
-        String names of the optimizations to be applied.  The default
-        optimization is ``"canonicalization"``.
-    custom_opt:
-        A custom ``Optimization`` to also be applied.
-    clone:
-        Whether or not to clone the input graph before optimizing.
-    **kwargs:
-        Keyword arguments passed to the ``aesara.graph.optdb.RewriteDatabaseQuery`` object.
+    ----------
+    graph
+        A `FunctionGraph` or `Variable` to be rewritten.
+    include
+        String names of the rewrites to be queried, via a
+        `RewriteDatabaseQuery` instance, and applied.  The default rewrite
+        query string is ``"canonicalization"``.
+    custom_rewrite
+        A custom `Rewriter` to also be applied.
+    clone
+        Whether or not to clone the input graph before rewriting.
+    **kwargs
+        Keyword arguments passed to a `RewriteDatabaseQuery` object.
     """
     from aesara.compile import optdb
 
-    return_only_out = False
-    if not isinstance(fgraph, FunctionGraph):
-        fgraph = FunctionGraph(outputs=[fgraph], clone=clone)
-        return_only_out = True
-
-    canonicalize_opt = optdb.query(RewriteDatabaseQuery(include=include, **kwargs))
-    _ = canonicalize_opt.rewrite(fgraph)
-
-    if custom_opt:
-        custom_opt.rewrite(fgraph)
-
-    if return_only_out:
-        return fgraph.outputs[0]
+    return_fgraph = False
+    if isinstance(graph, FunctionGraph):
+        outputs: Sequence[Variable] = graph.outputs
+        fgraph = graph
+        return_fgraph = True
     else:
+        if isinstance(graph, (list, tuple)):
+            outputs = graph
+        else:
+            assert isinstance(graph, Variable)
+            outputs = [graph]
+
+        fgraph = FunctionGraph(outputs=outputs, clone=clone)
+
+    query_rewrites = optdb.query(RewriteDatabaseQuery(include=include, **kwargs))
+    _ = query_rewrites.rewrite(fgraph)
+
+    if custom_opt is not None:
+        warnings.warn(
+            "`custom_opt` is deprecated; use `custom_rewrite` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        custom_rewrite = custom_opt
+
+    if custom_rewrite:
+        custom_rewrite.rewrite(fgraph)
+
+    if return_fgraph:
         return fgraph
+    else:
+        if isinstance(graph, (list, tuple)):
+            return fgraph.outputs
+        else:
+            return fgraph.outputs[0]
 
 
 def is_same_graph_with_merge(var1, var2, givens=None):
@@ -81,7 +108,7 @@ def is_same_graph_with_merge(var1, var2, givens=None):
     # Perform merge optimization.
     MergeOptimizer().rewrite(fgraph)
     # When two variables perform the same computations, they will have the same
-    # owner in the optimized graph.
+    # owner in the rewritten graph.
     # We need to be careful with the special case where the owner is None,
     # which happens when the graph is made of a single Variable.
     # We also need to make sure we replace a Variable if it is present in
@@ -221,3 +248,28 @@ def get_clients_at_depth(
         else:
             assert var.owner is not None
             yield var.owner
+
+
+DEPRECATED_NAMES = [
+    (
+        "optimize_graph",
+        "`optimize_graph` is deprecated: use `rewrite_graph` instead.",
+        rewrite_graph,
+    ),
+]
+
+
+def __getattr__(name):
+    """Intercept module-level attribute access of deprecated symbols.
+
+    Adapted from https://stackoverflow.com/a/55139609/3006474.
+
+    """
+    from warnings import warn
+
+    for old_name, msg, old_object in DEPRECATED_NAMES:
+        if name == old_name:
+            warn(msg, DeprecationWarning, stacklevel=2)
+            return old_object
+
+    raise AttributeError(f"module {__name__} has no attribute {name}")

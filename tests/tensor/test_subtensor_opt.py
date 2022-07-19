@@ -11,7 +11,7 @@ from aesara.compile.ops import DeepCopyOp
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable, ancestors
 from aesara.graph.opt import check_stack_trace
-from aesara.graph.opt_utils import optimize_graph
+from aesara.graph.opt_utils import rewrite_graph
 from aesara.graph.optdb import RewriteDatabaseQuery
 from aesara.graph.type import Type
 from aesara.raise_op import Assert
@@ -1907,7 +1907,7 @@ def test_local_subtensor_shape_constant():
     assert res.data == 1
 
     # Make sure it's part of the canonicalizations
-    res = optimize_graph(x)
+    res = rewrite_graph(x)
     assert isinstance(res, Constant)
     assert res.data == 1
 
@@ -2003,7 +2003,7 @@ def test_local_subtensor_SpecifyShape_lift(x, s, idx, x_val, s_val):
     y_val = y_val_fn(*([x_val] + [s_ for s_ in s_val]))
 
     # This optimization should appear in the canonicalizations
-    y_opt = optimize_graph(y, clone=False)
+    y_opt = rewrite_graph(y, clone=False)
 
     if y.ndim == 0:
         # SpecifyShape should be removed altogether
@@ -2042,7 +2042,7 @@ def test_local_subtensor_SpecifyShape_lift_fail(x, s, idx):
     y = specify_shape(x, s)[idx]
 
     # This optimization should appear in the canonicalizations
-    y_opt = optimize_graph(y, clone=False)
+    y_opt = rewrite_graph(y, clone=False)
 
     assert not isinstance(y_opt.owner.op, SpecifyShape)
 

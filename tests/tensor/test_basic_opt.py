@@ -17,7 +17,7 @@ from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.opt import check_stack_trace, node_rewriter, out2in
-from aesara.graph.opt_utils import optimize_graph
+from aesara.graph.opt_utils import rewrite_graph
 from aesara.graph.optdb import RewriteDatabaseQuery
 from aesara.graph.type import Type
 from aesara.misc.safe_asarray import _asarray
@@ -1817,7 +1817,7 @@ class TestUselessCheckAndRaise:
         """Remove `CheckAndRaise`s when all the conditions are always true."""
         x = scalar()
         fg = FunctionGraph(outputs=[assert_op(x, 1)], clone=False)
-        fg_res = optimize_graph(fg, include=["canonicalize", "specialize"])
+        fg_res = rewrite_graph(fg, include=["canonicalize", "specialize"])
         topo = fg_res.toposort()
         assert not any(isinstance(node.op, CheckAndRaise) for node in topo)
 
@@ -1826,7 +1826,7 @@ class TestUselessCheckAndRaise:
         x = scalar()
         y = scalar()
         fg = FunctionGraph(outputs=[assert_op(x, y, 1)], clone=False)
-        fg_res = optimize_graph(fg, include=["canonicalize", "specialize"])
+        fg_res = rewrite_graph(fg, include=["canonicalize", "specialize"])
         topo = fg_res.toposort()
         (assert_node,) = [node for node in topo if isinstance(node.op, CheckAndRaise)]
         assert assert_node.inputs == [x, y]
@@ -1836,7 +1836,7 @@ class TestUselessCheckAndRaise:
         x = scalar()
         y = scalar()
         fg = FunctionGraph(outputs=[assert_op(x, y, 0)], clone=False)
-        fg_res = optimize_graph(fg, include=["canonicalize", "specialize"])
+        fg_res = rewrite_graph(fg, include=["canonicalize", "specialize"])
         topo = fg_res.toposort()
         (assert_node,) = [node for node in topo if isinstance(node.op, CheckAndRaise)]
         assert assert_node.inputs[:2] == [x, y]
@@ -3017,7 +3017,7 @@ def test_local_Shape_of_SpecifyShape(shape):
     s = specify_shape(x, shape).shape
 
     fgraph = FunctionGraph(outputs=[s], clone=False)
-    _ = optimize_graph(fgraph, clone=False)
+    _ = rewrite_graph(fgraph, clone=False)
 
     assert x not in fgraph.variables
     assert shape in fgraph.variables
@@ -3034,7 +3034,7 @@ def test_local_Shape_of_SpecifyShape_partial(s1):
     fgraph = FunctionGraph(outputs=[s], clone=False)
     assert any(isinstance(apply.op, SpecifyShape) for apply in fgraph.apply_nodes)
 
-    _ = optimize_graph(fgraph, clone=False)
+    _ = rewrite_graph(fgraph, clone=False)
 
     assert x in fgraph.variables
     assert s1 in fgraph.variables
@@ -3046,7 +3046,7 @@ def test_local_Shape_i_of_broadcastable():
     s = Shape_i(1)(x)
 
     fgraph = FunctionGraph(outputs=[s], clone=False)
-    _ = optimize_graph(fgraph, clone=False)
+    _ = rewrite_graph(fgraph, clone=False)
 
     assert x not in fgraph.variables
     assert fgraph.outputs[0].data == 1
@@ -3067,7 +3067,7 @@ def test_local_Shape_i_of_broadcastable():
     x = MyVariable(MyType(), None, None)
     s = Shape_i(0)(x)
     fgraph = FunctionGraph(outputs=[s], clone=False)
-    _ = optimize_graph(fgraph, clone=False)
+    _ = rewrite_graph(fgraph, clone=False)
 
     assert fgraph.outputs[0] == s
 
@@ -3197,7 +3197,7 @@ def test_local_Unique_scalar(return_index, return_counts, return_inverse):
     )
 
     y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
-    y_rewritten_fg = optimize_graph(
+    y_rewritten_fg = rewrite_graph(
         y_fg, clone=False, include=["canonicalize", "local_Unique_scalar"]
     )
     y_rewritten = y_rewritten_fg.outputs[0]
@@ -3243,7 +3243,7 @@ def test_local_Unique_Alloc_lift(
 
     # This approach allows us to directly confirm that `x` is in the result.
     y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
-    y_rewritten_fg = optimize_graph(
+    y_rewritten_fg = rewrite_graph(
         y_fg,
         clone=False,
         include=["canonicalize", "local_Unique_Alloc_lift"],
@@ -3301,7 +3301,7 @@ def test_local_Unique_BroadcastTo(
 
     # This approach allows us to directly confirm that `x` is in the result.
     y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
-    y_rewritten_fg = optimize_graph(
+    y_rewritten_fg = rewrite_graph(
         y_fg,
         clone=False,
         include=["canonicalize", "local_Unique_BroadcastTo_lift"],
@@ -3364,7 +3364,7 @@ def test_local_Unique_Repeat(
 
     # This approach allows us to directly confirm that `x` is in the result.
     y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
-    y_rewritten_fg = optimize_graph(
+    y_rewritten_fg = rewrite_graph(
         y_fg,
         clone=False,
         include=["canonicalize", "local_Unique_Repeat_lift"],
@@ -3420,7 +3420,7 @@ def test_local_Unique_second(
 
     # This approach allows us to directly confirm that `x` is in the result.
     y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
-    y_rewritten_fg = optimize_graph(
+    y_rewritten_fg = rewrite_graph(
         y_fg,
         clone=False,
         include=["canonicalize", "local_Unique_second_lift"],
@@ -3466,7 +3466,7 @@ def test_local_merge_consecutive_specify_shape():
     y = specify_shape(specify_shape(x, s), s)
 
     y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
-    y_rewritten_fg = optimize_graph(
+    y_rewritten_fg = rewrite_graph(
         y_fg,
         clone=False,
         include=["canonicalize", "local_merge_consecutive_specify_shape"],
@@ -3483,7 +3483,7 @@ def test_local_merge_consecutive_specify_shape2():
     y = specify_shape(specify_shape(x, [s1, s2, None]), [None, s3, s4])
 
     y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
-    y_rewritten_fg = optimize_graph(
+    y_rewritten_fg = rewrite_graph(
         y_fg,
         clone=False,
         include=["canonicalize", "local_merge_consecutive_specify_shape"],
@@ -3507,7 +3507,7 @@ def test_local_remove_scalar_BroadcastTo():
 
     assert isinstance(y.owner.op, BroadcastTo)
 
-    res = optimize_graph(
+    res = rewrite_graph(
         y, clone=False, include=["canonicalize", "local_remove_scalar_BroadcastTo"]
     )
 
@@ -3521,7 +3521,7 @@ def test_local_useless_dimshuffle_makevector():
 
     y_fg = FunctionGraph(outputs=[y], copy_inputs=False)
 
-    y_rewritten_fg = optimize_graph(
+    y_rewritten_fg = rewrite_graph(
         y_fg,
         clone=False,
         include=["canonicalize", "local_useless_dimshuffle_makevector"],
@@ -3544,7 +3544,7 @@ def test_Shape_i_canonicalize():
 
     y_fg = FunctionGraph(outputs=[y], copy_inputs=False, features=[ShapeFeature()])
 
-    y_rewritten_fg = optimize_graph(
+    y_rewritten_fg = rewrite_graph(
         y_fg,
         clone=False,
         include=[
@@ -3686,7 +3686,7 @@ class TestLocalElemwiseAlloc:
 
         z_fg = FunctionGraph(outputs=[z], copy_inputs=False, features=[ShapeFeature()])
 
-        z_opt_fg = optimize_graph(z_fg, clone=False, include=["local_elemwise_alloc"])
+        z_opt_fg = rewrite_graph(z_fg, clone=False, include=["local_elemwise_alloc"])
         assert any(isinstance(node.op, Alloc) for node in z_opt_fg.apply_nodes)
 
     def test_remove_alloc_wo_dimshuffle(self):
