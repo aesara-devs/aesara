@@ -133,9 +133,8 @@ def test_debugprint():
     s = StringIO()
     debugprint(G, file=s)
 
-    # test ids=int
     s = StringIO()
-    debugprint(G, file=s, ids="int")
+    debugprint(G, file=s, id_type="int")
     s = s.getvalue()
     # The additional white space are needed!
     reference = (
@@ -155,9 +154,8 @@ def test_debugprint():
 
     assert s == reference
 
-    # test ids=CHAR
     s = StringIO()
-    debugprint(G, file=s, ids="CHAR")
+    debugprint(G, file=s, id_type="CHAR")
     s = s.getvalue()
     # The additional white space are needed!
     reference = (
@@ -177,9 +175,8 @@ def test_debugprint():
 
     assert s == reference
 
-    # test ids=CHAR, stop_on_name=True
     s = StringIO()
-    debugprint(G, file=s, ids="CHAR", stop_on_name=True)
+    debugprint(G, file=s, id_type="CHAR", stop_on_name=True)
     s = s.getvalue()
     # The additional white space are needed!
     reference = (
@@ -197,9 +194,8 @@ def test_debugprint():
 
     assert s == reference
 
-    # test ids=
     s = StringIO()
-    debugprint(G, file=s, ids="")
+    debugprint(G, file=s, id_type="")
     s = s.getvalue()
     # The additional white space are needed!
     reference = (
@@ -221,7 +217,7 @@ def test_debugprint():
 
     # test print_storage=True
     s = StringIO()
-    debugprint(g, file=s, ids="", print_storage=True)
+    debugprint(g, file=s, id_type="", print_storage=True)
     s = s.getvalue()
     reference = (
         "\n".join(
@@ -246,7 +242,7 @@ def test_debugprint():
     debugprint(
         aesara.function([A, B, D, J], A + (B.dot(J) - D), mode="FAST_RUN"),
         file=s,
-        ids="",
+        id_type="",
         print_destroy_map=True,
         print_view_map=True,
     )
@@ -270,7 +266,7 @@ def test_debugprint():
     ]
 
 
-def test_debugprint_ids():
+def test_debugprint_id_type():
     a_at = dvector()
     b_at = dmatrix()
 
@@ -278,7 +274,7 @@ def test_debugprint_ids():
     e_at = d_at + a_at
 
     s = StringIO()
-    debugprint(e_at, ids="auto", file=s)
+    debugprint(e_at, id_type="auto", file=s)
     s = s.getvalue()
 
     exp_res = f"""Elemwise{{add,no_inplace}} [id {e_at.auto_name}]
