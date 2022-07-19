@@ -4,7 +4,7 @@ from aesara.typed_list.basic import Append, Extend, Insert, Remove, Reverse
 
 
 @node_rewriter([Append, Extend, Insert, Reverse, Remove], inplace=True)
-def typed_list_inplace_opt(fgraph, node):
+def typed_list_inplace_rewrite(fgraph, node):
     if (
         isinstance(node.op, (Append, Extend, Insert, Reverse, Remove))
         and not node.op.inplace
@@ -17,9 +17,9 @@ def typed_list_inplace_opt(fgraph, node):
 
 
 optdb.register(
-    "typed_list_inplace_opt",
+    "typed_list_inplace_rewrite",
     WalkingGraphRewriter(
-        typed_list_inplace_opt, failure_callback=WalkingGraphRewriter.warn_inplace
+        typed_list_inplace_rewrite, failure_callback=WalkingGraphRewriter.warn_inplace
     ),
     "fast_run",
     "inplace",
