@@ -4633,3 +4633,9 @@ def test_local_useless_conj():
     mode_with_rewrite = default_mode.including("canonicalization", "local_useless_conj")
     f = function([x], s, mode=mode_with_rewrite)
     assert any(node.op == _conj for node in f.maker.fgraph.apply_nodes)
+
+
+def test_deprecations():
+    """Make sure we can import from deprecated modules."""
+    with pytest.deprecated_call():
+        from aesara.tensor.math_opt import AlgebraicCanonizer  # noqa: F401 F811

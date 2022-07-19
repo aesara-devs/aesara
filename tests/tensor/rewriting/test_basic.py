@@ -3841,3 +3841,9 @@ class TestLocalElemwiseAlloc:
         x_val = np.random.random((1, 5)).astype(self.dtype)
         exp_res = np.broadcast_to(x_val, (5, 5))[..., None] + y_val
         assert np.array_equal(func(y_val, x_val), exp_res)
+
+
+def test_deprecations():
+    """Make sure we can import from deprecated modules."""
+    with pytest.deprecated_call():
+        from aesara.tensor.basic_opt import register_useless  # noqa: F401 F811
