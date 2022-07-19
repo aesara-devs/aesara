@@ -58,7 +58,7 @@ compile.optdb.register(
     "fast_run",
     "inplace",
     position=60,
-)  # DEBUG
+)
 
 
 @node_rewriter([SparseBlockOuter], inplace=True)
@@ -82,7 +82,7 @@ compile.optdb.register(
     "fast_run",
     "inplace",
     position=60,
-)  # DEBUG
+)
 
 
 # Conv opts

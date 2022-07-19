@@ -1,6 +1,4 @@
 """
-Ops and optimizations: sigmoid, softplus.
-
 These functions implement special cases of exp and log to improve numerical
 stability.
 
@@ -98,7 +96,6 @@ ultra_fast_sigmoid_inplace = Elemwise(
 pprint.assign(ultra_fast_sigmoid, printing.FunctionPrinter(["ultra_fast_sigmoid"]))
 
 
-# @opt.register_uncanonicalize
 @node_rewriter(None)
 def local_ultra_fast_sigmoid(fgraph, node):
     """
@@ -158,7 +155,6 @@ def hard_sigmoid(x):
     return x
 
 
-# @opt.register_uncanonicalize
 @node_rewriter([sigmoid])
 def local_hard_sigmoid(fgraph, node):
     if isinstance(node.op, Elemwise) and node.op.scalar_op == scalar_sigmoid:
