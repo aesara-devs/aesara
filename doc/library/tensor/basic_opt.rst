@@ -1,11 +1,11 @@
-===================================================================
-:mod:`tensor.basic_opt` --  Tensor Rewrites
-===================================================================
+================================================
+:mod:`tensor.rewriting.basic` -- Tensor Rewrites
+================================================
 
-.. module:: tensor.basic_opt
+.. module:: tensor.rewriting.basic
    :platform: Unix, Windows
    :synopsis: Tensor Rewrites
 .. moduleauthor:: LISA, PyMC Developers, Aesara Developers
 
-.. automodule:: aesara.tensor.basic_opt
+.. automodule:: aesara.tensor.rewriting.basic
     :members:

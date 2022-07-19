@@ -35,19 +35,6 @@ from aesara.tensor.basic import (
     switch,
     zeros_like,
 )
-from aesara.tensor.basic_opt import (
-    FusionOptimizer,
-    broadcast_like,
-    encompasses_broadcastable,
-    fuse_seqopt,
-    local_fill_sink,
-    register_canonicalize,
-    register_specialize,
-    register_specialize_device,
-    register_stabilize,
-    register_uncanonicalize,
-    register_useless,
-)
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import (
@@ -84,6 +71,19 @@ from aesara.tensor.math import pow as at_pow
 from aesara.tensor.math import prod, reciprocal, sgn, sigmoid, softplus, sqr, sqrt, sub
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import true_div
+from aesara.tensor.rewriting.basic import (
+    FusionOptimizer,
+    broadcast_like,
+    encompasses_broadcastable,
+    fuse_seqopt,
+    local_fill_sink,
+    register_canonicalize,
+    register_specialize,
+    register_specialize_device,
+    register_stabilize,
+    register_uncanonicalize,
+    register_useless,
+)
 from aesara.tensor.shape import Shape, Shape_i
 from aesara.tensor.subtensor import Subtensor
 from aesara.tensor.type import (
@@ -648,7 +648,7 @@ class AlgebraicCanonizer(NodeRewriter):
     Examples
     --------
     >>> import aesara.tensor as at
-    >>> from aesara.tensor.math_opt import AlgebraicCanonizer
+    >>> from aesara.tensor.rewriting.math import AlgebraicCanonizer
     >>> add_canonizer = AlgebraicCanonizer(add, sub, neg, \\
     ...                                    lambda n, d: sum(n) - sum(d))
     >>> mul_canonizer = AlgebraicCanonizer(mul, true_div, inv, \\

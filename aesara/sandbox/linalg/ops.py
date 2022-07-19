@@ -2,17 +2,17 @@ import logging
 
 from aesara.graph.rewriting.basic import node_rewriter
 from aesara.tensor import basic as at
-from aesara.tensor.basic_opt import (
-    register_canonicalize,
-    register_specialize,
-    register_stabilize,
-)
 from aesara.tensor.blas import Dot22
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.math import Dot, Prod, dot, log
 from aesara.tensor.math import pow as at_pow
 from aesara.tensor.math import prod
 from aesara.tensor.nlinalg import Det, MatrixInverse, trace
+from aesara.tensor.rewriting.basic import (
+    register_canonicalize,
+    register_specialize,
+    register_stabilize,
+)
 from aesara.tensor.slinalg import Cholesky, Solve, cholesky, solve
 
 

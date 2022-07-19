@@ -41,11 +41,12 @@ from aesara.scan.utils import (
     safe_new,
     scan_can_remove_outs,
 )
-from aesara.tensor import basic_opt, math_opt
 from aesara.tensor.basic import Alloc, AllocEmpty, get_scalar_constant_value
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import Dot, dot, maximum, minimum
+from aesara.tensor.rewriting import basic as basic_opt
+from aesara.tensor.rewriting import math as math_opt
 from aesara.tensor.shape import shape
 from aesara.tensor.subtensor import (
     IncSubtensor,

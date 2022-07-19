@@ -37,19 +37,6 @@ from aesara.tensor.basic import (
     second,
     tile,
 )
-from aesara.tensor.basic_opt import (
-    ShapeFeature,
-    assert_op,
-    local_alloc_sink_dimshuffle,
-    local_dimshuffle_lift,
-    local_merge_alloc,
-    local_reshape_to_dimshuffle,
-    local_useless_alloc,
-    local_useless_dimshuffle_in_reshape,
-    local_useless_elemwise,
-    local_useless_reshape,
-    register_specialize,
-)
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.extra_ops import BroadcastTo, Repeat, Unique, repeat, unique
 from aesara.tensor.math import (
@@ -85,7 +72,20 @@ from aesara.tensor.math import round as at_round
 from aesara.tensor.math import sin, sinh, softplus, sqr, sqrt, sub
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tan, tanh, true_div, xor
-from aesara.tensor.math_opt import local_lift_transpose_through_dot
+from aesara.tensor.rewriting.basic import (
+    ShapeFeature,
+    assert_op,
+    local_alloc_sink_dimshuffle,
+    local_dimshuffle_lift,
+    local_merge_alloc,
+    local_reshape_to_dimshuffle,
+    local_useless_alloc,
+    local_useless_dimshuffle_in_reshape,
+    local_useless_elemwise,
+    local_useless_reshape,
+    register_specialize,
+)
+from aesara.tensor.rewriting.math import local_lift_transpose_through_dot
 from aesara.tensor.shape import (
     Reshape,
     Shape_i,

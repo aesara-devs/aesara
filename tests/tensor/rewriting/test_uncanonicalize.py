@@ -13,7 +13,7 @@ from aesara.tensor.math import MaxAndArgmax
 from aesara.tensor.math import max as at_max
 from aesara.tensor.math import max_and_argmax
 from aesara.tensor.math import min as at_min
-from aesara.tensor.opt_uncanonicalize import (
+from aesara.tensor.rewriting.uncanonicalize import (
     local_alloc_dimshuffle,
     local_dimshuffle_alloc,
     local_dimshuffle_subtensor,
