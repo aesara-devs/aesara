@@ -323,8 +323,8 @@ def test_box_unbox(input, wrapper_fn, check_fn):
     "inputs, input_vals, output_fn, exc",
     [
         (
-            [at.lvector()],
-            [rng.poisson(10, size=100).astype(np.int64)],
+            [at.vector()],
+            [rng.uniform(size=100).astype(config.floatX)],
             lambda x: at.gammaln(x),
             None,
         ),
