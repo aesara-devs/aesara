@@ -27,7 +27,7 @@ from aesara.scalar.basic import (
     Second,
     Switch,
 )
-from aesara.scalar.math import Sigmoid
+from aesara.scalar.math import Sigmoid, GammaLn
 
 
 @numba_funcify.register(ScalarOp)
@@ -251,3 +251,14 @@ def numba_funcify_Sigmoid(op, node, **kwargs):
         return 1 / (1 + np.exp(-x))
 
     return sigmoid
+
+
+@numba_funcify.register(GammaLn)
+def numba_funcify_Sigmoid(op, node, **kwargs):
+    import math
+
+    @numba_basic.numba_njit(inline="always", fastmath=config.numba__fastmath)
+    def gammaln(x):
+        return math.lgamma(x)
+
+    return gammaln
