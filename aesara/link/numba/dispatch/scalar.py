@@ -1,3 +1,4 @@
+import warnings
 from functools import reduce
 from typing import List
 
@@ -9,7 +10,11 @@ from aesara import config
 from aesara.compile.ops import ViewOp
 from aesara.graph.basic import Variable
 from aesara.link.numba.dispatch import basic as numba_basic
-from aesara.link.numba.dispatch.basic import create_numba_signature, numba_funcify
+from aesara.link.numba.dispatch.basic import (
+    create_numba_signature,
+    generate_fallback_impl,
+    numba_funcify,
+)
 from aesara.link.utils import (
     compile_function_src,
     get_name_for_object,
@@ -27,7 +32,7 @@ from aesara.scalar.basic import (
     Second,
     Switch,
 )
-from aesara.scalar.math import Sigmoid, GammaLn
+from aesara.scalar.math import GammaLn, Sigmoid
 
 
 @numba_funcify.register(ScalarOp)
@@ -36,14 +41,27 @@ def numba_funcify_ScalarOp(op, node, **kwargs):
     # compiling the same Numba function over and over again?
 
     scalar_func_name = op.nfunc_spec[0]
+    scalar_func = None
 
     if scalar_func_name.startswith("scipy."):
         func_package = scipy
         scalar_func_name = scalar_func_name.split(".", 1)[-1]
+
+        try:
+            import numba_scipy  # noqa: F401
+        except ImportError:
+            warnings.warn(
+                "Native numba versions of scipy functions might be "
+                "avalable if numba-scipy is installed.",
+                UserWarning,
+            )
+            scalar_func = generate_fallback_impl(op, node, **kwargs)
     else:
         func_package = np
 
-    if "." in scalar_func_name:
+    if scalar_func is not None:
+        pass
+    elif "." in scalar_func_name:
         scalar_func = reduce(getattr, [scipy] + scalar_func_name.split("."))
     else:
         scalar_func = getattr(func_package, scalar_func_name)
@@ -219,7 +237,7 @@ def numba_funcify_Clip(op, **kwargs):
 
 @numba_funcify.register(Composite)
 def numba_funcify_Composite(op, node, **kwargs):
-    signature = create_numba_signature(node, force_scalar=True)
+    signature = create_numba_signature(op.fgraph, force_scalar=True)
     composite_fn = numba_basic.numba_njit(signature, fastmath=config.numba__fastmath)(
         numba_funcify(op.fgraph, squeeze_output=True, **kwargs)
     )
@@ -254,7 +272,7 @@ def numba_funcify_Sigmoid(op, node, **kwargs):
 
 
 @numba_funcify.register(GammaLn)
-def numba_funcify_Sigmoid(op, node, **kwargs):
+def numba_funcify_GammaLn(op, node, **kwargs):
     import math
 
     @numba_basic.numba_njit(inline="always", fastmath=config.numba__fastmath)

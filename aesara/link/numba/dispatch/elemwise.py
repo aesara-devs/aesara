@@ -40,6 +40,7 @@ from aesara.scalar.basic import scalar_maximum
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
 from aesara.tensor.math import MaxAndArgmax, MulWithoutZeros
 from aesara.tensor.nnet.basic import LogSoftmax, Softmax, SoftmaxGrad
+from aesara.tensor.type import scalar
 
 
 @singledispatch
@@ -424,8 +425,19 @@ def create_axis_apply_fn(fn, axis, ndim, dtype):
 
 @numba_funcify.register(Elemwise)
 def numba_funcify_Elemwise(op, node, **kwargs):
+    # A FunctionGraph isn't a Node in the type hierarchy, but
+    # it has similar function (and maybe should be a node?)
+    # We can't create nodes from `Composite` Ops thougth,
+    # so we use the fgraph instead.
+    if hasattr(op.scalar_op, "fgraph"):
+        inner_node = op.scalar_op.fgraph
+    else:
+        scalar_inputs = [scalar(dtype=input.dtype) for input in node.inputs]
+        inner_node = op.scalar_op.make_node(*scalar_inputs)
 
-    scalar_op_fn = numba_funcify(op.scalar_op, node=node, inline="always", **kwargs)
+    scalar_op_fn = numba_funcify(
+        op.scalar_op, node=inner_node, inline="always", **kwargs
+    )
     elemwise_fn = create_vectorize_func(scalar_op_fn, node, use_signature=False)
     elemwise_fn_name = elemwise_fn.__name__
 
