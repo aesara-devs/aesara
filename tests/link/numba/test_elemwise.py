@@ -58,6 +58,12 @@ rng = np.random.default_rng(42849)
             None,
         ),
         (
+            [at.vector()],
+            [rng.standard_normal(100).astype(config.floatX)],
+            lambda x: at.erfcx(x),
+            None,
+        ),
+        (
             [at.vector() for i in range(4)],
             [rng.standard_normal(100).astype(config.floatX) for i in range(4)],
             lambda x, y, x1, y1: (x + y) * (x1 + y1) * y,
