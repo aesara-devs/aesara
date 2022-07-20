@@ -544,25 +544,19 @@ class ExternalCOp(COp):
 
                 vname = variable_names[i]
 
-                macro_name = "DTYPE_" + vname
-                macro_value = "npy_" + v.type.dtype
-
-                define_macros.append(define_template % (macro_name, macro_value))
-                undef_macros.append(undef_template % macro_name)
+                macro_items = (f"DTYPE_{vname}", f"npy_{v.type.dtype}")
+                define_macros.append(define_template % macro_items)
+                undef_macros.append(undef_template % macro_items[0])
 
                 d = np.dtype(v.type.dtype)
 
-                macro_name = "TYPENUM_" + vname
-                macro_value = d.num
+                macro_items_2 = (f"TYPENUM_{vname}", d.num)
+                define_macros.append(define_template % macro_items_2)
+                undef_macros.append(undef_template % macro_items_2[0])
 
-                define_macros.append(define_template % (macro_name, macro_value))
-                undef_macros.append(undef_template % macro_name)
-
-                macro_name = "ITEMSIZE_" + vname
-                macro_value = d.itemsize
-
-                define_macros.append(define_template % (macro_name, macro_value))
-                undef_macros.append(undef_template % macro_name)
+                macro_items_3 = (f"ITEMSIZE_{vname}", d.itemsize)
+                define_macros.append(define_template % macro_items_3)
+                undef_macros.append(undef_template % macro_items_3[0])
 
         # Generate a macro to mark code as being apply-specific
         define_macros.append(define_template % ("APPLY_SPECIFIC(str)", f"str##_{name}"))

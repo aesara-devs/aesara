@@ -1,14 +1,21 @@
 """Symbolic tensor types and constructor functions."""
 
 from functools import singledispatch
-from typing import Any, Callable, NoReturn, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, NoReturn, Optional, Sequence, Union
 
 from aesara.graph.basic import Constant, Variable
 from aesara.graph.op import Op
 
 
+if TYPE_CHECKING:
+    from numpy.typing import ArrayLike, NDArray
+
+
+TensorLike = Union[Variable, Sequence[Variable], "ArrayLike"]
+
+
 def as_tensor_variable(
-    x: Any, name: Optional[str] = None, ndim: Optional[int] = None, **kwargs
+    x: TensorLike, name: Optional[str] = None, ndim: Optional[int] = None, **kwargs
 ) -> "TensorVariable":
     """Convert `x` into an equivalent `TensorVariable`.
 
@@ -44,12 +51,12 @@ def as_tensor_variable(
 
 @singledispatch
 def _as_tensor_variable(
-    x, name: Optional[str], ndim: Optional[int], **kwargs
+    x: TensorLike, name: Optional[str], ndim: Optional[int], **kwargs
 ) -> "TensorVariable":
-    raise NotImplementedError(f"Cannot convert {x} to a tensor variable.")
+    raise NotImplementedError(f"Cannot convert {x!r} to a tensor variable.")
 
 
-def get_vector_length(v: Any):
+def get_vector_length(v: TensorLike) -> int:
     """Return the run-time length of a symbolic vector, when possible.
 
     Parameters
@@ -80,13 +87,13 @@ def get_vector_length(v: Any):
 
 
 @singledispatch
-def _get_vector_length(op: Union[Op, Variable], var: Variable):
+def _get_vector_length(op: Union[Op, Variable], var: Variable) -> int:
     """`Op`-based dispatch for `get_vector_length`."""
     raise ValueError(f"Length of {var} cannot be determined")
 
 
 @_get_vector_length.register(Constant)
-def _get_vector_length_Constant(var_inst, var):
+def _get_vector_length_Constant(op: Union[Op, Variable], var: Constant) -> int:
     return len(var.data)
 
 

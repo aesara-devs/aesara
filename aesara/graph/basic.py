@@ -1671,14 +1671,14 @@ def equal_computations(
 
     for x, y in zip(xs, ys):
         if not isinstance(x, Variable) and not isinstance(y, Variable):
-            return cast(bool, np.array_equal(x, y))
+            return np.array_equal(x, y)
         if not isinstance(x, Variable):
             if isinstance(y, Constant):
-                return cast(bool, np.array_equal(y.data, x))
+                return np.array_equal(y.data, x)
             return False
         if not isinstance(y, Variable):
             if isinstance(x, Constant):
-                return cast(bool, np.array_equal(x.data, y))
+                return np.array_equal(x.data, y)
             return False
         if x.owner and not y.owner:
             return False
