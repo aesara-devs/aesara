@@ -104,7 +104,7 @@ def op_debug_information(op: Op, node: Apply) -> Dict[Apply, Dict[Variable, str]
 
 
 def debugprint(
-    obj: Union[
+    graph_like: Union[
         Union[Variable, Apply, Function, FunctionGraph],
         Sequence[Union[Variable, Apply, Function, FunctionGraph]],
     ],
@@ -139,7 +139,7 @@ def debugprint(
 
     Parameters
     ----------
-    obj
+    graph_like
         The object(s) to be printed.
     depth
         Print graph to this depth (``-1`` for unlimited).
@@ -149,7 +149,7 @@ def debugprint(
         When `file` extends `TextIO`, print to it; when `file` is
         equal to ``"str"``, return a string; when `file` is ``None``, print to
         `sys.stdout`.
-    ids
+    id_type
         Determines the type of identifier used for `Variable`\s:
           - ``"id"``: print the python id value,
           - ``"int"``: print integer character,
@@ -213,12 +213,12 @@ def debugprint(
     topo_orders: List[Optional[List[Apply]]] = []
     storage_maps: List[Optional[StorageMapType]] = []
 
-    if isinstance(obj, (list, tuple, set)):
-        lobj = obj
+    if isinstance(graph_like, (list, tuple, set)):
+        graphs = graph_like
     else:
-        lobj = [obj]
+        graphs = (graph_like,)
 
-    for obj in lobj:
+    for obj in graphs:
         if isinstance(obj, Variable):
             outputs_to_print.append(obj)
             profile_list.append(None)
