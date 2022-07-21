@@ -508,10 +508,6 @@ class SparseConstant(TensorConstant, _sparse_py_operators):
         return str(self)
 
 
-SparseTensorType.variable_type = SparseVariable
-SparseTensorType.constant_type = SparseConstant
-
-
 # for more dtypes, call SparseTensorType(format, dtype)
 def matrix(format, name=None, dtype=None):
     if dtype is None:

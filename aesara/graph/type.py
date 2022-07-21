@@ -1,13 +1,14 @@
 from abc import abstractmethod
-from typing import Any, Generic, Optional, Text, Tuple, TypeVar, Union
-
-from typing_extensions import TypeAlias
+from typing import Any, Generic, Optional, Text, Tuple
+from typing import Type as TypingType
+from typing import TypeVar, Union
 
 from aesara.graph import utils
 from aesara.graph.basic import Constant, Variable
 from aesara.graph.utils import MetaObject
 
 
+SelfType = TypeVar("SelfType", bound="Type")
 D = TypeVar("D")
 
 
@@ -25,15 +26,19 @@ class Type(MetaObject, Generic[D]):
 
     """
 
-    variable_type: TypeAlias = Variable
-    """
-    The `Type` that will be created by a call to `Type.make_variable`.
-    """
+    @property
+    def variable_type(self) -> TypingType[Variable]:
+        """
+        The `Type` that will be created by a call to `Type.make_variable`.
+        """
+        return Variable
 
-    constant_type: TypeAlias = Constant
-    """
-    The `Type` that will be created by a call to `Type.make_constant`.
-    """
+    @property
+    def constant_type(self) -> TypingType[Constant]:
+        """
+        The `Type` that will be created by a call to `Type.make_constant`.
+        """
+        return Constant
 
     def in_same_class(self, otype: "Type") -> Optional[bool]:
         """Determine if another `Type` represents a subset from the same "class" of types represented by `self`.
@@ -131,7 +136,7 @@ class Type(MetaObject, Generic[D]):
 
     def filter_variable(
         self, other: Union[Variable, D], allow_convert: bool = True
-    ) -> variable_type:
+    ) -> Variable:
         r"""Convert a `other` into a `Variable` with a `Type` that's compatible with `self`.
 
         If the involved `Type`\s are not compatible, a `TypeError` will be raised.
@@ -188,7 +193,7 @@ class Type(MetaObject, Generic[D]):
         except (TypeError, ValueError):
             return False
 
-    def make_variable(self, name: Optional[Text] = None) -> variable_type:
+    def make_variable(self, name: Optional[Text] = None) -> Variable:
         """Return a new `Variable` instance of this `Type`.
 
         Parameters
@@ -199,7 +204,7 @@ class Type(MetaObject, Generic[D]):
         """
         return self.variable_type(self, None, name=name)
 
-    def make_constant(self, value: D, name: Optional[Text] = None) -> constant_type:
+    def make_constant(self, value: D, name: Optional[Text] = None) -> Constant:
         """Return a new `Constant` instance of this `Type`.
 
         Parameters
@@ -212,11 +217,11 @@ class Type(MetaObject, Generic[D]):
         """
         return self.constant_type(type=self, data=value, name=name)
 
-    def clone(self, *args, **kwargs) -> "Type":
+    def clone(self: SelfType) -> SelfType:
         """Clone a copy of this type with the given arguments/keyword values, if any."""
-        return type(self)(*args, **kwargs)
+        return type(self)()
 
-    def __call__(self, name: Optional[Text] = None) -> variable_type:
+    def __call__(self, name: Optional[Text] = None) -> Variable:
         """Return a new `Variable` instance of Type `self`.
 
         Parameters

@@ -1,9 +1,7 @@
-import copy
 import traceback as tb
 import warnings
 from collections.abc import Iterable
-from numbers import Number
-from typing import Optional, TypeVar
+from typing import TYPE_CHECKING, Optional, TypeVar
 
 import numpy as np
 
@@ -12,10 +10,14 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Constant, OptionalApplyType, Variable
 from aesara.graph.utils import MetaType
 from aesara.scalar import ComplexError, IntegerDivisionError
-from aesara.tensor import _get_vector_length, as_tensor_variable
+from aesara.tensor import TensorLike, _get_vector_length, as_tensor_variable
 from aesara.tensor.exceptions import AdvancedIndexingError
 from aesara.tensor.type import TensorType
 from aesara.tensor.utils import hash_from_ndarray
+
+
+if TYPE_CHECKING:
+    from numpy.typing import ArrayLike
 
 
 _TensorTypeType = TypeVar("_TensorTypeType", bound=TensorType)
@@ -826,8 +828,8 @@ class TensorVariable(
         self,
         type: _TensorTypeType,
         owner: OptionalApplyType,
-        index=None,
-        name=None,
+        index: Optional[int] = None,
+        name: Optional[str] = None,
     ):
         super().__init__(type, owner, index=index, name=name)
         if config.warn_float64 != "ignore" and type.dtype == "float64":
@@ -871,9 +873,6 @@ def _get_vector_length_TensorVariable(op_or_var, var):
     if var.type.shape[0] is None:
         raise ValueError(f"Length of {var} cannot be determined")
     return var.type.shape[0]
-
-
-TensorType.variable_type = TensorVariable
 
 
 class TensorConstantSignature(tuple):
@@ -976,7 +975,7 @@ class TensorConstantSignature(tuple):
     no_nan = property(_get_no_nan)
 
 
-def get_unique_value(x: TensorVariable) -> Optional[Number]:
+def get_unique_value(x: TensorLike) -> Optional[np.generic, np.ndarray]:
     """Return the unique value of a tensor, if there is one"""
     if isinstance(x, Constant):
         data = x.data
@@ -993,7 +992,9 @@ def get_unique_value(x: TensorVariable) -> Optional[Number]:
 class TensorConstant(TensorVariable, Constant[_TensorTypeType]):
     """Subclass to add the tensor operators to the basic `Constant` class."""
 
-    def __init__(self, type: _TensorTypeType, data, name=None):
+    def __init__(
+        self, type: _TensorTypeType, data: "ArrayLike", name: Optional[str] = None
+    ):
         data_shape = np.shape(data)
 
         if len(data_shape) != type.ndim or any(
@@ -1022,8 +1023,8 @@ class TensorConstant(TensorVariable, Constant[_TensorTypeType]):
         if self.name is not None:
             name = self.name
         else:
-            name = "TensorConstant"
-        return "%s{%s}" % (name, val)
+            name = type(self).__name__
+        return f"{name}{val}"
 
     def signature(self):
         return TensorConstantSignature((self.type, self.data))
@@ -1041,17 +1042,6 @@ class TensorConstant(TensorVariable, Constant[_TensorTypeType]):
     def __copy__(self):
         # We need to do this to remove the cached attribute
         return type(self)(self.type, self.data, self.name)
-
-    def __deepcopy__(self, memo):
-        # We need to do this to remove the cached attribute
-        return type(self)(
-            copy.deepcopy(self.type, memo),
-            copy.deepcopy(self.data, memo),
-            copy.deepcopy(self.name, memo),
-        )
-
-
-TensorType.constant_type = TensorConstant
 
 
 class DenseVariableMeta(MetaType):

@@ -1,6 +1,8 @@
 import logging
 import warnings
-from typing import Iterable, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterable, Optional, Sequence, Tuple
+from typing import Type as TypingType
+from typing import TypeVar, Union, cast
 
 import numpy as np
 
@@ -8,15 +10,25 @@ import aesara
 from aesara import scalar as aes
 from aesara.configdefaults import config
 from aesara.graph.basic import Variable
-from aesara.graph.type import HasDataType, HasShape
+from aesara.graph.type import HasDataType, HasShape, Type
 from aesara.graph.utils import MetaType
 from aesara.link.c.type import CType
 from aesara.misc.safe_asarray import _asarray
 from aesara.utils import apply_across_args
 
 
+if TYPE_CHECKING:
+    from numpy.typing import DTypeLike, NDArray
+
+    from aesara.scalar.basic import ScalarType
+    from aesara.tensor import TensorLike
+    from aesara.tensor.var import TensorConstant, TensorVariable
+
+
 _logger = logging.getLogger("aesara.tensor.type")
 
+SelfType = TypeVar("SelfType", bound="TensorType")
+StaticShapeType = Sequence[Optional[int]]
 
 # Define common subsets of dtypes (as strings).
 complex_dtypes = list(map(str, aes.complex_types))
@@ -48,23 +60,31 @@ dtype_specs_map = {
 }
 
 
-class TensorType(CType[np.ndarray], HasDataType, HasShape):
+class TensorType(CType["NDArray"], HasDataType, HasShape):
     r"""Symbolic `Type` representing `numpy.ndarray`\s."""
 
     __props__: Tuple[str, ...] = ("dtype", "shape")
 
-    dtype_specs_map = dtype_specs_map
-    context_name = "cpu"
-    filter_checks_isfinite = False
+    @property
+    def variable_type(self) -> TypingType["TensorVariable"]:
+        return aesara.tensor.TensorVariable
+
+    @property
+    def constant_type(self) -> TypingType["TensorConstant"]:
+        return aesara.tensor.TensorConstant
+
+    dtype_specs_map: Dict[str, Tuple[TypingType, str, str]] = dtype_specs_map
+    context_name: str = "cpu"
+    filter_checks_isfinite: bool = False
     """
     When this is ``True``, strict filtering rejects data containing
-    ``numpy.nan`` or ``numpy.inf`` entries. (Used in `DebugMode`)
+    `numpy.nan` or `numpy.inf` entries. (Used in `DebugMode`)
     """
 
     def __init__(
         self,
-        dtype: Union[str, np.dtype],
-        shape: Optional[Iterable[Optional[Union[bool, int]]]] = None,
+        dtype: "DTypeLike",
+        shape: Optional[StaticShapeType] = None,
         name: Optional[str] = None,
         broadcastable: Optional[Iterable[bool]] = None,
     ):
@@ -90,7 +110,9 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
                 "The `broadcastable` keyword is deprecated; use `shape`.",
                 DeprecationWarning,
             )
-            shape = broadcastable
+            shape = tuple(1 if b else None for b in broadcastable)
+
+        assert shape is not None
 
         if isinstance(dtype, str) and dtype == "floatX":
             self.dtype = config.floatX
@@ -104,13 +126,21 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
                 return s
 
         self.shape = tuple(parse_bcast_and_shape(s) for s in shape)
+        self.ndim = len(self.shape)
         self.dtype_specs()  # error checking is done there
         self.name = name
         self.numpy_dtype = np.dtype(self.dtype)
 
+    def __call__(self, name: Optional[str] = None) -> "TensorVariable":
+        return cast("TensorVariable", super().__call__(name))
+
     def clone(
-        self, dtype=None, shape=None, broadcastable=None, **kwargs
-    ) -> "TensorType":
+        self: SelfType,
+        dtype: Optional["DTypeLike"] = None,
+        shape: Optional[StaticShapeType] = None,
+        broadcastable: Optional[Tuple[bool, ...]] = None,
+        **kwargs,
+    ) -> SelfType:
         if broadcastable is not None:
             warnings.warn(
                 "The `broadcastable` keyword is deprecated; use `shape`.",
@@ -123,7 +153,12 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
             shape = self.shape
         return type(self)(dtype, shape, name=self.name)
 
-    def filter(self, data, strict=False, allow_downcast=None):
+    def filter(
+        self,
+        data: Any,
+        strict: bool = False,
+        allow_downcast: Optional[bool] = None,
+    ) -> "NDArray":
         """Convert `data` to something which can be associated to a `TensorVariable`.
 
         This function is not meant to be called in user code. It is for
@@ -244,15 +279,20 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
 
         if self.filter_checks_isfinite and not np.all(np.isfinite(data)):
             raise ValueError("Non-finite elements not allowed")
+
+        assert isinstance(data, np.ndarray)
+
         return data
 
-    def filter_variable(self, other, allow_convert=True):
+    def filter_variable(
+        self, other: Union[Variable, "NDArray"], allow_convert: bool = True
+    ):
         if not isinstance(other, Variable):
             # The value is not a Variable: we cast it into
             # a Constant of the appropriate Type.
             other = self.constant_type(type=self, data=other)
 
-        if other.type == self:
+        if other.type == self and isinstance(other, self.variable_type):
             return other
 
         if allow_convert:
@@ -266,7 +306,7 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
             f"You can try to manually convert {other} into a {self}."
         )
 
-    def dtype_specs(self):
+    def dtype_specs(self) -> Tuple[TypingType, str, str]:
         """
         Return a tuple (python type, c type, numpy typenum) that corresponds
         to self.dtype.
@@ -281,10 +321,10 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
                 f"Unsupported dtype for {self.__class__.__name__}: {self.dtype}"
             )
 
-    def to_scalar_type(self):
+    def to_scalar_type(self) -> "ScalarType":
         return aes.get_scalar_type(dtype=self.dtype)
 
-    def in_same_class(self, otype):
+    def in_same_class(self, otype: Type) -> bool:
         r"""Determine if `otype` is in the same class of fixed broadcastable types as `self`.
 
         A class of fixed broadcastable types is a set of `TensorType`\s that all have the
@@ -304,7 +344,7 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
             return True
         return False
 
-    def is_super(self, otype):
+    def is_super(self, otype: Type) -> bool:
         if (
             isinstance(otype, type(self))
             and otype.dtype == self.dtype
@@ -317,10 +357,11 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
 
         return False
 
-    def convert_variable(self, var):
+    def convert_variable(self, var: Variable) -> "TensorVariable":
         if self.is_super(var.type):
             # `var.type` is at least as specific as `self`, so we return
             # `var` as-is
+            assert isinstance(var, aesara.tensor.TensorVariable)
             return var
         elif var.type.is_super(self):
             # `var.type` is less specific than `self`, so we convert
@@ -329,9 +370,9 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
             # covered by the branch above.
 
             # Use the more specific static shape information of the two
-            return aesara.tensor.specify_shape(var, self.shape)
+            return aesara.tensor.specify_shape(var, self.shape)  # type: ignore
 
-    def value_zeros(self, shape):
+    def value_zeros(self, shape: Tuple[int, ...]) -> "NDArray":
         """Create an numpy ndarray full of 0 values.
 
         TODO: Remove this trivial method.
@@ -339,7 +380,7 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
         return np.zeros(shape, dtype=self.dtype)
 
     @staticmethod
-    def values_eq(a, b, force_same_dtype=True):
+    def values_eq(a: "NDArray", b: "NDArray", force_same_dtype: bool = True) -> bool:
         # TODO: check to see if the shapes must match; for now, we err on safe
         # side...
         if a.shape != b.shape:
@@ -354,14 +395,19 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
         a_missing = np.isnan(a)
         if a_missing.any():
             b_missing = np.isnan(b)
-            return np.all(a_eq_b + (a_missing == b_missing))
+            return a_eq_b and np.array_equal(a_missing, b_missing)
         else:
             return False
 
     @staticmethod
     def values_eq_approx(
-        a, b, allow_remove_inf=False, allow_remove_nan=False, rtol=None, atol=None
-    ):
+        a: "NDArray",
+        b: "NDArray",
+        allow_remove_inf: bool = False,
+        allow_remove_nan: bool = False,
+        rtol: Optional[float] = None,
+        atol: Optional[float] = None,
+    ) -> bool:
         return values_eq_approx(a, b, allow_remove_inf, allow_remove_nan, rtol, atol)
 
     def __eq__(self, other):
@@ -374,14 +420,9 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
         return hash((type(self), self.dtype, self.shape))
 
     @property
-    def broadcastable(self):
+    def broadcastable(self) -> Tuple[bool, ...]:
         """A boolean tuple indicating which dimensions have a shape equal to one."""
         return tuple(s == 1 for s in self.shape)
-
-    @property
-    def ndim(self):
-        """The number of dimensions."""
-        return len(self.shape)
 
     def __str__(self):
         if self.name:
@@ -393,14 +434,13 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
         return str(self)
 
     @staticmethod
-    def may_share_memory(a, b):
-        # This is a method of TensorType, so both a and b should be ndarrays
+    def may_share_memory(a, b) -> bool:
         if isinstance(a, np.ndarray) and isinstance(b, np.ndarray):
-            return np.may_share_memory(a, b)
+            return bool(np.may_share_memory(a, b))
         else:
             return False
 
-    def get_shape_info(self, obj):
+    def get_shape_info(self, obj: "NDArray") -> Tuple[int, ...]:
         """Return the information needed to compute the memory size of `obj`.
 
         The memory size is only the data, so this excludes the container.
@@ -429,7 +469,7 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
         """
         return obj.shape
 
-    def get_size(self, shape_info):
+    def get_size(self, shape_info: Tuple[int, ...]) -> int:
         """Number of bytes taken by the object represented by `shape_info`.
 
         Parameters
@@ -444,14 +484,16 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
 
         """
         if shape_info:
-            return np.prod(shape_info) * np.dtype(self.dtype).itemsize
+            return int(np.prod(shape_info) * np.dtype(self.dtype).itemsize)
         else:  # a scalar
-            return np.dtype(self.dtype).itemsize
+            return int(np.dtype(self.dtype).itemsize)
 
-    def c_element_type(self):
+    def c_element_type(self) -> str:
         return self.dtype_specs()[1]
 
-    def c_declare(self, name, sub, check_input=True):
+    def c_declare(
+        self, name: str, sub: Dict[str, str], check_input: bool = True
+    ) -> str:
         if check_input:
             check = """
             typedef %(dtype)s dtype_%(name)s;
@@ -468,14 +510,16 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
 
         return declaration + check
 
-    def c_init(self, name, sub):
+    def c_init(self, name: str, sub: Dict[str, str]) -> str:
         return """
         %(name)s = NULL;
         """ % dict(
             sub, name=name, type_num=self.dtype_specs()[2]
         )
 
-    def c_extract(self, name, sub, check_input=True, **kwargs):
+    def c_extract(
+        self, name: str, sub: Dict[str, str], check_input: bool = True, **kwargs
+    ) -> str:
         if check_input:
             check = """
             %(name)s = NULL;
@@ -539,7 +583,7 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
             % dict(sub, name=name, type_num=self.dtype_specs()[2])
         )
 
-    def c_cleanup(self, name, sub):
+    def c_cleanup(self, name: str, sub: Dict[str, str]) -> str:
         return (
             """
         if (%(name)s) {
@@ -549,7 +593,7 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
             % locals()
         )
 
-    def c_sync(self, name, sub):
+    def c_sync(self, name: str, sub: Dict[str, str]) -> str:
         fail = sub["fail"]
         type_num = self.dtype_specs()[2]
         return (
@@ -630,8 +674,13 @@ class DenseTensorType(TensorType, metaclass=DenseTypeMeta):
 
 
 def values_eq_approx(
-    a, b, allow_remove_inf=False, allow_remove_nan=False, rtol=None, atol=None
-):
+    a: "TensorLike",
+    b: "TensorLike",
+    allow_remove_inf: bool = False,
+    allow_remove_nan: bool = False,
+    rtol: Optional[float] = None,
+    atol: Optional[float] = None,
+) -> bool:
     """
     Parameters
     ----------
@@ -653,7 +702,7 @@ def values_eq_approx(
         if a.dtype != b.dtype:
             return False
         if str(a.dtype) not in continuous_dtypes:
-            return np.all(a == b)
+            return np.array_equal(a, b)
         else:
             cmp = aesara.tensor.math._allclose(a, b, rtol=rtol, atol=atol)
             if cmp:
@@ -701,24 +750,24 @@ def values_eq_approx(
                 both_missing += a_missing
 
             # Combine all information.
-            return (cmp_elemwise + both_missing + both_inf).all()
+            return bool((cmp_elemwise + both_missing + both_inf).all())
 
     return False
 
 
-def values_eq_approx_remove_inf(a, b):
+def values_eq_approx_remove_inf(a: "TensorLike", b: "TensorLike") -> bool:
     return values_eq_approx(a, b, True)
 
 
-def values_eq_approx_remove_nan(a, b):
+def values_eq_approx_remove_nan(a: "TensorLike", b: "TensorLike") -> bool:
     return values_eq_approx(a, b, False, True)
 
 
-def values_eq_approx_remove_inf_nan(a, b):
+def values_eq_approx_remove_inf_nan(a: "TensorLike", b: "TensorLike") -> bool:
     return values_eq_approx(a, b, True, True)
 
 
-def values_eq_approx_always_true(a, b):
+def values_eq_approx_always_true(a: "TensorLike", b: "TensorLike") -> bool:
     return True
 
 
@@ -765,7 +814,7 @@ aesara.compile.register_deep_copy_op_c_code(
 )
 
 
-def tensor(*args, **kwargs):
+def tensor(*args, **kwargs) -> "TensorVariable":
     name = kwargs.pop("name", None)
     return TensorType(*args, **kwargs)(name=name)
 
@@ -780,7 +829,9 @@ iscalar = TensorType("int32", ())
 lscalar = TensorType("int64", ())
 
 
-def scalar(name=None, dtype=None):
+def scalar(
+    name: Optional[str] = None, dtype: Optional["DTypeLike"] = None
+) -> "TensorVariable":
     """Return a symbolic scalar variable.
 
     Parameters
@@ -793,8 +844,7 @@ def scalar(name=None, dtype=None):
     """
     if dtype is None:
         dtype = config.floatX
-    type = TensorType(dtype, ())
-    return type(name)
+    return TensorType(dtype, ())(name)
 
 
 scalars, fscalars, dscalars, iscalars, lscalars = apply_across_args(
@@ -818,7 +868,9 @@ ivector = TensorType("int32", (False,))
 lvector = TensorType("int64", (False,))
 
 
-def vector(name=None, dtype=None):
+def vector(
+    name: Optional[str] = None, dtype: Optional["DTypeLike"] = None
+) -> "TensorVariable":
     """Return a symbolic vector variable.
 
     Parameters
@@ -853,7 +905,9 @@ imatrix = TensorType("int32", (False, False))
 lmatrix = TensorType("int64", (False, False))
 
 
-def matrix(name=None, dtype=None):
+def matrix(
+    name: Optional[str] = None, dtype: Optional["DTypeLike"] = None
+) -> "TensorVariable":
     """Return a symbolic matrix variable.
 
     Parameters
@@ -888,7 +942,9 @@ irow = TensorType("int32", (True, False))
 lrow = TensorType("int64", (True, False))
 
 
-def row(name=None, dtype=None):
+def row(
+    name: Optional[str] = None, dtype: Optional["DTypeLike"] = None
+) -> "TensorVariable":
     """Return a symbolic row variable (ndim=2, shape=[True,False]).
 
     Parameters
@@ -917,7 +973,9 @@ icol = TensorType("int32", (False, True))
 lcol = TensorType("int64", (False, True))
 
 
-def col(name=None, dtype=None):
+def col(
+    name: Optional[str] = None, dtype: Optional["DTypeLike"] = None
+) -> "TensorVariable":
     """Return a symbolic column variable (ndim=2, shape=[False,True]).
 
     Parameters
@@ -946,7 +1004,9 @@ itensor3 = TensorType("int32", ((False,) * 3))
 ltensor3 = TensorType("int64", ((False,) * 3))
 
 
-def tensor3(name=None, dtype=None):
+def tensor3(
+    name: Optional[str] = None, dtype: Optional["DTypeLike"] = None
+) -> "TensorVariable":
     """Return a symbolic 3-D variable.
 
     Parameters
@@ -977,7 +1037,9 @@ itensor4 = TensorType("int32", ((False,) * 4))
 ltensor4 = TensorType("int64", ((False,) * 4))
 
 
-def tensor4(name=None, dtype=None):
+def tensor4(
+    name: Optional[str] = None, dtype: Optional["DTypeLike"] = None
+) -> "TensorVariable":
     """Return a symbolic 4-D variable.
 
     Parameters
@@ -1008,7 +1070,9 @@ itensor5 = TensorType("int32", ((False,) * 5))
 ltensor5 = TensorType("int64", ((False,) * 5))
 
 
-def tensor5(name=None, dtype=None):
+def tensor5(
+    name: Optional[str] = None, dtype: Optional["DTypeLike"] = None
+) -> "TensorVariable":
     """Return a symbolic 5-D variable.
 
     Parameters
@@ -1039,7 +1103,9 @@ itensor6 = TensorType("int32", ((False,) * 6))
 ltensor6 = TensorType("int64", ((False,) * 6))
 
 
-def tensor6(name=None, dtype=None):
+def tensor6(
+    name: Optional[str] = None, dtype: Optional["DTypeLike"] = None
+) -> "TensorVariable":
     """Return a symbolic 6-D variable.
 
     Parameters
@@ -1070,7 +1136,9 @@ itensor7 = TensorType("int32", ((False,) * 7))
 ltensor7 = TensorType("int64", ((False,) * 7))
 
 
-def tensor7(name=None, dtype=None):
+def tensor7(
+    name: Optional[str] = None, dtype: Optional["DTypeLike"] = None
+) -> "TensorVariable":
     """Return a symbolic 7-D variable.
 
     Parameters

@@ -145,6 +145,10 @@ class CDataType(CType[D]):
         The version to use in Aesara cache system.
     """
 
+    @property
+    def constant_type(self):
+        return CDataTypeConstant
+
     __props__ = (
         "ctype",
         "freefunc",
@@ -301,9 +305,6 @@ class CDataTypeConstant(Constant[T]):
         # There is no way to put the data in the signature, so we
         # don't even try
         return (self.type,)
-
-
-CDataType.constant_type = CDataTypeConstant
 
 
 class EnumType(CType, dict):

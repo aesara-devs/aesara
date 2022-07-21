@@ -285,6 +285,14 @@ class ScalarType(CType, HasDataType, HasShape):
     ndim = 0
     shape = ()
 
+    @property
+    def variable_type(self):
+        return ScalarVariable
+
+    @property
+    def constant_type(self):
+        return ScalarVariable
+
     def __init__(self, dtype):
         if isinstance(dtype, str) and dtype == "floatX":
             dtype = config.floatX
@@ -838,16 +846,9 @@ class ScalarVariable(_scalar_py_operators, Variable):
     pass
 
 
-ScalarType.variable_type = ScalarVariable
-
-
 class ScalarConstant(ScalarVariable, Constant):
     def __init__(self, *args, **kwargs):
         Constant.__init__(self, *args, **kwargs)
-
-
-# Register ScalarConstant as the type of Constant corresponding to ScalarType
-ScalarType.constant_type = ScalarConstant
 
 
 def constant(x, name=None, dtype=None) -> ScalarConstant:
