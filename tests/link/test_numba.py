@@ -998,6 +998,10 @@ def test_scalar_Elemwise_Clip():
             (set_test_value(at.iscalar(), np.array(1, dtype=np.int32)),),
             "float64",
         ),
+        (
+            (set_test_value(at.scalar(dtype=bool), True),),
+            bool,
+        ),
     ],
 )
 def test_MakeVector(vals, dtype):

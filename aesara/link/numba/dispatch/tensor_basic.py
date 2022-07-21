@@ -171,7 +171,7 @@ def numba_funcify_Eye(op, **kwargs):
 def numba_funcify_MakeVector(op, node, **kwargs):
     dtype = np.dtype(op.dtype)
 
-    global_env = {"np": np, "to_scalar": numba_basic.to_scalar}
+    global_env = {"np": np, "to_scalar": numba_basic.to_scalar, "dtype": dtype}
 
     unique_names = unique_name_generator(
         ["np", "to_scalar"],
@@ -185,7 +185,7 @@ def numba_funcify_MakeVector(op, node, **kwargs):
 
     makevector_def_src = f"""
 def makevector({", ".join(input_names)}):
-    return np.array({create_list_string(input_names)}, dtype=np.{dtype})
+    return np.array({create_list_string(input_names)}, dtype=dtype)
     """
 
     makevector_fn = compile_function_src(
