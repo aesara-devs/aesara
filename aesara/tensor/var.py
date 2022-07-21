@@ -1,16 +1,16 @@
 import traceback as tb
 import warnings
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Optional, TypeVar, cast
 
 import numpy as np
 
 from aesara import tensor as at
 from aesara.configdefaults import config
-from aesara.graph.basic import Constant, OptionalApplyType, Variable
+from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.utils import MetaType
 from aesara.scalar import ComplexError, IntegerDivisionError
-from aesara.tensor import TensorLike, _get_vector_length, as_tensor_variable
+from aesara.tensor import _get_vector_length, as_tensor_variable
 from aesara.tensor.exceptions import AdvancedIndexingError
 from aesara.tensor.type import TensorType
 from aesara.tensor.utils import hash_from_ndarray
@@ -19,7 +19,7 @@ from aesara.tensor.utils import hash_from_ndarray
 if TYPE_CHECKING:
     from numpy.typing import ArrayLike
 
-
+OptionalApplyType = TypeVar("OptionalApplyType", None, Apply)
 _TensorTypeType = TypeVar("_TensorTypeType", bound=TensorType)
 
 
@@ -831,7 +831,7 @@ class TensorVariable(
         index: Optional[int] = None,
         name: Optional[str] = None,
     ):
-        super().__init__(type, owner, index=index, name=name)
+        super().__init__(type, owner, index=index, name=name)  # type: ignore[arg-type]
         if config.warn_float64 != "ignore" and type.dtype == "float64":
             msg = (
                 "You are creating a TensorVariable "
@@ -841,7 +841,7 @@ class TensorVariable(
             if config.warn_float64 == "warn":
                 # Get the user stack. We don't want function inside the
                 # tensor and graph directory to be shown to the user.
-                x = tb.extract_stack()
+                x = list(tb.extract_stack())
                 nb_rm = 0
                 while x:
                     file_path = x[-1][0]
@@ -975,7 +975,7 @@ class TensorConstantSignature(tuple):
     no_nan = property(_get_no_nan)
 
 
-def get_unique_value(x: TensorLike) -> Optional[np.generic, np.ndarray]:
+def get_unique_value(x: Any) -> Optional[np.generic]:
     """Return the unique value of a tensor, if there is one"""
     if isinstance(x, Constant):
         data = x.data
@@ -984,7 +984,7 @@ def get_unique_value(x: TensorLike) -> Optional[np.generic, np.ndarray]:
             flat_data = data.ravel()
             if flat_data.shape[0]:
                 if (flat_data == flat_data[0]).all():
-                    return flat_data[0]
+                    return cast(np.generic, flat_data[0])
 
     return None
 
