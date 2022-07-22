@@ -309,7 +309,7 @@ def test_create_numba_signature(v, expected, force_scalar):
         )
     ],
 )
-def test_numba_box_unbox(input, wrapper_fn, check_fn):
+def test_box_unbox(input, wrapper_fn, check_fn):
     input = wrapper_fn(input)
 
     pass_through = numba.njit(lambda x: x)
@@ -419,7 +419,7 @@ def test_Elemwise(inputs, input_vals, output_fn, exc):
         ),
     ],
 )
-def test_numba_Composite(inputs, input_values, scalar_fn):
+def test_Composite(inputs, input_values, scalar_fn):
     composite_inputs = [aes.float64(i.name) for i in inputs]
     comp_op = Elemwise(Composite(composite_inputs, [scalar_fn(*composite_inputs)]))
     out_fg = FunctionGraph(inputs, [comp_op(*inputs)])
@@ -3530,7 +3530,7 @@ def test_scan_while():
         ),
     ],
 )
-def test_numba_ifelse(inputs, cond_fn, true_vals, false_vals):
+def test_IfElse(inputs, cond_fn, true_vals, false_vals):
 
     out = ifelse(cond_fn(*inputs), true_vals, false_vals)
 
