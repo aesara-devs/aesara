@@ -1,3 +1,4 @@
+import math
 from functools import reduce
 from typing import List
 
@@ -27,7 +28,7 @@ from aesara.scalar.basic import (
     Second,
     Switch,
 )
-from aesara.scalar.math import Sigmoid, GammaLn
+from aesara.scalar.math import Erf, Erfc, GammaLn, Log1mexp, Sigmoid
 
 
 @numba_funcify.register(ScalarOp)
@@ -254,11 +255,39 @@ def numba_funcify_Sigmoid(op, node, **kwargs):
 
 
 @numba_funcify.register(GammaLn)
-def numba_funcify_Sigmoid(op, node, **kwargs):
-    import math
-
+def numba_funcify_GammaLn(op, node, **kwargs):
     @numba_basic.numba_njit(inline="always", fastmath=config.numba__fastmath)
     def gammaln(x):
         return math.lgamma(x)
 
     return gammaln
+
+
+@numba_funcify.register(Log1mexp)
+def numba_funcify_Log1mexp(op, node, **kwargs):
+    @numba_basic.numba_njit(inline="always", fastmath=config.numba__fastmath)
+    def logp1mexp(x):
+        if x < np.log(0.5):
+            return np.log1p(-np.exp(x))
+        else:
+            return np.log(-np.expm1(x))
+
+    return logp1mexp
+
+
+@numba_funcify.register(Erf)
+def numba_funcify_Erf(op, **kwargs):
+    @numba_basic.numba_njit(inline="always", fastmath=config.numba__fastmath)
+    def erf(x):
+        return math.erf(x)
+
+    return erf
+
+
+@numba_funcify.register(Erfc)
+def numba_funcify_Erfc(op, **kwargs):
+    @numba_basic.numba_njit(inline="always", fastmath=config.numba__fastmath)
+    def erfc(x):
+        return math.erfc(x)
+
+    return erfc
