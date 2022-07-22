@@ -802,6 +802,9 @@ class Print(Op):
     def c_code_cache_version(self):
         return (1,)
 
+    def do_constant_folding(self, fgraph, node):
+        return False
+
 
 class PrinterState(Scratchpad):
     def __init__(self, props=None, **more_props):

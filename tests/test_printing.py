@@ -7,9 +7,12 @@ from io import StringIO
 import pytest
 
 import aesara
+from aesara.compile.mode import get_mode
+from aesara.compile.ops import deep_copy_op
 from aesara.printing import (
     PatternPrinter,
     PPrinter,
+    Print,
     debugprint,
     default_printer,
     get_node_by_id,
@@ -18,6 +21,7 @@ from aesara.printing import (
     pydot_imported,
     pydotprint,
 )
+from aesara.tensor import as_tensor_variable
 from aesara.tensor.type import dmatrix, dvector, matrix
 from tests.graph.utils import MyInnerGraphOp, MyOp, MyVariable
 
@@ -401,3 +405,25 @@ def test_PatternPrinter():
     res = pprint(o1)
 
     assert res == "|1 - 2|"
+
+
+def test_Print(capsys):
+    r"""Make sure that `Print` `Op`\s are present in compiled graphs with constant folding."""
+    x = as_tensor_variable(1.0) * as_tensor_variable(3.0)
+    print_op = Print("hello")
+    x_print = print_op(x)
+
+    # Just to be more sure that we'll have constant folding...
+    mode = get_mode("FAST_RUN").including("topo_constant_folding")
+
+    fn = aesara.function([], x_print, mode=mode)
+
+    nodes = fn.maker.fgraph.toposort()
+    assert len(nodes) == 2
+    assert nodes[0].op == print_op
+    assert nodes[1].op == deep_copy_op
+
+    fn()
+
+    stdout, stderr = capsys.readouterr()
+    assert "hello" in stdout
