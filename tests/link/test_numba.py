@@ -335,6 +335,24 @@ def test_box_unbox(input, wrapper_fn, check_fn):
             None,
         ),
         (
+            [at.vector()],
+            [rng.standard_normal(100).astype(config.floatX)],
+            lambda x: at.log1mexp(x),
+            None,
+        ),
+        (
+            [at.vector()],
+            [rng.standard_normal(100).astype(config.floatX)],
+            lambda x: at.erf(x),
+            None,
+        ),
+        (
+            [at.vector()],
+            [rng.standard_normal(100).astype(config.floatX)],
+            lambda x: at.erfc(x),
+            None,
+        ),
+        (
             [at.vector() for i in range(4)],
             [rng.standard_normal(100).astype(config.floatX) for i in range(4)],
             lambda x, y, x1, y1: (x + y) * (x1 + y1) * y,
