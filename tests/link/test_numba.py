@@ -3575,3 +3575,14 @@ def test_config_options_cached():
         aesara_numba_fn = function([x], x * 2, mode=numba_mode)
         numba_mul_fn = aesara_numba_fn.vm.jit_fn.py_func.__globals__["mul"]
         assert isinstance(numba_mul_fn._dispatcher.cache, numba.core.caching.NullCache)
+
+
+def test_scalar_return_value_conversion():
+    r"""Make sure that we convert \"native\" scalars to `ndarray`\s in the graph outputs."""
+    x = at.scalar(name="x")
+    x_fn = function(
+        [x],
+        2 * x,
+        mode=numba_mode,
+    )
+    assert isinstance(x_fn(1.0), np.ndarray)
