@@ -1,5 +1,5 @@
-import warnings
 import math
+import warnings
 from functools import reduce
 from typing import List
 
@@ -48,9 +48,13 @@ def numba_funcify_ScalarOp(op, node, **kwargs):
         func_package = scipy
         scalar_func_name = scalar_func_name.split(".", 1)[-1]
 
-        try:
-            import numba_scipy  # noqa: F401
-        except ImportError:
+        use_numba_scipy = config.numba_scipy
+        if config.numba_scipy:
+            try:
+                import numba_scipy  # noqa: F401
+            except ImportError:
+                use_numba_scipy = False
+        if use_numba_scipy:
             warnings.warn(
                 "Native numba versions of scipy functions might be "
                 "avalable if numba-scipy is installed.",

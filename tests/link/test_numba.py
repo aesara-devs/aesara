@@ -320,6 +320,10 @@ def test_numba_box_unbox(input, wrapper_fn, check_fn):
 
 
 @pytest.mark.parametrize(
+    "numba_scipy",
+    [True, False],
+)
+@pytest.mark.parametrize(
     "inputs, input_vals, output_fn, exc",
     [
         (
@@ -393,17 +397,17 @@ def test_numba_box_unbox(input, wrapper_fn, check_fn):
         ),
     ],
 )
-def test_Elemwise(inputs, input_vals, output_fn, exc):
+def test_Elemwise(numba_scipy, inputs, input_vals, output_fn, exc):
+    with config.change_flags(numba_scipy=numba_scipy):
+        outputs = output_fn(*inputs)
 
-    outputs = output_fn(*inputs)
+        out_fg = FunctionGraph(
+            outputs=[outputs] if not isinstance(outputs, list) else outputs
+        )
 
-    out_fg = FunctionGraph(
-        outputs=[outputs] if not isinstance(outputs, list) else outputs
-    )
-
-    cm = contextlib.suppress() if exc is None else pytest.raises(exc)
-    with cm:
-        compare_numba_and_py(out_fg, input_vals)
+        cm = contextlib.suppress() if exc is None else pytest.raises(exc)
+        with cm:
+            compare_numba_and_py(out_fg, input_vals)
 
 
 @pytest.mark.parametrize(

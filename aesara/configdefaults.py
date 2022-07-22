@@ -1252,6 +1252,12 @@ def add_numba_configvars():
         BoolParam(True),
         in_c_key=False,
     )
+    config.add(
+        "numba_scipy",
+        ("Enable usage of the numba_scipy package for special functions",),
+        BoolParam(True),
+        in_c_key=False,
+    )
 
 
 def _default_compiledirname():
