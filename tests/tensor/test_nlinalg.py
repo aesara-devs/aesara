@@ -543,15 +543,13 @@ class TestSolve(utt.InferShapeTester):
         A = matrix()
         b = matrix()
         y = solve(A, b)
-        gen_solve_func = aesara.function([A, b], y)
+        solve_func = aesara.function([A, b], y)
 
         b_val = np.asarray(rng.random((5, 1)), dtype=config.floatX)
         A_val = np.asarray(rng.random((5, 5)), dtype=config.floatX)
         A_val = np.dot(A_val.transpose(), A_val)
 
-        assert np.allclose(
-            numpy.linalg.solve(A_val, b_val), gen_solve_func(A_val, b_val)
-        )
+        assert np.allclose(numpy.linalg.solve(A_val, b_val), solve_func(A_val, b_val))
 
         A_undef = np.array(
             [
@@ -564,27 +562,38 @@ class TestSolve(utt.InferShapeTester):
             dtype=config.floatX,
         )
         assert np.allclose(
-            numpy.linalg.solve(A_undef, b_val), gen_solve_func(A_undef, b_val)
+            numpy.linalg.solve(A_undef, b_val), solve_func(A_undef, b_val)
         )
 
+        # test for batched data
+        A = tensor3()
+        b = matrix()
+        y = solve(A, b)
+        solve_func = aesara.function([A, b], y)
+
+        A_val = np.full((2, 3, 3), np.eye(3))
+        b_val = np.arange(2 * 3).reshape(2, 3)
+
+        assert np.allclose(numpy.linalg.solve(A_val, b_val), solve_func(A_val, b_val))
+
     @pytest.mark.parametrize(
-        "m, n",
+        "a_shape, b_shape",
         [
-            (5, None),
-            (4, 2),
+            ((2, 2), (2,)),
+            ((3, 3), (3, 1)),
+            # ((2, 3, 3), (2, 3)),
+            # ((3, 5, 5), (1, 5, 3)),
         ],
     )
-    def test_solve_grad(self, m, n):
+    def test_solve_grad(self, a_shape, b_shape):
         rng = np.random.default_rng(utt.fetch_seed())
 
         # Ensure diagonal elements of `A` are relatively large to avoid
         # numerical precision issues
-        A_val = (rng.normal(size=(m, m)) * 0.5 + np.eye(m)).astype(config.floatX)
-
-        if n is None:
-            b_val = rng.normal(size=m).astype(config.floatX)
-        else:
-            b_val = rng.normal(size=(m, n)).astype(config.floatX)
+        A_val = (rng.normal(size=a_shape) * 0.5 + np.eye(a_shape[-1])).astype(
+            config.floatX
+        )
+        b_val = rng.normal(size=b_shape).astype(config.floatX)
 
         eps = None
         if config.floatX == "float64":

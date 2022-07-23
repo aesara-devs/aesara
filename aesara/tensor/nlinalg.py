@@ -832,8 +832,17 @@ class Solve(Op):
         a = as_tensor_variable(a)
         b = as_tensor_variable(b)
 
-        # We use the b = (..., M,) logic, only if the number of extra dimensions match exactly
+        # check for stacked 2d
+        if a.ndim < 2:
+            raise ValueError(
+                "%d-dimensional array given. Array must be "
+                "at least two-dimensional" % a.ndim
+            )
+
+        # We use the b = (..., M,) logic, only if the number of extra dimensions match
+        # exactly i.e when b.ndim == a.ndim - 1, else we will use b = (..., M, K) logic
         if b.ndim == a.ndim - 1:
+            # a : (..., M, M), b : (..., M) -> (..., M)
             a_batch = a.broadcastable[:-2]
             b_batch = b.broadcastable[:-1]
             broadcastable = [
@@ -842,6 +851,7 @@ class Solve(Op):
             ]
             out_shape = broadcastable[::-1] + list(b.broadcastable[-1:])
         else:
+            # a : (..., M, M), b : (..., M, K) -> (..., M, K)
             a_batch = a.broadcastable[:-2]
             b_batch = b.broadcastable[:-2]
             broadcastable = [
@@ -850,7 +860,11 @@ class Solve(Op):
             ]
             out_shape = broadcastable[::-1] + list(b.broadcastable[-2:])
 
-        out_dtype = aes.upcast(a.dtype, b.dtype)
+        # Infer dtype by solving the most simple case with 1x1 matrices
+        out_dtype = np.linalg.solve(
+            np.eye(1).astype(a.dtype), np.eye(1).astype(b.dtype)
+        ).dtype
+
         x = tensor(shape=out_shape, dtype=out_dtype)
         return Apply(self, [a, b], [x])
 
@@ -867,6 +881,7 @@ class Solve(Op):
         b_shape = shapes[1]
 
         if len(b_shape) == len(a_shape) - 1:
+            # a : (..., M, M), b : (..., M) -> (..., M)
             a_batch_shape = a_shape[:-2]
             b_batch_shape = b_shape[:-1]
             batch_shape = broadcast_shape(
@@ -874,6 +889,7 @@ class Solve(Op):
             )
             return [batch_shape + b_shape[-1:]]
         else:
+            # a : (..., M, M), b : (..., M, K) -> (..., M, K)
             a_batch_shape = a_shape[:-2]
             b_batch_shape = b_shape[:-2]
             batch_shape = broadcast_shape(
@@ -894,8 +910,8 @@ class Solve(Op):
 
         """
         A, b = inputs
-
         c = outputs[0]
+
         # C is a scalar representing the entire graph
         # `output_gradients` is (dC/dc,)
         # We need to return (dC/d[inv(A)], dC/db)
@@ -934,8 +950,8 @@ def solve(a, b):
 
     See Also
     --------
-    `scipy.linalg.solve <https://docs.scipy.org/doc/scipy/reference/generated/scipy.linalg.solve.html>`_:
-        Similar function in SciPy.
+    `numpy.linalg.solve <https://numpy.org/doc/stable/reference/generated/numpy.linalg.solve.html>`_:
+        Similar function in Numpy.
 
     Notes
     -----
@@ -958,8 +974,8 @@ def solve(a, b):
     --------
     Solve the system of equations ``x0 + 2 * x1 = 1`` and ``3 * x0 + 5 * x1 = 2``:
 
-    >>> a = np.array([[1, 2], [3, 5]], dtype = 'float64')
-    >>> b = np.array([1, 2], dtype = 'float64')
+    >>> a = np.array([[1, 2], [3, 5]])
+    >>> b = np.array([1, 2])
     >>> x = at.linalg.solve(a, b)
     >>> x.eval()
     array([-1.,  1.])
