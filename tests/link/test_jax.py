@@ -30,7 +30,6 @@ from aesara.tensor import nnet as at_nnet
 from aesara.tensor import slinalg as at_slinalg
 from aesara.tensor import subtensor as at_subtensor
 from aesara.tensor.elemwise import Elemwise
-from aesara.tensor.math import MaxAndArgmax
 from aesara.tensor.math import all as at_all
 from aesara.tensor.math import clip, cosh, erf, erfc, erfinv, gammaln, log, log1mexp
 from aesara.tensor.math import max as at_max
@@ -52,6 +51,7 @@ from aesara.tensor.type import (
     tensor3,
     vector,
 )
+from tests.link.test_numba import MyMultiOut
 
 
 jax = pytest.importorskip("jax")
@@ -478,7 +478,8 @@ def test_jax_basic_multiout_omni():
     # Test that a single output of a multi-output `Op` can be used as input to
     # another `Op`
     x = dvector()
-    mx, amx = MaxAndArgmax([0])(x)
+    y = dvector()
+    mx, amx = MyMultiOut()(x, y)
     out = mx * amx
     out_fg = FunctionGraph([x], [out])
     compare_jax_and_py(out_fg, [np.r_[1, 2]])

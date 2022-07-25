@@ -2174,10 +2174,17 @@ def test_Softplus(x, exc):
 
 
 @pytest.mark.parametrize(
+    "fn",
+    [
+        lambda x, axis=None, dtype=None, acc_dtype=None: Max(axis)(x),
+        lambda x, axis=None, dtype=None, acc_dtype=None: aem.Argmax(axis)(x),
+    ],
+)
+@pytest.mark.parametrize(
     "x, axes, exc",
     [
         (
-            set_test_value(at.dscalar(), np.array(0.0, dtype="float64")),
+            set_test_value(at.dscalar(), np.array(0.0).astype(config.floatX)),
             [],
             None,
         ),
@@ -2198,13 +2205,9 @@ def test_Softplus(x, exc):
         ),
     ],
 )
-def test_MaxAndArgmax(x, axes, exc):
-    g = aem.MaxAndArgmax(axes)(x)
-
-    if isinstance(g, list):
-        g_fg = FunctionGraph(outputs=g)
-    else:
-        g_fg = FunctionGraph(outputs=[g])
+def test_MaxAndArgmax(fn, x, axes, exc):
+    g = fn(x, axis=axes)
+    g_fg = FunctionGraph(outputs=[g])
 
     cm = contextlib.suppress() if exc is None else pytest.warns(exc)
     with cm:

@@ -45,7 +45,7 @@ from aesara.tensor.extra_ops import (
     Unique,
     UnravelIndex,
 )
-from aesara.tensor.math import Dot, MaxAndArgmax
+from aesara.tensor.math import Dot
 from aesara.tensor.nlinalg import SVD, Det, Eig, Eigh, MatrixInverse, QRFull
 from aesara.tensor.nnet.basic import LogSoftmax, Softmax, SoftmaxGrad
 from aesara.tensor.random.op import RandomVariable
@@ -771,44 +771,6 @@ def jax_funcify_Join(op, **kwargs):
             return jnp.concatenate(tensors, axis=axis)
 
     return join
-
-
-@jax_funcify.register(MaxAndArgmax)
-def jax_funcify_MaxAndArgmax(op, **kwargs):
-    axis = op.axis
-
-    def maxandargmax(x, axis=axis):
-        if axis is None:
-            axes = tuple(range(x.ndim))
-        else:
-            axes = tuple(int(ax) for ax in axis)
-
-        max_res = jnp.max(x, axis)
-
-        # NumPy does not support multiple axes for argmax; this is a
-        # work-around
-        keep_axes = jnp.array(
-            [i for i in range(x.ndim) if i not in axes], dtype="int64"
-        )
-        # Not-reduced axes in front
-        transposed_x = jnp.transpose(
-            x, jnp.concatenate((keep_axes, jnp.array(axes, dtype="int64")))
-        )
-        kept_shape = transposed_x.shape[: len(keep_axes)]
-        reduced_shape = transposed_x.shape[len(keep_axes) :]
-
-        # Numpy.prod returns 1.0 when arg is empty, so we cast it to int64
-        # Otherwise reshape would complain citing float arg
-        new_shape = kept_shape + (
-            jnp.prod(jnp.array(reduced_shape, dtype="int64"), dtype="int64"),
-        )
-        reshaped_x = transposed_x.reshape(new_shape)
-
-        max_idx_res = jnp.argmax(reshaped_x, axis=-1).astype("int64")
-
-        return max_res, max_idx_res
-
-    return maxandargmax
 
 
 @jax_funcify.register(ExtractDiag)

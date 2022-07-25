@@ -32,22 +32,9 @@ from aesara.tensor.basic_opt import (
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.extra_ops import Unique
-from aesara.tensor.math import (
-    MaxAndArgmax,
-    Sum,
-    add,
-    dot,
-    eq,
-    exp,
-    expm1,
-    log,
-    max_and_argmax,
-    mul,
-    neg,
-    or_,
-    sigmoid,
-    softplus,
-)
+from aesara.tensor.math import Argmax, Max, Sum, add, argmax, dot, eq, exp, expm1, log
+from aesara.tensor.math import max as ae_max
+from aesara.tensor.math import max_and_argmax, mul, neg, or_, sigmoid, softplus
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tanh, tensordot, true_div
 from aesara.tensor.math_opt import local_mul_canonizer
@@ -1971,16 +1958,17 @@ def local_softmax_grad_to_crossentropy_with_softmax_grad(fgraph, node):
 
 
 @register_specialize("fast_compile")
-@local_optimizer([MaxAndArgmax])
+@local_optimizer([Argmax])
 def local_argmax_pushdown(fgraph, node):
     if (
-        isinstance(node.op, MaxAndArgmax)
+        isinstance(node.op, Argmax)
         and node.inputs[0].owner
-        and len(fgraph.clients[node.outputs[0]]) == 0
+        and len(fgraph.clients[node.outputs[0]]) == 1
     ):
-        x_max, x_argmax = node.outputs
+        func = ae_max if isinstance(node.op, Max) else argmax
+        x_max = node.outputs
         x = node.inputs[0]
-        axis = node.op.get_params(node)
+        axis = node.op.axis
         # TODO: Make a list/set of monotonic ops...
         if x.owner and (
             x.owner.op
@@ -1994,18 +1982,18 @@ def local_argmax_pushdown(fgraph, node):
             or isinstance(x.owner.op, Softmax)
         ):
             (pre_x,) = x.owner.inputs
-            ret = max_and_argmax(pre_x, axis)
+            ret = func(pre_x, axis)
             copy_stack_trace(x_max, ret)
-            return ret
+            return (ret,)
         if x.owner and x.owner.op == softmax_with_bias:
             pre_x, pre_bias = x.owner.inputs
-            ret = max_and_argmax(
+            ret = func(
                 pre_x + DimShuffle(pre_bias.broadcastable, ("x", 0))(pre_bias),
                 axis,
             )
             # copy both stack traces
             copy_stack_trace(x_max, ret)
-            return ret
+            return (ret,)
 
 
 def _check_rows_is_arange_len_labels(fgraph, rows, labels):

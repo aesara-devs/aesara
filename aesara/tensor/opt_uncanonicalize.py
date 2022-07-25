@@ -33,36 +33,16 @@ supposed to be canonical.
 
 import logging
 
-from aesara import scalar as aes
 from aesara.graph.opt import copy_stack_trace, local_optimizer
 from aesara.tensor.basic import Alloc, alloc, constant
 from aesara.tensor.basic_opt import register_uncanonicalize
-from aesara.tensor.elemwise import CAReduce, DimShuffle
-from aesara.tensor.math import Argmax, Max, MaxAndArgmax, Min, neg
+from aesara.tensor.elemwise import DimShuffle
+from aesara.tensor.math import Max, Min, neg
 from aesara.tensor.shape import Reshape, reshape
 from aesara.tensor.subtensor import Subtensor
 
 
 _logger = logging.getLogger("aesara.tensor.opt_uncanonicalize")
-
-
-@register_uncanonicalize
-@local_optimizer([MaxAndArgmax])
-def local_max_and_argmax(fgraph, node):
-    """
-    If we don't use the argmax, change it to a max only.
-    """
-    if isinstance(node.op, MaxAndArgmax):
-        axis = node.op.get_params(node)
-        if len(fgraph.clients[node.outputs[1]]) == 0:
-            new = Max(axis)(node.inputs[0])
-            copy_stack_trace(node.outputs[0], new)
-            return [new, None]
-
-        if len(fgraph.clients[node.outputs[0]]) == 0:
-            new = Argmax(axis)(node.inputs[0])
-            copy_stack_trace(node.outputs[0], new)
-            return [None, new]
 
 
 @register_uncanonicalize
@@ -81,11 +61,7 @@ def local_max_to_min(fgraph, node):
     """
     if node.op == neg and node.inputs[0].owner:
         max = node.inputs[0]
-        if (
-            max.owner
-            and isinstance(max.owner.op, CAReduce)
-            and max.owner.op.scalar_op == aes.scalar_maximum
-        ):
+        if max.owner and isinstance(max.owner.op, Max):
             neg_node = max.owner.inputs[0]
             if neg_node.owner and neg_node.owner.op == neg:
                 new = Min(max.owner.op.axis)(neg_node.owner.inputs[0])

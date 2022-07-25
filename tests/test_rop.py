@@ -23,7 +23,7 @@ from aesara import function
 from aesara.gradient import Lop, Rop, grad, grad_undefined
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
-from aesara.tensor.math import argmax, dot
+from aesara.tensor.math import dot
 from aesara.tensor.math import max as at_max
 from aesara.tensor.nnet import conv, conv2d
 from aesara.tensor.shape import unbroadcast
@@ -198,9 +198,6 @@ class TestRopLop(RopLopChecker):
         # self.check_mat_rop_lop(at_max(self.mx, axis=[0,1])[0], ())
         self.check_mat_rop_lop(at_max(self.mx, axis=0), (self.mat_in_shape[1],))
         self.check_mat_rop_lop(at_max(self.mx, axis=1), (self.mat_in_shape[0],))
-
-    def test_argmax(self):
-        self.check_nondiff_rop(argmax(self.mx, axis=1))
 
     def test_subtensor(self):
         self.check_rop_lop(self.x[:4], (4,))
