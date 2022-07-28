@@ -42,6 +42,7 @@ from aesara.tensor.subtensor import (
 )
 from aesara.tensor.type import TensorType
 from aesara.tensor.type_other import MakeSlice, NoneConst
+from aesara.tensor.var import TensorConstant
 
 
 def numba_njit(*args, **kwargs):
@@ -498,8 +499,6 @@ def numba_funcify_Subtensor(op, node, **kwargs):
 
 
 @numba_funcify.register(IncSubtensor)
-@numba_funcify.register(AdvancedIncSubtensor)
-@numba_funcify.register(AdvancedIncSubtensor1)
 def numba_funcify_IncSubtensor(op, node, **kwargs):
 
     incsubtensor_def_src = create_index_func(
@@ -513,6 +512,91 @@ def numba_funcify_IncSubtensor(op, node, **kwargs):
     )
 
     return numba_njit(incsubtensor_fn)
+
+
+@numba_funcify.register(AdvancedIncSubtensor1)
+def numba_funcify_AdvancdIncSubtensor1(op, node, **kwargs):
+    inplace = op.inplace
+    set_instead_of_inc = op.set_instead_of_inc
+
+    # We can specialize if we know the indexes beforhand
+    # and precompute bounds checks.
+    idxs = node.inputs[2]
+    assert np.dtype(idxs.type.dtype).kind in ["i", "u"]
+    if isinstance(idxs, TensorConstant) and len(idxs.data) > 0:
+        idxs = idxs.data
+        idxs_dtype = np.dtype(idxs.dtype)
+        min_idx = idxs.min()
+        max_idx = idxs.max()
+        # Convert to unsigned index if possible to speed up indexing
+        if min_idx >= 0 and idxs_dtype.kind == "i":
+            idxs = idxs.astype(np.dtype(f"u{idxs_dtype.itemsize}"))
+
+        msg_pos = f"Bad index: {max_idx}"
+        msg_neg = f"Bad index: {min_idx}"
+
+        @numba_njit
+        def check(z, vals):
+            if max_idx >= len(z):
+                raise IndexError(msg_pos)
+            if max(-min_idx, 0) > len(z):
+                raise IndexError(msg_neg)
+            if len(idxs) != len(vals):
+                raise ValueError("Incompatible dimensions during indexing")
+
+        if set_instead_of_inc:
+
+            @numba_njit(boundscheck=False)
+            def impl_inplace(z, vals, _):
+                check(z, vals)
+                for idx, val in zip(idxs, vals):
+                    z[idx] = val
+                return z
+
+        else:
+
+            @numba_njit(boundscheck=False)
+            def impl_inplace(z, vals, _):
+                check(z, vals)
+                for idx, val in zip(idxs, vals):
+                    z[idx] += val
+                return z
+
+    else:
+
+        @numba_njit
+        def check(vals, idxs):
+            if len(idxs) != len(vals):
+                raise ValueError("Incompatible dimensions during indexing")
+
+        if set_instead_of_inc:
+
+            @numba_njit
+            def impl_inplace(z, vals, idxs):
+                check(vals, idxs)
+                for idx, val in zip(idxs, vals):
+                    z[idx] = val
+                return z
+
+        else:
+
+            @numba_njit
+            def impl_inplace(z, vals, idxs):
+                check(vals, idxs)
+                for idx, val in zip(idxs, vals):
+                    z[idx] += val
+                return z
+
+    if inplace:
+        impl = impl_inplace
+    else:
+
+        @numba_njit
+        def impl(z, vals, idxs):
+            z = z.copy()
+            return impl_inplace(z, vals, idxs)
+
+    return impl
 
 
 @numba_funcify.register(DeepCopyOp)

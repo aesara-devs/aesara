@@ -542,32 +542,72 @@ def test_IncSubtensor(x, y, indices):
     compare_numba_and_py(out_fg, [x.data])
 
 
+@pytest.mark.parametrize("inplace", [True, False])
+@pytest.mark.parametrize("set_instead_of_inc", [True, False])
 @pytest.mark.parametrize(
-    "x, y, indices",
+    "x, y, indices, error",
     [
         (
             at.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
             at.as_tensor(rng.poisson(size=(2, 4, 5))),
-            ([1, 2],),
+            np.array([1, 2]),
+            None,
+        ),
+        (
+            at.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
+            at.as_tensor(rng.poisson(size=(0, 4, 5))),
+            np.array([], dtype="int64"),
+            None,
+        ),
+        (
+            at.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
+            at.as_tensor(rng.poisson(size=(1, 4, 5))),
+            np.array([3]),
+            IndexError,
+        ),
+        (
+            at.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
+            at.as_tensor(rng.poisson(size=(1, 4, 5))),
+            np.array([-4]),
+            IndexError,
+        ),
+        (
+            at.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5))),
+            at.as_tensor(rng.poisson(size=(2, 4, 5))),
+            np.array([-3]),
+            ValueError,
         ),
     ],
 )
-def test_AdvancedIncSubtensor1(x, y, indices):
-    out_at = at_subtensor.advanced_set_subtensor1(x, y, *indices)
-    assert isinstance(out_at.owner.op, at_subtensor.AdvancedIncSubtensor1)
-    out_fg = FunctionGraph([], [out_at])
-    compare_numba_and_py(out_fg, [])
-
-    out_at = at_subtensor.advanced_inc_subtensor1(x, y, *indices)
-    assert isinstance(out_at.owner.op, at_subtensor.AdvancedIncSubtensor1)
-    out_fg = FunctionGraph([], [out_at])
-    compare_numba_and_py(out_fg, [])
-
+def test_AdvancedIncSubtensor1(inplace, set_instead_of_inc, x, y, indices, error):
+    # Test with constant index
     x_at = x.type()
-    out_at = at_subtensor.AdvancedIncSubtensor1(inplace=True)(x_at, y, *indices)
+    out_at = at_subtensor.AdvancedIncSubtensor1(
+        inplace=inplace, set_instead_of_inc=set_instead_of_inc
+    )(x_at, y, indices)
     assert isinstance(out_at.owner.op, at_subtensor.AdvancedIncSubtensor1)
     out_fg = FunctionGraph([x_at], [out_at])
-    compare_numba_and_py(out_fg, [x.data])
+
+    if error is not None:
+        with pytest.raises(error):
+            compare_numba_and_py(out_fg, [x.data])
+    else:
+        compare_numba_and_py(out_fg, [x.data])
+
+    # Test with non-constant indices
+    x_at = x.type()
+    idxs = at.vector("idxs", dtype=indices.dtype)
+    out_at = at_subtensor.AdvancedIncSubtensor1(
+        inplace=inplace, set_instead_of_inc=set_instead_of_inc
+    )(x_at, y, idxs)
+    assert isinstance(out_at.owner.op, at_subtensor.AdvancedIncSubtensor1)
+    out_fg = FunctionGraph([x_at, idxs], [out_at])
+
+    if error is not None:
+        with pytest.raises(error):
+            compare_numba_and_py(out_fg, [x.data, indices])
+    else:
+        compare_numba_and_py(out_fg, [x.data, indices])
 
 
 @pytest.mark.parametrize(
