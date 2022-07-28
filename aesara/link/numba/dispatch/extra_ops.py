@@ -54,7 +54,7 @@ def numba_funcify_CumOp(op, node, **kwargs):
         x_axis_first = x.transpose(reaxis_first)
         res = np.empty(x_axis_first.shape, dtype=out_dtype)
 
-        for m in numba.prange(x.shape[axis]):
+        for m in range(x.shape[axis]):
             if m == 0:
                 np_func(identity, x_axis_first[m], res[m])
             else:
