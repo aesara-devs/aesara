@@ -3440,7 +3440,7 @@ def profile_printer(
             )
 
 
-@op_debug_information.register(Scan)
+@op_debug_information.register(Scan)  # type: ignore
 def _op_debug_information_Scan(op, node):
     from typing import Sequence
 
