@@ -960,7 +960,7 @@ def jax_funcify_FillDiagonal(op, **kwargs):
         i, j = jnp.diag_indices(min(value.shape[-2:]))
         return value.at[..., i, j].set(diagonal)
 
-    return f
+    return filldiagonal
 
 
 @jax_funcify.register(FillDiagonalOffset)
