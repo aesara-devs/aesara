@@ -250,6 +250,35 @@ class Erfcinv(UnaryScalarOp):
 erfcinv = Erfcinv(upgrade_to_float_no_complex, name="erfcinv")
 
 
+class Owens_t(BinaryScalarOp):
+    nfunc_spec = ("scipy.special.owens_t", 2, 1)
+
+    @staticmethod
+    def st_impl(h, a):
+        return scipy.special.owens_t(h, a)
+
+    def impl(self, h, a):
+        return Owens_t.st_impl(h, a)
+
+    def grad(self, inputs, grads):
+        (h, a) = inputs
+        (gz,) = grads
+        return [
+            gz
+            * (-1)
+            * exp(-(h**2) / 2)
+            * erf(a * h / np.sqrt(2))
+            / (2 * np.sqrt(2 * np.pi)),
+            gz * exp(-0.5 * (a**2 + 1) * h**2) / (2 * np.pi * (a**2 + 1)),
+        ]
+
+    def c_code(self, *args, **kwargs):
+        raise NotImplementedError()
+
+
+owens_t = Owens_t(upgrade_to_float, name="owens_t")
+
+
 class Gamma(UnaryScalarOp):
     nfunc_spec = ("scipy.special.gamma", 1, 1)
 

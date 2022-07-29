@@ -1340,6 +1340,11 @@ def erfcinv(a):
 
 
 @scalar_elemwise
+def owens_t(h, a):
+    """owens t function"""
+
+
+@scalar_elemwise
 def gamma(a):
     """gamma function"""
 
@@ -3062,6 +3067,7 @@ __all__ = [
     "erfcx",
     "erfinv",
     "erfcinv",
+    "owens_t",
     "gamma",
     "gammaln",
     "psi",
