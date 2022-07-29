@@ -43,3 +43,11 @@ Reference
     :class:`Op` that draws random numbers from a :class:`numpy.random.RandomState` object.
     This :class:`Op` is parameterized to draw numbers from many possible
     distributions.
+
+Distributions
+==============
+
+Aesara can produce :class:`RandomVariable`\s that draw samples from many different statistical distributions, using the following :class:`Op`\s.
+
+.. autoclass:: aesara.tensor.random.basic.GammaRV
+   :members: __call__
