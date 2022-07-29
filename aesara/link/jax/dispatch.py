@@ -956,7 +956,7 @@ def jax_funcify_Bartlett(op, **kwargs):
 
 @jax_funcify.register(FillDiagonal)
 def jax_funcify_FillDiagonal(op, **kwargs):
-    def f(value, diagonal):
+    def filldiagonal(value, diagonal):
         i, j = jnp.diag_indices(min(value.shape[-2:]))
         return value.at[..., i, j].set(diagonal)
 
