@@ -234,6 +234,11 @@ def erfcx_inplace(a):
 
 
 @scalar_elemwise
+def owens_t_inplace(h, a):
+    """owens t function"""
+
+
+@scalar_elemwise
 def gamma_inplace(a):
     """gamma function"""
 
