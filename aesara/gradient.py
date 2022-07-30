@@ -377,10 +377,10 @@ def Lop(
     Parameters
     ----------
     f
-        The outputs of the computational graph to which the R-operator is
+        The outputs of the computational graph to which the L-operator is
         applied.
     wrt
-        Variables for which the R-operator of `f` is computed.
+        Variables for which the L-operator of `f` is computed.
     eval_points
         Points at which to evaluate each of the variables in `wrt`.
     consider_constant
