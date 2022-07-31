@@ -1205,10 +1205,9 @@ def test_extra_ops():
 
     c = at.as_tensor(5)
 
-    with pytest.raises(NotImplementedError):
-        out = at_extra_ops.fill_diagonal(a, c)
-        fgraph = FunctionGraph([a], [out])
-        compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+    out = at_extra_ops.fill_diagonal(a, c)
+    fgraph = FunctionGraph([a], [out])
+    compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
 
     with pytest.raises(NotImplementedError):
         out = at_extra_ops.fill_diagonal_offset(a, c, c)

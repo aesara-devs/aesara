@@ -956,20 +956,11 @@ def jax_funcify_Bartlett(op, **kwargs):
 
 @jax_funcify.register(FillDiagonal)
 def jax_funcify_FillDiagonal(op, **kwargs):
+    def filldiagonal(value, diagonal):
+        i, j = jnp.diag_indices(min(value.shape[-2:]))
+        return value.at[..., i, j].set(diagonal)
 
-    # def filldiagonal(a, val):
-    #     if a.ndim == 2:
-    #         step = a.shape[1] + 1
-    #         end = a.shape[1] * a.shape[1]
-    #         a.flat[:end:step] = val
-    #     else:
-    #         jnp.fill_diagonal(a, val)
-    #
-    #     return a
-    #
-    # return filldiagonal
-
-    raise NotImplementedError("flatiter not implemented in JAX")
+    return filldiagonal
 
 
 @jax_funcify.register(FillDiagonalOffset)
