@@ -1,4 +1,5 @@
 import pickle
+import re
 from copy import copy
 
 import numpy as np
@@ -1229,10 +1230,15 @@ def test_multinomial_rng():
             (10, 2, 3),
             lambda *args, **kwargs: np.tile(np.arange(3).astype(np.int64), (10, 2, 1)),
         ),
+        (
+            np.full((4, 1, 3), [100000, 1, 1], dtype=config.floatX),
+            (4, 2),
+            lambda *args, **kwargs: np.zeros((4, 2), dtype=np.int64),
+        ),
     ],
 )
 def test_categorical_samples(p, size, test_fn):
-    p = p / p.sum(axis=-1)
+    p = p / p.sum(axis=-1, keepdims=True)
     rng = np.random.default_rng(232)
 
     compare_sample_values(
@@ -1251,7 +1257,20 @@ def test_categorical_basic():
     rng = np.random.default_rng()
 
     with pytest.raises(ValueError):
-        categorical.rng_fn(rng, p, size=10)
+        # The independent dimension of p has shape=(3,) which cannot be
+        # broadcasted to (10,)
+        categorical.rng_fn(rng, p, size=(10,))
+
+    msg = re.escape("`size` is incompatible with the shape of `p`")
+    with pytest.raises(ValueError, match=msg):
+        # The independent dimension of p has shape=(3,) which cannot be
+        # broadcasted to (1,)
+        categorical.rng_fn(rng, p, size=(1,))
+
+    with pytest.raises(ValueError, match=msg):
+        # The independent dimensions of p have shape=(1, 3) which cannot be
+        # broadcasted to (3,)
+        categorical.rng_fn(rng, p[None], size=(3,))
 
 
 def test_randint_samples():
