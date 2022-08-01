@@ -3221,13 +3221,28 @@ def test_unaligned_RandomVariable(rv_op, dist_args, base_size, cdf_name, params_
                 set_test_value(
                     at.dmatrix(),
                     np.array(
+                        [[100000, 1, 1]],
+                        dtype=np.float64,
+                    ),
+                ),
+            ],
+            (5, 4, 3),
+            contextlib.suppress(),
+        ),
+        pytest.param(
+            [
+                set_test_value(
+                    at.dmatrix(),
+                    np.array(
                         [[100000, 1, 1], [1, 100000, 1], [1, 1, 100000]],
                         dtype=np.float64,
                     ),
                 ),
             ],
             (10, 4),
-            pytest.raises(ValueError, match="Parameters shape.*"),
+            pytest.raises(
+                ValueError, match="objects cannot be broadcast to a single shape"
+            ),
         ),
     ],
 )

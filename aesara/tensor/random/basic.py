@@ -1214,20 +1214,17 @@ class CategoricalRV(RandomVariable):
     @classmethod
     def rng_fn(cls, rng, p, size):
         if size is None:
-            size = ()
-
-        size = tuple(np.atleast_1d(size))
-        ind_shape = p.shape[:-1]
-
-        if len(ind_shape) > 0:
-            if len(size) > 0 and size[-len(ind_shape) :] != ind_shape:
-                raise ValueError("Parameters shape and size do not match.")
-
-            samples_shape = size[: -len(ind_shape)] + ind_shape
+            size = p.shape[:-1]
         else:
-            samples_shape = size
+            # Check that `size` does not define a shape that would be broadcasted
+            # to `p.shape[:-1]` in the call to `vsearchsorted` below.
+            if len(size) < (p.ndim - 1):
+                raise ValueError("`size` is incompatible with the shape of `p`")
+            for s, ps in zip(reversed(size), reversed(p.shape[:-1])):
+                if s == 1 and ps != 1:
+                    raise ValueError("`size` is incompatible with the shape of `p`")
 
-        unif_samples = rng.uniform(size=samples_shape)
+        unif_samples = rng.uniform(size=size)
         samples = vsearchsorted(p.cumsum(axis=-1), unif_samples)
 
         return samples
