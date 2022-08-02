@@ -70,6 +70,19 @@ class ScipyRandomVariable(RandomVariable):
 
 
 class UniformRV(RandomVariable):
+    r"""A uniform continuous random variable.
+
+    The probability density function for `uniform` within the interval :math:`[l, h)` is:
+
+    .. math::
+        \begin{split}
+            f(x; l, h) = \begin{cases}
+                          \frac{1}{h-l}\quad \text{for $l \leq x \leq h$},\\
+                           0\quad \text{otherwise}.
+                       \end{cases}
+        \end{split}
+
+    """
     name = "uniform"
     ndim_supp = 0
     ndims_params = [0, 0]
@@ -77,6 +90,25 @@ class UniformRV(RandomVariable):
     _print_name = ("U", "\\operatorname{U}")
 
     def __call__(self, low=0.0, high=1.0, size=None, **kwargs):
+        r"""Draw samples from a uniform distribution.
+
+        The results are undefined when `high < low`.
+
+        Parameters
+        ----------
+        low
+           Lower boundary :math:`l` of the output interval; all values generated
+           will be greater than or equal to `low`.
+        high
+           Upper boundary :math:`h` of the output interval; all values generated
+           will be less than or equal to `high`.
+        size
+            Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
+            independent, identically distributed random variables are
+            returned. Default is `None` in which case a single random variable
+            is returned.
+
+        """
         return super().__call__(low, high, size=size, **kwargs)
 
 
