@@ -116,11 +116,50 @@ uniform = UniformRV()
 
 
 class TriangularRV(RandomVariable):
+    r"""A triangular continuous random variable.
+
+    The probability density function for `triangular` within the interval :math:`[l, r)`
+    and mode :math:`m` (where the peak of the distribution occurs) is:
+
+    .. math::
+
+        \begin{split}
+            f(x; l, m, r) = \begin{cases}
+                                \frac{2(x-l)}{(r-l)(m-l)}\quad \text{for $l \leq x \leq m$},\\
+                                \frac{2(r-x)}{(r-l)(r-m)}\quad \text{for $m \leq x \leq r$},\\
+                                0\quad \text{otherwise}.
+                            \end{cases}
+        \end{split}
+
+    """
     name = "triangular"
     ndim_supp = 0
     ndims_params = [0, 0, 0]
     dtype = "floatX"
     _print_name = ("Triang", "\\operatorname{Triang}")
+
+    def __call__(self, left, mode, right, size=None, **kwargs):
+        r"""Draw samples from a triangular distribution.
+
+        Parameters
+        ----------
+        left
+           Lower boundary :math:`l` of the output interval; all values generated
+           will be greater than or equal to `left`.
+        mode
+           Mode :math:`m` of the distribution, where the peak occurs. Must be such
+           that `left <= mode <= right`.
+        right
+           Upper boundary :math:`r` of the output interval; all values generated
+           will be less than or equal to `right`. Must be larger than `left`.
+        size
+            Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
+            independent, identically distributed random variables are
+            returned. Default is `None` in which case a single random variable
+            is returned.
+
+        """
+        return super().__call__(left, mode, right, size=size, **kwargs)
 
 
 triangular = TriangularRV()
