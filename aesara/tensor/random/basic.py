@@ -106,6 +106,18 @@ beta = BetaRV()
 
 
 class NormalRV(RandomVariable):
+    r"""A normal continuous random variable.
+
+    The probability density function for `normal` in terms of its location parameter (mean)
+    :math:`\mu` and scale parameter (standard deviation) :math:`\sigma` is:
+
+    .. math::
+
+        f(x; \mu, \sigma) = \frac{1}{\sqrt{2 \pi \sigma^2}} e^{-\frac{(x-\mu)^2}{2\sigma^2}}
+
+    for :math:`\sigma > 0`.
+
+    """
     name = "normal"
     ndim_supp = 0
     ndims_params = [0, 0]
@@ -113,6 +125,21 @@ class NormalRV(RandomVariable):
     _print_name = ("N", "\\operatorname{N}")
 
     def __call__(self, loc=0.0, scale=1.0, size=None, **kwargs):
+        r"""Draw samples from a normal distribution.
+
+        Parameters
+        ----------
+        loc
+            Mean :math:`\mu` of the normal distribution.
+        scale
+            Standard deviation :math:`\sigma` of the normal distribution. Must be positive.
+        size
+            Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
+            independent, identically distributed random variables are
+            returned. Default is `None` in which case a single random variable
+            is returned.
+
+        """
         return super().__call__(loc, scale, size=size, **kwargs)
 
 
@@ -120,7 +147,28 @@ normal = NormalRV()
 
 
 class StandardNormalRV(NormalRV):
+    r"""A standard normal continuous random variable.
+
+    The probability density function for `standard_normal` is:
+
+    .. math::
+
+        f(x) = \frac{1}{\sqrt{2 \pi}} e^{-\frac{x^2}{2}}
+
+    """
+
     def __call__(self, size=None, **kwargs):
+        """Draw samples from a standard normal distribution.
+
+        Parameters
+        ----------
+        size
+            Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
+            independent, identically distributed random variables are
+            returned. Default is `None` in which case a single random variable
+            is returned.
+
+        """
         return super().__call__(loc=0.0, scale=1.0, size=size, **kwargs)
 
 
@@ -128,6 +176,18 @@ standard_normal = StandardNormalRV()
 
 
 class HalfNormalRV(ScipyRandomVariable):
+    r"""A half-normal continuous random variable.
+
+    The probability density function for `halfnormal` in terms of its location parameter
+    :math:`\mu` and scale parameter :math:`\sigma` is:
+
+    .. math::
+
+        f(x; \mu, \sigma) = \frac{1}{\sqrt{2 \pi \sigma^2}} e^{-\frac{(x-\mu)^2}{2\sigma^2}}
+
+    for :math:`x \geq 0` and :math:`\sigma > 0`.
+
+    """
     name = "halfnormal"
     ndim_supp = 0
     ndims_params = [0, 0]
@@ -135,10 +195,40 @@ class HalfNormalRV(ScipyRandomVariable):
     _print_name = ("N**+", "\\operatorname{N^{+}}")
 
     def __call__(self, loc=0.0, scale=1.0, size=None, **kwargs):
+        r"""Draw samples from a half-normal distribution.
+
+        Parameters
+        ----------
+        loc
+            Location parameter :math:`\mu` of the distribution.
+        scale
+            Scale parameter :math:`\sigma` of the distribution.
+        size
+            Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
+            independent, identically distributed random variables are
+            returned. Default is `None` in which case a single random variable
+            is returned.
+
+        """
         return super().__call__(loc, scale, size=size, **kwargs)
 
     @classmethod
     def rng_fn_scipy(cls, rng, loc, scale, size):
+        r"""Draw sample from a half-normal distribution using Scipy's generator.
+
+        Parameters
+        ----------
+        loc
+            Location parameter :math:`\mu` of the distribution.
+        scale
+            Scale parameter :math:`\sigma` of the distribution.
+        size
+            Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
+            independent, identically distributed random variables are
+            returned. Default is `None` in which case a single random variable
+            is returned.
+
+        """
         return stats.halfnorm.rvs(loc, scale, random_state=rng, size=size)
 
 
@@ -146,6 +236,18 @@ halfnormal = HalfNormalRV()
 
 
 class LogNormalRV(RandomVariable):
+    r"""A lognormal continuous random variable.
+
+    The probability density function for `lognormal` in terms of the mean
+    parameter :math:`\mu` and sigma parameter :math:`\sigma` is:
+
+    .. math::
+
+        f(x; \mu, \sigma) = \frac{1}{x \sqrt{2 \pi \sigma^2}} e^{-\frac{(\ln(x)-\mu)^2}{2\sigma^2}}
+
+    for :math:`x > 0` and :math:`\sigma > 0`.
+
+    """
     name = "lognormal"
     ndim_supp = 0
     ndims_params = [0, 0]
@@ -153,6 +255,21 @@ class LogNormalRV(RandomVariable):
     _print_name = ("LogN", "\\operatorname{LogN}")
 
     def __call__(self, mean=0.0, sigma=1.0, size=None, **kwargs):
+        r"""Draw sample from a lognormal distribution.
+
+        Parameters
+        ----------
+        mean
+            Mean :math:`\mu` of the random variable's natural logarithm.
+        sigma
+            Standard deviation :math:`\sigma` of the random variable's natural logarithm.
+        size
+            Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
+            independent, identically distributed random variables are
+            returned. Default is `None` in which case a single random variable
+            is returned.
+
+        """
         return super().__call__(mean, sigma, size=size, **kwargs)
 
 
