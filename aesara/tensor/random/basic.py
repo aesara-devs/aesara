@@ -162,15 +162,19 @@ lognormal = LogNormalRV()
 class GammaRV(ScipyRandomVariable):
     r"""A gamma continuous random variable.
 
-    The probability density function for `gamma` in terms of `shape = alpha` and `rate = beta` is:
+    The probability density function for `gamma` in terms of the shape parameter
+    :math:`\alpha` and rate parameter :math:`\beta` is:
 
     .. math::
 
-        f(x, \alpha, \beta) = \frac{\beta^\alpha}{\Gamma(\alpha)}x^{\alpha-1}e^{-\beta x}
+        f(x; \alpha, \beta) = \frac{\beta^\alpha}{\Gamma(\alpha)}x^{\alpha-1}e^{-\beta x}
 
-    for :math:`x \geq 0`, :math:`\alpha > 0` and :math:`\beta > 0`. `gamma`
-    takes ``shape`` as a shape parameter for :math:`\alpha` and ``rate`` as a
-    rate parameter for :math:`\beta`.
+    for :math:`x \geq 0`, :math:`\alpha > 0` and :math:`\beta > 0`. :math:`\Gamma` is
+    the gamma function:
+
+    .. math::
+
+        \Gamma(x) = \int_0^{\infty} t^{x-1} e^{-t} \mathrm{d}t
 
     """
     name = "gamma"
@@ -180,14 +184,14 @@ class GammaRV(ScipyRandomVariable):
     _print_name = ("Gamma", "\\operatorname{Gamma}")
 
     def __call__(self, shape, rate, size=None, **kwargs):
-        """Return gamma-distributed random variables.
+        r"""Draw samples from a gamma distribution.
 
         Parameters
         ----------
         shape
-            The shape of the gamma distribution. Must be positive.
+            The shape :math:`\alpha` of the gamma distribution. Must be positive.
         rate
-            The rate of the gamma distribution. Must be positive.
+            The rate :math:`\beta` of the gamma distribution. Must be positive.
         size
             Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
             independent, identically distributed random variables are
@@ -195,7 +199,6 @@ class GammaRV(ScipyRandomVariable):
             is returned.
 
         """
-
         return super().__call__(shape, 1.0 / rate, size=size, **kwargs)
 
     @classmethod
