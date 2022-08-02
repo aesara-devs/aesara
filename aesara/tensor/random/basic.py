@@ -533,6 +533,18 @@ dirichlet = DirichletRV()
 
 
 class PoissonRV(RandomVariable):
+    r"""A poisson discrete random variable.
+
+    The probability mass function for `poisson` in terms of the expected number
+    of events :math:`\lambda` is:
+
+    .. math::
+
+        f(k; \lambda) = \frac{\lambda^k e^{-\lambda}}{k!}
+
+    for :math:`\lambda > 0`.
+
+    """
     name = "poisson"
     ndim_supp = 0
     ndims_params = [0]
@@ -540,6 +552,19 @@ class PoissonRV(RandomVariable):
     _print_name = ("Pois", "\\operatorname{Pois}")
 
     def __call__(self, lam=1.0, size=None, **kwargs):
+        r"""Draw samples from a poisson distribution.
+
+        Parameters
+        ----------
+        lam
+            Expected number of events :math:`\lambda`. Must be positive.
+        size
+            Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
+            independent, identically distributed random variables are
+            returned. Default is `None` in which case a single random variable
+            is returned.
+
+        """
         return super().__call__(lam, size=size, **kwargs)
 
 
