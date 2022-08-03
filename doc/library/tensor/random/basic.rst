@@ -61,6 +61,9 @@ Aesara can produce :class:`RandomVariable`\s that draw samples from many differe
 .. autoclass:: aesara.tensor.random.basic.GammaRV
    :members: __call__
 
+.. autoclass:: aesara.tensor.random.basic.ChiSquareRV
+   :members: __call__
+
 .. autoclass:: aesara.tensor.random.basic.NormalRV
    :members: __call__
 
