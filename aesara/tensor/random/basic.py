@@ -479,6 +479,18 @@ chisquare = ChiSquareRV()
 
 
 class ParetoRV(ScipyRandomVariable):
+    r"""A pareto continuous random variable.
+
+    The probability density function for `pareto` in terms of its shape parameter :math:`b` and
+    scale parameter :math:`x_m` is:
+
+    .. math::
+
+        f(x; b, x_m) = \frac{b x_m^b}{x^{b+1}}
+
+    and is defined for :math:`x \geq x_m`.
+
+    """
     name = "pareto"
     ndim_supp = 0
     ndims_params = [0, 0]
@@ -486,6 +498,21 @@ class ParetoRV(ScipyRandomVariable):
     _print_name = ("Pareto", "\\operatorname{Pareto}")
 
     def __call__(self, b, scale=1.0, size=None, **kwargs):
+        r"""Draw samples from a pareto distribution.
+
+        Parameters
+        ----------
+        b
+            The shape :math:`b` (or exponent) of the pareto distribution. Must be positive.
+        scale
+            The scale :math:`x_m` of the pareto distribution. Must be positive.
+        size
+            Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
+            independent, identically distributed random variables are
+            returned. Default is `None` in which case a single random variable
+            is returned.
+
+        """
         return super().__call__(b, scale, size=size, **kwargs)
 
     @classmethod
