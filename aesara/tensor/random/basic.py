@@ -524,6 +524,18 @@ pareto = ParetoRV()
 
 
 class GumbelRV(ScipyRandomVariable):
+    r"""A gumbel continuous random variable.
+
+    The probability density function for `gumbel` in terms of its location parameter :math:`\mu` and
+    scale parameter :math:`\beta` is:
+
+    .. math::
+
+        f(x; \mu, \beta) = \frac{\exp(-(x + e^{(x-\mu)/\beta})}{\beta}
+
+    for :math:`\beta > 0`.
+
+    """
     name = "gumbel"
     ndim_supp = 0
     ndims_params = [0, 0]
@@ -537,6 +549,21 @@ class GumbelRV(ScipyRandomVariable):
         size: Optional[Union[List[int], int]] = None,
         **kwargs,
     ) -> RandomVariable:
+        r"""Draw samples from a gumbel distribution.
+
+        Parameters
+        ----------
+        loc
+            The location parameter :math:`\mu` of the distribution.
+        scale
+            The scale :math:`\beta` of the distribution. Must be positive.
+        size
+            Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
+            independent, identically distributed random variables are
+            returned. Default is `None` in which case a single random variable
+            is returned.
+
+        """
         return super().__call__(loc, scale, size=size, **kwargs)
 
     @classmethod
