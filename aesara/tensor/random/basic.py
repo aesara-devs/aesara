@@ -166,11 +166,45 @@ triangular = TriangularRV()
 
 
 class BetaRV(RandomVariable):
+    r"""A beta continuous random variable.
+
+    The probability density function for `beta` in terms of its parameters :math:`\alpha`
+    and :math:`\beta` is:
+
+    .. math::
+
+        f(x; \alpha, \beta) = \frac{1}{B(\alpha, \beta)} x^{\alpha-1} (1-x)^{\beta-1}
+
+    for :math:`0 \leq x \leq 1`. :math:`B` is the beta function defined as:
+
+    .. math::
+
+        B(\alpha, \beta) = \int_0^1 t^{\alpha-1} (1-t)^{\beta-1} \mathrm{d}t
+
+    """
     name = "beta"
     ndim_supp = 0
     ndims_params = [0, 0]
     dtype = "floatX"
     _print_name = ("Beta", "\\operatorname{Beta}")
+
+    def __call__(self, alpha, beta, size=None, **kwargs):
+        r"""Draw samples from a beta distribution.
+
+        Parameters
+        ----------
+        alpha
+            Alpha parameter :math:`\alpha` of the distribution. Must be positive.
+        beta
+            Beta parameter :math:`\beta` of the distribution. Must be positive.
+        size
+            Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
+            independent, identically distributed random variables are
+            returned. Default is `None` in which case a single random variable
+            is returned.
+
+        """
+        return super().__call__(alpha, beta, size=size, **kwargs)
 
 
 beta = BetaRV()
