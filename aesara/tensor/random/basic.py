@@ -620,11 +620,42 @@ logistic = LogisticRV()
 
 
 class VonMisesRV(RandomVariable):
+    r"""A von Misses continuous random variable.
+
+    The probability density function for `vonmisses` in terms of its mode :math:`\mu` and
+    dispersion parameter :math:`\kappa` is :
+
+    .. math::
+
+        f(x; \mu, \kappa) = \frac{e^{\kappa \cos(x-\mu)}}{2 \pi I_0(\kappa)}
+
+    for :math:`x \in [-\pi, \pi]` and :math:`\kappa > 0`. :math:`I_0` is the modified Bessel
+    function of order 0.
+
+    """
     name = "vonmises"
     ndim_supp = 0
     ndims_params = [0, 0]
     dtype = "floatX"
     _print_name = ("VonMises", "\\operatorname{VonMises}")
+
+    def __call__(self, mu, kappa, size=None, **kwargs):
+        r"""Draw samples from a von Mises distribution.
+
+        Parameters
+        ----------
+        mu
+            The mode :math:`\mu` of the distribution.
+        kappa
+            The dispersion parameter :math:`\kappa` of the distribution. Must be positive.
+        size
+            Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
+            independent, identically distributed random variables are
+            returned. Default is `None` in which case a single random variable
+            is returned.
+
+        """
+        return super().__call__(mu, kappa, size=size, **kwargs)
 
 
 vonmises = VonMisesRV()
