@@ -80,28 +80,37 @@ class TestMatrixInverse(utt.InferShapeTester):
 
         r = self.rng.standard_normal(shape).astype(config.floatX)
 
-        x = matrix()
+        if len(shape) == 2:
+            x = matrix()
+        elif len(shape) == 3:
+            x = tensor3()
+
         xi = self.op(x)
 
+        # Create Op and call its perform
         ri = function([x], xi)(r)
         assert ri.shape == r.shape
         assert ri.dtype == r.dtype
 
-        rir = ri * r
-        rri = r * ri
+        rir = np.matmul(ri, r)
+        rri = np.matmul(r, ri)
 
         event_shape = shape[-1]
         identity = np.broadcast_to(np.identity(event_shape), shape)
         assert _allclose(identity, rir), rir
         assert _allclose(identity, rri), rri
 
-    def test_infer_shape(self):
+    @pytest.mark.parametrize("shape", [(4, 4), (3, 4, 4), (1, 1, 1)])
+    def test_infer_shape(self, shape):
 
-        r = self.rng.standard_normal((4, 4)).astype(config.floatX)
+        r = self.rng.standard_normal(shape).astype(config.floatX)
 
-        x = matrix()
+        if len(shape) == 2:
+            x = matrix()
+        elif len(shape) == 3:
+            x = tensor3()
+
         xi = self.op(x)
-
         self._compile_and_check([x], [xi], [r], self.op_class, warn=False)
 
 
