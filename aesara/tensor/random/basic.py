@@ -606,6 +606,18 @@ weibull = WeibullRV()
 
 
 class LogisticRV(RandomVariable):
+    r"""A logistic continuous random variable.
+
+    The probability density function for `logistic` in terms of its location parameter :math:`\mu` and
+    scale parameter :math:`s` is :
+
+    .. math::
+
+        f(x; \mu, s) = \frac{e^{-(x-\mu)/s}}{s(1+e^{-(x-\mu)/s})^2}
+
+    for :math:`s > 0`.
+
+    """
     name = "logistic"
     ndim_supp = 0
     ndims_params = [0, 0]
@@ -613,6 +625,21 @@ class LogisticRV(RandomVariable):
     _print_name = ("Logistic", "\\operatorname{Logistic}")
 
     def __call__(self, loc=0, scale=1, size=None, **kwargs):
+        r"""Draw samples from a logistic distribution.
+
+        Parameters
+        ----------
+        loc
+            The location parameter :math:`\mu` of the distribution.
+        scale
+            The scale :math:`s` of the distribution. Must be positive.
+        size
+            Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
+            independent, identically distributed random variables are
+            returned. Default is `None` in which case a single random variable
+            is returned.
+
+        """
         return super().__call__(loc, scale, size=size, **kwargs)
 
 
