@@ -595,11 +595,38 @@ exponential = ExponentialRV()
 
 
 class WeibullRV(RandomVariable):
+    r"""A weibull continuous random variable.
+
+    The probability density function for `weibull` in terms of its shape parameter :math:`k` is :
+
+    .. math::
+
+        f(x; k) = k x^{k-1} e^{-x^k}
+
+    for :math:`x \geq 0` and :math:`k > 0`.
+
+    """
     name = "weibull"
     ndim_supp = 0
     ndims_params = [0]
     dtype = "floatX"
     _print_name = ("Weibull", "\\operatorname{Weibull}")
+
+    def __call__(self, shape, size=None, **kwargs):
+        r"""Draw samples from a weibull distribution.
+
+        Parameters
+        ----------
+        shape
+            The shape :math:`k` of the distribution. Must be positive.
+        size
+            Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
+            independent, identically distributed random variables are
+            returned. Default is `None` in which case a single random variable
+            is returned.
+
+        """
+        return super().__call__(shape, size=size, **kwargs)
 
 
 weibull = WeibullRV()
