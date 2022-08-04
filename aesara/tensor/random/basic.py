@@ -581,6 +581,17 @@ gumbel = GumbelRV()
 
 
 class ExponentialRV(RandomVariable):
+    r"""An exponential continuous random variable.
+
+    The probability density function for `exponential` in terms of its scale parameter :math:`\beta` is:
+
+    .. math::
+
+        f(x; \beta) = \frac{\exp(-x / \beta)}{\beta}
+
+    for :math:`x \geq 0` and :math:`\beta > 0`.
+
+    """
     name = "exponential"
     ndim_supp = 0
     ndims_params = [0]
@@ -588,6 +599,19 @@ class ExponentialRV(RandomVariable):
     _print_name = ("Exp", "\\operatorname{Exp}")
 
     def __call__(self, scale=1.0, size=None, **kwargs):
+        r"""Draw samples from an exponential distribution.
+
+        Parameters
+        ----------
+        scale
+            The scale :math:`\beta` of the distribution. Must be positive.
+        size
+            Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
+            independent, identically distributed random variables are
+            returned. Default is `None` in which case a single random variable
+            is returned.
+
+        """
         return super().__call__(scale, size=size, **kwargs)
 
 
