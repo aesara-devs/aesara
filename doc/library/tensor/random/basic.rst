@@ -49,50 +49,50 @@ Distributions
 
 Aesara can produce :class:`RandomVariable`\s that draw samples from many different statistical distributions, using the following :class:`Op`\s.
 
-.. autoclass:: aesara.tensor.random.basic.UniformRV
-   :members: __call__
-
-.. autoclass:: aesara.tensor.random.basic.TriangularRV
-   :members: __call__
-
 .. autoclass:: aesara.tensor.random.basic.BetaRV
-   :members: __call__
-
-.. autoclass:: aesara.tensor.random.basic.GammaRV
    :members: __call__
 
 .. autoclass:: aesara.tensor.random.basic.ChiSquareRV
    :members: __call__
 
-.. autoclass:: aesara.tensor.random.basic.ParetoRV
+.. autoclass:: aesara.tensor.random.basic.ExponentialRV
+   :members: __call__
+
+.. autoclass:: aesara.tensor.random.basic.GammaRV
    :members: __call__
 
 .. autoclass:: aesara.tensor.random.basic.GumbelRV
    :members: __call__
 
-.. autoclass:: aesara.tensor.random.basic.ExponentialRV
-   :members: __call__
-
-.. autoclass:: aesara.tensor.random.basic.WeibullRV
+.. autoclass:: aesara.tensor.random.basic.HalfNormalRV
    :members: __call__
 
 .. autoclass:: aesara.tensor.random.basic.LogisticRV
    :members: __call__
 
-.. autoclass:: aesara.tensor.random.basic.VonMisesRV
+.. autoclass:: aesara.tensor.random.basic.LogNormalRV
    :members: __call__
 
 .. autoclass:: aesara.tensor.random.basic.NormalRV
    :members: __call__
 
-.. autoclass:: aesara.tensor.random.basic.StandardNormalRV
-   :members: __call__
-
-.. autoclass:: aesara.tensor.random.basic.HalfNormalRV
-   :members: __call__
-
-.. autoclass:: aesara.tensor.random.basic.LogNormalRV
+.. autoclass:: aesara.tensor.random.basic.ParetoRV
    :members: __call__
 
 .. autoclass:: aesara.tensor.random.basic.PoissonRV
+   :members: __call__
+
+.. autoclass:: aesara.tensor.random.basic.StandardNormalRV
+   :members: __call__
+
+.. autoclass:: aesara.tensor.random.basic.TriangularRV
+   :members: __call__
+
+.. autoclass:: aesara.tensor.random.basic.UniformRV
+   :members: __call__
+
+.. autoclass:: aesara.tensor.random.basic.VonMisesRV
+   :members: __call__
+
+.. autoclass:: aesara.tensor.random.basic.WeibullRV
    :members: __call__
