@@ -53,7 +53,7 @@ install_requires = [
     "miniKanren",
     "cons",
     "typing_extensions",
-    "setuptools>=45.0.0",
+    "setuptools>=48.0.0",
 ]
 
 
