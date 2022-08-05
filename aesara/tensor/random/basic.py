@@ -876,11 +876,41 @@ poisson = PoissonRV()
 
 
 class GeometricRV(RandomVariable):
+    r"""A geometric discrete random variable.
+
+    The probability mass function for `geometric` for the number of successes :math:`k`
+    before the first failure in terms of the probability of success :math:`p` of a single
+    trial is:
+
+    .. math::
+
+        f(k; p) = p^{k-1}(1-p)
+
+    for :math:`0 \geq p \geq 1`.
+
+    """
     name = "geometric"
     ndim_supp = 0
     ndims_params = [0]
     dtype = "int64"
     _print_name = ("Geom", "\\operatorname{Geom}")
+
+    def __call__(self, p, size=None, **kwargs):
+        r"""Draw samples from a geometric distribution.
+
+        Parameters
+        ----------
+        p
+           Probability of success :math:`p` of an individual trial.
+        size
+           Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
+           independent, identically distributed random variables are
+           returned. Default is `None` in which case a single random variable
+           is returned if `p` is a scalar. Otherwise `np.array(p).size` samples
+           are drawn.
+
+        """
+        return super().__call__(p, size=size, **kwargs)
 
 
 geometric = GeometricRV()
