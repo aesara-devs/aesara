@@ -887,11 +887,44 @@ geometric = GeometricRV()
 
 
 class HyperGeometricRV(RandomVariable):
+    r"""A hypergeometric discrete random variable.
+
+    The probability mass function for `hypergeometric` for the number of
+    successes :math:`k` in :math:`n` draws without replacement, from a
+    finite population of size :math:`N` with :math:`K` desired items is:
+
+    .. math::
+
+        f(k; n, N, K) = \frac{{K \choose k} {N-K \choose n-k}}{{N \choose n}}
+
+    """
     name = "hypergeometric"
     ndim_supp = 0
     ndims_params = [0, 0, 0]
     dtype = "int64"
     _print_name = ("HyperGeom", "\\operatorname{HyperGeom}")
+
+    def __call__(self, ngood, nbad, nsample, size=None, **kwargs):
+        r"""Draw samples from a geometric distribution.
+
+        Parameters
+        ----------
+        ngood
+            Number :math:`K` of desirable items in the population.
+        nbad
+            Number :math:`N-K` of undesirable items in the population.
+        nsample
+            Number :math:`n` of items sampled. Must be less than :math:`N`,
+            i.e. `ngood + nbad`.`
+        size
+           Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
+           independent, identically distributed random variables are
+           returned. Default is `None` in which case a single random variable
+           is returned if `ngood`, `nbad` and `nsample` are all scalars.
+           Otherwise `np.broadcast(ngood, nbad, nsample).size` samples are drawn.
+
+        """
+        return super().__call__(ngood, nbad, nsample, size=size, **kwargs)
 
 
 hypergeometric = HyperGeometricRV()
