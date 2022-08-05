@@ -806,11 +806,41 @@ multivariate_normal = MvNormalRV()
 
 
 class DirichletRV(RandomVariable):
+    r"""A Dirichlet continuous random variable.
+
+    The probability density function for `dirichlet` in terms of the vector of
+    concentration parameters :math:`\boldsymbol{\alpha}` is:
+
+    .. math::
+
+        f(x; \boldsymbol{\alpha}) = \prod_{i=1}^k x_i^{\alpha_i-1}
+
+    where :math:`x` is a vector, such that :math:`x_i > 0\;\forall i` and
+    :math:`\sum_{i=1}^k x_i = 1`.
+
+    """
     name = "dirichlet"
     ndim_supp = 1
     ndims_params = [1]
     dtype = "floatX"
     _print_name = ("Dir", "\\operatorname{Dir}")
+
+    def __call__(self, alphas, size=None, **kwargs):
+        r"""Draw samples from a dirichlet distribution.
+
+        Parameters
+        ----------
+        alphas
+            A sequence of concentration parameters :math:`\boldsymbol{\alpha}` of the
+            distribution. A sequence of length `k` will produce samples of length `k`.
+        size
+            Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
+            independent, identically distributed random variables are
+            returned. Default is `None` in which case a vector of length `k`
+            is returned.
+
+        """
+        return super().__call__(alphas, size=size, **kwargs)
 
     @classmethod
     def rng_fn(cls, rng, alphas, size):
