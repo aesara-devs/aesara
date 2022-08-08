@@ -1081,11 +1081,45 @@ halfcauchy = HalfCauchyRV()
 
 
 class InvGammaRV(ScipyRandomVariable):
+    r"""An inverse-gamma continuous random variable.
+
+    The probability density function for `invgamma` in terms of its shape
+    parameter :math:`\alpha` and scale parameter :math:`\beta` is:
+
+    .. math::
+
+        f(x; \alpha, \beta) = \frac{\beta^\alpha}{\Gamma(\alpha)} x^{-(\alpha+1)} \exp\left(-\frac{\beta}{x}\right)
+
+    for :math:`x > 0`, where :math:`\alpha > 0` and :math:`\beta > 0`. :math:`Gamma` is the gamma function :
+
+    .. math::
+
+        \Gamma(x) = \int_0^{\infty} t^{x-1} e^{-t} \mathrm{d}t
+
+    """
     name = "invgamma"
     ndim_supp = 0
     ndims_params = [0, 0]
     dtype = "floatX"
     _print_name = ("InvGamma", "\\operatorname{Gamma^{-1}}")
+
+    def __call__(self, shape, scale, size=None, **kwargs):
+        r"""Draw samples from an inverse-gamma distribution.
+
+        Parameters
+        ----------
+        shape
+            Shape parameter :math:`\alpha` of the distribution. Must be positive.
+        scale
+            Scale parameter :math:`\beta` of the distribution. Must be
+            positive.
+        size
+           Sample shape. If the given size is `(m, n, k)`, then `m * n * k`
+           independent, identically distributed sample are returned. Default is
+           `None`, in which case a single sample is returned.
+
+        """
+        return super().__call__(shape, scale, size=size, **kwargs)
 
     @classmethod
     def rng_fn_scipy(cls, rng, shape, scale, size):
