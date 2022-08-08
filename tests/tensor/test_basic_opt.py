@@ -121,6 +121,7 @@ from aesara.tensor.type import (
     lvector,
     matrices,
     matrix,
+    row,
     scalar,
     scalars,
     tensor,
@@ -3569,63 +3570,295 @@ def test_Shape_i_canonicalize():
     assert y_opt.owner.inputs[0] == x
 
 
-@pytest.mark.parametrize(
-    "expr, x_shape, y_shape",
-    [
-        pytest.param(
-            lambda x, y: at.mul(y, at.alloc(1, x)),
-            (),
-            (),
-            marks=pytest.mark.xfail(reason="Not implemented"),
-        ),
-        (lambda x, y: at.mul(at.alloc(x, 15, 1), y), (15, 1), (15, 1)),
-        (lambda x, y: at.mul(at.alloc(x, 15, 2), y), (15, 2), (15, 2)),
-        (lambda x, y: at.mul(at.alloc(x, 15, 1), at.alloc(y, 15, 1)), (15, 1), (15, 1)),
-        (lambda x, y: at.mul(at.alloc(x, 15, 2), at.alloc(y, 15, 2)), (15, 2), (15, 2)),
-        (lambda x, y: at.mul(at.alloc(x, 15, 2).dimshuffle(1, 0), y), (15, 2), (2, 15)),
-        (lambda x, y: at.mul(at.alloc(x, 1, 15, 2), y), (15, 2), (15, 2)),
-        (
-            lambda x, y: at.mul(at.alloc(x, 1, 15, 2).dimshuffle(0, 2, 1), y),
-            (15, 2),
-            (2, 15),
-        ),
-    ],
-)
-def test_local_elemwise_alloc(expr, x_shape, y_shape):
-    x = at.tensor("int64", (False,) * len(x_shape))
-    y = at.tensor("int64", (False,) * len(y_shape))
-    z = expr(x, y)
+class TestLocalElemwiseAlloc:
+    """
 
-    z_opt = aesara.function(
-        [x, y],
-        z,
-        mode=get_default_mode().including("local_elemwise_alloc"),
-        on_unused_input="ignore",
+    TODO FIXME: Remove redundant tests.
+
+    """
+
+    dtype = config.floatX
+
+    def setup_method(self):
+        self.fast_compile_mode = get_mode("FAST_COMPILE")
+        self.fast_run_mode = get_mode("FAST_RUN")
+
+        self.vec = vector("vec", dtype=self.dtype)
+        self.mat = matrix("mat", dtype=self.dtype)
+        self.tens = tensor3("tens", dtype=self.dtype)
+
+        self.alloc_wo_dep = at.alloc(self.vec, 2, 2)
+        self.alloc_wo_dep_broad = at.alloc(self.vec, 1, 2)
+        self.alloc_w_dep = at.alloc(self.vec, *self.mat.shape)
+        self.alloc_w_dep_broad = at.alloc(self.vec, 1, *self.mat.shape)
+        self.alloc_w_dep_broad2 = at.alloc(
+            self.vec, self.mat.shape[0], self.mat.shape[1], 1
+        )
+        self.alloc_w_dep_tens = at.alloc(
+            self.vec, self.tens.shape[0], self.tens.shape[1]
+        )
+        self.tv_wo_dep = at.alloc(self.vec, 5, 5)
+        self.tm_wo_dep = at.alloc(self.mat, 5, 5, 5)
+        self.s = iscalar("s")
+        self.tv_w_dep = at.alloc(self.vec, self.s, self.s)
+        self.tm_w_dep = at.alloc(self.mat, 5, 5, 5)
+        self.row = row(dtype=self.dtype)
+        self.o = at.alloc(self.row, 5, 5)
+
+    @staticmethod
+    def verify_op_count(f, count, cls):
+        assert (
+            sum(
+                isinstance(elem.op, cls)
+                for elem in f.maker.fgraph.toposort()
+                if elem.op is not None
+            )
+            == count
+        )
+
+    @pytest.mark.parametrize(
+        "expr, x_shape, y_shape",
+        [
+            (lambda x, y: at.mul(at.alloc(1, *y.shape), x), (1, 2), (3, 2)),
+            (lambda x, y: at.mul(at.alloc(1, *y.shape), x), (1, 1), (1, 1)),
+            (lambda x, y: at.mul(x, at.alloc(y, 2, 3)), (1, 3), (2, 3)),
+            (
+                lambda x, y: at.mul(
+                    at.alloc(x, 3).dimshuffle("x", 0), y.dimshuffle("x", "x")
+                ),
+                (),
+                (),
+            ),
+            pytest.param(
+                lambda x, y: at.mul(y, at.alloc(1, x)),
+                (),
+                (),
+                marks=pytest.mark.xfail(reason="Not implemented"),
+            ),
+            (lambda x, y: at.mul(at.alloc(x, 15, 1), y), (15, 1), (15, 1)),
+            (lambda x, y: at.mul(at.alloc(x, 15, 2), y), (15, 2), (15, 2)),
+            (
+                lambda x, y: at.mul(at.alloc(x, 15, 1), at.alloc(y, 15, 1)),
+                (15, 1),
+                (15, 1),
+            ),
+            (
+                lambda x, y: at.mul(at.alloc(x, 15, 2), at.alloc(y, 15, 2)),
+                (15, 2),
+                (15, 2),
+            ),
+            (
+                lambda x, y: at.mul(at.alloc(x, 15, 2).dimshuffle(1, 0), y),
+                (15, 2),
+                (2, 15),
+            ),
+            (lambda x, y: at.mul(at.alloc(x, 1, 15, 2), y), (15, 2), (15, 2)),
+            (
+                lambda x, y: at.mul(at.alloc(x, 1, 15, 2).dimshuffle(0, 2, 1), y),
+                (15, 2),
+                (2, 15),
+            ),
+        ],
     )
+    def test_basic(self, expr, x_shape, y_shape):
+        x = at.tensor("int64", (False,) * len(x_shape), name="x")
+        y = at.tensor("int64", (False,) * len(y_shape), name="y")
+        z = expr(x, y)
 
-    assert not any(isinstance(node.op, Alloc) for node in z_opt.maker.fgraph.toposort())
+        z_opt = aesara.function(
+            [x, y],
+            z,
+            mode=get_default_mode().including("local_elemwise_alloc"),
+            on_unused_input="ignore",
+        )
 
-    z_no_opt = aesara.function(
-        [x, y],
-        z,
-        mode=get_default_mode().excluding("local_elemwise_alloc"),
-        on_unused_input="ignore",
-    )
+        assert not any(
+            isinstance(node.op, Alloc) for node in z_opt.maker.fgraph.toposort()
+        )
 
-    x_val = np.arange(np.prod(x_shape), dtype=np.int64).reshape(x_shape)
-    y_val = np.arange(np.prod(y_shape), dtype=np.int64).reshape(y_shape)
+        z_no_opt = aesara.function(
+            [x, y],
+            z,
+            mode=get_default_mode().excluding("local_elemwise_alloc"),
+            on_unused_input="ignore",
+        )
 
-    res = z_opt(x_val, y_val)
-    exp_res = z_no_opt(x_val, y_val)
-    assert np.array_equal(res, exp_res)
+        x_val = np.arange(np.prod(x_shape), dtype=np.int64).reshape(x_shape)
+        y_val = np.arange(np.prod(y_shape), dtype=np.int64).reshape(y_shape)
 
+        res = z_opt(x_val, y_val)
+        exp_res = z_no_opt(x_val, y_val)
+        assert np.array_equal(res, exp_res)
 
-def test_local_elemwise_alloc_single_input():
-    # Test that rewrite is not triggered when there is only one Alloc in an Elemwise
-    x = at.matrix("x")
-    z = at.exp(at.alloc(x, 15, 1))
+    def test_single_input(self):
+        """Test that rewrite is not triggered when there is only one `Alloc` in an `Elemwise`."""
+        x = at.matrix("x")
+        z = at.exp(at.alloc(x, 15, 1))
 
-    z_fg = FunctionGraph(outputs=[z], copy_inputs=False, features=[ShapeFeature()])
+        z_fg = FunctionGraph(outputs=[z], copy_inputs=False, features=[ShapeFeature()])
 
-    z_opt_fg = optimize_graph(z_fg, clone=False, include=["local_elemwise_alloc"])
-    assert any(isinstance(node.op, Alloc) for node in z_opt_fg.apply_nodes)
+        z_opt_fg = optimize_graph(z_fg, clone=False, include=["local_elemwise_alloc"])
+        assert any(isinstance(node.op, Alloc) for node in z_opt_fg.apply_nodes)
+
+    def test_remove_alloc_wo_dimshuffle(self):
+        # Exclude local_useless_alloc, since it does not introduce
+        # assert in all the same cases.
+        self.fast_run_mode = self.fast_run_mode.excluding(
+            "local_useless_alloc", "local_alloc_sink_dimshuffle"
+        )
+        # No optimization on alloc
+        func = function(
+            [self.vec, self.mat],
+            self.alloc_wo_dep + self.mat,
+            mode=self.fast_compile_mode,
+        )
+        self.verify_op_count(func, 1, Alloc)
+        self.verify_op_count(func, 0, Assert)
+        # Check stacktrace was copied over correctly after opt was applied
+        assert check_stack_trace(func, ops_to_check="all")
+
+        # Optimization on alloc with assert
+        func = function(
+            [self.vec, self.mat], self.alloc_wo_dep + self.mat, mode=self.fast_run_mode
+        )
+        self.verify_op_count(func, 0, Alloc)
+        self.verify_op_count(func, 2, Assert)
+
+        # Optimization on alloc with assert and broadcast
+        func = function(
+            [self.vec, self.mat],
+            self.alloc_wo_dep_broad + self.mat,
+            mode=self.fast_run_mode,
+        )
+        self.verify_op_count(func, 0, Alloc)
+        self.verify_op_count(func, 1, Assert)
+
+        # No optimization on alloc without assert
+        func = function(
+            [self.vec, self.mat],
+            self.alloc_w_dep + self.mat,
+            mode=self.fast_compile_mode,
+        )
+        self.verify_op_count(func, 1, Alloc)
+        self.verify_op_count(func, 0, Assert)
+
+        # Optimization on alloc without assert
+        func = function(
+            [self.vec, self.mat], self.alloc_w_dep + self.mat, mode=self.fast_run_mode
+        )
+        self.verify_op_count(func, 0, Alloc)
+        self.verify_op_count(func, 0, Assert)
+
+        # Optimization on alloc without assert and with broadcast
+        func = function(
+            [self.vec, self.mat],
+            self.alloc_w_dep_broad + self.mat,
+            mode=self.fast_run_mode,
+        )
+        self.verify_op_count(func, 0, Alloc)
+        self.verify_op_count(func, 0, Assert)
+
+        # This was previously not optimized, but it is now that we
+        # have `BroadcastTo`.
+        func = function(
+            [self.vec, self.mat],
+            self.alloc_w_dep_broad2 + self.mat,
+            mode=self.fast_run_mode,
+        )
+        self.verify_op_count(func, 0, Alloc)
+        self.verify_op_count(func, 1, Assert)
+
+    def test_remove_alloc_w_dimshuffle(self):
+        # No optimization on dimshuffle with assert
+        func = function(
+            [self.vec, self.tens],
+            self.alloc_wo_dep.dimshuffle(0, 1, "x") + self.tens,
+            mode=self.fast_compile_mode,
+        )
+        self.verify_op_count(func, 1, Alloc)
+        self.verify_op_count(func, 0, Assert)
+
+        # Optimization on dimshuffle with assert
+        # TODO FIXME: The `BroadcastTo` shapes should use the constants
+        # provided by the first/`Alloc` term, and not the unknown values from
+        # the `tens` term.
+        func = function(
+            [self.vec, self.tens],
+            self.alloc_wo_dep.dimshuffle(0, 1, "x") + self.tens,
+            mode=self.fast_run_mode,
+        )
+        self.verify_op_count(func, 0, Alloc)
+        self.verify_op_count(func, 2, Assert)
+
+        # No optimization on dimshuffle without assert
+        func = function(
+            [self.vec, self.tens],
+            self.alloc_w_dep_tens.dimshuffle(0, 1, "x") + self.tens,
+            mode=self.fast_compile_mode,
+        )
+        self.verify_op_count(func, 1, Alloc)
+        self.verify_op_count(func, 0, Assert)
+
+        # Optimization on dimshuffle without assert
+        func = function(
+            [self.vec, self.tens],
+            self.alloc_w_dep_tens.dimshuffle(0, 1, "x") + self.tens,
+            mode=self.fast_run_mode,
+        )
+        self.verify_op_count(func, 0, Alloc)
+        self.verify_op_count(func, 0, Assert)
+
+    def test_multi_input_single_alloc(self):
+        # No optimization on dimshuffle with assert
+        func = function(
+            [self.vec, self.mat],
+            self.tv_wo_dep + self.tm_wo_dep,
+            mode=self.fast_compile_mode,
+        )
+        self.verify_op_count(func, 2, Alloc)
+        self.verify_op_count(func, 0, Assert)
+
+        # Optimization on dimshuffle with assert
+        # TODO: When we support static shape constraints like `shape[i] != 1`,
+        # reproduce this with such a constraint on `mat` and make sure the
+        # `BroadcastTo` is removed.
+        func = function(
+            [self.vec, self.mat],
+            self.tv_wo_dep + self.tm_wo_dep,
+            mode=self.fast_run_mode,
+        )
+        self.verify_op_count(func, 0, Alloc)
+        self.verify_op_count(func, 0, Assert)
+
+        # No optimization on dimshuffle without assert
+        func = function(
+            [self.vec, self.mat, self.s],
+            self.tv_w_dep + self.tm_w_dep,
+            mode=self.fast_compile_mode,
+        )
+        self.verify_op_count(func, 2, Alloc)
+        self.verify_op_count(func, 0, Assert)
+
+        # Optimization on dimshuffle without assert
+        func = function(
+            [self.vec, self.mat, self.s],
+            self.tv_w_dep + self.tm_w_dep,
+            mode=self.fast_run_mode,
+        )
+        self.verify_op_count(func, 0, Alloc)
+        self.verify_op_count(func, 1, Assert)
+
+    def test_misc(self):
+        x = row(dtype=self.dtype)
+        y = tensor(dtype=self.dtype, shape=(False, False, True))
+
+        out = at.alloc(x, 5, 5).dimshuffle(0, 1, "x") + y
+        func = function([y, x], out, mode=self.fast_run_mode)
+
+        self.verify_op_count(func, 0, Alloc)
+        self.verify_op_count(func, 2, Assert)
+
+        y_val = np.random.random((5, 5, 1)).astype(self.dtype)
+        x_val = np.random.random((1, 5)).astype(self.dtype)
+        exp_res = np.broadcast_to(x_val, (5, 5))[..., None] + y_val
+        assert np.array_equal(func(y_val, x_val), exp_res)
