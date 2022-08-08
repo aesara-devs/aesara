@@ -1096,6 +1096,18 @@ invgamma = InvGammaRV()
 
 
 class WaldRV(RandomVariable):
+    r"""A Wald (or inverse Gaussian) continuous random variable.
+
+    The probability density function for `wald` in terms of its mean
+    parameter :math:`\mu` and shape parameter :math:`\lambda` is:
+
+    .. math::
+
+        f(x; \mu, \lambda) = \sqrt{\frac{\lambda}{2 \pi x^3}} \exp\left(-\frac{\lambda (x-\mu)^2}{2 \mu^2 x}\right)
+
+    for :math:`x > 0`, where :math:`\mu > 0` and :math:`\lambda > 0`.
+
+    """
     name = "wald"
     ndim_supp = 0
     ndims_params = [0, 0]
@@ -1103,6 +1115,21 @@ class WaldRV(RandomVariable):
     _print_name_ = ("Wald", "\\operatorname{Wald}")
 
     def __call__(self, mean=1.0, scale=1.0, size=None, **kwargs):
+        r"""Draw samples from a Wald distribution.
+
+        Parameters
+        ----------
+        mean
+            Mean parameter :math:`\mu` of the distribution. Must be positive.
+        shape
+            Shape parameter :math:`\lambda` of the distribution. Must be
+            positive.
+        size
+           Sample shape. If the given size is `(m, n, k)`, then `m * n * k`
+           independent, identically distributed samples are returned. Default is
+           `None`, in which case a single sample is returned.
+
+        """
         return super().__call__(mean, scale, size=size, **kwargs)
 
 
