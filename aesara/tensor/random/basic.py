@@ -991,6 +991,18 @@ hypergeometric = HyperGeometricRV()
 
 
 class CauchyRV(ScipyRandomVariable):
+    r"""A Cauchy continuous random variable.
+
+    The probability density function for `cauchy` in terms of its location
+    parameter :math:`x_0` and scale parameter :math:`\gamma` is:
+
+    .. math::
+
+        f(x; x_0, \gamma) = \frac{1}{\pi \gamma \left(1 + (\frac{x-x_0}{\gamma})^2\right)}
+
+    where :math:`\gamma > 0`.
+
+    """
     name = "cauchy"
     ndim_supp = 0
     ndims_params = [0, 0]
@@ -998,6 +1010,21 @@ class CauchyRV(ScipyRandomVariable):
     _print_name = ("C", "\\operatorname{C}")
 
     def __call__(self, loc=0.0, scale=1.0, size=None, **kwargs):
+        r"""Draw samples from a Cauchy distribution.
+
+        Parameters
+        ----------
+        loc
+            Location parameter :math:`x_0` of the distribution.
+        scale
+            Scale parameter :math:`\gamma` of the distribution. Must be
+            positive.
+        size
+           Sample shape. If the given size is `(m, n, k)`, then `m * n * k`
+           independent, identically distributed samples are returned. Default is
+           `None` in which case a single sample is returned.
+
+        """
         return super().__call__(loc, scale, size=size, **kwargs)
 
     @classmethod
