@@ -1088,8 +1088,8 @@ class InvGammaRV(ScipyRandomVariable):
     _print_name = ("InvGamma", "\\operatorname{Gamma^{-1}}")
 
     @classmethod
-    def rng_fn_scipy(cls, rng, shape, rate, size):
-        return stats.invgamma.rvs(shape, scale=rate, size=size, random_state=rng)
+    def rng_fn_scipy(cls, rng, shape, scale, size):
+        return stats.invgamma.rvs(shape, scale=scale, size=size, random_state=rng)
 
 
 invgamma = InvGammaRV()
