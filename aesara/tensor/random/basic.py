@@ -1270,11 +1270,41 @@ bernoulli = BernoulliRV()
 
 
 class LaplaceRV(RandomVariable):
+    r"""A Laplace continuous random variable.
+
+    The probability density function for `laplace` in terms of its location
+    parameter :math:`\mu` and scale parameter :math:`\lambda` is:
+
+    .. math::
+
+        f(x; \mu, \lambda) = \frac{1}{2 \lambda} \exp\left(-\frac{|x-\mu|}{\lambda}\right)
+
+    with :math:`\lambda > 0`.
+
+    """
     name = "laplace"
     ndim_supp = 0
     ndims_params = [0, 0]
     dtype = "floatX"
     _print_name = ("Laplace", "\\operatorname{Laplace}")
+
+    def __call__(self, loc=0.0, scale=1.0, size=None, **kwargs):
+        r"""Draw samples from a Laplace distribution.
+
+        Parameters
+        ----------
+        loc
+            Location parameter :math:`\mu` of the distribution.
+        scale
+            Scale parameter :math:`\lambda` of the distribution. Must be
+            positive.
+        size
+            Sample shape. If the given size is `(m, n, k)`, then `m * n * k`
+            independent, identically distributed samples are returned. Default
+            is `None` in which case a single sample is returned.
+
+        """
+        return super().__call__(loc, scale, size=size, **kwargs)
 
 
 laplace = LaplaceRV()
