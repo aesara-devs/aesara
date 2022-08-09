@@ -1612,18 +1612,18 @@ def _rmtree(
                 )
 
 
-_module_cache = None
+_module_cache: Optional[ModuleCache] = None
 
 
-def get_module_cache(dirname, init_args=None):
-    """
-    Create a new module_cache with the (k, v) pairs in this dictionary
+def get_module_cache(dirname: str, init_args=None) -> ModuleCache:
+    """Create a new module_cache.
 
     Parameters
     ----------
+    dirname
+        The name of the directory used by the cache.
     init_args
-        If not None, the (k, v) pairs in this dictionary will be forwarded to
-        the ModuleCache constructor as keyword arguments.
+        Keyword arguments passed to the `ModuleCache` constructor.
 
     """
     global _module_cache
@@ -1639,8 +1639,8 @@ def get_module_cache(dirname, init_args=None):
         )
     if _module_cache.dirname != dirname:
         _logger.warning(
-            "Returning module cache instance with different "
-            f"dirname ({_module_cache.dirname}) than you requested ({dirname})"
+            "Returning a module cache instance with a different "
+            f"dirname ({_module_cache.dirname}) than requested ({dirname})"
         )
     return _module_cache
 
