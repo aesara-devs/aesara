@@ -1171,11 +1171,44 @@ wald = WaldRV()
 
 
 class TruncExponentialRV(ScipyRandomVariable):
+    r"""A truncated exponential continuous random variable.
+
+    The probability density function for `truncexp` in terms of its shape
+    parameter :math:`b`, location parameter :math:`\alpha` and scale
+    parameter :math:`\beta` is:
+
+    .. math::
+
+        f(x; b, \alpha, \beta) = \frac{\exp(-(x-\alpha)/\beta)}{\beta (1-\exp(-b))}
+
+    for :math:`0 \leq x \leq b` and :math:`\beta > 0`.
+
+    """
     name = "truncexpon"
     ndim_supp = 0
     ndims_params = [0, 0, 0]
     dtype = "floatX"
     _print_name = ("TruncExp", "\\operatorname{TruncExp}")
+
+    def __call__(self, b, loc=0.0, scale=1.0, size=None, **kwargs):
+        r"""Draw samples from a truncated exponential distribution.
+
+        Parameters
+        ----------
+        b
+            Shape parameter :math:`b` of the distribution. Must be positive.
+        loc
+            Location parameter :math:`\alpha` of the distribution.
+        scale
+            Scale parameter :math:`\beta` of the distribution. Must be
+            positive.
+        size
+           Sample shape. If the given size is `(m, n, k)`, then `m * n * k`
+           independent, identically distributed samples are returned. Default is
+           `None` in which case a single sample is returned.
+
+        """
+        return super().__call__(b, loc, scale, size=size, **kwargs)
 
     @classmethod
     def rng_fn_scipy(cls, rng, b, loc, scale, size):
