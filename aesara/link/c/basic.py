@@ -3,7 +3,6 @@ Defines Linkers that deal with C implementations.
 
 """
 import logging
-import os
 import sys
 from collections import defaultdict
 from copy import copy
@@ -21,7 +20,6 @@ from aesara.graph.basic import (
     io_toposort,
     vars_between,
 )
-from aesara.graph.callcache import CallCache
 from aesara.link.basic import Container, Linker, LocalLinker, PerformLinker
 from aesara.link.c.cmodule import (
     METH_VARARGS,
@@ -53,18 +51,6 @@ def get_module_cache(init_args=None):
 
     """
     return _get_module_cache(config.compiledir, init_args=init_args)
-
-
-_persistent_module_cache = None
-
-
-def get_persistent_module_cache():
-    global _persistent_module_cache
-    if _persistent_module_cache is None:
-        _persistent_module_cache = CallCache(
-            os.path.join(config.compiledir, "persistent_cache")
-        )
-    return _persistent_module_cache
 
 
 class CodeBlock:
