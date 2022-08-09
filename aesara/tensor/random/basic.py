@@ -1221,11 +1221,45 @@ truncexpon = TruncExponentialRV()
 
 
 class BernoulliRV(ScipyRandomVariable):
+    r"""A Bernoulli discrete random variable.
+
+    The probability mass function for `bernoulli` in terms of the probability
+    of success :math:`p` of a single trial is:
+
+
+    .. math::
+
+        \begin{split}
+            f(k; p) = \begin{cases}
+                                (1-p)\quad \text{if $k = 0$},\\
+                                p\quad \text{if $k=1$}\\
+                        \end{cases}
+        \end{split}
+
+    where :math:`0 \leq p \leq 1`.
+
+    """
     name = "bernoulli"
     ndim_supp = 0
     ndims_params = [0]
     dtype = "int64"
     _print_name = ("Bern", "\\operatorname{Bern}")
+
+    def __call__(self, p, size=None, **kwargs):
+        r"""Draw samples from a Bernoulli distribution.
+
+        Parameters
+        ----------
+        p
+            Probability of success :math:`p` of a single trial.
+        size
+            Sample shape. If the given size is `(m, n, k)`, then `m * n * k`
+            independent, identically distributed samples are
+            returned. Default is `None` in which case a single sample
+            is returned.
+
+        """
+        return super().__call__(p, size=size, **kwargs)
 
     @classmethod
     def rng_fn_scipy(cls, rng, p, size):
