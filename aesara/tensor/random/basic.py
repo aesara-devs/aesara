@@ -1311,11 +1311,39 @@ laplace = LaplaceRV()
 
 
 class BinomialRV(RandomVariable):
+    r"""A binomial discrete random variable.
+
+    The probability mass function for `binomial` for the number :math:`k` of successes
+    in terms of the probability of success :math:`p` of a single trial and the number
+    :math:`n` of trials is:
+
+    .. math::
+
+            f(k; p, n) = {n \choose k} p^k (1-p)^{n-k}
+
+    """
     name = "binomial"
     ndim_supp = 0
     ndims_params = [0, 0]
     dtype = "int64"
     _print_name = ("Binom", "\\operatorname{Binom}")
+
+    def __call__(self, n, p, size=None, **kwargs):
+        r"""Draw samples from a binomial distribution.
+
+        Parameters
+        ----------
+        n
+            Number of trials :math:`n`. Must be a positive integer.
+        p
+            Probability of success :math:`p` of a single trial.
+        size
+            Sample shape. If the given size is `(m, n, k)`, then `m * n * k`
+            independent, identically distributed samples are returned. Default
+            is `None` in which case a single sample is returned.
+
+        """
+        return super().__call__(n, p, size=size, **kwargs)
 
 
 binomial = BinomialRV()
