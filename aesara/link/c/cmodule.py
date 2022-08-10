@@ -19,7 +19,7 @@ import textwrap
 import time
 import warnings
 from io import BytesIO, StringIO
-from typing import Callable, Dict, List, Optional, Set, Tuple, cast
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple, cast
 
 import numpy as np
 from setuptools._distutils.sysconfig import (
@@ -44,6 +44,10 @@ from aesara.utils import (
     output_subprocess_Popen,
     subprocess_Popen,
 )
+
+
+if TYPE_CHECKING:
+    from aesara.link.c.basic import CLinker
 
 
 class StdLibDirsAndLibsType(Protocol):
@@ -616,38 +620,38 @@ class ModuleCache:
     can import.
 
     The cache contains one directory for each module, containing:
-    - the dynamic library file itself (.so/.pyd),
-    - an empty __init__.py file, so Python can import it,
-    - a file containing the source code for the module (mod.cpp/mod.cu),
-    - a key.pkl file, containing a KeyData object with all the keys
+    - the dynamic library file itself (e.g. ``.so/.pyd``),
+    - an empty ``__init__.py`` file, so Python can import it,
+    - a file containing the source code for the module (e.g. ``mod.cpp/mod.cu``),
+    - a ``key.pkl`` file, containing a KeyData object with all the keys
     associated with that module,
-    - possibly a delete.me file, meaning this directory has been marked
+    - possibly a ``delete.me`` file, meaning this directory has been marked
     for deletion.
 
-    Keys should be tuples of length 2: (version, rest). The
-    ``rest`` can be anything hashable and picklable, that uniquely
+    Keys should be tuples of length two: ``(version, rest)``. The
+    rest can be anything hashable and picklable, that uniquely
     identifies the computation in the module. The key is returned by
-    ``CLinker.cmodule_key_``.
+    `CLinker.cmodule_key_`.
 
-    The ``version`` should be a hierarchy of tuples of integers.
-    If the ``version`` is either 0 or (), then the key is unversioned, and its
-    corresponding module will be marked for deletion in an atexit() handler.
-    If the ``version`` is neither 0 nor (), then the module will be kept in the
-    cache between processes.
+    The ``version`` value should be a hierarchy of tuples of integers.  If the
+    ``version`` value is either ``0`` or ``()``, then the key is unversioned,
+    and its corresponding module will be marked for deletion in an `atexit`
+    handler.  If the ``version`` value is neither ``0`` nor ``()``, then the
+    module will be kept in the cache between processes.
 
     An unversioned module is not always deleted by the process that
     creates it.  Deleting such modules may not work on NFS filesystems
     because the tmpdir in which the library resides is in use until the
     end of the process' lifetime.  In this case, unversioned modules
-    are left in their tmpdirs without corresponding .pkl files.  These
-    modules and their directories are erased by subsequent processes'
-    refresh() functions.
+    are left in their temporary directories without corresponding ``.pkl``
+    files.  These modules and their directories are erased by subsequent
+    processes' `ModuleCache.refresh`functions.
 
     Two different keys are mapped to the same module when all conditions below
     are met:
         - They have the same version.
         - They share the same compilation options in their ``rest`` part (see
-          ``CLinker.cmodule_key_`` for how this part is built).
+          `CLinker.cmodule_key_` for how this part is built).
         - They share the same C code.
     These three elements uniquely identify a module, and are summarized
     in a single "module hash".
@@ -655,12 +659,12 @@ class ModuleCache:
     Parameters
     ----------
     check_for_broken_eq
-        A bad __eq__ implementation can break this cache mechanism.
+        A bad `object.__eq__` implementation can break this cache mechanism.
         This option turns on a not-too-expensive sanity check every
         time a new key is added to the cache.
 
     do_refresh : bool
-        If True, then the ``refresh`` method will be called
+        If ``True``, then the `ModuleCache.refresh` method will be called
         in the constructor.
 
     """
@@ -677,7 +681,7 @@ class ModuleCache:
     """
     entry_from_key: Dict = {}
     """
-    Maps keys to the filename of a .so/.pyd.
+    Maps keys to the filename of a ``.so/.pyd``.
 
     """
     similar_keys: Dict = {}
@@ -687,18 +691,18 @@ class ModuleCache:
     """
     module_hash_to_key_data: Dict = {}
     """
-    Maps a module hash to its corresponding KeyData object.
+    Maps a module hash to its corresponding `KeyData` object.
 
     """
     stats: List = []
     """
     A list with counters for the number of hits, loads, compiles issued by
-    module_from_key().
+    `ModuleCache.module_from_key`.
 
     """
     loaded_key_pkl: Set = set()
     """
-    Set of all key.pkl files that have been loaded.
+    Set of all ``key.pkl`` files that have been loaded.
 
     """
 
@@ -1164,7 +1168,7 @@ class ModuleCache:
         self._update_mappings(key, key_data, module.__file__, not key_broken)
         return key_data
 
-    def module_from_key(self, key, lnk=None):
+    def module_from_key(self, key, lnk: "CLinker"):
         """
         Return a module from the cache, compiling it if necessary.
 
@@ -1319,7 +1323,7 @@ class ModuleCache:
     age_thresh_del = config.cmodule__age_thresh_use + 60 * 60 * 24 * 7
     age_thresh_del_unversioned = 60 * 60 * 24 * 7  # 7 days
     """
-    The default age threshold for `clear_old` (in seconds).
+    The default age threshold for `ModuleCache.clear_old` (in seconds).
 
     """
 
