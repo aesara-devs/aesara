@@ -1445,6 +1445,18 @@ betabinom = BetaBinomialRV()
 
 
 class GenGammaRV(ScipyRandomVariable):
+    r"""A generalized gamma continuous random variable.
+
+    The probability density function of `gengamma` in terms of its scale parameter
+    :math:`\alpha` and other parameters :math:`p` and :math:`\lambda` is:
+
+    .. math::
+
+            f(x; \alpha, \lambda, p) = \frac{p/\lambda^\alpha}{\Gamma(\alpha/p)} x^{\alpha-1} e^{-(x/\lambda)^p}
+
+    for :math:`x > 0`, where :math:`\alpha, \lambda, p > 0`.
+
+    """
     name = "gengamma"
     ndim_supp = 0
     ndims_params = [0, 0, 0]
@@ -1452,6 +1464,23 @@ class GenGammaRV(ScipyRandomVariable):
     _print_name = ("GG", "\\operatorname{GG}")
 
     def __call__(self, alpha=1.0, p=1.0, lambd=1.0, size=None, **kwargs):
+        r"""Draw samples from a generalized gamma distribution.
+
+        Parameters
+        ----------
+        alpha
+            Parameter :math:`\alpha`. Must be positive.
+        p
+            Parameter :math:`p`. Must be positive.
+        lambd
+            Scale parameter :math:`\lambda`. Must be positive.
+        size
+            Sample shape. If the given size is `(m, n, k)`, then `m * n * k`
+            independent, identically distributed samples are
+            returned. Default is `None` in which case a single sample
+            is returned.
+
+        """
         return super().__call__(alpha, p, lambd, size=size, **kwargs)
 
     @classmethod
