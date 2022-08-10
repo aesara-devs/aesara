@@ -1394,11 +1394,47 @@ negative_binomial = NegBinomialRV()
 
 
 class BetaBinomialRV(ScipyRandomVariable):
+    r"""A beta-binomial discrete random variable.
+
+    The probability mass function for `betabinom` in terms of its shape
+    parameters :math:`n \geq 0`, :math:`a > 0`, :math:`b > 0` and the probability
+    :math:`p` is:
+
+    .. math::
+
+            f(k; p, n, a, b) = {n \choose k} \frac{\operatorname{B}(k+a, n-k+b)}{\operatorname{B}(a,b)}
+
+    where :math:`\operatorname{B}` is the beta function:
+
+    .. math::
+
+        \operatorname{B}(a, b) = \int_0^1 t^{a-1} (1-t)^{b-1} \mathrm{d}t
+
+    """
     name = "beta_binomial"
     ndim_supp = 0
     ndims_params = [0, 0, 0]
     dtype = "int64"
     _print_name = ("BetaBinom", "\\operatorname{BetaBinom}")
+
+    def __call__(self, n, a, b, size=None, **kwargs):
+        r"""Draw samples from a beta-binomial distribution.
+
+        Parameters
+        ----------
+        n
+            Shape parameter :math:`n`. Must be a positive integer.
+        a
+            Shape parameter :math:`a`. Must be positive.
+        b
+            Shape parameter :math:`b`. Must be positive.
+        size
+            Sample shape. If the given size is `(m, n, k)`, then `m * n * k`
+            independent, identically distributed samples are returned. Default
+            is `None` in which case a single sample is returned.
+
+        """
+        return super().__call__(n, a, b, size=size, **kwargs)
 
     @classmethod
     def rng_fn_scipy(cls, rng, n, a, b, size):
