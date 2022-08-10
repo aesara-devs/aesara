@@ -555,7 +555,7 @@ class KeyData:
             with open(self.key_pkl, "wb") as f:
                 pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
         except pickle.PicklingError:
-            _logger.warning(f"Cache leak due to unpickle-able key data {self.keys}")
+            warnings.warn(f"Cache leak due to unpickle-able key data: {self.keys}")
             os.remove(self.key_pkl)
             raise
 
@@ -824,8 +824,8 @@ class ModuleCache:
                             # os. So it is normal that this happens from time
                             # to time.
                             _logger.warning(
-                                "ModuleCache.refresh() Found key "
-                                f"without dll in cache, deleting it. {key_pkl}",
+                                "`ModuleCache.refresh` Found a key "
+                                f"without a cached shared library ({key_pkl}); deleting it."
                             )
                         rmtree(
                             root,
@@ -852,7 +852,7 @@ class ModuleCache:
                             rmtree(
                                 root,
                                 ignore_nocleanup=True,
-                                msg="broken cache directory [EOF]",
+                                msg="Broken cache directory [EOF]",
                                 level=logging.WARNING,
                             )
                             continue
@@ -886,9 +886,9 @@ class ModuleCache:
                                 root,
                                 ignore_nocleanup=True,
                                 msg=(
-                                    "invalid cache entry format -- this "
-                                    "should not happen unless your cache "
-                                    "was really old"
+                                    "Invalid cache entry format.  This "
+                                    "should not happen unless the cache "
+                                    "is outdated."
                                 ),
                                 level=logging.WARN,
                             )
@@ -921,14 +921,14 @@ class ModuleCache:
                         # TODO: check if this can happen at all
                         to_del = [key for key in key_data.keys if not key[0]]
                         if to_del:
-                            _logger.warning(
-                                "ModuleCache.refresh() Found unversioned "
-                                f"key in cache, removing it. {key_pkl}",
+                            warnings.warn(
+                                "`ModuleCache.refresh` found an unversioned "
+                                f"key in the cache ({key_pkl}); removing it."
                             )
                             # Since the version is in the module hash, all
                             # keys should be unversioned.
                             if len(to_del) != len(key_data.keys):
-                                _logger.warning(
+                                warnings.warn(
                                     "Found a mix of unversioned and "
                                     "versioned keys for the same "
                                     f"module {key_pkl}",
@@ -986,12 +986,11 @@ class ModuleCache:
                             else:
                                 dir1 = os.path.dirname(self.entry_from_key[key])
                                 dir2 = os.path.dirname(entry)
-                                _logger.warning(
-                                    "The same cache key is associated to "
+                                warnings.warn(
+                                    "The same cache key is associated with "
                                     f"different modules ({dir1} and {dir2}). This "
-                                    "is not supposed to happen! You may "
-                                    "need to manually delete your cache "
-                                    "directory to fix this.",
+                                    "is not supposed to happen.  The cache directory "
+                                    "may need to be manually delete in order to fix this."
                                 )
                         # Clean up the name space to prevent bug.
                         if key_data.keys:
@@ -1025,10 +1024,10 @@ class ModuleCache:
                     # considered a failure of the OTHER process, that deleted
                     # it.
                     if entry in self.module_from_name:
-                        _logger.warning(
+                        warnings.warn(
                             "A module that was loaded by this "
                             "ModuleCache can no longer be read from file "
-                            f"{entry}... this could lead to problems.",
+                            f"{entry}.  This could lead to problems.",
                         )
                         del self.module_from_name[entry]
 
@@ -1045,7 +1044,7 @@ class ModuleCache:
                             # Under /tmp, file are removed periodically by the
                             # os. So it is normal that this happen from time to
                             # time.
-                            _logger.warning(
+                            warnings.warn(
                                 f"Removing key file {pkl_file_to_remove} because the "
                                 "corresponding module is gone from the "
                                 "file system."
@@ -1158,11 +1157,9 @@ class ModuleCache:
         elif config.cmodule__warn_no_version:
             key_flat = flatten(key)
             ops = [k for k in key_flat if isinstance(k, Op)]
-            _logger.warning(
-                "not all the"
-                " following op(s) implement"
-                " c_code_cache_version(). This makes them"
-                " recompiled for each process." + str(ops)
+            warnings.warn(
+                f"The following `Op`(s) do not implement `COp.c_code_cache_version`: {ops}. "
+                "They will be recompiled across processes/Python sessions"
             )
         self._update_mappings(key, key_data, module.__file__, not key_broken)
         return key_data
@@ -1350,7 +1347,7 @@ class ModuleCache:
         # contain all modules older than age_thresh_del.
         if age_thresh_del < self.age_thresh_use:
             if age_thresh_del > 0:
-                _logger.warning(
+                _logger.info(
                     "Clearing modules that were not deemed "
                     f"too old to use: age_thresh_del={age_thresh_del}, "
                     f"self.age_thresh_use={self.age_thresh_use}"
@@ -1434,14 +1431,14 @@ class ModuleCache:
                         shutil.rmtree(to_delete)
                         _logger.debug(f"Deleted: {to_delete}")
                     except Exception:
-                        _logger.warning(f"Could not delete {to_delete}")
+                        warnings.warn(f"Could not delete {to_delete}")
                         continue
                 to_rename = os.path.join(self.dirname, base_dir)
                 if os.path.isdir(to_rename):
                     try:
                         shutil.move(to_rename, to_delete)
                     except Exception:
-                        _logger.warning(f"Could not move {to_rename} to {to_delete}")
+                        warnings.warn(f"Could not move {to_rename} to {to_delete}")
 
     def clear_unversioned(self, min_age=None):
         """Delete unversioned dynamic modules.
@@ -1607,7 +1604,7 @@ def _rmtree(
                 with open(os.path.join(parent, "delete.me"), "w"):
                     pass
             except Exception as ee:
-                _logger.warning(
+                warnings.warn(
                     f"Failed to remove or mark cache directory {parent} for removal {ee}"
                 )
 
@@ -1633,13 +1630,13 @@ def get_module_cache(dirname: str, init_args=None) -> ModuleCache:
         _module_cache = ModuleCache(dirname, **init_args)
         atexit.register(_module_cache._on_atexit)
     elif init_args:
-        _logger.warning(
+        warnings.warn(
             "Ignoring init arguments for module cache because it "
             "was created prior to this call"
         )
     if _module_cache.dirname != dirname:
-        _logger.warning(
-            "Returning a module cache instance with a different "
+        warnings.warn(
+            "Returning module cache instance with different "
             f"dirname ({_module_cache.dirname}) than requested ({dirname})"
         )
     return _module_cache
@@ -2073,13 +2070,11 @@ class GCC_compiler(Compiler):
             and "clang-omp++" not in config.cxx
             and "icpc" not in config.cxx
         ):
-            _logger.warning(
-                "Your Aesara flag `cxx` seems not to be"
-                " the g++ compiler. So we disable the compiler optimization"
-                " specific to g++ that tell to compile for a specific CPU."
-                " At worst, this could cause slow down.\n"
-                "         You can add those parameters to the compiler yourself"
-                " via the Aesara flag `gcc__cxxflags`."
+            warnings.warn(
+                "`aesara.config.cxx` is not an identifiable `g++` compiler. "
+                "Aesara will disable compiler optimizations specific to `g++`. "
+                "At worst, this could cause slow downs.\n"
+                "Those parameters can be added manually via the `cxxflags` setting."
             )
             detect_march = False
 
@@ -2142,7 +2137,7 @@ class GCC_compiler(Compiler):
                     )
                 else:
                     reported_lines = native_lines
-                _logger.warning(
+                warnings.warn(
                     "Aesara was not able to find the"
                     " g++ parameters that tune the compilation to your "
                     " specific CPU. This can slow down the execution of Aesara"
@@ -2154,15 +2149,17 @@ class GCC_compiler(Compiler):
                 default_lines = get_lines(f"{config.cxx} -E -v -")
                 _logger.info(f"g++ default lines: {default_lines}")
                 if len(default_lines) < 1:
-                    _logger.warning(
-                        "Aesara was not able to find the"
-                        " default g++ parameters. This is needed to tune"
-                        " the compilation to your specific"
-                        " CPU. This can slow down the execution of Aesara"
-                        " functions. Please submit the following lines to"
-                        " Aesara's mailing list so that we can fix this"
-                        " problem:\n %s",
-                        get_lines(f"{config.cxx} -E -v -", parse=False),
+                    reported_lines = get_lines(f"{config.cxx} -E -v -", parse=False)
+                    warnings.warn(
+                        (
+                            "Aesara was not able to find the "
+                            "default g++ parameters. This is needed to tune "
+                            "the compilation to your specific "
+                            "CPU. This can slow down the execution of Aesara "
+                            "functions. Please submit the following lines to "
+                            "Aesara's mailing list so that we can fix this "
+                            f"problem:\n {reported_lines}"
+                        )
                     )
                 else:
                     # Some options are actually given as "-option value",
