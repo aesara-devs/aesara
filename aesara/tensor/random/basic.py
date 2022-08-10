@@ -1350,11 +1350,39 @@ binomial = BinomialRV()
 
 
 class NegBinomialRV(ScipyRandomVariable):
+    r"""A negative binomial discrete random variable.
+
+    The probability mass function for `nbinom` for the number :math:`k` of draws
+    before observing the :math:`n`\th success in terms of the probability of
+    success :math:`p` of a single trial is:
+
+    .. math::
+
+            f(k; p, n) = {k+n-1 \choose n-1} p^n (1-p)^{k}
+
+    """
     name = "nbinom"
     ndim_supp = 0
     ndims_params = [0, 0]
     dtype = "int64"
     _print_name = ("NB", "\\operatorname{NB}")
+
+    def __call__(self, n, p, size=None, **kwargs):
+        r"""Draw samples from a negative binomial distribution.
+
+        Parameters
+        ----------
+        n
+            Number of successes :math:`n`. Must be a positive integer.
+        p
+            Probability of success :math:`p` of a single trial.
+        size
+            Sample shape. If the given size is `(m, n, k)`, then `m * n * k`
+            independent, identically distributed samples are returned. Default
+            is `None` in which case a single sample is returned.
+
+        """
+        return super().__call__(n, p, size=size, **kwargs)
 
     @classmethod
     def rng_fn_scipy(cls, rng, n, p, size):
