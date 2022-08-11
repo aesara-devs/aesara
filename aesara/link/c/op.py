@@ -27,6 +27,7 @@ from aesara.graph.type import HasDataType
 from aesara.graph.utils import MethodNotDefined
 from aesara.link.c.interface import CLinkerOp
 from aesara.link.c.params_type import ParamsType
+from aesara.utils import hash_from_code
 
 
 if TYPE_CHECKING:
@@ -450,7 +451,7 @@ class ExternalCOp(COp):
         return params
 
     def c_code_cache_version(self):
-        version = (hash(tuple(self.func_codes)),)
+        version = (hash_from_code("\n".join(self.func_codes)),)
         if self.params_type is not None:
             version += (self.params_type.c_code_cache_version(),)
         return version
