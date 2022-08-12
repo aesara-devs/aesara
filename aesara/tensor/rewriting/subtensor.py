@@ -881,6 +881,59 @@ def local_set_to_inc_subtensor(fgraph, node):
         return [ret]
 
 
+@register_specialize
+@local_optimizer([AdvancedIncSubtensor1])
+def local_unchecked_AdvancedIncSubtensor1(fgraph, node):
+    """Move bound checks out of the inner loop for constant index arrays."""
+
+    if not isinstance(node.op, AdvancedIncSubtensor1):
+        return
+
+    if not node.op.boundscheck:
+        return
+
+    array, incs, indices = node.inputs
+
+    if not isinstance(indices, TensorConstant):
+        return
+
+    indices = indices.data
+
+    if len(indices) == 0:
+        return
+
+    maxval = indices.max()
+    minval = indices.min()
+
+    # Make the indices unsigned if there are no negative values.
+    # This can safe checks in the inner loop due to the wraparound
+    # interpretation of negative indices.
+    if minval >= 0:
+        dtype = np.min_scalar_type(maxval)
+    else:
+        dtype = np.min_scalar_type(-max(-minval, maxval))
+    indices = indices.astype(dtype)
+
+    check = CheckAndRaise(IndexError, msg="Index out of bounds")
+
+    (length,) = array.shape
+
+    array = check(array, lt(maxval, length), or_(ge(minval, 0), le(-minval, length)))
+
+    op = type(node.op)(
+        inplace=node.op.inplace,
+        set_instead_of_inc=node.op.set_instead_of_inc,
+        boundscheck=False,
+    )
+    return [
+        op(
+            array,
+            incs,
+            indices,
+        )
+    ]
+
+
 @register_canonicalize
 @register_specialize
 @node_rewriter([Subtensor])

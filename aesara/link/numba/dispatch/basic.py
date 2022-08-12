@@ -26,6 +26,7 @@ from aesara.link.utils import (
     fgraph_to_python,
     unique_name_generator,
 )
+from aesara.raise_op import CheckAndRaise
 from aesara.scalar.basic import ScalarType
 from aesara.scalar.math import Softplus
 from aesara.tensor.blas import BatchedDot
@@ -42,7 +43,6 @@ from aesara.tensor.subtensor import (
 )
 from aesara.tensor.type import TensorType
 from aesara.tensor.type_other import MakeSlice, NoneConst
-from aesara.tensor.var import TensorConstant
 
 
 def numba_njit(*args, **kwargs):
@@ -518,74 +518,30 @@ def numba_funcify_IncSubtensor(op, node, **kwargs):
 def numba_funcify_AdvancdIncSubtensor1(op, node, **kwargs):
     inplace = op.inplace
     set_instead_of_inc = op.set_instead_of_inc
+    boundscheck = op.boundscheck
 
-    # We can specialize if we know the indexes beforhand
-    # and precompute bounds checks.
-    idxs = node.inputs[2]
-    assert np.dtype(idxs.type.dtype).kind in ["i", "u"]
-    if isinstance(idxs, TensorConstant) and len(idxs.data) > 0:
-        idxs = idxs.data
-        idxs_dtype = np.dtype(idxs.dtype)
-        min_idx = idxs.min()
-        max_idx = idxs.max()
-        # Convert to unsigned index if possible to speed up indexing
-        if min_idx >= 0 and idxs_dtype.kind == "i":
-            idxs = idxs.astype(np.dtype(f"u{idxs_dtype.itemsize}"))
+    @numba_njit
+    def check(idxs, vals):
+        if len(idxs) != len(vals):
+            raise ValueError("Incompatible dimensions during indexing")
 
-        msg_pos = f"Bad index: {max_idx}"
-        msg_neg = f"Bad index: {min_idx}"
+    if set_instead_of_inc:
 
-        @numba_njit
-        def check(z, vals):
-            if max_idx >= len(z):
-                raise IndexError(msg_pos)
-            if max(-min_idx, 0) > len(z):
-                raise IndexError(msg_neg)
-            if len(idxs) != len(vals):
-                raise ValueError("Incompatible dimensions during indexing")
-
-        if set_instead_of_inc:
-
-            @numba_njit(boundscheck=False)
-            def impl_inplace(z, vals, _):
-                check(z, vals)
-                for idx, val in zip(idxs, vals):
-                    z[idx] = val
-                return z
-
-        else:
-
-            @numba_njit(boundscheck=False)
-            def impl_inplace(z, vals, _):
-                check(z, vals)
-                for idx, val in zip(idxs, vals):
-                    z[idx] += val
-                return z
+        @numba_njit(boundscheck=boundscheck)
+        def impl_inplace(z, vals, idxs):
+            check(idxs, vals)
+            for idx, val in zip(idxs, vals):
+                z[idx] = val
+            return z
 
     else:
 
-        @numba_njit
-        def check(vals, idxs):
-            if len(idxs) != len(vals):
-                raise ValueError("Incompatible dimensions during indexing")
-
-        if set_instead_of_inc:
-
-            @numba_njit
-            def impl_inplace(z, vals, idxs):
-                check(vals, idxs)
-                for idx, val in zip(idxs, vals):
-                    z[idx] = val
-                return z
-
-        else:
-
-            @numba_njit
-            def impl_inplace(z, vals, idxs):
-                check(vals, idxs)
-                for idx, val in zip(idxs, vals):
-                    z[idx] += val
-                return z
+        @numba_njit(boundscheck=boundscheck)
+        def impl_inplace(z, vals, idxs):
+            check(idxs, vals)
+            for idx, val in zip(idxs, vals):
+                z[idx] += val
+            return z
 
     if inplace:
         impl = impl_inplace
@@ -905,3 +861,23 @@ def numba_funcify_IfElse(op, **kwargs):
             return res[0]
 
     return ifelse
+
+
+@numba_funcify.register(CheckAndRaise)
+def numba_funcify_CheckAndRaise(op, **kwargs):
+    exc_type = op.exc_type
+    msg = op.msg
+
+    @numba_njit
+    def check_and_raise(output, *conditions):
+        ok = True
+        for condition in conditions:
+            if not condition:
+                ok = False
+                break
+
+        if not ok:
+            raise exc_type(msg)
+        return output
+
+    return check_and_raise

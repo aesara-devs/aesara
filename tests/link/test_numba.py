@@ -30,7 +30,7 @@ from aesara.ifelse import ifelse
 from aesara.link.numba.dispatch import basic as numba_basic
 from aesara.link.numba.dispatch import numba_typify
 from aesara.link.numba.linker import NumbaLinker
-from aesara.raise_op import assert_op
+from aesara.raise_op import CheckAndRaise, assert_op
 from aesara.scalar.basic import Composite
 from aesara.scan.basic import scan
 from aesara.scan.utils import until
@@ -3613,6 +3613,23 @@ def test_IfElse(inputs, cond_fn, true_vals, false_vals):
     out_fg = FunctionGraph(inputs, out)
 
     compare_numba_and_py(out_fg, [get_test_value(i) for i in out_fg.inputs])
+
+
+def test_CheckAndRaise():
+    op = CheckAndRaise(TypeError, "some error message")
+    x = at.dscalar("x")
+    out = op(x, np.array(True))
+    fg = FunctionGraph([x], [out])
+
+    compare_numba_and_py(fg, [0.1])
+
+    x = at.dscalar("x")
+    out = op(x, np.array(True), np.array(False))
+    fg = FunctionGraph([x], [out])
+
+    with pytest.raises(TypeError) as error:
+        compare_numba_and_py(fg, [0.1])
+    assert "some error message" in str(error.value)
 
 
 @pytest.mark.xfail(reason="https://github.com/numba/numba/issues/7409")

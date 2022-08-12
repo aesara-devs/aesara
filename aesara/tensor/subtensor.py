@@ -2115,13 +2115,14 @@ class AdvancedIncSubtensor1(COp):
 
     """
 
-    __props__ = ("inplace", "set_instead_of_inc")
+    __props__ = ("inplace", "set_instead_of_inc", "boundscheck")
     check_input = False
     params_type = ParamsType(inplace=aes.bool, set_instead_of_inc=aes.bool)
 
-    def __init__(self, inplace=False, set_instead_of_inc=False):
+    def __init__(self, inplace=False, set_instead_of_inc=False, boundscheck=True):
         self.inplace = bool(inplace)
         self.set_instead_of_inc = bool(set_instead_of_inc)
+        self.boundscheck = boundscheck
         if inplace:
             self.destroy_map = {0: [0]}
 
@@ -2137,6 +2138,10 @@ class AdvancedIncSubtensor1(COp):
             msg += ",set"
         else:
             msg += ",inc"
+        if self.boundscheck:
+            msg += ",check"
+        else:
+            msg += ",no_check"
 
         return self.__class__.__name__ + "{%s}" % msg
 
