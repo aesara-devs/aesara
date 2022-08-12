@@ -11,6 +11,7 @@ from numpy.random.bit_generator import _coerce_to_uint32_array
 
 from aesara.compile.ops import DeepCopyOp, ViewOp
 from aesara.configdefaults import config
+from aesara.graph import Constant
 from aesara.graph.fg import FunctionGraph
 from aesara.ifelse import IfElse
 from aesara.link.utils import fgraph_to_python
@@ -728,9 +729,20 @@ def jax_funcify_MakeVector(op, **kwargs):
 
 
 @jax_funcify.register(Reshape)
-def jax_funcify_Reshape(op, **kwargs):
-    def reshape(x, shape):
-        return jnp.reshape(x, shape)
+def jax_funcify_Reshape(op, node, **kwargs):
+
+    # JAX reshape only works with constant inputs, otherwise JIT fails
+    shape = node.inputs[1]
+    if isinstance(shape, Constant):
+        constant_shape = shape.data
+
+        def reshape(x, _):
+            return jax.numpy.reshape(x, constant_shape)
+
+    else:
+
+        def reshape(x, shape):
+            return jax.numpy.reshape(x, shape)
 
     return reshape
 

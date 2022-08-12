@@ -863,10 +863,6 @@ def test_jax_MakeVector():
     compare_jax_and_py(x_fg, [])
 
 
-@pytest.mark.xfail(
-    version_parse(jax.__version__) >= version_parse("0.2.12"),
-    reason="Omnistaging cannot be disabled",
-)
 def test_jax_Reshape():
     a = vector("a")
     x = reshape(a, (2, 2))
@@ -877,16 +873,20 @@ def test_jax_Reshape():
     # See https://github.com/tensorflow/probability/commit/782d0c64eb774b9aac54a1c8488e4f1f96fbbc68
     x = reshape(a, (a.shape[0] // 2, a.shape[0] // 2))
     x_fg = FunctionGraph([a], [x])
-    compare_jax_and_py(x_fg, [np.r_[1.0, 2.0, 3.0, 4.0].astype(config.floatX)])
+    with pytest.raises(
+        TypeError,
+        match="Shapes must be 1D sequences of concrete values of integer type",
+    ):
+        compare_jax_and_py(x_fg, [np.r_[1.0, 2.0, 3.0, 4.0].astype(config.floatX)])
 
-
-@pytest.mark.xfail(reason="jax.numpy.arange requires concrete inputs")
-def test_jax_Reshape_nonconcrete():
-    a = vector("a")
     b = iscalar("b")
     x = reshape(a, (b, b))
     x_fg = FunctionGraph([a, b], [x])
-    compare_jax_and_py(x_fg, [np.r_[1.0, 2.0, 3.0, 4.0].astype(config.floatX), 2])
+    with pytest.raises(
+        TypeError,
+        match="Shapes must be 1D sequences of concrete values of integer type",
+    ):
+        compare_jax_and_py(x_fg, [np.r_[1.0, 2.0, 3.0, 4.0].astype(config.floatX), 2])
 
 
 def test_jax_Dimshuffle():
