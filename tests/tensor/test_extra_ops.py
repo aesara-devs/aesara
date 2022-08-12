@@ -8,7 +8,7 @@ from aesara import function
 from aesara import tensor as at
 from aesara.compile.mode import Mode
 from aesara.configdefaults import config
-from aesara.graph.basic import applys_between
+from aesara.graph.basic import Constant, applys_between
 from aesara.graph.optdb import OptimizationQuery
 from aesara.raise_op import Assert
 from aesara.tensor.elemwise import DimShuffle
@@ -1141,6 +1141,35 @@ def test_broadcast_shape_basic():
     y_at = at.ones(y_shapes)
     b_at = broadcast_shape(x_at, y_at)
     assert isinstance(b_at[-1].owner.op, Assert)
+
+
+def test_broadcast_shape_constants():
+    """Make sure `broadcast_shape` uses constants when it can."""
+    x1_shp_at = iscalar("x1")
+    y2_shp_at = iscalar("y2")
+    b_at = broadcast_shape((x1_shp_at, 2), (3, y2_shp_at), arrays_are_shapes=True)
+    assert len(b_at) == 2
+    assert isinstance(b_at[0].owner.op, Assert)
+    assert b_at[0].owner.inputs[0].value.item() == 3
+    assert isinstance(b_at[1].owner.op, Assert)
+    assert b_at[1].owner.inputs[0].value.item() == 2
+
+    b_at = broadcast_shape((1, 2), (3, 2), arrays_are_shapes=True)
+    assert len(b_at) == 2
+    assert all(isinstance(x, Constant) for x in b_at)
+    assert b_at[0].value.item() == 3
+    assert b_at[1].value.item() == 2
+
+    b_at = broadcast_shape((1,), (1, 1), arrays_are_shapes=True)
+    assert len(b_at) == 2
+    assert all(isinstance(x, Constant) for x in b_at)
+    assert b_at[0].value.item() == 1
+    assert b_at[1].value.item() == 1
+
+    b_at = broadcast_shape((1,), (1,), arrays_are_shapes=True)
+    assert len(b_at) == 1
+    assert all(isinstance(x, Constant) for x in b_at)
+    assert b_at[0].value.item() == 1
 
 
 @pytest.mark.parametrize(
