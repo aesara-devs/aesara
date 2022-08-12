@@ -1,6 +1,6 @@
 from collections.abc import Collection
 from functools import reduce
-from typing import Iterable, Tuple, Union
+from typing import Iterable, Set, Tuple, Union
 
 import numpy as np
 import numpy.core.numeric
@@ -14,7 +14,7 @@ from aesara.gradient import (
     disconnected_type,
     grad_undefined,
 )
-from aesara.graph.basic import Apply, Variable, equal_computations
+from aesara.graph.basic import Apply, Constant, Variable, equal_computations
 from aesara.graph.op import Op
 from aesara.link.c.op import COp
 from aesara.link.c.params_type import ParamsType
@@ -1491,7 +1491,12 @@ def broadcast_shape_iter(
 
         array_shapes = [
             (one_at,) * (max_dims - len(a))
-            + tuple(one_at if getattr(sh, "value", sh) == 1 else sh for sh in a)
+            + tuple(
+                one_at
+                if getattr(sh, "value", sh) == 1
+                else (aes.as_scalar(sh) if not isinstance(sh, Variable) else sh)
+                for sh in a
+            )
             for a in arrays
         ]
     else:
@@ -1523,32 +1528,61 @@ def broadcast_shape_iter(
         else:
             # More than one shape might not be broadcastable in this dimension
 
-            all_dims_equal = all(
-                # TODO FIXME: This is a largely deficient means of comparing graphs
-                # (and especially shapes)
-                equal_computations([maybe_non_bcast_shapes[0]], [dim])
-                for dim in maybe_non_bcast_shapes[1:]
-            )
+            nonconst_nb_shapes: Set[int] = set()
+            const_nb_shapes: Set[Variable] = set()
+            for shape in maybe_non_bcast_shapes:
+                if isinstance(shape, Constant):
+                    const_nb_shapes.add(shape.value.item())
+                else:
+                    nonconst_nb_shapes.add(shape)
 
-            if all_dims_equal:
-                result_dims.append(maybe_non_bcast_shapes[0])
-                continue
+            if len(const_nb_shapes) > 1:
+                raise ValueError("Could not broadcast dimensions")
+            elif len(const_nb_shapes) == 1:
+                (const_nb_shape,) = const_nb_shapes
 
-            non_bcast_vec = [
-                aes.switch(aes.eq(nbv, 1), -one_at, nbv)
-                for nbv in maybe_non_bcast_shapes
-            ]
-            dim_max = aes.abs(reduce(aes.scalar_maximum, non_bcast_vec))
+                assert const_nb_shape != 1
 
-            assert_dim = Assert("Could not broadcast dimensions")
-            assert_cond = reduce(
-                aes.and_,
-                (
-                    aes.or_(aes.eq(nbv, -one_at), aes.eq(nbv, dim_max))
-                    for nbv in non_bcast_vec
-                ),
-            )
-            bcast_dim = assert_dim(dim_max, assert_cond)
+                const_nt_shape_var = aesara.scalar.ScalarConstant(
+                    aesara.scalar.int64, const_nb_shape
+                )
+
+                if len(nonconst_nb_shapes) > 0:
+                    assert_dim = Assert("Could not broadcast dimensions")
+                    assert_cond = reduce(
+                        aes.and_,
+                        (aes.eq(nbv, const_nt_shape_var) for nbv in nonconst_nb_shapes),
+                    )
+                    bcast_dim = assert_dim(const_nt_shape_var, assert_cond)
+                else:
+                    bcast_dim = const_nt_shape_var
+            else:
+                all_dims_equal = all(
+                    # TODO FIXME: This is a largely deficient, and expensive, means
+                    # of comparing graphs (and especially shapes)
+                    equal_computations([maybe_non_bcast_shapes[0]], [dim])
+                    for dim in maybe_non_bcast_shapes[1:]
+                )
+
+                if all_dims_equal:
+                    result_dims.append(maybe_non_bcast_shapes[0])
+                    continue
+
+                non_bcast_vec = [
+                    aes.switch(aes.eq(nbv, 1), -one_at, nbv)
+                    for nbv in maybe_non_bcast_shapes
+                ]
+                dim_max = aes.abs(reduce(aes.scalar_maximum, non_bcast_vec))
+
+                assert_dim = Assert("Could not broadcast dimensions")
+                assert_cond = reduce(
+                    aes.and_,
+                    (
+                        aes.or_(aes.eq(nbv, -one_at), aes.eq(nbv, dim_max))
+                        for nbv in non_bcast_vec
+                    ),
+                )
+                bcast_dim = assert_dim(dim_max, assert_cond)
 
             result_dims.append(bcast_dim)
 
