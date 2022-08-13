@@ -13,6 +13,9 @@ from aesara.tensor import basic as at
 from aesara.tensor import math as atm
 from aesara.tensor.type import matrix, tensor, vector
 from aesara.tensor.var import TensorVariable
+from itertools import zip_longest
+from aesara.tensor.extra_ops import broadcast_shape
+from aesara import scalar as aes
 
 
 logger = logging.getLogger(__name__)
@@ -26,8 +29,6 @@ class Cholesky(Op):
 
     Parameters
     ----------
-    lower : bool, default=True
-        Whether to return the lower or upper cholesky factor
     on_error : ['raise', 'nan']
         If on_error is set to 'raise', this Op will raise a
         `scipy.linalg.LinAlgError` if the matrix is not positive definite.
@@ -39,10 +40,9 @@ class Cholesky(Op):
     # TODO: for specific dtypes
     # TODO: LAPACK wrapper with in-place behavior, for solve also
 
-    __props__ = ("lower", "destructive", "on_error")
+    __props__ = ("destructive", "on_error")
 
-    def __init__(self, lower=True, on_error="raise"):
-        self.lower = lower
+    def __init__(self, on_error="raise"):
         self.destructive = False
         if on_error not in ("raise", "nan"):
             raise ValueError('on_error must be one of "raise" or ""nan"')
@@ -53,19 +53,19 @@ class Cholesky(Op):
 
     def make_node(self, x):
         x = as_tensor_variable(x)
-        assert x.ndim == 2
+        assert x.ndim >= 2
         return Apply(self, [x], [x.type()])
 
     def perform(self, node, inputs, outputs):
         x = inputs[0]
         z = outputs[0]
         try:
-            z[0] = scipy.linalg.cholesky(x, lower=self.lower).astype(x.dtype)
-        except scipy.linalg.LinAlgError:
+            z[0] = np.linalg.cholesky(x).astype(x.dtype)
+        except np.linalg.LinAlgError:
             if self.on_error == "raise":
                 raise
             else:
-                z[0] = (np.zeros(x.shape) * np.nan).astype(x.dtype)
+                z[0] = np.full(x.shape, np.nan, x.dtype)
 
     def L_op(self, inputs, outputs, gradients):
         """
@@ -90,29 +90,25 @@ class Cholesky(Op):
             chol_x = at.switch(ok, chol_x, 1)
             dz = at.switch(ok, dz, 1)
 
-        # deal with upper triangular by converting to lower triangular
-        if not self.lower:
-            chol_x = chol_x.T
-            dz = dz.T
-
         def tril_and_halve_diagonal(mtx):
             """Extracts lower triangle of square matrix and halves diagonal."""
             return at.tril(mtx) - at.diag(at.diagonal(mtx) / 2.0)
 
         def conjugate_solve_triangular(outer, inner):
             """Computes L^{-T} P L^{-1} for lower-triangular L."""
-            return solve_upper_triangular(
-                outer.T, solve_upper_triangular(outer.T, inner.T).T
-            )
+            return cho_solve(
+                    at.swapaxes(outer, -1, -2),
+                    at.swapaxes(
+                        cho_solve(at.swapaxes(outer, -1, -2), at.swapaxes(inner, -1, -2)),
+                        -1, -2,
+                    ),
+                )
 
         s = conjugate_solve_triangular(
-            chol_x, tril_and_halve_diagonal(chol_x.T.dot(dz))
+            chol_x, tril_and_halve_diagonal(at.swapaxes(chol_x, -1, -2) @ dz)
         )
 
-        if self.lower:
-            grad = at.tril(s + s.T) - at.diag(at.diagonal(s))
-        else:
-            grad = at.triu(s + s.T) - at.diag(at.diagonal(s))
+        grad = at.tril(s + at.swapaxes(s, -1, -2)) - at.diag(at.diagonal(s))
 
         if self.on_error == "nan":
             return [at.switch(ok, grad, np.nan)]
@@ -192,57 +188,47 @@ class CholeskyGrad(Op):
 
 class CholeskySolve(Op):
 
-    __props__ = ("lower", "check_finite")
-
-    def __init__(
-        self,
-        lower=True,
-        check_finite=True,
-    ):
-        self.lower = lower
-        self.check_finite = check_finite
-
-    def __repr__(self):
-        return "CholeskySolve{%s}" % str(self._props())
-
-    def make_node(self, C, b):
-        C = as_tensor_variable(C)
+    def make_node(self, a, b):
+        a = as_tensor_variable(a)
         b = as_tensor_variable(b)
-        assert C.ndim == 2
-        assert b.ndim in (1, 2)
+        out_dtype = aes.upcast(a.dtype, b.dtype)
+        broadcastable = [
+            ab and bb
+            for ab, bb in zip_longest(
+                a.broadcastable[::-1], b.broadcastable[::-1], fillvalue=True
+            )
+        ]
+        x = tensor(shape=broadcastable, dtype=out_dtype)
+        return Apply(self, [a, b], [x])
 
-        # infer dtype by solving the most simple
-        # case with (1, 1) matrices
-        o_dtype = scipy.linalg.solve(
-            np.eye(1).astype(C.dtype), np.eye(1).astype(b.dtype)
-        ).dtype
-        x = tensor(shape=b.broadcastable, dtype=o_dtype)
-        return Apply(self, [C, b], [x])
-
-    def perform(self, node, inputs, output_storage):
-        C, b = inputs
-        rval = scipy.linalg.cho_solve(
-            (C, self.lower),
-            b,
-            check_finite=self.check_finite,
-        )
-
-        output_storage[0][0] = rval
+    def perform(self, node, inputs, outputs):
+        a, b = inputs
+        (x,) = outputs
+        x[0] = np.linalg.solve(a, b)
 
     def infer_shape(self, fgraph, node, shapes):
         Cshape, Bshape = shapes
-        rows = Cshape[1]
-        if len(Bshape) == 1:  # b is a Vector
-            return [(rows,)]
+        if len(Cshape) == 2 and len(Bshape) >= 2:
+            return [Bshape]
+        elif len(Cshape) > 2 and Bshape == 2:
+            return [Cshape[:-2] + Bshape]
+        elif len(Cshape) > 2 and Bshape > 2:
+            batch_shape = broadcast_shape(
+                tuple([Cshape[i] for i in range(len(Cshape) - 2)]),
+                tuple([Bshape[i] for i in range(len(Bshape) - 2)]),
+                arrays_are_shapes=True,
+            )
+            return [batch_shape + Bshape[-2:]]
         else:
-            cols = Bshape[1]  # b is a Matrix
-            return [(rows, cols)]
+            raise ValueError(
+                "Incorrect number of input dimensions. Cannot infer shape."
+            )
 
 
 cho_solve = CholeskySolve()
 
 
-def cho_solve(c_and_lower, b, check_finite=True):
+def cho_solve(a, b):
     """Solve the linear equations A x = b, given the Cholesky factorization of A.
 
     Parameters
@@ -257,8 +243,7 @@ def cho_solve(c_and_lower, b, check_finite=True):
         (crashes, non-termination) if the inputs do contain infinities or NaNs.
     """
 
-    A, lower = c_and_lower
-    return CholeskySolve(lower=lower, check_finite=check_finite)(A, b)
+    return CholeskySolve()(a, b)
 
 
 class SolveBase(Op):
