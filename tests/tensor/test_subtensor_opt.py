@@ -201,25 +201,31 @@ def test_local_useless_inc_subtensor_no_opt():
 class TestLocalUselessSubtensor:
     x = matrix("x")
     s = aes.int32("s")
+    mode = mode_opt.including(
+        "local_useless_subtensor", "local_useless_AdvancedSubtensor1"
+    )
 
     @pytest.mark.parametrize(
-        "dims",
+        "idx",
         [
             (slice(0, None),),
             (slice(0, None), slice(0, None)),
         ],
     )
-    def test_local_useless_subtensor_1(self, dims):
-        # Test default
-        f = function([self.x], exp(self.x).__getitem__(dims), mode=mode_opt)
+    def test_local_useless_subtensor_1(self, idx):
+        f = function([self.x], exp(self.x).__getitem__(idx), mode=self.mode)
         prog = f.maker.fgraph.toposort()
         assert prog[0].op == exp
         assert len(prog) == 1
-        # TODO FIXME: Assert something
-        f([[0, 1, 2], [3, 4, 5]])  # let debugmode test something
+
+        x_val = np.array([[0, 1, 2], [3, 4, 5]], dtype=aesara.config.floatX)
+        idx_val = idx
+        exp_res = np.exp(x_val)[idx_val]
+        res = f(x_val)
+        assert np.allclose(res, exp_res)
 
     @pytest.mark.parametrize(
-        "dims, res",
+        "idx, res",
         [
             ((slice(0, 2),), True),
             ((slice(0, 2), slice(0, None)), True),
@@ -231,112 +237,150 @@ class TestLocalUselessSubtensor:
             ((slice(0, 1), 1), False),
         ],
     )
-    def test_local_useless_subtensor_2(self, dims, res):
+    def test_local_useless_subtensor_2(self, idx, res):
         x_c = specify_shape(self.x, (2, 3))
-        f = function([self.x], exp(x_c).__getitem__(dims), mode=mode_opt)
+        f = function([self.x], exp(x_c).__getitem__(idx), mode=self.mode)
         prog = f.maker.fgraph.toposort()
         if res:
-            assert isinstance(prog[0].op, SpecifyShape), dims
-            assert prog[1].op == exp, (dims, prog)
-            assert len(prog) == 2, dims
+            assert isinstance(prog[0].op, SpecifyShape)
+            assert prog[1].op == exp
+            assert len(prog) == 2
         else:
             assert any(isinstance(node.op, Subtensor) for node in prog)
-        f([[0, 1, 2], [3, 4, 5]])  # let debugmode test something
+
+        x_val = np.array([[0, 1, 2], [3, 4, 5]], dtype=aesara.config.floatX)
+        idx_val = idx
+        exp_res = np.exp(x_val)[idx_val]
+        res = f(x_val)
+        assert np.allclose(res, exp_res)
 
     @pytest.mark.parametrize(
-        "dims, res",
+        "idx_fn, res",
         [
-            ((slice(0, x.shape[0]),), True),
-            ((slice(0, x.shape[1]),), False),
+            (lambda x: (slice(0, x.shape[0]),), True),
+            (lambda x: (slice(0, x.shape[1]),), False),
             (
-                (
+                lambda x: (
                     slice(0, x.shape[0]),
                     slice(0, x.shape[1]),
                 ),
                 True,
             ),
             (
-                (
+                lambda x: (
                     slice(0, x.shape[0]),
                     slice(0, x.shape[0]),
                 ),
                 False,
             ),
             (
-                (
+                lambda x: (
                     slice(0, x.shape[1]),
                     slice(0, x.shape[0]),
                 ),
                 False,
             ),
             (
-                (
+                lambda x: (
                     slice(0, x.shape[1]),
                     slice(0, x.shape[1]),
                 ),
                 False,
             ),
-            ((slice(0, x.shape[1]), 2), False),
+            (lambda x: (slice(0, x.shape[1]), 2), False),
             (
-                (
+                lambda x: (
                     slice(0, x.shape[1]),
                     slice(x.shape[0] - x.shape[0], x.shape[1]),
                 ),
                 False,
             ),
-            ((slice(0, at.scalar_from_tensor(x.shape[0])),), True),
+            (
+                lambda x: (
+                    slice(
+                        0,
+                        at.scalar_from_tensor(x.shape[0])
+                        if isinstance(x, Variable)
+                        else x.shape[0],
+                    ),
+                ),
+                True,
+            ),
         ],
     )
-    def test_local_useless_subtensor_3(self, dims, res):
-        f = function([self.x], exp(self.x).__getitem__(dims), mode=mode_opt)
+    def test_local_useless_subtensor_3(self, idx_fn, res):
+        idx = idx_fn(self.x)
+        f = function([self.x], exp(self.x).__getitem__(idx), mode=self.mode)
         prog = f.maker.fgraph.toposort()
         if res:
-            assert prog[0].op == exp, dims
-            assert len(prog) == 1, dims
+            assert prog[0].op == exp
+            assert len(prog) == 1
         else:
             assert any(isinstance(node.op, Subtensor) for node in prog)
-        f([[0, 1, 2], [3, 4, 5]])  # let debugmode test something
+
+        x_val = np.array([[0, 1, 2], [3, 4, 5]], dtype=aesara.config.floatX)
+        idx_val = idx_fn(x_val)
+        exp_res = np.exp(x_val)[idx_val]
+        res = f(x_val)
+        assert np.allclose(res, exp_res)
 
     @pytest.mark.parametrize(
-        "dims, res",
+        "idx_fn, res",
         [
-            ((slice(0, x.shape[0]), slice(0, 3)), False),
-            ((slice(0, 3), slice(0, x.shape[1])), False),
+            (lambda x: (slice(0, x.shape[0]), slice(0, 3)), False),
+            (lambda x: (slice(0, 3), slice(0, x.shape[1])), False),
         ],
     )
-    def test_local_useless_subtensor_4(self, dims, res):
+    def test_local_useless_subtensor_4(self, idx_fn, res):
         # Test mix Variable and Constant
         # Currently not supported
         x_c = specify_shape(self.x, (2, 3))
-        f = function([self.x], exp(x_c).__getitem__(dims), mode=mode_opt)
+        idx = idx_fn(self.x)
+        f = function([self.x], exp(x_c).__getitem__(idx), mode=self.mode)
         prog = f.maker.fgraph.toposort()
         if res:
-            assert prog[0].op == exp, dims
-            assert len(prog) == 1, dims
+            assert prog[0].op == exp
+            assert len(prog) == 1
         else:
             assert any(isinstance(node.op, Subtensor) for node in prog)
-        f([[0, 1, 2], [3, 4, 5]])  # let debugmode test something
+
+        x_val = np.array([[0, 1, 2], [3, 4, 5]], dtype=aesara.config.floatX)
+        idx_val = idx_fn(x_val)
+        exp_res = np.exp(x_val)[idx_val]
+        res = f(x_val)
+        assert np.allclose(res, exp_res)
 
     @pytest.mark.parametrize(
-        "dims, res",
+        "idx_fn, res",
         [
-            ((slice(0, s),), False),
+            (lambda s: (slice(0, s),), False),
         ],
     )
-    def test_local_useless_subtensor_5(self, dims, res):
+    def test_local_useless_subtensor_5(self, idx_fn, res):
         # Test scalar variable
-        f = function([self.x, self.s], exp(self.x).__getitem__(dims), mode=mode_opt)
+        idx = idx_fn(self.s)
+        f = function([self.x, self.s], exp(self.x).__getitem__(idx), mode=mode_opt)
+
         prog = f.maker.fgraph.toposort()
         if res:
-            assert prog[0].op == exp, dims
-            assert len(prog) == 1, dims
+            assert prog[0].op == exp
+            assert len(prog) == 1
         else:
             assert any(isinstance(node.op, Subtensor) for node in prog)
-        f([[1, 2, 3], [4, 5, 6]], 1)
-        f([[1, 2, 3], [4, 5, 6]], 3)
+
+        x_val = np.array([[0, 1, 2], [3, 4, 5]], dtype=aesara.config.floatX)
+        idx_val = idx_fn(1)
+        exp_res = np.exp(x_val)[idx_val]
+        res = f(x_val, 1)
+        assert np.allclose(res, exp_res)
+
+        idx_val = idx_fn(3)
+        exp_res = np.exp(x_val)[idx_val]
+        res = f(x_val, 3)
+        assert np.allclose(res, exp_res)
 
     @pytest.mark.parametrize(
-        "dims, res",
+        "idx, res",
         [
             ([0, 1], True),
             ([1, 0], False),
@@ -349,19 +393,24 @@ class TestLocalUselessSubtensor:
             (at.arange(1, 2), False),
         ],
     )
-    def test_local_useless_subtensor_6(self, dims, res):
+    def test_local_useless_subtensor_6(self, idx, res):
         # Test AdvancedSubtensor1 case when all rows are selected by a list/vector
         # or ARange op
         x_c = specify_shape(self.x, (2, 3))
-        f = function([self.x], exp(x_c).__getitem__(dims), mode=mode_opt)
+        f = function([self.x], exp(x_c).__getitem__(idx), mode=mode_opt)
         prog = f.maker.fgraph.toposort()
         if res:
-            assert isinstance(prog[0].op, SpecifyShape), dims
-            assert prog[1].op == exp, dims
-            assert len(prog) == 2, dims
+            assert isinstance(prog[0].op, SpecifyShape)
+            assert prog[1].op == exp
+            assert len(prog) == 2
         else:
             assert any(isinstance(node.op, AdvancedSubtensor1) for node in prog)
-        f([[0, 1, 2], [3, 4, 5]])  # let debugmode test something
+
+        x_val = np.array([[0, 1, 2], [3, 4, 5]], dtype=aesara.config.floatX)
+        idx_val = idx.eval() if isinstance(idx, Variable) else idx
+        exp_res = np.exp(x_val)[idx_val]
+        res = f(x_val)
+        assert np.allclose(res, exp_res)
 
 
 def test_local_subtensor_remove_broadcastable_index():
