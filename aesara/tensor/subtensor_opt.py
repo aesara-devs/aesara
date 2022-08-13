@@ -11,7 +11,6 @@ from aesara.graph.opt import TopoOptimizer, copy_stack_trace, in2out, local_opti
 from aesara.raise_op import Assert
 from aesara.tensor.basic import (
     Alloc,
-    ARange,
     Join,
     MakeVector,
     ScalarFromTensor,
@@ -908,8 +907,6 @@ def local_useless_subtensor(fgraph, node):
             # is not a useless subtensor
             return False
 
-    for pos, idx in enumerate(cdata):
-
         length_pos = shape_of[node.inputs[0]][pos]
 
         if isinstance(idx.stop, (int, np.integer)):
@@ -996,21 +993,6 @@ def local_useless_AdvancedSubtensor1(fgraph, node):
         if len(idx) != length:
             return False
         if np.any(idx != np.arange(length)):
-            return False
-    elif idx.owner is not None and isinstance(idx.owner.op, ARange):
-        try:
-            start, stop, step = map(
-                lambda x: get_scalar_constant_value(x, only_process_constants=True),
-                idx.owner.inputs,
-            )
-        except NotScalarConstantError:
-            return False
-
-        if start != 0:
-            return False
-        if stop != length:
-            return False
-        if step != 1:
             return False
     else:
         return False
