@@ -68,9 +68,13 @@ class SparseTensorType(TensorType, HasDataType):
     }
     ndim = 2
 
-    # Will be set to SparseVariable SparseConstant later.
-    variable_type = None
-    Constant = None
+    @property
+    def variable_type(self):
+        return aesara.sparse.SparseVariable
+
+    @property
+    def constant_type(self):
+        return aesara.sparse.SparseConstant
 
     def __init__(self, format, dtype, shape=None, broadcastable=None, name=None):
         if shape is None:
