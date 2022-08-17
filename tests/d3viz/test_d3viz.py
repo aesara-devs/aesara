@@ -6,8 +6,8 @@ import numpy as np
 import pytest
 
 import aesara.d3viz as d3v
-from aesara import compile
 from aesara.compile.function import function
+from aesara.compile.profiling import ProfileStats
 from aesara.configdefaults import config
 from aesara.d3viz.formatting import pydot_imported, pydot_imported_msg
 from tests.d3viz import models
@@ -41,7 +41,7 @@ class TestD3Viz:
         if config.mode in ("DebugMode", "DEBUG_MODE"):
             pytest.skip("Can't profile in DebugMode")
         m = models.Mlp()
-        profile = compile.profiling.ProfileStats(False)
+        profile = ProfileStats()
         f = function(m.inputs, m.outputs, profile=profile)
         x_val = self.rng.normal(0, 1, (1000, m.nfeatures))
         f(x_val)
