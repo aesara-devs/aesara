@@ -52,6 +52,9 @@ Aesara can produce :class:`RandomVariable`\s that draw samples from many differe
 .. autoclass:: aesara.tensor.random.basic.ChoiceRV
    :members: __call__
 
+.. autoclass:: aesara.tensor.random.basic.PermutationRV
+   :members: __call__
+
 .. autoclass:: aesara.tensor.random.basic.BernoulliRV
    :members: __call__
 
