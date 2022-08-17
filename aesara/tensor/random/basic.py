@@ -1672,6 +1672,8 @@ integers = IntegersRV()
 
 
 class ChoiceRV(RandomVariable):
+    """Randomly choose an element in a sequence."""
+
     name = "choice"
     ndim_supp = 0
     ndims_params = [1, 1, 0]
@@ -1689,7 +1691,22 @@ class ChoiceRV(RandomVariable):
         return size
 
     def __call__(self, a, size=None, replace=True, p=None, **kwargs):
+        r"""Generate a random sample from an array.
 
+        Parameters
+        ----------
+        a
+            The array from which to randomly sample an element.
+        size
+            Sample shape. If the given size is `(m, n, k)`, then `m * n *
+            k` independent samples are returned. Default is `None`, in
+            which case a single sample is returned.
+        replace
+            When ``True``, sampling is performed with replacement.
+        p
+            The probabilities associated with each entry in `a`. If not
+            given, all elements have equal probability.
+        """
         a = as_tensor_variable(a, ndim=1)
 
         if p is None:
