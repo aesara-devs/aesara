@@ -761,6 +761,18 @@ def safe_multivariate_normal(mean, cov, size=None, rng=None):
 
 
 class MvNormalRV(RandomVariable):
+    r"""A multivariate normal random variable.
+
+    The probability density function for `multivariate_normal` in term of its location parameter
+    :math:`\boldsymbol{\mu}` and covariance matrix :math:`\Sigma` is
+
+    .. math::
+
+        f(\boldsymbol{x}; \boldsymbol{\mu}, \Sigma) = \det(2 \pi \Sigma)^{-1/2}  \exp\left(-\frac{1}{2} (\boldsymbol{x} - \boldsymbol{\mu})^T \Sigma (\boldsymbol{x} - \boldsymbol{\mu})\right)
+
+    where :math:`\Sigma` is a positive semi-definite matrix.
+
+    """
     name = "multivariate_normal"
     ndim_supp = 1
     ndims_params = [1, 2]
@@ -768,7 +780,23 @@ class MvNormalRV(RandomVariable):
     _print_name = ("N", "\\operatorname{N}")
 
     def __call__(self, mean=None, cov=None, size=None, **kwargs):
+        r""" "Draw samples from a multivariate normal distribution.
 
+        Parameters
+        ----------
+        mean
+            Location parameter (mean) :math:`\boldsymbol{\mu}` of the distribution. Vector
+            of length `N`.
+        cov
+            Covariance matrix :math:`\Sigma` of the distribution. Must be a symmetric
+            and positive-semidefinite `NxN` matrix.
+        size
+            Given a size of, for example, `(m, n, k)`, `m * n * k` independent,
+            identically distributed samples are generated. Because each sample
+            is `N`-dimensional, the output shape is `(m, n, k, N)`. If no shape
+            is specified, a single `N`-dimensional sample is returned.
+
+        """
         dtype = aesara.config.floatX if self.dtype == "floatX" else self.dtype
 
         if mean is None:
