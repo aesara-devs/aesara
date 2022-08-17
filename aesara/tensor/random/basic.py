@@ -1596,11 +1596,40 @@ vsearchsorted = np.vectorize(np.searchsorted, otypes=[int], signature="(n),()->(
 
 
 class CategoricalRV(RandomVariable):
+    r"""A categorical discrete random variable.
+
+    The probability mass function of `categorical` in terms of its :math:`N` event
+    probabilities :math:`p_1, \dots, p_N` is:
+
+    .. math::
+
+        P(k=i) = p_k
+
+    where :math:`\sum_i p_i = 1`.
+
+    """
+
     name = "categorical"
     ndim_supp = 0
     ndims_params = [1]
     dtype = "int64"
     _print_name = ("Cat", "\\operatorname{Cat}")
+
+    def __call__(self, p, size=None, **kwargs):
+        r"""Draw samples from a discrete categorical distribution.
+
+        Parameters
+        ----------
+        p
+            An array that contains the :math:`N` event probabilities.
+        size
+            Sample shape. If the given size is `(m, n, k)`, then `m * n * k`
+            independent, identically distributed random samples are
+            returned. Default is `None`, in which case a single sample
+            is returned.
+
+        """
+        return super().__call__(p, size=size, **kwargs)
 
     @classmethod
     def rng_fn(cls, rng, p, size):
