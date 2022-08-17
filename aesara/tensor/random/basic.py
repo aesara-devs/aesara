@@ -1722,6 +1722,8 @@ choice = ChoiceRV()
 
 
 class PermutationRV(RandomVariable):
+    """Randomly shuffle a sequence."""
+
     name = "permutation"
     ndim_supp = 1
     ndims_params = [1]
@@ -1745,6 +1747,15 @@ class PermutationRV(RandomVariable):
             return x_shape
 
     def __call__(self, x, **kwargs):
+        r"""Randomly permute a sequence or a range of values.
+
+        Parameters
+        ----------
+        x
+            If `x` is an integer, randomly permute `np.arange(x)`. If `x` is a sequence,
+            shuffle its elements randomly.
+
+        """
         x = as_tensor_variable(x)
         return super().__call__(x, dtype=x.dtype, **kwargs)
 
