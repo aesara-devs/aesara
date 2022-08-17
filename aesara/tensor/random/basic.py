@@ -1625,6 +1625,12 @@ categorical = CategoricalRV()
 
 
 class RandIntRV(RandomVariable):
+    r"""A discrete uniform random variable.
+
+    Only available for `RandomStateType`. Use `integers` with `RandomGeneratorType`\s.
+
+    """
+
     name = "randint"
     ndim_supp = 0
     ndims_params = [0, 0]
@@ -1632,6 +1638,25 @@ class RandIntRV(RandomVariable):
     _print_name = ("randint", "\\operatorname{randint}")
 
     def __call__(self, low, high=None, size=None, **kwargs):
+        r"""Draw samples from a discrete uniform distribution.
+
+        Parameters
+        ----------
+        low
+            Lower boundary of the output interval. All values generated will
+            be greater than or equal to `low`, unless `high=None`, in which case
+            all values generated are greater than or equal to `0` and
+            smaller than `low` (exclusive).
+        high
+            Upper boundary of the output interval.  All values generated
+            will be smaller than `high` (exclusive).
+        size
+            Sample shape. If the given size is `(m, n, k)`, then `m * n * k`
+            independent, identically distributed samples are
+            returned. Default is `None`, in which case a single
+            sample is returned.
+
+        """
         if high is None:
             low, high = 0, low
         return super().__call__(low, high, size=size, **kwargs)
