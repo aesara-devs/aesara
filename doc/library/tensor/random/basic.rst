@@ -49,6 +49,9 @@ Distributions
 
 Aesara can produce :class:`RandomVariable`\s that draw samples from many different statistical distributions, using the following :class:`Op`\s.
 
+.. autoclass:: aesara.tensor.random.basic.ChoiceRV
+   :members: __call__
+
 .. autoclass:: aesara.tensor.random.basic.BernoulliRV
    :members: __call__
 
