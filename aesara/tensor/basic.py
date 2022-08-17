@@ -528,7 +528,7 @@ def get_scalar_constant_value(
         raise NotScalarConstantError()
 
 
-class TensorFromScalar(Op):
+class TensorFromScalar(COp):
 
     __props__ = ()
 
@@ -561,6 +561,25 @@ class TensorFromScalar(Op):
             return [s.zeros_like().astype(config.floatX)]
 
         raise NotImplementedError("grad not implemented for complex dtypes")
+
+    def c_code(self, node, name, inputs, outputs, sub):
+        (x,) = inputs
+        (z,) = outputs
+        fail = sub["fail"]
+
+        return (
+            """
+            %(z)s = (PyArrayObject*)PyArray_FromScalar(py_%(x)s, NULL);
+            if(py_%(z)s == NULL){
+                %(fail)s;
+            }
+            Py_XINCREF(%(z)s);
+            """
+            % locals()
+        )
+
+    def c_code_cache_version(self):
+        return (1,)
 
 
 tensor_from_scalar = TensorFromScalar()
