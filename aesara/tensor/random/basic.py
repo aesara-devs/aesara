@@ -1522,19 +1522,49 @@ gengamma = GenGammaRV()
 
 
 class MultinomialRV(RandomVariable):
-    """A Multinomial random variable type.
+    r"""A multinomial discrete random variable.
+
+    The probability mass function of `multinomial` in terms of the number
+    of experiments :math:`n` and the probabilities :math:`p_1, \dots, p_k`
+    of the :math:`k` different possible outcomes is:
+
+
+    .. math::
+
+        f(x_1,\dots,x_k; n, p_1, \dots, p_k) = \frac{n!}{x_1! \dots x_k!} \prod_{i=1}^k x_i^{p_i}
+
+
+    where :math:`n>0` and :math:`\sum_{i=1}^k p_i = 1`.
 
     Notes
     -----
     The length of the support dimension is determined by the last
     dimension in the *second* parameter (i.e.  the probabilities vector).
-    """
 
+    """
     name = "multinomial"
     ndim_supp = 1
     ndims_params = [0, 1]
     dtype = "int64"
     _print_name = ("MN", "\\operatorname{MN}")
+
+    def __call__(self, n, p, size=None, **kwargs):
+        r"""Draw samples from a discrete multinomial distribution.
+
+        Parameters
+        ----------
+        n
+            Number of experiments :math:`n`. Must be a positive integer.
+        p
+            Probabilities of each of the :math:`k` different outcomes.
+        size
+            Given a size of, for example, `(r, s, t)`, `r * s * t` independent,
+            identically distributed samples are generated. Because each sample
+            is `k`-dimensional, the output shape is `(r, s, t, k)`. If no shape
+            is specified, a single `k`-dimensional sample is returned.
+
+        """
+        return super().__call__(n, p, size=size, **kwargs)
 
     def _supp_shape_from_params(self, dist_params, rep_param_idx=1, param_shapes=None):
         return default_supp_shape_from_params(
