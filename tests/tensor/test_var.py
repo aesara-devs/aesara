@@ -1,14 +1,17 @@
+from copy import copy
+
 import numpy as np
 import pytest
 from numpy.testing import assert_equal, assert_string_equal
 
 import aesara
 import tests.unittest_tools as utt
+from aesara.compile.mode import get_default_mode
 from aesara.graph.basic import Constant, equal_computations
 from aesara.tensor import get_vector_length
 from aesara.tensor.basic import constant
 from aesara.tensor.elemwise import DimShuffle
-from aesara.tensor.math import dot
+from aesara.tensor.math import dot, eq
 from aesara.tensor.subtensor import AdvancedSubtensor, Subtensor
 from aesara.tensor.type import (
     TensorType,
@@ -19,6 +22,7 @@ from aesara.tensor.type import (
     iscalar,
     ivector,
     matrix,
+    scalar,
     tensor3,
 )
 from aesara.tensor.type_other import MakeSlice
@@ -28,6 +32,9 @@ from aesara.tensor.var import (
     TensorConstant,
     TensorVariable,
 )
+
+
+pytestmark = pytest.mark.filterwarnings("error")
 
 
 @pytest.mark.parametrize(
@@ -264,3 +271,54 @@ def test_dense_types():
     x = constant(1)
     assert not isinstance(x, DenseTensorVariable)
     assert isinstance(x, DenseTensorConstant)
+
+
+class TestTensorConstantSignature:
+    vals = [
+        [np.nan, np.inf, 0, 1],
+        [np.nan, np.inf, -np.inf, 1],
+        [0, np.inf, -np.inf, 1],
+        [0, 3, -np.inf, 1],
+        [0, 3, np.inf, 1],
+        [np.nan, 3, 4, 1],
+        [0, 3, 4, 1],
+        np.nan,
+        np.inf,
+        -np.inf,
+        0,
+        1,
+    ]
+
+    @pytest.mark.parametrize("val_1", vals)
+    @pytest.mark.parametrize("val_2", vals)
+    def test_nan_inf_constant_signature(self, val_1, val_2):
+        # Test that the signature of a constant tensor containing NaN and Inf
+        # values is correct.
+        # We verify that signatures of two rows i, j in the matrix above are
+        # equal if and only if i == j.
+        x = constant(val_1)
+        y = constant(val_2)
+        assert (x.signature() == y.signature()) == (val_1 is val_2)
+
+    def test_nan_nan(self):
+        # Also test that nan !=0 and nan != nan.
+        x = scalar()
+        mode = get_default_mode()
+        if isinstance(mode, aesara.compile.debugmode.DebugMode):
+            # Disable the check preventing usage of NaN / Inf values.
+            # We first do a copy of the mode to avoid side effects on other tests.
+            mode = copy(mode)
+            mode.check_isfinite = False
+        f = aesara.function([x], eq(x, np.nan), mode=mode)
+
+        assert f(0) == 0
+        assert f(np.nan) == 0
+
+    def test_empty_hash(self):
+        x = constant(np.array([], dtype=np.int64))
+        y = constant(np.array([], dtype=np.int64))
+
+        x_sig = x.signature()
+        y_sig = y.signature()
+
+        assert hash(x_sig) == hash(y_sig)
