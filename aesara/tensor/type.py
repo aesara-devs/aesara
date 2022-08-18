@@ -92,9 +92,12 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
             )
             shape = broadcastable
 
-        if isinstance(dtype, str) and dtype == "floatX":
+        if dtype == "floatX":
             self.dtype = config.floatX
         else:
+            if np.obj2sctype(dtype) is None:
+                raise TypeError(f"Invalid dtype: {dtype}")
+
             self.dtype = np.dtype(dtype).name
 
         def parse_bcast_and_shape(s):
