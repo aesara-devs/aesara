@@ -90,7 +90,7 @@ from aesara.tensor.basic import (
 )
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.exceptions import NotScalarConstantError
-from aesara.tensor.math import dense_dot, eq
+from aesara.tensor.math import dense_dot
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.shape import Reshape, Shape, Shape_i, shape_padright, specify_shape
 from aesara.tensor.type import (
@@ -1114,46 +1114,6 @@ class TestCast:
 # TODO: consider moving this function / functionality to gradient.py
 #      rationale: it's tricky, and necessary every time you want to verify
 #      gradient numerically
-
-
-def test_nan_inf_constant_signature():
-    # Test that the signature of a constant tensor containing NaN and Inf
-    # values is correct.
-    test_constants = [
-        [np.nan, np.inf, 0, 1],
-        [np.nan, np.inf, -np.inf, 1],
-        [0, np.inf, -np.inf, 1],
-        [0, 3, -np.inf, 1],
-        [0, 3, np.inf, 1],
-        [np.nan, 3, 4, 1],
-        [0, 3, 4, 1],
-        np.nan,
-        np.inf,
-        -np.inf,
-        0,
-        1,
-    ]
-    n = len(test_constants)
-    # We verify that signatures of two rows i, j in the matrix above are
-    # equal if and only if i == j.
-    for i in range(n):
-        for j in range(n):
-            x = constant(test_constants[i])
-            y = constant(test_constants[j])
-            assert (x.signature() == y.signature()) == (i == j)
-
-    # Also test that nan !=0 and nan != nan.
-    x = scalar()
-    mode = get_default_mode()
-    if isinstance(mode, aesara.compile.debugmode.DebugMode):
-        # Disable the check preventing usage of NaN / Inf values.
-        # We first do a copy of the mode to avoid side effects on other tests.
-        mode = copy(mode)
-        mode.check_isfinite = False
-    f = aesara.function([x], eq(x, np.nan), mode=mode)
-
-    assert f(0) == 0
-    assert f(np.nan) == 0
 
 
 def test_basic_allclose():
