@@ -1069,8 +1069,9 @@ class TestCast:
         f = function([x], y)
         assert f(np.array([1, 2], dtype=np.int32)).dtype == np.int64
 
-    def test_good_between_real_types(self):
-        good = itertools.chain(
+    @pytest.mark.parametrize(
+        "test_name, obj_dtype",
+        itertools.chain(
             multi_dtype_cast_checks((2,), dtypes=REAL_DTYPES),
             # Casts from foo to foo
             [
@@ -1080,32 +1081,34 @@ class TestCast:
                 )
                 for dtype in ALL_DTYPES
             ],
-        )
-        for testname, (obj, dtype) in good:
-            inp = vector(dtype=obj.dtype)
-            out = cast(inp, dtype=dtype)
-            f = function([inp], out)
-            assert f(obj).dtype == np.dtype(dtype)
+        ),
+    )
+    def test_good_between_real_types(self, test_name, obj_dtype):
+        (obj, dtype) = obj_dtype
+        inp = vector(dtype=obj.dtype)
+        out = cast(inp, dtype=dtype)
+        f = function([inp], out)
+        assert f(obj).dtype == np.dtype(dtype)
 
-            # Test astype too
-            out2 = inp.astype(dtype=dtype)
-            assert out2.type == out.type
+        # Test astype too
+        out2 = inp.astype(dtype=dtype)
+        assert out2.type == out.type
 
-    def test_cast_from_real_to_complex(self):
-        for real_dtype in REAL_DTYPES:
-            for complex_dtype in COMPLEX_DTYPES:
-                inp = vector(dtype=real_dtype)
-                out = cast(inp, dtype=complex_dtype)
-                f = function([inp], out)
-                obj = random_of_dtype((2,), real_dtype)
-                assert f(obj).dtype == np.dtype(complex_dtype)
+    @pytest.mark.parametrize("real_dtype", REAL_DTYPES)
+    @pytest.mark.parametrize("complex_dtype", COMPLEX_DTYPES)
+    def test_cast_from_real_to_complex(self, real_dtype, complex_dtype):
+        inp = vector(dtype=real_dtype)
+        out = cast(inp, dtype=complex_dtype)
+        f = function([inp], out)
+        obj = random_of_dtype((2,), real_dtype)
+        assert f(obj).dtype == np.dtype(complex_dtype)
 
-    def test_cast_from_complex_to_real_raises_error(self):
-        for real_dtype in REAL_DTYPES:
-            for complex_dtype in COMPLEX_DTYPES:
-                inp = vector(dtype=real_dtype)
-                with pytest.raises(TypeError):
-                    tensor(cast(inp, dtype=complex_dtype))
+    @pytest.mark.parametrize("real_dtype", REAL_DTYPES)
+    @pytest.mark.parametrize("complex_dtype", COMPLEX_DTYPES)
+    def test_cast_from_complex_to_real_raises_error(self, real_dtype, complex_dtype):
+        inp = vector(dtype=complex_dtype)
+        with pytest.raises(TypeError):
+            cast(inp, dtype=real_dtype)
 
 
 # TODO: consider moving this function / functionality to gradient.py
