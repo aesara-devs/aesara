@@ -1600,8 +1600,10 @@ def broadcast_shape_iter(
     return tuple(result_dims)
 
 
-class BroadcastTo(Op):
+class BroadcastTo(COp):
     """An `Op` for `numpy.broadcast_to`."""
+
+    __props__ = ()
 
     view_map = {0: [0]}
 
@@ -1651,6 +1653,56 @@ class BroadcastTo(Op):
 
     def infer_shape(self, fgraph, node, ins_shapes):
         return [node.inputs[1:]]
+
+    def c_code(self, node, name, inputs, outputs, sub):
+        (x, *shape) = inputs
+        (out,) = outputs
+        ndims = len(shape)
+        fail = sub["fail"]
+
+        # TODO: Could just use `PyArray_Return`, no?
+        dims_array = ", ".join(
+            [
+                f"((dtype_{shape}*)(PyArray_DATA({shape})))[0]"
+                for i, shape in enumerate(shape)
+            ]
+        )
+
+        src = (
+            """
+            npy_intp itershape[%(ndims)s] = {%(dims_array)s};
+
+            PyArrayObject *ops[1] = {%(x)s};
+            npy_uint32 flags = NPY_ITER_MULTI_INDEX | NPY_ITER_REFS_OK | NPY_ITER_ZEROSIZE_OK;
+            npy_uint32 op_flags[1] = {NPY_ITER_READONLY};
+            PyArray_Descr *op_dtypes[1] = {NULL};
+            int oa_ndim = %(ndims)s;
+            int* op_axes[1] = {NULL};
+            npy_intp buffersize = 0;
+
+            NpyIter *iter = NpyIter_AdvancedNew(
+                1, ops, flags, NPY_CORDER, NPY_NO_CASTING, op_flags, op_dtypes, oa_ndim, op_axes, itershape, buffersize
+            );
+
+            %(out)s = NpyIter_GetIterView(iter, 0);
+
+            if(%(out)s == NULL){
+                NpyIter_Deallocate(iter);
+                %(fail)s;
+            }
+
+            if (NpyIter_Deallocate(iter) != NPY_SUCCEED) {
+                %(fail)s;
+            }
+
+            """
+            % locals()
+        )
+
+        return src
+
+    def c_code_cache_version(self):
+        return (1,)
 
 
 broadcast_to_ = BroadcastTo()
