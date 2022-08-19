@@ -1217,24 +1217,70 @@ class TestBroadcastTo(utt.InferShapeTester):
         assert y.owner.inputs[1].owner is None
         assert y.owner.inputs[2].owner is None
 
-    @config.change_flags(compute_test_value="raise")
-    def test_perform(self):
-        a = scalar()
-        a.tag.test_value = 5
+    @pytest.mark.parametrize("linker", ["cvm", "py"])
+    def test_perform(self, linker):
 
+        a = aesara.shared(5)
         s_1 = iscalar("s_1")
-        s_1.tag.test_value = 4
         shape = (s_1, 1)
 
         bcast_res = broadcast_to(a, shape)
-
         assert bcast_res.broadcastable == (False, True)
 
+        bcast_fn = aesara.function(
+            [s_1], bcast_res, mode=Mode(optimizer=None, linker=linker)
+        )
+        bcast_fn.vm.allow_gc = False
+
+        bcast_at = bcast_fn(4)
         bcast_np = np.broadcast_to(5, (4, 1))
-        bcast_at = bcast_res.get_test_value()
 
         assert np.array_equal(bcast_at, bcast_np)
-        assert np.shares_memory(bcast_at, a.get_test_value())
+
+        bcast_var = bcast_fn.maker.fgraph.outputs[0].owner.inputs[0]
+        bcast_in = bcast_fn.vm.storage_map[a]
+        bcast_out = bcast_fn.vm.storage_map[bcast_var]
+
+        if linker != "py":
+            assert np.shares_memory(bcast_out[0], bcast_in[0])
+
+    @pytest.mark.skipif(
+        not config.cxx, reason="G++ not available, so we need to skip this test."
+    )
+    def test_memory_leak(self):
+        import gc
+        import tracemalloc
+
+        from aesara.link.c.cvm import CVM
+
+        n = 100_000
+        x = aesara.shared(np.ones(n, dtype=np.float64))
+        y = broadcast_to(x, (5, n))
+
+        f = aesara.function([], y, mode=Mode(optimizer=None, linker="cvm"))
+        assert isinstance(f.vm, CVM)
+
+        assert len(f.maker.fgraph.apply_nodes) == 2
+        assert any(
+            isinstance(node.op, BroadcastTo) for node in f.maker.fgraph.apply_nodes
+        )
+
+        tracemalloc.start()
+
+        blocks_last = None
+        block_diffs = []
+        for i in range(1, 50):
+            x.set_value(np.ones(n))
+            _ = f()
+            _ = gc.collect()
+            blocks_i, _ = tracemalloc.get_traced_memory()
+            if blocks_last is not None:
+                blocks_diff = (blocks_i - blocks_last) // 10**3
+                block_diffs.append(blocks_diff)
+            blocks_last = blocks_i
+
+        tracemalloc.stop()
+        assert np.allclose(np.mean(block_diffs), 0)
 
     @pytest.mark.parametrize(
         "fn,input_dims",
