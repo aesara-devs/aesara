@@ -2,7 +2,7 @@ from copy import copy
 
 import numpy as np
 import pytest
-from numpy.testing import assert_equal, assert_string_equal
+from numpy.testing import assert_array_equal, assert_equal, assert_string_equal
 
 import aesara
 import tests.unittest_tools as utt
@@ -21,6 +21,7 @@ from aesara.tensor.type import (
     dvector,
     iscalar,
     ivector,
+    matrices,
     matrix,
     scalar,
     tensor3,
@@ -32,6 +33,7 @@ from aesara.tensor.var import (
     TensorConstant,
     TensorVariable,
 )
+from tests.tensor.utils import random
 
 
 pytestmark = pytest.mark.filterwarnings("error")
@@ -322,3 +324,74 @@ class TestTensorConstantSignature:
         y_sig = y.signature()
 
         assert hash(x_sig) == hash(y_sig)
+
+
+class TestTensorInstanceMethods:
+    def setup_method(self):
+        self.vars = matrices("X", "Y")
+        self.vals = [
+            m.astype(aesara.config.floatX) for m in [random(2, 2), random(2, 2)]
+        ]
+
+    def test_repeat(self):
+        X, _ = self.vars
+        x, _ = self.vals
+        assert_array_equal(X.repeat(2).eval({X: x}), x.repeat(2))
+
+    def test_trace(self):
+        X, _ = self.vars
+        x, _ = self.vals
+        assert_array_equal(X.trace().eval({X: x}), x.trace())
+
+    def test_ravel(self):
+        X, _ = self.vars
+        x, _ = self.vals
+        assert_array_equal(X.ravel().eval({X: x}), x.ravel())
+
+    def test_diagonal(self):
+        X, _ = self.vars
+        x, _ = self.vals
+        assert_array_equal(X.diagonal().eval({X: x}), x.diagonal())
+        assert_array_equal(X.diagonal(1).eval({X: x}), x.diagonal(1))
+        assert_array_equal(X.diagonal(-1).eval({X: x}), x.diagonal(-1))
+        for offset, axis1, axis2 in [(1, 0, 1), (-1, 0, 1), (0, 1, 0), (-2, 1, 0)]:
+            assert_array_equal(
+                X.diagonal(offset, axis1, axis2).eval({X: x}),
+                x.diagonal(offset, axis1, axis2),
+            )
+
+    def test_take(self):
+        X, _ = self.vars
+        x, _ = self.vals
+        indices = [1, 0, 3]
+        assert_array_equal(X.take(indices).eval({X: x}), x.take(indices))
+        indices = [1, 0, 1]
+        assert_array_equal(X.take(indices, 1).eval({X: x}), x.take(indices, 1))
+        indices = np.array([-10, 5, 12], dtype="int32")
+        assert_array_equal(
+            X.take(indices, 1, mode="wrap").eval({X: x}),
+            x.take(indices, 1, mode="wrap"),
+        )
+        assert_array_equal(
+            X.take(indices, -1, mode="wrap").eval({X: x}),
+            x.take(indices, -1, mode="wrap"),
+        )
+        assert_array_equal(
+            X.take(indices, 1, mode="clip").eval({X: x}),
+            x.take(indices, 1, mode="clip"),
+        )
+        assert_array_equal(
+            X.take(indices, -1, mode="clip").eval({X: x}),
+            x.take(indices, -1, mode="clip"),
+        )
+        # Test error handling
+        with pytest.raises(IndexError):
+            X.take(indices).eval({X: x})
+        with pytest.raises(IndexError):
+            (2 * X.take(indices)).eval({X: x})
+        with pytest.raises(TypeError):
+            X.take([0.0])
+        indices = [[1, 0, 1], [0, 1, 1]]
+        assert_array_equal(X.take(indices, 1).eval({X: x}), x.take(indices, 1))
+        # Test equivalent advanced indexing
+        assert_array_equal(X[:, indices].eval({X: x}), x[:, indices])
