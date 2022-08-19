@@ -1,7 +1,6 @@
 import builtins
 import operator
 import pickle
-import warnings
 from copy import copy
 from functools import reduce
 from itertools import product
@@ -144,6 +143,7 @@ from aesara.tensor.type_other import NoneConst
 from tests import unittest_tools as utt
 from tests.link.test_link import make_function
 from tests.tensor.utils import (
+    ALL_DTYPES,
     _bad_build_broadcast_binary_normal,
     _bad_runtime_broadcast_binary_normal,
     _bad_runtime_reciprocal,
@@ -177,7 +177,6 @@ from tests.tensor.utils import (
     copymod,
     div_grad_rtol,
     eval_outputs,
-    get_numeric_types,
     ignore_isfinite_mode,
     inplace_func,
     integers,
@@ -2225,139 +2224,137 @@ class TestArithmeticCast:
 
     """
 
-    def test_arithmetic_cast(self):
-        dtypes = get_numeric_types(with_complex=True)
+    @pytest.mark.parametrize(
+        "op",
+        [
+            operator.add,
+            operator.sub,
+            operator.mul,
+            operator.truediv,
+            operator.floordiv,
+        ],
+    )
+    @pytest.mark.parametrize("a_type", ALL_DTYPES)
+    @pytest.mark.parametrize("b_type", ALL_DTYPES)
+    @pytest.mark.parametrize(
+        "combo",
+        [
+            ("scalar", "scalar"),
+            ("array", "array"),
+            ("scalar", "array"),
+            ("array", "scalar"),
+            ("i_scalar", "i_scalar"),
+        ],
+    )
+    def test_arithmetic_cast(self, op, a_type, b_type, combo):
+        if op is operator.floordiv and (
+            a_type.startswith("complex") or b_type.startswith("complex")
+        ):
+            pytest.skip("Not supported by NumPy")
 
         # Here:
         # scalar == scalar stored as a 0d array
         # array == 1d array
         # i_scalar == scalar type used internally by Aesara
-        def Aesara_scalar(dtype):
+        def aesara_scalar(dtype):
             return scalar(dtype=str(dtype))
 
         def numpy_scalar(dtype):
             return np.array(1, dtype=dtype)
 
-        def Aesara_array(dtype):
+        def aesara_array(dtype):
             return vector(dtype=str(dtype))
 
         def numpy_array(dtype):
             return np.array([1], dtype=dtype)
 
-        def Aesara_i_scalar(dtype):
+        def aesara_i_scalar(dtype):
             return aes.ScalarType(str(dtype))()
 
         def numpy_i_scalar(dtype):
             return numpy_scalar(dtype)
 
-        with warnings.catch_warnings():
-            # Avoid deprecation warning during tests.
-            warnings.simplefilter("ignore", category=DeprecationWarning)
-            for cfg in ("numpy+floatX",):  # Used to test 'numpy' as well.
-                with config.change_flags(cast_policy=cfg):
-                    for op in (
-                        operator.add,
-                        operator.sub,
-                        operator.mul,
-                        operator.truediv,
-                        operator.floordiv,
-                    ):
-                        for a_type in dtypes:
-                            for b_type in dtypes:
+        with config.change_flags(cast_policy="numpy+floatX"):
+            # We will test all meaningful combinations of
+            # scalar and array operations.
+            aesara_args = list(map(eval, [f"aesara_{c}" for c in combo]))
+            numpy_args = list(map(eval, [f"numpy_{c}" for c in combo]))
+            aesara_arg_1 = aesara_args[0](a_type)
+            aesara_arg_2 = aesara_args[1](b_type)
+            aesara_dtype = op(
+                aesara_arg_1,
+                aesara_arg_2,
+            ).type.dtype
 
-                                # We will test all meaningful combinations of
-                                # scalar and array operations.
-                                for combo in (
-                                    ("scalar", "scalar"),
-                                    ("array", "array"),
-                                    ("scalar", "array"),
-                                    ("array", "scalar"),
-                                    ("i_scalar", "i_scalar"),
-                                ):
+            # For numpy we have a problem:
+            #   http://projects.scipy.org/numpy/ticket/1827
+            # As a result we only consider the highest data
+            # type that numpy may return.
+            numpy_arg_1 = numpy_args[0](a_type)
+            numpy_arg_2 = numpy_args[1](b_type)
+            numpy_dtypes = [
+                op(numpy_arg_1, numpy_arg_2).dtype,
+                op(numpy_arg_2, numpy_arg_1).dtype,
+            ]
+            numpy_dtype = aes.upcast(*list(map(str, numpy_dtypes)))
 
-                                    Aesara_args = list(
-                                        map(eval, [f"Aesara_{c}" for c in combo])
-                                    )
-                                    numpy_args = list(
-                                        map(eval, [f"numpy_{c}" for c in combo])
-                                    )
-                                    Aesara_dtype = op(
-                                        Aesara_args[0](a_type),
-                                        Aesara_args[1](b_type),
-                                    ).type.dtype
+            if numpy_dtype == aesara_dtype:
+                # Same data type found, all is good!
+                return
 
-                                    # For numpy we have a problem:
-                                    #   http://projects.scipy.org/numpy/ticket/1827
-                                    # As a result we only consider the highest data
-                                    # type that numpy may return.
-                                    numpy_dtypes = [
-                                        op(
-                                            numpy_args[0](a_type), numpy_args[1](b_type)
-                                        ).dtype,
-                                        op(
-                                            numpy_args[1](b_type), numpy_args[0](a_type)
-                                        ).dtype,
-                                    ]
-                                    numpy_dtype = aes.upcast(
-                                        *list(map(str, numpy_dtypes))
-                                    )
-                                    if numpy_dtype == Aesara_dtype:
-                                        # Same data type found, all is good!
-                                        continue
-                                    if (
-                                        cfg == "numpy+floatX"
-                                        and config.floatX == "float32"
-                                        and a_type != "float64"
-                                        and b_type != "float64"
-                                        and numpy_dtype == "float64"
-                                    ):
-                                        # We should keep float32.
-                                        assert Aesara_dtype == "float32"
-                                        continue
-                                    if "array" in combo and "scalar" in combo:
-                                        # For mixed scalar / array operations,
-                                        # Aesara may differ from numpy as it does
-                                        # not try to prevent the scalar from
-                                        # upcasting the array.
-                                        array_type, scalar_type = (
-                                            (a_type, b_type)[list(combo).index(arg)]
-                                            for arg in ("array", "scalar")
-                                        )
-                                        up_type = aes.upcast(array_type, scalar_type)
-                                        if (
-                                            # The two data types are different.
-                                            scalar_type != array_type
-                                            and
-                                            # The array type is not enough to hold
-                                            # the scalar type as well.
-                                            array_type != up_type
-                                            and
-                                            # Aesara upcasted the result array.
-                                            Aesara_dtype == up_type
-                                            and
-                                            # But Numpy kept its original type.
-                                            array_type == numpy_dtype
-                                        ):
-                                            # Then we accept this difference in
-                                            # behavior.
-                                            continue
+            if (
+                config.floatX == "float32"
+                and a_type != "float64"
+                and b_type != "float64"
+                and numpy_dtype == "float64"
+            ):
+                # We should keep float32.
+                assert aesara_dtype == "float32"
+                return
 
-                                    if (
-                                        cfg == "numpy+floatX"
-                                        and a_type == "complex128"
-                                        and (b_type == "float32" or b_type == "float16")
-                                        and combo == ("scalar", "array")
-                                        and Aesara_dtype == "complex128"
-                                        and numpy_dtype == "complex64"
-                                    ):
-                                        # In numpy 1.6.x adding a complex128 with
-                                        # a float32 may result in a complex64. As
-                                        # of 1.9.2. this is still the case so it is
-                                        # probably by design
-                                        pytest.skip("Known issue with" "numpy see #761")
-                                    # In any other situation: something wrong is
-                                    # going on!
-                                    raise AssertionError()
+            if "array" in combo and "scalar" in combo:
+                # For mixed scalar / array operations,
+                # Aesara may differ from numpy as it does
+                # not try to prevent the scalar from
+                # upcasting the array.
+                array_type, scalar_type = (
+                    (a_type, b_type)[list(combo).index(arg)]
+                    for arg in ("array", "scalar")
+                )
+                up_type = aes.upcast(array_type, scalar_type)
+                if (
+                    # The two data types are different.
+                    scalar_type != array_type
+                    and
+                    # The array type is not enough to hold
+                    # the scalar type as well.
+                    array_type != up_type
+                    and
+                    # Aesara upcasted the result array.
+                    aesara_dtype == up_type
+                    and
+                    # But Numpy kept its original type.
+                    array_type == numpy_dtype
+                ):
+                    # Then we accept this difference in
+                    # behavior.
+                    return
+
+            if (
+                {a_type, b_type} == {"complex128", "float32"}
+                or {a_type, b_type} == {"complex128", "float16"}
+                and set(combo) == {"scalar", "array"}
+                and aesara_dtype == "complex128"
+                and numpy_dtype == "complex64"
+            ):
+                # In numpy 1.6.x adding a complex128 with
+                # a float32 may result in a complex64. As
+                # of 1.9.2. this is still the case so it is
+                # probably by design
+                pytest.skip("Known issue with" "numpy see #761")
+            # In any other situation: something wrong is
+            # going on!
+            raise AssertionError()
 
 
 def test_divmod():
