@@ -166,7 +166,7 @@ class TestSharedVariable:
         with pytest.raises(TypeError):
             f(b, 8)
 
-        b = shared(np.float(7.234), strict=True)
+        b = shared(float(7.234), strict=True)
         assert b.type == dscalar
         with pytest.raises(TypeError):
             f(b, 8)
@@ -214,8 +214,8 @@ class TestSharedVariable:
         with pytest.raises(TypeError):
             f(b, 8)
 
-        # np.float([7.234]) don't work
-        #        b = shared(np.float([7.234]), strict=True)
+        # float([7.234]) don't work
+        #        b = shared(float([7.234]), strict=True)
         #        assert b.type == dvector
         #        with pytest.raises(TypeError):
         #            f(b, 8)
@@ -273,7 +273,7 @@ class TestSharedVariable:
         f(b, 8)
         assert b.get_value() == 8
 
-        b = shared(np.float(7.234), allow_downcast=True)
+        b = shared(float(7.234), allow_downcast=True)
         assert b.type == dscalar
         f(b, 8)
         assert b.get_value() == 8
@@ -321,8 +321,8 @@ class TestSharedVariable:
         f(b, [8])
         assert b.get_value() == 8
 
-        # np.float([7.234]) don't work
-        #        b = shared(np.float([7.234]))
+        # float([7.234]) don't work
+        #        b = shared(float([7.234]))
         #        assert b.type == dvector
         #        f(b,[8])
 
