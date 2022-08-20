@@ -10,9 +10,18 @@ from aesara.tensor.shape import SpecifyShape
 from aesara.tensor.type import TensorType
 
 
-def test_numpy_dtype():
-    test_type = TensorType(np.int32, [])
-    assert test_type.dtype == "int32"
+@pytest.mark.parametrize(
+    "dtype, exp_dtype",
+    [
+        (np.int32, "int32"),
+        (np.dtype(np.int32), "int32"),
+        ("int32", "int32"),
+        ("floatX", config.floatX),
+    ],
+)
+def test_numpy_dtype(dtype, exp_dtype):
+    test_type = TensorType(dtype, [])
+    assert test_type.dtype == exp_dtype
 
 
 def test_in_same_class():
