@@ -21,7 +21,6 @@ from aesara.graph.basic import (
     vars_between,
 )
 from aesara.link.basic import Container, Linker, LocalLinker, PerformLinker
-from aesara.link.c import cutils
 from aesara.link.c.cmodule import (
     METH_VARARGS,
     DynamicModule,
@@ -1722,7 +1721,7 @@ class _CThunk:
     Parameters
     ----------
     cthunk
-        The CObject pointer used by run_cthunk.
+        A CObject pointer that is used to run the thunk.
     init_tasks
         WRITEME
     tasks
@@ -1736,6 +1735,10 @@ class _CThunk:
     """
 
     def __init__(self, cthunk, init_tasks, tasks, error_storage, module):
+        # Lazy import to avoid compilation when importing aesara.
+        from aesara.link.c.cutils import run_cthunk  # noqa
+
+        self.run_cthunk = run_cthunk
         self.cthunk = cthunk
         self.init_tasks = init_tasks
         self.tasks = tasks
@@ -1757,7 +1760,7 @@ class _CThunk:
             return self.tasks[failure_code - n]
 
     def __call__(self):
-        failure = cutils.run_cthunk(self.cthunk)
+        failure = self.run_cthunk(self.cthunk)
         if failure:
             task, taskname, id = self.find_task(failure)
             try:
