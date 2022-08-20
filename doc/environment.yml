@@ -13,5 +13,6 @@ dependencies:
   - sphinx_rtd_theme
   - mock
   - pillow
+  - pip
   - pip:
     - -e ..[doc]
