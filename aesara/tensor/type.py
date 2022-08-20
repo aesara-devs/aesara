@@ -92,7 +92,7 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
             )
             shape = broadcastable
 
-        if dtype == "floatX":
+        if str(dtype) == "floatX":
             self.dtype = config.floatX
         else:
             if np.obj2sctype(dtype) is None:
