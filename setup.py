@@ -11,11 +11,6 @@ dist = Distribution()
 dist.parse_config_files()
 
 
-def read_file(filename):
-    with open(filename, "rt") as buff:
-        return buff.read()
-
-
 NAME: str = dist.get_name()  # type: ignore
 
 # Handle builds of nightly release
