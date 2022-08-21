@@ -15,7 +15,6 @@ NAME: str = dist.get_name()  # type: ignore
 
 # Handle builds of nightly release
 if "BUILD_AESARA_NIGHTLY" in os.environ:
-    nightly = True
     NAME += "-nightly"
 
     from versioneer import get_versions as original_get_versions
