@@ -1198,6 +1198,31 @@ def test_broadcast_shape_symbolic(s1_vals, s2_vals, exp_res):
     assert tuple(res.eval(eval_point)) == exp_res
 
 
+def test_broadcast_shape_symbolic_one_symbolic():
+    """Test case for a constant non-broadcast shape and a symbolic shape."""
+    one_at = at.as_tensor(1, dtype=np.int64)
+    three_at = at.as_tensor(3, dtype=np.int64)
+    int_div = one_at / one_at
+
+    assert int_div.owner.op == at.true_div
+
+    index_shapes = [
+        (one_at, one_at, three_at),
+        (one_at, int_div, one_at),
+        (one_at, one_at, int_div),
+    ]
+
+    res_shape = broadcast_shape(*index_shapes, arrays_are_shapes=True)
+
+    from aesara.graph.rewriting.utils import rewrite_graph
+
+    res_shape = rewrite_graph(res_shape)
+
+    assert res_shape[0].data == 1
+    assert res_shape[1].data == 1
+    assert res_shape[2].data == 3
+
+
 class TestBroadcastTo(utt.InferShapeTester):
     def setup_method(self):
         super().setup_method()

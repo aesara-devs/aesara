@@ -1548,15 +1548,26 @@ def broadcast_shape_iter(
                 )
 
                 if len(nonconst_nb_shapes) > 0:
+                    # All the potential non-broadcast shapes need to either
+                    # be broadcastable or equal to the one non-broadcastable
+                    # constant `const_nt_shape_var`.
                     assert_dim = Assert("Could not broadcast dimensions")
                     assert_cond = reduce(
                         aes.and_,
-                        (aes.eq(nbv, const_nt_shape_var) for nbv in nonconst_nb_shapes),
+                        (
+                            aes.or_(
+                                aes.eq(nbv, one_at), aes.eq(nbv, const_nt_shape_var)
+                            )
+                            for nbv in nonconst_nb_shapes
+                        ),
                     )
                     bcast_dim = assert_dim(const_nt_shape_var, assert_cond)
                 else:
                     bcast_dim = const_nt_shape_var
             else:
+                # There are no constant, non-broadcastable shapes in this
+                # dimension.
+
                 all_dims_equal = all(
                     # TODO FIXME: This is a largely deficient, and expensive, means
                     # of comparing graphs (and especially shapes)
