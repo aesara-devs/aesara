@@ -72,10 +72,8 @@ from aesara.tensor.math import prod, reciprocal, sgn, sigmoid, softplus, sqr, sq
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import true_div
 from aesara.tensor.rewriting.basic import (
-    FusionOptimizer,
     broadcast_like,
     encompasses_broadcastable,
-    fuse_seqopt,
     local_fill_sink,
     register_canonicalize,
     register_specialize,
@@ -84,6 +82,7 @@ from aesara.tensor.rewriting.basic import (
     register_uncanonicalize,
     register_useless,
 )
+from aesara.tensor.rewriting.elemwise import FusionOptimizer, fuse_seqopt
 from aesara.tensor.shape import Shape, Shape_i
 from aesara.tensor.subtensor import Subtensor
 from aesara.tensor.type import (

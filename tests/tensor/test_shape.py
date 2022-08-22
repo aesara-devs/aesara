@@ -12,7 +12,7 @@ from aesara.misc.safe_asarray import _asarray
 from aesara.tensor import as_tensor_variable, get_vector_length, row
 from aesara.tensor.basic import MakeVector, constant
 from aesara.tensor.elemwise import DimShuffle, Elemwise
-from aesara.tensor.rewriting.basic import ShapeFeature
+from aesara.tensor.rewriting.shape import ShapeFeature
 from aesara.tensor.shape import (
     Reshape,
     Shape_i,
