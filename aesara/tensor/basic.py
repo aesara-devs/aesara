@@ -29,7 +29,7 @@ from aesara.graph.type import Type
 from aesara.link.c.op import COp
 from aesara.link.c.params_type import ParamsType
 from aesara.misc.safe_asarray import _asarray
-from aesara.printing import min_informative_str, pprint
+from aesara.printing import Printer, min_informative_str, pprint, set_precedence
 from aesara.raise_op import CheckAndRaise, assert_op
 from aesara.scalar import int32
 from aesara.scalar.basic import ScalarConstant, ScalarVariable
@@ -1335,7 +1335,8 @@ def infer_broadcastable(shape):
     `shape` will be validated and constant folded in order to determine
     which dimensions are broadcastable (i.e. equal to ``1``).
     """
-    from aesara.tensor.rewriting.basic import ShapeFeature, topo_constant_folding
+    from aesara.tensor.rewriting.basic import topo_constant_folding
+    from aesara.tensor.rewriting.shape import ShapeFeature
 
     def check_type(s):
         if s.type.dtype in integer_dtypes:
@@ -1707,6 +1708,21 @@ class MakeVector(COp):
 
 
 make_vector = MakeVector()
+
+
+class MakeVectorPrinter(Printer):
+    def process(self, r, pstate):
+        if r.owner is None:
+            raise TypeError("Can only print make_vector.")
+        elif isinstance(r.owner.op, MakeVector):
+            with set_precedence(pstate):
+                s = [pstate.pprinter.process(inp) for inp in r.owner.inputs]
+            return f"[{', '.join(s)}]"
+        else:
+            raise TypeError("Can only print make_vector.")
+
+
+pprint.assign(MakeVector, MakeVectorPrinter())
 
 
 @_get_vector_length.register(MakeVector)

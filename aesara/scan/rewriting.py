@@ -45,8 +45,9 @@ from aesara.tensor.basic import Alloc, AllocEmpty, get_scalar_constant_value
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import Dot, dot, maximum, minimum
-from aesara.tensor.rewriting import basic as basic_opt
-from aesara.tensor.rewriting import math as math_opt
+from aesara.tensor.rewriting.basic import constant_folding, local_useless_switch
+from aesara.tensor.rewriting.elemwise import local_upcast_elemwise_constant_inputs
+from aesara.tensor.rewriting.math import local_abs_merge, local_mul_switch_sink
 from aesara.tensor.shape import shape
 from aesara.tensor.subtensor import (
     IncSubtensor,
@@ -60,11 +61,11 @@ from aesara.tensor.var import TensorConstant, get_unique_value
 
 
 list_opt_slice = [
-    math_opt.local_abs_merge,
-    math_opt.local_mul_switch_sink,
-    basic_opt.local_upcast_elemwise_constant_inputs,
-    basic_opt.local_useless_switch,
-    basic_opt.constant_folding,
+    local_abs_merge,
+    local_mul_switch_sink,
+    local_upcast_elemwise_constant_inputs,
+    local_useless_switch,
+    constant_folding,
 ]
 
 
@@ -2432,7 +2433,7 @@ scan_seqopt1.register(
 
 scan_eqopt2.register(
     "constant_folding_for_scan2",
-    in2out(basic_opt.constant_folding, ignore_newtrees=True),
+    in2out(constant_folding, ignore_newtrees=True),
     "fast_run",
     "scan",
 )

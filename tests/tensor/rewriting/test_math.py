@@ -79,7 +79,7 @@ from aesara.tensor.math import round as at_round
 from aesara.tensor.math import sgn, sigmoid, sin, sinh, softplus, sqr, sqrt, sub
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tan, tanh, true_div, xor
-from aesara.tensor.rewriting.basic import local_dimshuffle_lift
+from aesara.tensor.rewriting.elemwise import local_dimshuffle_lift
 from aesara.tensor.rewriting.math import (
     compute_mul,
     is_1pexp,

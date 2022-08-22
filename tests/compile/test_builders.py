@@ -21,7 +21,7 @@ from aesara.tensor.math import round as at_round
 from aesara.tensor.math import sigmoid
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.random.utils import RandomStream
-from aesara.tensor.rewriting.basic import ShapeOptimizer
+from aesara.tensor.rewriting.shape import ShapeOptimizer
 from aesara.tensor.shape import specify_shape
 from aesara.tensor.type import TensorType, matrices, matrix, scalar, vector, vectors
 from tests import unittest_tools

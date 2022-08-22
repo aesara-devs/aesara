@@ -55,7 +55,7 @@ from aesara.tensor.random.basic import (
     wald,
     weibull,
 )
-from aesara.tensor.rewriting.basic import ShapeFeature
+from aesara.tensor.rewriting.shape import ShapeFeature
 from aesara.tensor.type import iscalar, scalar, tensor
 from tests.unittest_tools import create_aesara_param
 
