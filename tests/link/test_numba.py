@@ -1517,9 +1517,7 @@ def test_perform_params():
         out = [out]
 
     out_fg = FunctionGraph([x], out)
-
-    with pytest.warns(UserWarning, match=".*object mode.*"):
-        compare_numba_and_py(out_fg, [get_test_value(i) for i in out_fg.inputs])
+    compare_numba_and_py(out_fg, [get_test_value(i) for i in out_fg.inputs])
 
 
 def test_perform_type_convert():
@@ -1538,9 +1536,7 @@ def test_perform_type_convert():
         out = [out]
 
     out_fg = FunctionGraph([x], out)
-
-    with pytest.warns(UserWarning, match=".*object mode.*"):
-        compare_numba_and_py(out_fg, [get_test_value(i) for i in out_fg.inputs])
+    compare_numba_and_py(out_fg, [get_test_value(i) for i in out_fg.inputs])
 
 
 @pytest.mark.parametrize(
