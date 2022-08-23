@@ -13,7 +13,7 @@ from aesara.graph.rewriting.basic import (
     in2out,
     node_rewriter,
 )
-from aesara.raise_op import Assert
+from aesara.raise_op import Assert, CheckAndRaise
 from aesara.tensor.basic import (
     Alloc,
     Join,
@@ -882,7 +882,7 @@ def local_set_to_inc_subtensor(fgraph, node):
 
 
 @register_specialize
-@local_optimizer([AdvancedIncSubtensor1])
+@node_rewriter([AdvancedIncSubtensor1])
 def local_unchecked_AdvancedIncSubtensor1(fgraph, node):
     """Move bound checks out of the inner loop for constant index arrays."""
 
@@ -916,22 +916,19 @@ def local_unchecked_AdvancedIncSubtensor1(fgraph, node):
 
     check = CheckAndRaise(IndexError, msg="Index out of bounds")
 
-    (length,) = array.shape
+    (length, *_) = array.shape
 
-    array = check(array, lt(maxval, length), or_(ge(minval, 0), le(-minval, length)))
+    incs = check(incs, lt(maxval, length), or_(ge(minval, 0), le(-minval, length)))
 
-    op = type(node.op)(
+    new_op = node.op.__class__(
         inplace=node.op.inplace,
         set_instead_of_inc=node.op.set_instead_of_inc,
         boundscheck=False,
     )
-    return [
-        op(
-            array,
-            incs,
-            indices,
-        )
-    ]
+
+    new_node = new_op(array, incs, indices)
+    copy_stack_trace(node.outputs, new_node)
+    return [new_node]
 
 
 @register_canonicalize

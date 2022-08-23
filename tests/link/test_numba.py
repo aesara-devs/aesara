@@ -586,12 +586,13 @@ def test_AdvancedIncSubtensor1(inplace, set_instead_of_inc, x, y, indices, error
         inplace=inplace, set_instead_of_inc=set_instead_of_inc
     )(x_at, y, indices)
     assert isinstance(out_at.owner.op, at_subtensor.AdvancedIncSubtensor1)
-    out_fg = FunctionGraph([x_at], [out_at])
 
     if error is not None:
         with pytest.raises(error):
-            compare_numba_and_py(out_fg, [x.data])
+            func = function([x_at], [out_at], mode="NUMBA", accept_inplace=True)
+            func(x.data)
     else:
+        out_fg = FunctionGraph([x_at], [out_at])
         compare_numba_and_py(out_fg, [x.data])
 
     # Test with non-constant indices
@@ -605,7 +606,8 @@ def test_AdvancedIncSubtensor1(inplace, set_instead_of_inc, x, y, indices, error
 
     if error is not None:
         with pytest.raises(error):
-            compare_numba_and_py(out_fg, [x.data, indices])
+            func = function([x_at, idxs], [out_at], mode="NUMBA", accept_inplace=True)
+            func(x.data, indices)
     else:
         compare_numba_and_py(out_fg, [x.data, indices])
 

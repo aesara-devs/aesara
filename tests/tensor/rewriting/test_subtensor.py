@@ -14,7 +14,7 @@ from aesara.graph.rewriting.basic import check_stack_trace
 from aesara.graph.rewriting.db import RewriteDatabaseQuery
 from aesara.graph.rewriting.utils import rewrite_graph
 from aesara.graph.type import Type
-from aesara.raise_op import Assert
+from aesara.raise_op import Assert, CheckAndRaise
 from aesara.tensor import inplace
 from aesara.tensor.basic import Alloc, MakeVector, _convert_to_int8, make_vector
 from aesara.tensor.elemwise import DimShuffle, Elemwise
@@ -119,6 +119,32 @@ def test_local_replace_AdvancedSubtensor(indices, is_none):
         exp_res_val = exp_res_fn(*[i.tag.test_value for i in inputs])
 
         assert np.array_equal(res_val, exp_res_val)
+
+
+def test_local_unchecked_AdvancedIncSubtensor1():
+    mode = (
+        get_default_mode()
+        .including("local_AdvancedIncSubtensor_to_AdvancedIncSubtensor1")
+        .including("local_unchecked_AdvancedIncSubtensor1")
+    )
+
+    values = vector("x")
+    incs = vector("y")
+    idxs = np.array([1, 2, 3])
+
+    output = inc_subtensor(values[idxs], incs)
+
+    func = function([values, incs], output, mode=mode)
+
+    topo = func.maker.fgraph.toposort()
+    assert any(
+        (
+            isinstance(node.op, AdvancedIncSubtensor1)
+            and not node.op.boundscheck
+            and isinstance(node.inputs[1].owner.op, CheckAndRaise)
+        )
+        for node in topo
+    )
 
 
 @pytest.mark.parametrize("s", [slice(None), slice(None, None, -1)])

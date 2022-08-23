@@ -2127,7 +2127,11 @@ class AdvancedIncSubtensor1(COp):
             self.destroy_map = {0: [0]}
 
     def clone_inplace(self):
-        return self.__class__(inplace=True, set_instead_of_inc=self.set_instead_of_inc)
+        return self.__class__(
+            inplace=True,
+            set_instead_of_inc=self.set_instead_of_inc,
+            boundscheck=self.boundscheck,
+        )
 
     def __str__(self):
         if self.inplace:
