@@ -11,6 +11,7 @@ from aesara.compile.ops import ViewOp
 from aesara.graph.basic import Constant, Variable
 from aesara.graph.rewriting.basic import (
     NodeRewriter,
+    RemovalNodeRewriter,
     Rewriter,
     copy_stack_trace,
     in2out,
@@ -35,6 +36,7 @@ from aesara.tensor.basic import (
     join,
     ones_like,
     switch,
+    tensor_copy,
     zeros,
     zeros_like,
 )
@@ -1294,3 +1296,6 @@ def __getattr__(name):
         return fn()
 
     raise AttributeError(f"module {__name__} has no attribute {name}")
+
+
+register_canonicalize(RemovalNodeRewriter(tensor_copy), name="remove_tensor_copy")
