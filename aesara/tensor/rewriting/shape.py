@@ -13,7 +13,6 @@ from aesara.graph.features import AlreadyThere, Feature
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.rewriting.basic import (
     GraphRewriter,
-    RemovalNodeRewriter,
     check_chain,
     copy_stack_trace,
     node_rewriter,
@@ -27,7 +26,6 @@ from aesara.tensor.basic import (
     extract_constant,
     get_scalar_constant_value,
     stack,
-    tensor_copy,
 )
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError, ShapeError
@@ -970,9 +968,6 @@ def local_reshape_lift(fgraph, node):
         # because an error in new cg could have been caused by either ops.
         copy_stack_trace(node.outputs + node.inputs, e)
         return [e]
-
-
-register_canonicalize(RemovalNodeRewriter(tensor_copy), name="remove_tensor_copy")
 
 
 @register_useless
