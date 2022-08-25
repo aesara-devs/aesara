@@ -996,18 +996,16 @@ class HyperGeometricRV(RandomVariable):
         Parameters
         ----------
         ngood
-            Number :math:`K` of desirable items in the population.
+            Number :math:`K` of desirable items in the population. Positive integer.
         nbad
-            Number :math:`N-K` of undesirable items in the population.
+            Number :math:`N-K` of undesirable items in the population. Positive integer.
         nsample
             Number :math:`n` of items sampled. Must be less than :math:`N`,
-            i.e. `ngood + nbad`.`
+            i.e. `ngood + nbad`.` Positive integer.
         size
            Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
-           independent, identically distributed random variables are
-           returned. Default is `None` in which case a single random variable
-           is returned if `ngood`, `nbad` and `nsample` are all scalars.
-           Otherwise `np.broadcast(ngood, nbad, nsample).size` samples are drawn.
+           independent, identically distributed samples are returned. Default is
+           `None` in which case a single sample is returned.
 
         """
         return super().__call__(ngood, nbad, nsample, size=size, **kwargs)
