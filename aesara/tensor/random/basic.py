@@ -1278,9 +1278,8 @@ class BernoulliRV(ScipyRandomVariable):
             Probability of success :math:`p` of a single trial.
         size
             Sample shape. If the given size is `(m, n, k)`, then `m * n * k`
-            independent, identically distributed samples are
-            returned. Default is `None` in which case a single sample
-            is returned.
+            independent, identically distributed samples are returned. Default
+            is `None` in which case a single sample is returned.
 
         """
         return super().__call__(p, size=size, **kwargs)
