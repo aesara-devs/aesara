@@ -862,10 +862,10 @@ class DirichletRV(RandomVariable):
             A sequence of concentration parameters :math:`\boldsymbol{\alpha}` of the
             distribution. A sequence of length `k` will produce samples of length `k`.
         size
-            Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
-            independent, identically distributed random variables are
-            returned. Default is `None` in which case a vector of length `k`
-            is returned.
+            Given a size of, for example, `(r, s, t)`, `r * s * t` independent,
+            identically distributed samples are generated. Because each sample
+            is `k`-dimensional, the output shape is `(r, s, t, k)`. If no shape
+            is specified, a single `k`-dimensional sample is returned.
 
         """
         return super().__call__(alphas, size=size, **kwargs)
