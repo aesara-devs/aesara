@@ -959,13 +959,11 @@ class GeometricRV(RandomVariable):
         Parameters
         ----------
         p
-           Probability of success :math:`p` of an individual trial.
+            Probability of success :math:`p` of an individual trial.
         size
-           Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
-           independent, identically distributed random variables are
-           returned. Default is `None` in which case a single random variable
-           is returned if `p` is a scalar. Otherwise `np.array(p).size` samples
-           are drawn.
+            Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n *
+            k` independent, identically distributed samples are returned.
+            Default is `None` in which case a single sample is returned.
 
         """
         return super().__call__(p, size=size, **kwargs)
