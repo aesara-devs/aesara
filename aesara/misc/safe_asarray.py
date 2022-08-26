@@ -31,6 +31,11 @@ def _asarray(a, dtype, order=None):
     """
     if str(dtype) == "floatX":
         dtype = config.floatX
+    try:
+        if not isinstance(dtype, type) and not isinstance(dtype.dtype, np.dtype):
+            dtype = dtype.dtype
+    except AttributeError:
+        pass
     dtype = np.dtype(dtype)  # Convert into dtype object.
     rval = np.asarray(a, dtype=dtype, order=order)
     # Note that dtype comparison must be done by comparing their `num`

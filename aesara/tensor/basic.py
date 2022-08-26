@@ -719,6 +719,11 @@ def cast(x, dtype: Union[str, np.dtype]) -> TensorVariable:
 
     if isinstance(dtype, str) and dtype == "floatX":
         dtype = config.floatX
+    try:
+        if not isinstance(dtype, type) and not isinstance(dtype.dtype, np.dtype):
+            dtype = dtype.dtype
+    except AttributeError:
+        pass
 
     dtype_name = np.dtype(dtype).name
 
