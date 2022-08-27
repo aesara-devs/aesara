@@ -11,7 +11,7 @@ cython
 sympy
 jax>=0.4.1
 jaxlib>=0.4.1
-numba>=0.55
+numba>=0.57.0
 numba-scipy>=0.3.0
 diff-cover
 pre-commit

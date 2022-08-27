@@ -6,6 +6,7 @@
 name: aesara-dev
 channels:
   - conda-forge
+  - numba
 dependencies:
   - python
   - compilers
@@ -21,7 +22,7 @@ dependencies:
   - mkl-service
   - libblas=*=*mkl
   # numba backend
-  - numba>=0.55
+  - numba>=0.57.0
   - numba-scipy
   # For testing
   - coveralls

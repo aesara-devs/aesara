@@ -6,6 +6,7 @@
 name: aesara-dev
 channels:
   - conda-forge
+  - numba
 dependencies:
   - python
   - compilers
@@ -21,7 +22,7 @@ dependencies:
   - openblas
   - libblas=*=*openblas
   # numba backend
-  - numba>=0.55.2
+  - numba>=0.57.0
   - llvmlite>=0.38.1
   - numba-scipy
   # For testing
