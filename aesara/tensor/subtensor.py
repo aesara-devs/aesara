@@ -41,6 +41,10 @@ from aesara.tensor.type import (
     iscalar,
     lscalar,
     tensor,
+    ubscalar,
+    uiscalar,
+    ulscalar,
+    uwscalar,
     wscalar,
     zscalar,
 )
@@ -50,12 +54,25 @@ from aesara.tensor.type_other import NoneConst, NoneTypeT, SliceType, make_slice
 _logger = logging.getLogger("aesara.tensor.subtensor")
 
 invalid_scal_types = (aes.float64, aes.float32, aes.float16)
-scal_types = (aes.int64, aes.int32, aes.int16, aes.int8)
+scal_types = (
+    aes.int64,
+    aes.int32,
+    aes.int16,
+    aes.int8,
+    aes.uint64,
+    aes.uint32,
+    aes.uint16,
+    aes.uint8,
+)
 tensor_types = (
     lscalar,
     iscalar,
     wscalar,
     bscalar,
+    ulscalar,
+    uiscalar,
+    uwscalar,
+    ubscalar,
 )
 invalid_tensor_types = (
     fscalar,
@@ -376,7 +393,7 @@ def slice_len(slc, n):
 def is_basic_idx(idx):
     """Determine if an index is of the NumPy basic type.
 
-    XXX: This only checks a single index, so an integers is *not* considered a
+    XXX: This only checks a single index, so an integer is *not* considered a
     basic index, because--depending on the other indices its used with--an
     integer can indicate advanced indexing.
 

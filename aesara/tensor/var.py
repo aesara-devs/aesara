@@ -515,13 +515,13 @@ class _tensor_py_operators:
                 isinstance(val, np.ndarray) and val.size == 0
             )
 
-        # Force input to be int64 datatype if input is an empty list or tuple
+        # Force input to be an int datatype if input is an empty list or tuple
         # Else leave it as is if it is a real number
         # Convert python literals to aesara constants
         args = tuple(
             [
                 at.subtensor.as_index_constant(
-                    np.array(inp, dtype=np.int64) if is_empty_array(inp) else inp
+                    np.array(inp, dtype=np.uint8) if is_empty_array(inp) else inp
                 )
                 for inp in args
             ]
