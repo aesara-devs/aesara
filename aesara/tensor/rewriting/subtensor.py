@@ -1749,3 +1749,94 @@ def local_join_subtensors(fgraph, node):
                 return [concatenate(new_joined_tensors, axis=axis)]
             else:
                 return [merged_subtensors]
+
+
+@register_specialize
+@node_rewriter(
+    [
+        Subtensor,
+        AdvancedSubtensor1,
+        AdvancedSubtensor,
+        IncSubtensor,
+        AdvancedIncSubtensor,
+        AdvancedIncSubtensor1,
+    ]
+)
+def local_uint_constant_indices(fgraph, node):
+    """Convert constant indices to unsigned dtypes."""
+
+    if isinstance(node.op, (IncSubtensor, AdvancedIncSubtensor, AdvancedIncSubtensor1)):
+        x, y, *indices = node.inputs
+    else:
+        x, *indices = node.inputs
+        y = None
+
+    idx_list = getattr(node.op, "idx_list", None)
+    new_indices = list(indices_from_subtensor(indices, idx_list))
+    has_new_index = False
+
+    for i, index in enumerate(new_indices):
+
+        if not isinstance(index, Constant):
+            continue
+
+        index_val = index.data
+
+        if index_val is None or isinstance(index_val, slice):
+            # TODO: If slice index dtypes matter, we can consider converting
+            # those, as well.
+            continue
+
+        assert isinstance(index_val, (np.generic, np.ndarray))
+
+        if index_val.size == 0:
+            continue
+
+        if index_val.dtype == bool:
+            continue
+
+        if np.ndim(index_val) > 0:
+            minval = index_val.min()
+        else:
+            minval = index_val
+
+        if minval >= 0:
+            maxval = index_val.max()
+            dtype = np.min_scalar_type(maxval)
+        else:
+            # If we can't convert to unsigned, then don't attempt to minimize
+            # the type size either--at least not for now.
+            # dtype = np.min_scalar_type(-max(-minval, maxval))
+            continue
+
+        if dtype == index_val.dtype:
+            continue
+
+        if index_val.ndim > 0:
+            new_index = aesara.tensor.as_tensor_variable(
+                index_val.astype(dtype), dtype=dtype
+            )
+        else:
+            new_index = aes.constant(index_val.astype(dtype), dtype=dtype)
+
+        new_indices[i] = new_index
+        has_new_index = True
+
+    if not has_new_index:
+        return False
+
+    new_out = x[tuple(new_indices)]
+
+    if y is not None:
+        new_out = inc_subtensor(
+            new_out,
+            y,
+            inplace=node.op.inplace,
+            set_instead_of_inc=node.op.set_instead_of_inc,
+            ignore_duplicates=getattr(node.op, "ignore_duplicates", False),
+        )
+
+    new_outs = new_out.owner.outputs
+    copy_stack_trace(node.outputs, new_outs)
+
+    return new_outs

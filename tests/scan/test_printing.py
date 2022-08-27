@@ -618,7 +618,7 @@ def test_debugprint_compiled_fn():
     forall_inplace,cpu,scan_fn} [id A] (outer_out_sit_sot-0)
     >Elemwise{Composite{Switch(LT(i0, i1), i2, i0)}} [id I] (inner_out_sit_sot-0)
     > |TensorConstant{0} [id J]
-    > |Subtensor{int64, int64, int64} [id K]
+    > |Subtensor{int64, int64, uint8} [id K]
     > | |*2-<TensorType(float64, (20000, 2, 2))> [id L] -> [id H] (inner_in_non_seqs-0)
     > | |ScalarFromTensor [id M]
     > | | |*0-<TensorType(int64, ())> [id N] -> [id C] (inner_in_seqs-0)
