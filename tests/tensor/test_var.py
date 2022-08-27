@@ -26,7 +26,7 @@ from aesara.tensor.type import (
     scalar,
     tensor3,
 )
-from aesara.tensor.type_other import MakeSlice
+from aesara.tensor.type_other import MakeSlice, NoneConst
 from aesara.tensor.var import (
     DenseTensorConstant,
     DenseTensorVariable,
@@ -221,6 +221,7 @@ def test_print_constant():
     [
         (tensor3(), (np.newaxis, slice(None), np.newaxis), ("x", 0, "x", 1, 2)),
         (cscalar(), (np.newaxis,), ("x",)),
+        (cscalar(), (NoneConst,), ("x",)),
         (matrix(), (np.newaxis,), ("x", 0, 1)),
         (matrix(), (np.newaxis, np.newaxis), ("x", "x", 0, 1)),
         (matrix(), (np.newaxis, slice(None)), ("x", 0, 1)),
