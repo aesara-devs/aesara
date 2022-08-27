@@ -31,6 +31,7 @@ from aesara.tensor.subtensor import (
     AdvancedSubtensor1,
     IncSubtensor,
     Subtensor,
+    advanced_inc_subtensor1,
     inc_subtensor,
     set_subtensor,
 )
@@ -52,7 +53,7 @@ from aesara.tensor.type import (
     tensor4,
     vector,
 )
-from aesara.tensor.type_other import slicetype
+from aesara.tensor.type_other import make_slice, slicetype
 from tests import unittest_tools as utt
 from tests.unittest_tools import create_aesara_param
 
@@ -2160,3 +2161,146 @@ def test_deprecations():
     """Make sure we can import from deprecated modules."""
     with pytest.deprecated_call():
         from aesara.tensor.subtensor_opt import get_advsubtensor_axis  # noqa: F401 F811
+
+
+def test_local_uint_constant_indices():
+    mode = get_default_mode().including("specialize", "local_uint_constant_indices")
+    rng = np.random.default_rng(20900)
+
+    # Subtensor, don't convert
+    x = at.vector("x")
+    idx = at.as_tensor_variable(np.array(-1, np.int64))
+    z = x[idx]
+
+    z_fn = aesara.function([x], z, mode=mode)
+
+    deepcopy_node = z_fn.maker.fgraph.outputs[0].owner
+    subtensor_node = deepcopy_node.inputs[0].owner
+    assert isinstance(subtensor_node.op, Subtensor)
+    new_index = subtensor_node.inputs[1]
+    assert isinstance(new_index, Constant)
+    assert new_index.type.dtype == "int64"
+
+    # `Subtensor`, one index, convert
+    x = at.vector("x")
+    idx = at.as_tensor_variable(np.array(1, np.int64))
+    z = x[idx]
+
+    z_fn = aesara.function([x], z, mode=mode)
+
+    deepcopy_node = z_fn.maker.fgraph.outputs[0].owner
+    subtensor_node = deepcopy_node.inputs[0].owner
+    assert isinstance(subtensor_node.op, Subtensor)
+    new_index = subtensor_node.inputs[1]
+    assert isinstance(new_index, Constant)
+    assert new_index.type.dtype == "uint8"
+
+    # `Subtensor`, two indices, one slice, convert
+    x = at.matrix("x")
+    indices = (at.as_tensor_variable(np.array(1, np.int64)), slice(None, 10))
+    z = x[indices]
+
+    z_fn = aesara.function([x], z, mode=mode)
+
+    deepcopy_node = z_fn.maker.fgraph.outputs[0].owner
+    subtensor_node = deepcopy_node.inputs[0].owner
+    assert isinstance(subtensor_node.op, Subtensor)
+    new_index = subtensor_node.inputs[1]
+    assert isinstance(new_index, Constant)
+    assert new_index.type.dtype == "uint8"
+
+    # `AdvancedSubtensor`, two indices, one symbolic slice, convert
+    x = at.matrix("x")
+    indices = (
+        at.as_tensor_variable(np.array(1, np.int64)),
+        make_slice(slice(None, 10)),
+    )
+    z = x[indices]
+
+    z_fn = aesara.function([x], z, mode=mode)
+
+    subtensor_node = z_fn.maker.fgraph.outputs[0].owner
+    assert isinstance(subtensor_node.op, AdvancedSubtensor)
+    new_index = subtensor_node.inputs[1]
+    assert isinstance(new_index, Constant)
+    assert new_index.type.dtype == "uint8"
+
+    # `AdvancedSubtensor1`, convert
+    x = at.vector("x")
+    idx = at.as_tensor_variable(rng.integers(0, 10, size=10).astype(np.int64))
+    z = x[idx]
+
+    z_fn = aesara.function([x], z, mode=mode)
+
+    subtensor_node = z_fn.maker.fgraph.outputs[0].owner
+    assert isinstance(subtensor_node.op, AdvancedSubtensor1)
+    new_index = subtensor_node.inputs[1]
+    assert isinstance(new_index, Constant)
+    assert new_index.type.dtype == "uint8"
+
+    # AdvancedSubtensor, empty, convert
+    x = at.matrix("x")
+    idx = at.as_tensor_variable(1, dtype=np.int64)
+    z = x[idx, []]
+
+    z_fn = aesara.function([x], z, mode=mode)
+
+    subtensor_node = z_fn.maker.fgraph.outputs[0].owner
+    assert isinstance(subtensor_node.op, AdvancedSubtensor)
+    new_index = subtensor_node.inputs[1]
+    assert isinstance(new_index, Constant)
+    assert new_index.type.dtype == "uint8"
+
+    # AdvancedSubtensor, bool, don't convert
+    x = at.matrix("x")
+    idx = at.as_tensor_variable(np.array([True]), dtype=bool)
+    z = x[idx, []]
+
+    z_fn = aesara.function([x], z, mode=mode)
+
+    subtensor_node = z_fn.maker.fgraph.outputs[0].owner
+    assert isinstance(subtensor_node.op, AdvancedSubtensor)
+    new_index = subtensor_node.inputs[1]
+    assert isinstance(new_index, Constant)
+    assert new_index.type.dtype == "bool"
+
+    # `IncSubtensor`, convert
+    x = at.vector("x")
+    y = at.scalar("y")
+    idx = at.as_tensor_variable(1, dtype=np.int64)
+    z = inc_subtensor(x[idx], y)
+
+    z_fn = aesara.function([x, y], z, mode=mode)
+
+    subtensor_node = z_fn.maker.fgraph.outputs[0].owner
+    assert isinstance(subtensor_node.op, IncSubtensor)
+    new_index = subtensor_node.inputs[2]
+    assert isinstance(new_index, Constant)
+    assert new_index.type.dtype == "uint8"
+
+    # `AdvancedIncSubtensor1`, convert
+    x = at.vector("x")
+    y = at.vector("y")
+    idx = at.as_tensor_variable(rng.integers(0, 10, size=10).astype(np.int64))
+    z = advanced_inc_subtensor1(x, y, idx)
+
+    z_fn = aesara.function([x, y], z, mode=mode)
+
+    subtensor_node = z_fn.maker.fgraph.outputs[0].owner
+    assert isinstance(subtensor_node.op, AdvancedIncSubtensor1)
+    new_index = subtensor_node.inputs[2]
+    assert isinstance(new_index, Constant)
+    assert new_index.type.dtype == "uint8"
+
+    # `AdvancedIncSubtensor1`, convert
+    x = at.vector("x")
+    idx = at.as_tensor_variable(rng.integers(0, 10, size=10).astype(np.int64))
+    z = x[idx, None]
+
+    z_fn = aesara.function([x], z, mode=mode)
+
+    subtensor_node = z_fn.maker.fgraph.outputs[0].owner
+    assert isinstance(subtensor_node.op, AdvancedSubtensor)
+    new_index = subtensor_node.inputs[1]
+    assert isinstance(new_index, Constant)
+    assert new_index.type.dtype == "uint8"
