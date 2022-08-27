@@ -2615,3 +2615,8 @@ def test_index_vars_to_types():
 
     res = index_vars_to_types(iscalar)
     assert isinstance(res, scal.ScalarType)
+
+    x = scal.constant(1, dtype=np.uint8)
+    assert isinstance(x.type, scal.ScalarType)
+    res = index_vars_to_types(x)
+    assert res == x.type

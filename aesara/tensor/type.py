@@ -781,6 +781,10 @@ bscalar = TensorType("int8", ())
 wscalar = TensorType("int16", ())
 iscalar = TensorType("int32", ())
 lscalar = TensorType("int64", ())
+ubscalar = TensorType("uint8", ())
+uwscalar = TensorType("uint16", ())
+uiscalar = TensorType("uint32", ())
+ulscalar = TensorType("uint64", ())
 
 
 def scalar(name=None, dtype=None):
