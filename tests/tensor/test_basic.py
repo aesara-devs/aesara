@@ -1449,6 +1449,15 @@ class TestJoinAndSplit:
 
             assert (out == want).all()
 
+            # Pass a list to make sure `a` is converted to a
+            # TensorVariable by roll
+            a = [1, 2, 3, 4, 5, 6]
+            b = roll(a, get_shift(2))
+            want = np.array([5, 6, 1, 2, 3, 4])
+            out = aesara.function([], b)()
+
+            assert (out == want).all()
+
     def test_stack_vector(self):
         a = self.shared(np.array([1, 2, 3], dtype=self.floatX))
         b = as_tensor_variable(np.array([7, 8, 9], dtype=self.floatX))
