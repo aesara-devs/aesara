@@ -2484,30 +2484,33 @@ def roll(x, shift, axis=None):
         Output tensor, with the same shape as ``x``.
 
     """
+    _x = as_tensor_variable(x)
     if axis is None:
-        if x.ndim > 1:
-            y = x.flatten()
-            return roll(y, shift, axis=0).reshape(x.shape)
+        if _x.ndim > 1:
+            y = _x.flatten()
+            return roll(y, shift, axis=0).reshape(_x.shape)
         else:
             axis = 0
 
     if axis < 0:
-        axis += x.ndim
+        axis += _x.ndim
 
     # Shift may be larger than the size of the axis. If so, since the
     # roll operation is cyclic, we can take the shift modulo the size
     # of the axis
-    shift = shift % x.shape[axis]
+    shift = shift % _x.shape[axis]
 
     # A slice of all elements in a dimension ':'
     allslice = slice(None)
     # List of slices describing the front half [:, :, shift:, :]
     front_slice = slice(-shift, None)
-    front_list = [allslice] * axis + [front_slice] + [allslice] * (x.ndim - axis - 1)
+    front_list = [allslice] * axis + [front_slice] + [allslice] * (_x.ndim - axis - 1)
     # List of slices describing the back half [:, :, :shift, :]
     end_slice = slice(0, -shift)
-    end_list = [allslice] * axis + [end_slice] + [allslice] * (x.ndim - axis - 1)
-    return join(axis, x.__getitem__(tuple(front_list)), x.__getitem__(tuple(end_list)))
+    end_list = [allslice] * axis + [end_slice] + [allslice] * (_x.ndim - axis - 1)
+    return join(
+        axis, _x.__getitem__(tuple(front_list)), _x.__getitem__(tuple(end_list))
+    )
 
 
 def stack(*tensors, **kwargs):
