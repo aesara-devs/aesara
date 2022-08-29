@@ -26,6 +26,7 @@ from typing import (
     Union,
     cast,
 )
+from weakref import WeakValueDictionary
 
 import numpy as np
 
@@ -44,7 +45,7 @@ from aesara.misc.ordered_set import OrderedSet
 
 if TYPE_CHECKING:
     from aesara.graph.op import Op
-    from aesara.graph.type import Type
+    from aesara.graph.type import Type  # noqa: F401
 
 
 OpType = TypeVar("OpType", bound="Op")
@@ -672,7 +673,8 @@ class AtomicVariable(Variable[_TypeType, None]):
 class NominalVariable(AtomicVariable[_TypeType]):
     """A variable that enables alpha-equivalent comparisons."""
 
-    __instances__: Dict[Tuple["Type", Hashable], "NominalVariable"] = {}
+    # WeakValueDictionary[Tuple["Type", Hashable], "NominalVariable"]
+    __instances__: WeakValueDictionary = WeakValueDictionary()
 
     def __new__(cls, id: _IdType, typ: _TypeType, **kwargs):
         if (typ, id) not in cls.__instances__:
