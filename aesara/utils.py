@@ -4,6 +4,7 @@ import hashlib
 import inspect
 import logging
 import os
+import pickle
 import struct
 import subprocess
 import sys
@@ -12,7 +13,9 @@ import warnings
 from collections import OrderedDict
 from collections.abc import Callable
 from functools import partial, wraps
-from typing import List, Set
+from typing import Hashable, List, Set
+
+import numpy as np
 
 
 __all__ = [
@@ -458,3 +461,80 @@ class DefaultOrderedDict(OrderedDict):
 
     def __copy__(self):
         return type(self)(self.default_factory, self)
+
+
+class HashableNDArray(np.ndarray, Hashable):
+    """A subclass of Numpy's ndarray that uses `tostring` hashing and `array_equal` equality testing.
+
+    Usage
+    -----
+        >>> import numpy as np
+        >>> from symbolic_pymc.utils import HashableNDArray
+        >>> x = np.r_[1, 2, 3]
+        >>> x_new = x.view(HashableNDArray)
+        >>> assert hash(x_new) == hash(x.tostring())
+        >>> assert x_new == np.r_[1, 2, 3]
+    """
+
+    use_ndarray = False
+    _hash_val = None
+
+    def __hash__(self):
+        """
+        NDArray hashing based on `joblib`:
+        https://github.com/joblib/joblib/blob/1fdf3086674d7b1be27688e8c7aebd3159d89997/joblib/hashing.py#L178
+        """
+        if self._hash_val is not None:
+            return self._hash_val
+
+        if self.shape == ():
+            self_c = self.flatten()
+        elif self.flags.c_contiguous:
+            self_c = self
+        elif self.flags.f_contiguous:
+            self_c = self.T
+        else:
+            self_c = self.flatten()
+
+        self_c_bytes = self_c.view(np.uint8)
+
+        if hasattr(np, "getbuffer"):
+            self_buffer = np.getbuffer(self_c_bytes)
+        else:
+            self_buffer = memoryview(self_c_bytes)
+
+        h = hashlib.sha256()
+        h.update(self_buffer)
+
+        if self.use_ndarray and isinstance(self, np.memmap):
+            sig = (np.ndarray,)
+        else:
+            sig = (self.__class__,)
+
+        sig += ((self.dtype, self.shape, self.strides),)
+
+        # XXX: Weak references have a hard time with this, and will raise
+        # import errors during pickling when the Python session ends (i.e. when
+        # "destructors" are called).  It could be that packages are being
+        # removed/unloaded (or at least their symbols within the pickler's
+        # dispatch tables) _before_ this method is called.
+        # The hash memoizing below avoids this problem.
+        h.update(pickle.dumps(sig))
+
+        _hash_val = int(h.hexdigest(), 16)
+
+        # If we can assume that the underlying array won't change,
+        # we shouldn't need to recompute this hash every time.
+        if not self.flags["WRITEABLE"]:
+            self._hash_val = _hash_val
+
+        return _hash_val
+
+    def __eq__(self, other):
+        return np.array_equal(self, other)
+
+    def __ne__(self, other):
+        if self.__eq__(other):
+            return False
+
+        return NotImplemented
