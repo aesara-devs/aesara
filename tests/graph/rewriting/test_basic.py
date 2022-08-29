@@ -42,7 +42,9 @@ from tests.graph.utils import (
 class AssertNoChanges(Feature):
     """A `Feature` that raises an error when nodes are changed in a graph."""
 
-    def on_change_input(self, fgraph, node, i, r, new_r, reason=None):
+    def on_change_input(
+        self, fgraph, old_node, new_node, i, old_var, new_var, reason=None
+    ):
         raise AssertionError()
 
 
@@ -591,14 +593,9 @@ class TestSequentialNodeRewriter:
 
         capres = capsys.readouterr()
         assert capres.err == ""
-        assert (
-            "rewriting: rewrite local_rewrite_1 replaces node Op1(x, y) with [Op2.0]"
-            in capres.out
-        )
-        assert (
-            "rewriting: rewrite local_rewrite_2 replaces node Op2(y, y) with [Op2.0]"
-            in capres.out
-        )
+        out1, out2 = capres.out.split("\n", maxsplit=1)
+        assert out1.startswith("rewriting: rewrite local_rewrite_1 replaces")
+        assert out2.startswith("rewriting: rewrite local_rewrite_2 replaces")
 
 
 def test_node_rewriter_str():

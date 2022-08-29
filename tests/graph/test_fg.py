@@ -6,7 +6,7 @@ import pytest
 from typing_extensions import Literal
 
 from aesara.configdefaults import config
-from aesara.graph.basic import NominalVariable
+from aesara.graph.basic import Apply, NominalVariable
 from aesara.graph.features import Feature
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.utils import MissingInputError
@@ -307,8 +307,11 @@ class TestFunctionGraph:
         var1 = MyVariable("var1")
         var2 = MyVariable("var2")
         var3 = op1(var2, var1)
+        var3.name = "var3"
         var4 = op2(var3, var2)
+        var4.name = "var4"
         var5 = op3(var4, var2, var2)
+        var5.name = "var5"
         cb_tracker = CallbackTracker()
         fg = FunctionGraph(
             [var1, var2], [var3, var5], clone=False, features=[cb_tracker]
@@ -345,6 +348,7 @@ class TestFunctionGraph:
         old_apply_nodes = set(fg.apply_nodes)
         old_variables = set(fg.variables)
         old_var5_clients = list(fg.get_clients(var5))
+        old_var5_node = var5.owner
 
         # We're replacing with the same variable, so nothing should happen
         fg.change_node_input(var5.owner, 1, var2)
@@ -362,28 +366,40 @@ class TestFunctionGraph:
         assert fg.outputs[1].owner == var5.owner
         assert (var5.owner, 1) not in fg.get_clients(var2)
 
-        assert len(cb_tracker.callback_history) == 1
-        assert cb_tracker.callback_history[0] == (
-            "change_input",
-            (fg, var5.owner, 1, var2, var1),
-            {"reason": None},
-        )
+        assert len(cb_tracker.callback_history) == 3
+        assert cb_tracker.callback_history == [
+            ("prune", (fg, old_var5_node, None), {}),
+            ("import", (fg, var5.owner, None), {}),
+            (
+                "change_input",
+                (fg, old_var5_node, var5.owner, 1, var2, var1),
+                {"reason": None},
+            ),
+        ]
         cb_tracker.callback_history.clear()
+
+        old_var5_node = var5.owner
 
         # Perform a valid `Apply` node input change that results in a
         # node removal (i.e. `var4.owner`)
         fg.change_node_input(var5.owner, 0, var1)
 
         assert var5.owner.inputs[0] is var1
-        assert not fg.get_clients(var4)
+        assert var4 not in fg.clients
         assert var4.owner not in fg.apply_nodes
         assert var4 not in fg.variables
 
-        assert len(cb_tracker.callback_history) == 2
+        assert len(cb_tracker.callback_history) == 4
         assert cb_tracker.callback_history[0] == ("prune", (fg, var4.owner, None), {})
         assert cb_tracker.callback_history[1] == (
+            "prune",
+            (fg, old_var5_node, None),
+            {},
+        )
+        assert cb_tracker.callback_history[2] == ("import", (fg, var5.owner, None), {})
+        assert cb_tracker.callback_history[3] == (
             "change_input",
-            (fg, var5.owner, 0, var4, var1),
+            (fg, old_var5_node, var5.owner, 0, var4, var1),
             {"reason": None},
         )
 
@@ -446,23 +462,32 @@ class TestFunctionGraph:
 
         assert len(cb_tracker.callback_history) == 0
 
+        old_var4_node = var4.owner
+
         # Test a basic replacement
         fg.replace_all([(var3, var1)])
         assert var3 not in fg.variables
+
         assert fg.apply_nodes == {var4.owner, var5.owner}
         assert var4.owner.inputs == [var1, var2]
         assert fg.outputs == [var1, var5]
 
-        assert len(cb_tracker.callback_history) == 3
+        assert len(cb_tracker.callback_history) == 5
         assert cb_tracker.callback_history[0] == (
             "change_input",
-            (fg, "output", 0, var3, var1),
+            (fg, "output", "output", 0, var3, var1),
             {"reason": None},
         )
         assert cb_tracker.callback_history[1] == ("prune", (fg, var3.owner, None), {})
         assert cb_tracker.callback_history[2] == (
+            "prune",
+            (fg, old_var4_node, None),
+            {},
+        )
+        assert cb_tracker.callback_history[3] == ("import", (fg, var4.owner, None), {})
+        assert cb_tracker.callback_history[4] == (
             "change_input",
-            (fg, var4.owner, 0, var3, var1),
+            (fg, old_var4_node, var4.owner, 0, var3, var1),
             {"reason": None},
         )
 
@@ -471,6 +496,16 @@ class TestFunctionGraph:
         var5 = op3(var4)
         cb_tracker = CallbackTracker()
         fg = FunctionGraph([var1], [var5], clone=False, features=[cb_tracker])
+
+        assert cb_tracker.callback_history == [
+            ("attach", (fg,), {}),
+            ("import", (fg, var3.owner, "init"), {}),
+            ("import", (fg, var4.owner, "init"), {}),
+            ("import", (fg, var5.owner, "init"), {}),
+        ]
+        cb_tracker.callback_history.clear()
+
+        old_var5_node = var5.owner
 
         # Test a replacement that would remove the replacement variable
         # (i.e. `var3`) from the graph when the variable to be replaced
@@ -483,12 +518,14 @@ class TestFunctionGraph:
         assert fg.variables == {var1, var3, var5}
 
         assert cb_tracker.callback_history == [
-            ("attach", (fg,), {}),
-            ("import", (fg, var3.owner, "init"), {}),
-            ("import", (fg, var4.owner, "init"), {}),
-            ("import", (fg, var5.owner, "init"), {}),
             ("prune", (fg, var4.owner, None), {}),
-            ("change_input", (fg, var5.owner, 0, var4, var3), {"reason": None}),
+            ("prune", (fg, old_var5_node, None), {}),
+            ("import", (fg, var5.owner, None), {}),
+            (
+                "change_input",
+                (fg, old_var5_node, var5.owner, 0, var4, var3),
+                {"reason": None},
+            ),
         ]
 
         var3 = op1(var1)
@@ -496,6 +533,16 @@ class TestFunctionGraph:
         var5 = op3(var4, var4)
         cb_tracker = CallbackTracker()
         fg = FunctionGraph([var1], [var5], clone=False, features=[cb_tracker])
+
+        assert cb_tracker.callback_history == [
+            ("attach", (fg,), {}),
+            ("import", (fg, var3.owner, "init"), {}),
+            ("import", (fg, var4.owner, "init"), {}),
+            ("import", (fg, var5.owner, "init"), {}),
+        ]
+        cb_tracker.callback_history.clear()
+
+        old_var5_node = var5.owner
 
         # Test multiple `change_node_input` calls on the same node
         fg.replace_all([(var4, var3)])
@@ -505,14 +552,24 @@ class TestFunctionGraph:
         assert fg.outputs == [var5]
         assert fg.variables == {var1, var3, var5}
 
+        tmp_var5_node = Apply(op3, [var3, var4], [MyVariable("var5_tmp")])
+
         assert cb_tracker.callback_history == [
-            ("attach", (fg,), {}),
-            ("import", (fg, var3.owner, "init"), {}),
-            ("import", (fg, var4.owner, "init"), {}),
-            ("import", (fg, var5.owner, "init"), {}),
-            ("change_input", (fg, var5.owner, 0, var4, var3), {"reason": None}),
+            ("prune", (fg, old_var5_node, None), {}),
+            ("import", (fg, tmp_var5_node, None), {}),
+            (
+                "change_input",
+                (fg, old_var5_node, tmp_var5_node, 0, var4, var3),
+                {"reason": None},
+            ),
             ("prune", (fg, var4.owner, None), {}),
-            ("change_input", (fg, var5.owner, 1, var4, var3), {"reason": None}),
+            ("prune", (fg, tmp_var5_node, None), {}),
+            ("import", (fg, var5.owner, None), {}),
+            (
+                "change_input",
+                (fg, tmp_var5_node, var5.owner, 1, var4, var3),
+                {"reason": None},
+            ),
         ]
 
     def test_replace_outputs(self):
@@ -535,9 +592,9 @@ class TestFunctionGraph:
             ("attach", (fg,), {}),
             ("import", (fg, var3.owner, "init"), {}),
             ("import", (fg, var4.owner, "init"), {}),
-            ("change_input", (fg, "output", 0, var3, var1), {"reason": None}),
+            ("change_input", (fg, "output", "output", 0, var3, var1), {"reason": None}),
             ("prune", (fg, var3.owner, None), {}),
-            ("change_input", (fg, "output", 2, var3, var1), {"reason": None}),
+            ("change_input", (fg, "output", "output", 2, var3, var1), {"reason": None}),
         ]
 
     def test_replace_contract(self):
@@ -555,6 +612,18 @@ class TestFunctionGraph:
         cb_tracker = CallbackTracker()
         fg = FunctionGraph([x], [v4], clone=False, features=[cb_tracker])
 
+        assert cb_tracker.callback_history == [
+            ("attach", (fg,), {}),
+            ("import", (fg, v1.owner, "init"), {}),
+            ("import", (fg, v2.owner, "init"), {}),
+            ("import", (fg, v3.owner, "init"), {}),
+            ("import", (fg, v4.owner, "init"), {}),
+        ]
+        cb_tracker.callback_history.clear()
+
+        old_v3_node = v3.owner
+        old_v4_node = v4.owner
+
         # This replacement should produce a new `Apply` node that's equivalent
         # to `v2` and try to replace `v3`'s node with that one.  In other
         # words, the replacement creates a new node that's already in the
@@ -566,7 +635,7 @@ class TestFunctionGraph:
         assert fg.clients == {
             x: [(v1.owner, 0)],
             v1: [(v3.owner, 0)],
-            v2: [],
+            # v2: [],
             v3: [(v4.owner, 0)],
             v4: [("output", 0)],
         }
@@ -574,13 +643,9 @@ class TestFunctionGraph:
         assert v2 not in set(sum((n.outputs for n in fg.apply_nodes), []))
 
         assert cb_tracker.callback_history == [
-            ("attach", (fg,), {}),
-            ("import", (fg, v1.owner, "init"), {}),
-            ("import", (fg, v2.owner, "init"), {}),
-            ("import", (fg, v3.owner, "init"), {}),
-            ("import", (fg, v4.owner, "init"), {}),
-            ("prune", (fg, v2.owner, None), {}),
-            ("change_input", (fg, v3.owner, 0, v2, v1), {"reason": None}),
+            ("prune", (fg, old_v3_node, None), {}),
+            ("import", (fg, v3.owner, None), {}),
+            ("change_input", (fg, old_v3_node, v3.owner, 0, v2, v1), {"reason": None}),
         ]
 
         # Let's try the same thing at a different point in the chain
@@ -598,6 +663,17 @@ class TestFunctionGraph:
         cb_tracker = CallbackTracker()
         fg = FunctionGraph([x], [v4], clone=False, features=[cb_tracker])
 
+        assert cb_tracker.callback_history == [
+            ("attach", (fg,), {}),
+            ("import", (fg, v1.owner, "init"), {}),
+            ("import", (fg, v2.owner, "init"), {}),
+            ("import", (fg, v3.owner, "init"), {}),
+            ("import", (fg, v4.owner, "init"), {}),
+        ]
+        cb_tracker.callback_history.clear()
+
+        old_v4_node = v4.owner
+
         fg.replace_all([(v3, v2)])
 
         assert v3 not in fg.variables
@@ -605,20 +681,16 @@ class TestFunctionGraph:
             x: [(v1.owner, 0)],
             v1: [(v2.owner, 0)],
             v2: [(v4.owner, 0)],
-            v3: [],
+            # v3: [],
             v4: [("output", 0)],
         }
         assert fg.apply_nodes == {v4.owner, v2.owner, v1.owner}
         assert v3 not in set(sum((n.outputs for n in fg.apply_nodes), []))
 
         exp_res = [
-            ("attach", (fg,), {}),
-            ("import", (fg, v1.owner, "init"), {}),
-            ("import", (fg, v2.owner, "init"), {}),
-            ("import", (fg, v3.owner, "init"), {}),
-            ("import", (fg, v4.owner, "init"), {}),
-            ("prune", (fg, v3.owner, None), {}),
-            ("change_input", (fg, v4.owner, 0, v3, v2), {"reason": None}),
+            ("prune", (fg, old_v4_node, None), {}),
+            ("import", (fg, v4.owner, None), {}),
+            ("change_input", (fg, old_v4_node, v4.owner, 0, v3, v2), {"reason": None}),
         ]
         assert cb_tracker.callback_history == exp_res
 
@@ -667,25 +739,31 @@ class TestFunctionGraph:
         )
         cb_tracker.callback_history.clear()
 
+        old_var4_owner = var4.owner
+
         fg.replace_all([(var3, var4)])
 
         # The following works (and is kind of gross), because `var4` has been
         # mutated in-place
-        assert fg.apply_nodes == {var4.owner, var5.owner}
         assert var4.owner.inputs == [var4, var2]
+        assert fg.apply_nodes == {var4.owner, var5.owner}
+        assert fg.outputs == [var4, var5]
 
-        assert len(cb_tracker.callback_history) == 3
-        assert cb_tracker.callback_history[0] == (
-            "change_input",
-            (fg, "output", 0, var3, var4),
-            {"reason": None},
-        )
-        assert cb_tracker.callback_history[1] == ("prune", (fg, var3.owner, None), {})
-        assert cb_tracker.callback_history[2] == (
-            "change_input",
-            (fg, var4.owner, 0, var3, var4),
-            {"reason": None},
-        )
+        assert cb_tracker.callback_history == [
+            (
+                "change_input",
+                (fg, "output", "output", 0, var3, var4),
+                {"reason": None},
+            ),
+            ("prune", (fg, var3.owner, None), {}),
+            ("prune", (fg, old_var4_owner, None), {}),
+            ("import", (fg, var4.owner, None), {}),
+            (
+                "change_input",
+                (fg, old_var4_owner, var4.owner, 0, var3, var4),
+                {"reason": None},
+            ),
+        ]
 
     def test_replace_bad_state(self):
 
@@ -708,8 +786,11 @@ class TestFunctionGraph:
         var1 = MyVariable("var1")
         var2 = MyVariable("var2")
         var3 = op1(var2, var1)
+        var3.name = "var3"
         var4 = op2(var3, var2)
+        var4.name = "var4"
         var5 = op3(var4, var2, var2)
+        var5.name = "var5"
         fg = FunctionGraph([var1, var2], [var3, var5], clone=False)
 
         with pytest.raises(Exception, match="The following nodes are .*"):
@@ -733,15 +814,24 @@ class TestFunctionGraph:
         fg.variables.add(var4)
 
         with pytest.raises(Exception, match="Undeclared input.*"):
-            var6 = MyVariable2("var6")
-            fg.clients[var6] = [(var5.owner, 3)]
+            var6 = MyVariable("var6")
+            var7 = op1(var6)
+            var7.name = "var7"
+            fg.clients[var6] = [(var7.owner, 0)]
             fg.variables.add(var6)
-            var5.owner.inputs.append(var6)
+            fg.clients[var7] = [("output", 2)]
+            fg.variables.add(var7)
+            fg.outputs.append(var7)
+            fg.apply_nodes.add(var7.owner)
 
             fg.check_integrity()
 
         fg.variables.remove(var6)
-        var5.owner.inputs.remove(var6)
+        fg.variables.remove(var7)
+        del fg.clients[var6]
+        del fg.clients[var7]
+        fg.outputs.remove(var7)
+        fg.apply_nodes.remove(var7.owner)
 
         # TODO: What if the index value is greater than 1?  It will throw an
         # `IndexError`, but that doesn't sound like anything we'd want.

@@ -14,15 +14,6 @@ from aesara.graph.utils import InconsistencyError
 from aesara.misc.ordered_set import OrderedSet
 
 
-class ProtocolError(Exception):
-    """
-    Raised when FunctionGraph calls DestroyHandler callbacks in
-    an invalid way, for example, pruning or changing a node that has
-    never been imported.
-
-    """
-
-
 def _contains_cycle(fgraph, orderings):
     """
     Function to check if the given graph contains a cycle
@@ -180,7 +171,8 @@ def _build_droot_impact(destroy_handler):
     impact = {}  # destroyed nonview variable -> it + all views of it
     root_destroyer = {}  # root -> destroyer apply
 
-    for app in destroy_handler.destroyers:
+    for ref_out in destroy_handler.destroyers:
+        app = ref_out.owner
         for output_idx, input_idx_list in app.op.destroy_map.items():
             if len(input_idx_list) != 1:
                 raise NotImplementedError()
@@ -250,7 +242,7 @@ def fast_inplace_check(fgraph, inputs):
     return inputs
 
 
-class DestroyHandler(Bookkeeper):  # noqa
+class DestroyHandler(Bookkeeper):
     """
     The DestroyHandler class detects when a graph is impossible to evaluate
     because of aliasing and destructive operations.
@@ -319,8 +311,8 @@ class DestroyHandler(Bookkeeper):  # noqa
         self.impact = OrderedDict()
 
         """
-        If a var is destroyed, then this dict will map
-        droot[var] to the apply node that destroyed var
+        If a ``var`` is destroyed, then this dict will map
+        ``droot[var]`` to the `Variable` that's owner destroyed ``var``
         TODO: rename to vroot_to_destroyer
 
         """
@@ -334,21 +326,6 @@ class DestroyHandler(Bookkeeper):  # noqa
         return type(self)(self.do_imports_on_attach, self.algo)
 
     def on_attach(self, fgraph):
-        """
-        When attaching to a new fgraph, check that
-            1) This DestroyHandler wasn't already attached to some fgraph
-               (its data structures are only set up to serve one).
-            2) The FunctionGraph doesn't already have a DestroyHandler.
-               This would result in it validating everything twice, causing
-               compilation to be slower.
-
-        Give the FunctionGraph instance:
-            1) A new method "destroyers(var)"
-               TODO: what does this do exactly?
-            2) A new attribute, "destroy_handler"
-        TODO: WRITEME: what does this do besides the checks?
-
-        """
 
         if any(hasattr(fgraph, attr) for attr in ("destroyers", "destroy_handler")):
             raise AlreadyThere("DestroyHandler feature is already present")
@@ -358,20 +335,28 @@ class DestroyHandler(Bookkeeper):  # noqa
                 "A DestroyHandler instance can only serve one FunctionGraph"
             )
 
-        # Annotate the FunctionGraph #
         self.unpickle(fgraph)
+
         fgraph.destroy_handler = self
 
         self.fgraph = fgraph
-        self.destroyers = (
-            OrderedSet()
-        )  # set of Apply instances with non-null destroy_map
         self.view_i = {}  # variable -> variable used in calculation
         self.view_o = (
             {}
         )  # variable -> set of variables that use this one as a direct input
-        # clients: how many times does an apply use a given variable
-        self.clients = OrderedDict()  # variable -> apply -> ninputs
+
+        # The following map tracks how many times a variable is referenced by an `Apply` node.
+        # It doesn't actually use `Apply` nodes, though, because doing so would require
+        # that we update the `Apply` nodes on every replacement in the graph.  Instead, we use
+        # the first output `Variable` of an `Apply` node.  Since `Variable.owner` is updated
+        # whenever a replacement is made, these representative output `Variable`s will always
+        # point to the appropriate `Apply` node.
+        self.clients = OrderedDict()
+
+        # Set of output `Variable`s representing `Apply` nodes (see the
+        # description for `self.clients`) with non-null `Op.destroy_map`s.
+        self.destroyers = OrderedSet()
+
         self.stale_droot = True
 
         self.debug_all_apps = set()
@@ -497,72 +482,75 @@ class DestroyHandler(Bookkeeper):  # noqa
                 # assert len(v) <= 1
                 # assert len(d) <= 1
 
-    def on_import(self, fgraph, app, reason):
+    def on_import(self, fgraph, node, reason):
         """
         Add Apply instance to set which must be computed.
 
         """
-        if app in self.debug_all_apps:
-            raise ProtocolError("double import")
-        self.debug_all_apps.add(app)
-        # print 'DH IMPORT', app, id(app), id(self), len(self.debug_all_apps)
+        # Choose an output to represent the `Apply` node
+        rep_out = node.outputs[0]
+
+        if rep_out in self.debug_all_apps:
+            return
+
+        self.debug_all_apps.add(rep_out)
 
         # If it's a destructive op, add it to our watch list
-        dmap = app.op.destroy_map
-        vmap = app.op.view_map
+        dmap = node.op.destroy_map
+        vmap = node.op.view_map
         if dmap:
-            self.destroyers.add(app)
+            self.destroyers.add(rep_out)
             if self.algo == "fast":
-                self.fast_destroy(fgraph, app, reason)
+                self.fast_destroy(fgraph, node, reason)
 
         # add this symbol to the forward and backward maps
         for o_idx, i_idx_list in vmap.items():
             if len(i_idx_list) > 1:
                 raise NotImplementedError(
-                    "destroying this output invalidates multiple inputs", (app.op)
+                    "destroying this output invalidates multiple inputs", (node.op)
                 )
-            o = app.outputs[o_idx]
-            i = app.inputs[i_idx_list[0]]
+            o = node.outputs[o_idx]
+            i = node.inputs[i_idx_list[0]]
             self.view_i[o] = i
             self.view_o.setdefault(i, OrderedSet()).add(o)
 
-        # update self.clients
-        for i, input in enumerate(app.inputs):
-            self.clients.setdefault(input, OrderedDict()).setdefault(app, 0)
-            self.clients[input][app] += 1
+        for i, input in enumerate(node.inputs):
+            self.clients.setdefault(input, OrderedDict()).setdefault(rep_out, 0)
+            self.clients[input][rep_out] += 1
 
-        for i, output in enumerate(app.outputs):
+        for i, output in enumerate(node.outputs):
             self.clients.setdefault(output, OrderedDict())
 
         self.stale_droot = True
 
-    def on_prune(self, fgraph, app, reason):
+    def on_prune(self, fgraph, node, reason):
         """
         Remove Apply instance from set which must be computed.
 
         """
-        if app not in self.debug_all_apps:
-            raise ProtocolError("prune without import")
-        self.debug_all_apps.remove(app)
+        # Choose an output to represent the `Apply` node
+        rep_out = node.outputs[0]
 
-        # UPDATE self.clients
-        for input in set(app.inputs):
-            del self.clients[input][app]
+        assert rep_out in self.debug_all_apps
 
-        if app.op.destroy_map:
-            self.destroyers.remove(app)
+        self.debug_all_apps.remove(rep_out)
+
+        for input in set(node.inputs):
+            del self.clients[input][rep_out]
+
+        if node.op.destroy_map:
+            self.destroyers.remove(rep_out)
 
         # Note: leaving empty client dictionaries in the struct.
         # Why? It's a pain to remove them. I think they aren't doing any harm, they will be
         # deleted on_detach().
 
-        # UPDATE self.view_i, self.view_o
-        for o_idx, i_idx_list in app.op.view_map.items():
+        for o_idx, i_idx_list in node.op.view_map.items():
             if len(i_idx_list) > 1:
                 # destroying this output invalidates multiple inputs
                 raise NotImplementedError()
-            o = app.outputs[o_idx]
-            i = app.inputs[i_idx_list[0]]
+            o = node.outputs[o_idx]
+            i = node.inputs[i_idx_list[0]]
 
             del self.view_i[o]
 
@@ -571,53 +559,61 @@ class DestroyHandler(Bookkeeper):  # noqa
                 del self.view_o[i]
 
         self.stale_droot = True
-        if app in self.fail_validate:
-            del self.fail_validate[app]
+        if rep_out in self.fail_validate:
+            del self.fail_validate[rep_out]
 
-    def on_change_input(self, fgraph, app, i, old_r, new_r, reason):
-        """
-        app.inputs[i] changed from old_r to new_r.
+    def on_change_input(
+        self, fgraph, old_node, new_node, input_idx, old_var, new_var, reason
+    ):
+        """Update the clients and view mappings."""
 
-        """
-        if app == "output":
+        if old_node != "output":
             # app == 'output' is special key that means FunctionGraph is redefining which nodes are being
             # considered 'outputs' of the graph.
-            pass
-        else:
-            if app not in self.debug_all_apps:
-                raise ProtocolError("change without import")
 
-            # UPDATE self.clients
-            self.clients[old_r][app] -= 1
-            if self.clients[old_r][app] == 0:
-                del self.clients[old_r][app]
+            # Use the first output to represent the `Apply` node.
+            # N.B. The old node's outputs should be the same as the new node's
+            # outputs.
+            rep_out = old_node.outputs[0]
 
-            self.clients.setdefault(new_r, OrderedDict()).setdefault(app, 0)
-            self.clients[new_r][app] += 1
+            assert rep_out in self.debug_all_apps
 
-            # UPDATE self.view_i, self.view_o
-            for o_idx, i_idx_list in app.op.view_map.items():
-                if len(i_idx_list) > 1:
-                    # destroying this output invalidates multiple inputs
-                    raise NotImplementedError()
+            new_count = self.clients[old_var][rep_out] - 1
+
+            assert new_count >= 0
+
+            if new_count == 0:
+                del self.clients[old_var][rep_out]
+            else:
+                self.clients[old_var][rep_out] = new_count
+
+            self.clients.setdefault(new_var, OrderedDict()).setdefault(rep_out, 0)
+            self.clients[new_var][rep_out] += 1
+
+            for o_idx, i_idx_list in new_node.op.view_map.items():
+
+                # Destroying this output would invalidate multiple inputs, and
+                # that's not currently supported
+                assert len(i_idx_list) == 1
+
                 i_idx = i_idx_list[0]
-                output = app.outputs[o_idx]
-                if i_idx == i:
-                    if app.inputs[i_idx] is not new_r:
-                        raise ProtocolError("wrong new_r on change")
+                output = new_node.outputs[o_idx]
+                if i_idx == input_idx:
+                    assert new_node.inputs[i_idx] is new_var
 
-                    self.view_i[output] = new_r
+                    self.view_i[output] = new_var
 
-                    self.view_o[old_r].remove(output)
-                    if not self.view_o[old_r]:
-                        del self.view_o[old_r]
+                    self.view_o[old_var].remove(output)
+                    if not self.view_o[old_var]:
+                        del self.view_o[old_var]
 
-                    self.view_o.setdefault(new_r, OrderedSet()).add(output)
+                    self.view_o.setdefault(new_var, OrderedSet()).add(output)
 
             if self.algo == "fast":
-                if app in self.fail_validate:
-                    del self.fail_validate[app]
-                self.fast_destroy(fgraph, app, reason)
+                if rep_out in self.fail_validate:
+                    del self.fail_validate[rep_out]
+                self.fast_destroy(fgraph, old_node, reason)
+
         self.stale_droot = True
 
     def validate(self, fgraph):
@@ -632,7 +628,7 @@ class DestroyHandler(Bookkeeper):  # noqa
         if self.destroyers:
             if self.algo == "fast":
                 if self.fail_validate:
-                    app_err_pairs = self.fail_validate
+                    rep_out_err_pairs = self.fail_validate
                     self.fail_validate = OrderedDict()
                     # self.fail_validate can only be a hint that maybe/probably
                     # there is a cycle.This is because inside replace() we could
@@ -641,12 +637,14 @@ class DestroyHandler(Bookkeeper):  # noqa
                     # graph might have already changed when we raise the
                     # self.fail_validate error. So before raising the error, we
                     # double check here.
-                    for app in app_err_pairs:
+                    for rep_out in rep_out_err_pairs:
+                        app = rep_out.owner
                         if app in fgraph.apply_nodes:
                             self.fast_destroy(fgraph, app, "validate")
+
                     if self.fail_validate:
-                        self.fail_validate = app_err_pairs
-                        raise app_err_pairs[app]
+                        self.fail_validate = rep_out_err_pairs
+                        raise rep_out_err_pairs[rep_out]
             else:
                 ords = self.orderings(fgraph, ordered=False)
                 if _contains_cycle(fgraph, ords):
@@ -700,13 +698,14 @@ class DestroyHandler(Bookkeeper):  # noqa
                 )
 
             # add destroyed variable clients as computational dependencies
-            for app in self.destroyers:
+            for rep_out in self.destroyers:
+                destroyer_node = rep_out.owner
                 # keep track of clients that should run before the current Apply
                 root_clients = set_type()
                 # for each destroyed input...
-                for output_idx, input_idx_list in app.op.destroy_map.items():
+                for output_idx, input_idx_list in destroyer_node.op.destroy_map.items():
                     destroyed_idx = input_idx_list[0]
-                    destroyed_variable = app.inputs[destroyed_idx]
+                    destroyed_variable = destroyer_node.inputs[destroyed_idx]
                     root = droot[destroyed_variable]
                     root_impact = impact[root]
                     # we generally want to put all clients of things which depend on root
@@ -744,27 +743,29 @@ class DestroyHandler(Bookkeeper):  # noqa
 
                     # CHECK FOR INPUT ALIASING
                     # OPT: pre-compute this on import
-                    tolerate_same = getattr(app.op, "destroyhandler_tolerate_same", [])
+                    tolerate_same = getattr(
+                        destroyer_node.op, "destroyhandler_tolerate_same", []
+                    )
                     assert isinstance(tolerate_same, list)
                     tolerated = {
                         idx1 for idx0, idx1 in tolerate_same if idx0 == destroyed_idx
                     }
                     tolerated.add(destroyed_idx)
                     tolerate_aliased = getattr(
-                        app.op, "destroyhandler_tolerate_aliased", []
+                        destroyer_node.op, "destroyhandler_tolerate_aliased", []
                     )
                     assert isinstance(tolerate_aliased, list)
                     ignored = {
                         idx1 for idx0, idx1 in tolerate_aliased if idx0 == destroyed_idx
                     }
-                    for i, input in enumerate(app.inputs):
+                    for i, input in enumerate(destroyer_node.inputs):
                         if i in ignored:
                             continue
                         if input in root_impact and (
                             i not in tolerated or input is not destroyed_variable
                         ):
                             raise InconsistencyError(
-                                f"Input aliasing: {app} ({destroyed_idx}, {i})"
+                                f"Input aliasing: {destroyer_node} ({destroyed_idx}, {i})"
                             )
 
                     # add the rule: app must be preceded by all other Apply instances that
@@ -777,8 +778,8 @@ class DestroyHandler(Bookkeeper):  # noqa
 
                 # app itself is a client of the destroyed inputs,
                 # but should not run before itself
-                root_clients.remove(app)
+                root_clients.remove(rep_out)
                 if root_clients:
-                    rval[app] = root_clients
+                    rval[destroyer_node] = root_clients
 
         return rval

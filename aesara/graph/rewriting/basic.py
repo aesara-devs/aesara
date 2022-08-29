@@ -33,7 +33,7 @@ from aesara.graph.basic import (
 from aesara.graph.features import AlreadyThere, Feature, NodeFinder
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
-from aesara.graph.utils import AssocList, InconsistencyError
+from aesara.graph.utils import InconsistencyError
 from aesara.misc.ordered_set import OrderedSet
 from aesara.utils import flatten
 
@@ -531,8 +531,7 @@ class MergeFeature(Feature):
         fgraph.merge_feature = self
 
         self.seen_atomics = set()
-        self.atomic_sig = AssocList()
-        self.atomic_sig_inv = AssocList()
+        self.canonical_atomics = {}
 
         # For all Apply nodes
         # Set of distinct (not mergeable) nodes
@@ -562,15 +561,15 @@ class MergeFeature(Feature):
     def clone(self):
         return type(self)()
 
-    def on_change_input(self, fgraph, node, i, r, new_r, reason):
-        if node in self.nodes_seen:
+    def on_change_input(self, fgraph, old_node, new_node, i, old_var, new_var, reason):
+        if old_node in self.nodes_seen:
             # If inputs to a node change, it's not guaranteed that the node is
             # distinct from the other nodes in `self.nodes_seen`.
-            self.nodes_seen.discard(node)
-            self.process_node(fgraph, node)
+            self.nodes_seen.discard(old_node)
+            self.process_node(fgraph, new_node)
 
-        if isinstance(new_r, AtomicVariable):
-            self.process_atomic(fgraph, new_r)
+        if isinstance(new_var, AtomicVariable):
+            self.process_atomic(fgraph, new_var)
 
     def on_import(self, fgraph, node, reason):
         for c in node.inputs:
@@ -586,17 +585,14 @@ class MergeFeature(Feature):
         for c in node.inputs:
             if isinstance(c, AtomicVariable) and len(fgraph.clients[c]) <= 1:
                 # This was the last node using this constant
-                sig = self.atomic_sig[c]
-                self.atomic_sig.discard(c)
-                self.atomic_sig_inv.discard(sig)
+                self.canonical_atomics.pop(c)
                 self.seen_atomics.discard(id(c))
 
     def process_atomic(self, fgraph, c):
         """Check if an atomic `c` can be merged, and queue that replacement."""
         if id(c) in self.seen_atomics:
             return
-        sig = c.merge_signature()
-        other_c = self.atomic_sig_inv.get(sig, None)
+        other_c = self.canonical_atomics.get(c, None)
         if other_c is not None:
             # multiple names will clobber each other..
             # we adopt convention to keep the last name
@@ -605,8 +601,7 @@ class MergeFeature(Feature):
             self.scheduled.append([[(c, other_c, "merge")]])
         else:
             # this is a new constant
-            self.atomic_sig[c] = sig
-            self.atomic_sig_inv[sig] = c
+            self.canonical_atomics[c] = c
             self.seen_atomics.add(id(c))
 
     def process_node(self, fgraph, node):
@@ -1662,9 +1657,9 @@ class DispatchingFeature(Feature):
         if self.pruner:
             self.pruner(node)
 
-    def on_change_input(self, fgraph, node, i, r, new_r, reason):
+    def on_change_input(self, fgraph, old_node, new_node, i, old_var, new_var, reason):
         if self.chin:
-            self.chin(node, i, r, new_r, reason)
+            self.chin(old_node, new_node, i, old_var, new_var, reason)
 
     def on_detach(self, fgraph):
         # To allow pickling this object
@@ -1798,7 +1793,7 @@ class NodeProcessingGraphRewriter(GraphRewriter):
         if self.ignore_newtrees:
             importer = None
 
-        if importer is None and pruner is None:
+        if importer is None and pruner is None and chin is None:
             return None
 
         u = DispatchingFeature(importer, pruner, chin, name=name)
@@ -1909,7 +1904,7 @@ class NodeProcessingGraphRewriter(GraphRewriter):
             return False
         try:
             fgraph.replace_all_validate_remove(  # type: ignore
-                repl_pairs, reason=node_rewriter, remove=remove
+                repl_pairs, reason=str(node_rewriter), remove=remove
             )
             return True
         except Exception as e:
@@ -1966,8 +1961,11 @@ class WalkingGraphRewriter(NodeProcessingGraphRewriter):
             if node is not current_node:
                 q.append(node)
 
+        def change_input(old_node, new_node, i, old_var, new_var, reason):
+            q.append(new_node)
+
         u = self.attach_updater(
-            fgraph, importer, None, name=getattr(self, "name", None)
+            fgraph, importer, None, chin=change_input, name=getattr(self, "name", None)
         )
         nb = 0
         try:
@@ -2108,12 +2106,19 @@ class OpKeyGraphRewriter(NodeProcessingGraphRewriter):
             q = list(fgraph.get_nodes(op))
 
         def importer(node):
-            if node is not current_node:
-                if node.op == op:
-                    q.append(node)
+            if node is not current_node and node.op == op:
+                q.append(node)
+
+        def change_input(old_node, new_node, i, r, new_r, reason):
+            if (
+                node is not current_node
+                and isinstance(new_node, Apply)
+                and new_node.op == op
+            ):
+                q.append(new_node)
 
         u = self.attach_updater(
-            fgraph, importer, None, name=getattr(self, "name", None)
+            fgraph, importer, None, chin=change_input, name=getattr(self, "name", None)
         )
         try:
             while q:
@@ -2142,7 +2147,7 @@ class ChangeTracker(Feature):
         self.nb_imported += 1
         self.changed = True
 
-    def on_change_input(self, fgraph, node, i, r, new_r, reason):
+    def on_change_input(self, fgraph, old_node, new_node, i, old_var, new_var, reason):
         self.changed = True
 
     def reset(self):
@@ -2357,15 +2362,24 @@ class EquilibriumGraphRewriter(NodeProcessingGraphRewriter):
                 if node is not current_node:
                     q.append(node)
 
-            chin = None
             if self.tracks_on_change_inputs:
 
-                def chin(node, i, r, new_r, reason):
-                    if node is not current_node and not isinstance(node, str):
-                        q.append(node)
+                def change_input(old_node, new_node, i, r, new_r, reason):
+                    if old_node is not current_node and isinstance(new_node, Apply):
+                        q.append(new_node)
+
+            else:
+
+                def change_input(old_node, new_node, i, r, new_r, reason):
+                    if isinstance(new_node, Apply):
+                        q.append(new_node)
 
             u = self.attach_updater(
-                fgraph, importer, None, chin=chin, name=getattr(self, "name", None)
+                fgraph,
+                importer,
+                None,
+                chin=change_input,
+                name=getattr(self, "name", None),
             )
             try:
                 while q:

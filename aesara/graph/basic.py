@@ -1,5 +1,4 @@
 """Core graph classes."""
-import abc
 import warnings
 from collections import deque
 from copy import copy
@@ -32,7 +31,6 @@ import numpy as np
 
 from aesara.configdefaults import config
 from aesara.graph.utils import (
-    MetaObject,
     MethodNotDefined,
     Scratchpad,
     TestValueError,
@@ -53,32 +51,48 @@ OptionalApplyType = TypeVar("OptionalApplyType", None, "Apply", covariant=True)
 _TypeType = TypeVar("_TypeType", bound="Type")
 _IdType = TypeVar("_IdType", bound=Hashable)
 
-T = TypeVar("T", bound="Node")
+T = TypeVar("T", bound=Union["Apply", "Variable"])
 NoParams = object()
 NodeAndChildren = Tuple[T, Optional[Iterable[T]]]
 
 
-class Node(MetaObject):
-    r"""A `Node` in an Aesara graph.
+class UniqueInstanceFactory(type):
 
-    Currently, graphs contain two kinds of `Nodes`: `Variable`\s and `Apply`\s.
-    Edges in the graph are not explicitly represented.  Instead each `Node`
-    keeps track of its parents via `Variable.owner` / `Apply.inputs`.
+    __instances__: WeakValueDictionary
 
-    """
-    name: Optional[str]
+    def __new__(cls, name, bases, dct):
+        dct["__instances__"] = WeakValueDictionary()
 
-    def get_parents(self):
-        """
-        Return a list of the parents of this node.
-        Should return a copy--i.e., modifying the return
-        value should not modify the graph structure.
+        if "_post_call" not in dct:
 
-        """
-        raise NotImplementedError()
+            def _post_call(self, *args, **kwargs):
+                return self
+
+            dct["_post_call"] = _post_call
+
+        res = super().__new__(cls, name, bases, dct)
+        return res
+
+    def __call__(
+        cls,
+        *args,
+        **kwargs,
+    ):
+        idp = cls.create_key(*args, **kwargs)
+
+        res = cls.__instances__.get(idp)
+
+        if res is None:
+            res = super(UniqueInstanceFactory, cls).__call__(*args, **kwargs)
+            cls.__instances__[idp] = res
+
+        return res._post_call(*args, **kwargs)
 
 
-class Apply(Node, Generic[OpType]):
+class Apply(
+    Generic[OpType],
+    metaclass=UniqueInstanceFactory,
+):
     """A `Node` representing the application of an operation to inputs.
 
     Basically, an `Apply` instance is an object that represents the
@@ -113,12 +127,38 @@ class Apply(Node, Generic[OpType]):
 
     """
 
+    __slots__ = ("op", "inputs", "outputs", "__weakref__", "tag")
+
+    @classmethod
+    def create_key(cls, op, inputs, outputs):
+        return (op,) + tuple(inputs)
+
     def __init__(
         self,
         op: OpType,
         inputs: Sequence["Variable"],
         outputs: Sequence["Variable"],
     ):
+        r"""
+
+        Parameters
+        ----------
+        op
+            The operation that produces `outputs` given `inputs`.
+        inputs
+            The arguments of the expression modeled by the `Apply` node.
+        outputs
+            The outputs of the expression modeled by the `Apply` node.  If a
+            node already exists for the given `op` and `inputs` combination,
+            each `Variable` in `outputs` will be associated with the node
+            (i.e. `Variable.owner` will be (re)set), and the `Apply.outputs`
+            values for the returned node will consist of the original outputs
+            and not the new `outputs`.
+            In other words, `Apply.outputs` is always a consistent, unique list
+            of `Variable`\s for each `op` and `inputs` pair.
+
+        """
+
         if not isinstance(inputs, Sequence):
             raise TypeError("The inputs of an Apply must be a sequence type")
 
@@ -129,7 +169,6 @@ class Apply(Node, Generic[OpType]):
         self.inputs: List[Variable] = []
         self.tag = Scratchpad()
 
-        # filter inputs to make sure each element is a Variable
         for input in inputs:
             if isinstance(input, Variable):
                 self.inputs.append(input)
@@ -137,22 +176,34 @@ class Apply(Node, Generic[OpType]):
                 raise TypeError(
                     f"The 'inputs' argument to Apply must contain Variable instances, not {input}"
                 )
-        self.outputs: List[Variable] = []
-        # filter outputs to make sure each element is a Variable
+
+        self.outputs: List[Variable] = list(outputs)
+
+    def _post_call(self, op, inputs, outputs):
+
+        # If a user passes new outputs to an existing `Apply` node, those
+        # outputs will be updated and associated with the node, but the
+        # returned node's outputs will still be the original `Variable`s.
         for i, output in enumerate(outputs):
-            if isinstance(output, Variable):
-                if output.owner is None:
-                    output.owner = self
-                    output.index = i
-                elif output.owner is not self or output.index != i:
-                    raise ValueError(
-                        "All output variables passed to Apply must belong to it."
-                    )
-                self.outputs.append(output)
-            else:
+            if not isinstance(output, Variable):
                 raise TypeError(
                     f"The 'outputs' argument to Apply must contain Variable instances with no owner, not {output}"
                 )
+            output.owner = self
+            output.index = i
+
+        return self
+
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            if self.op == other.op and self.inputs == other.inputs:
+                return True
+            return False
+
+        return NotImplemented
+
+    def __hash__(self):
+        return hash((type(self), self.op, tuple(self.inputs)))
 
     def run_params(self):
         """
@@ -165,14 +216,18 @@ class Apply(Node, Generic[OpType]):
             return NoParams
 
     def __getstate__(self):
-        d = self.__dict__
-        # ufunc don't pickle/unpickle well
+        d = {k: getattr(self, k) for k in self.__slots__ if k not in ("__weakref__",)}
         if hasattr(self.tag, "ufunc"):
             d = copy(self.__dict__)
             t = d["tag"]
             del t.ufunc
             d["tag"] = t
         return d
+
+    def __setstate__(self, dct):
+        for k in self.__slots__:
+            if k in dct:
+                setattr(self, k, dct[k])
 
     def default_output(self):
         """
@@ -267,6 +322,7 @@ class Apply(Node, Generic[OpType]):
         from aesara.graph.op import HasInnerGraph
 
         assert isinstance(inputs, (list, tuple))
+
         remake_node = False
         new_inputs: List["Variable"] = list(inputs)
         for i, (curr, new) in enumerate(zip(self.inputs, new_inputs)):
@@ -280,17 +336,22 @@ class Apply(Node, Generic[OpType]):
                 else:
                     remake_node = True
 
+        new_op = self.op
+
+        if isinstance(new_op, HasInnerGraph) and clone_inner_graph:  # type: ignore
+            new_op = new_op.clone()  # type: ignore
+
         if remake_node:
-            new_op = self.op
-
-            if isinstance(new_op, HasInnerGraph) and clone_inner_graph:  # type: ignore
-                new_op = new_op.clone()  # type: ignore
-
             new_node = new_op.make_node(*new_inputs)
             new_node.tag = copy(self.tag).__update__(new_node.tag)
+        elif new_op == self.op and new_inputs == self.inputs:
+            new_node = self
         else:
-            new_node = self.clone(clone_inner_graph=clone_inner_graph)
-            new_node.inputs = new_inputs
+            new_node = self.__class__(
+                new_op, new_inputs, [output.clone() for output in self.outputs]
+            )
+            new_node.tag = copy(self.tag)
+
         return new_node
 
     def get_parents(self):
@@ -316,7 +377,7 @@ class Apply(Node, Generic[OpType]):
         return self.op.params_type
 
 
-class Variable(Node, Generic[_TypeType, OptionalApplyType]):
+class Variable(Generic[_TypeType, OptionalApplyType]):
     r"""
     A :term:`Variable` is a node in an expression graph that represents a
     variable.
@@ -411,7 +472,7 @@ class Variable(Node, Generic[_TypeType, OptionalApplyType]):
 
     """
 
-    # __slots__ = ['type', 'owner', 'index', 'name']
+    __slots__ = ("_owner", "_index", "name", "type", "__weakref__", "tag", "auto_name")
     __count__ = count(0)
 
     _owner: OptionalApplyType
@@ -487,26 +548,17 @@ class Variable(Node, Generic[_TypeType, OptionalApplyType]):
         else:
             return f"<{self.type}>"
 
-    def __repr_test_value__(self):
-        """Return a ``repr`` of the test value.
-
-        Return a printable representation of the test value. It can be
-        overridden by classes with non printable test_value to provide a
-        suitable representation of the test_value.
-        """
-        return repr(self.get_test_value())
-
     def __repr__(self, firstPass=True):
         """Return a ``repr`` of the `Variable`.
 
-        Return a printable name or description of the Variable. If
-        ``config.print_test_value`` is ``True`` it will also print the test
-        value, if any.
+        Return a printable name or description of the `Variable`. If
+        `aesara.config.print_test_value` is ``True``, it will also print the
+        test value, if any.
         """
         to_print = [str(self)]
         if config.print_test_value and firstPass:
             try:
-                to_print.append(self.__repr_test_value__())
+                to_print.append(repr(self.get_test_value()))
             except TestValueError:
                 pass
         return "\n".join(to_print)
@@ -533,26 +585,6 @@ class Variable(Node, Generic[_TypeType, OptionalApplyType]):
         cp = self.__class__(type=self.type, owner=None, index=None, name=name, **kwargs)
         cp.tag = copy(self.tag)
         return cp
-
-    def __lt__(self, other):
-        raise NotImplementedError(
-            "Subclasses of Variable must provide __lt__", self.__class__.__name__
-        )
-
-    def __le__(self, other):
-        raise NotImplementedError(
-            "Subclasses of Variable must provide __le__", self.__class__.__name__
-        )
-
-    def __gt__(self, other):
-        raise NotImplementedError(
-            "Subclasses of Variable must provide __gt__", self.__class__.__name__
-        )
-
-    def __ge__(self, other):
-        raise NotImplementedError(
-            "Subclasses of Variable must provide __ge__", self.__class__.__name__
-        )
 
     def get_parents(self):
         if self.owner is not None:
@@ -611,7 +643,7 @@ class Variable(Node, Generic[_TypeType, OptionalApplyType]):
         return rval
 
     def __getstate__(self):
-        d = self.__dict__.copy()
+        d = {k: getattr(self, k) for k in self.__slots__ if k not in ("__weakref__",)}
         d.pop("_fn_cache", None)
         if (not config.pickle_test_value) and (hasattr(self.tag, "test_value")):
             if not type(config).pickle_test_value.is_default:
@@ -624,6 +656,11 @@ class Variable(Node, Generic[_TypeType, OptionalApplyType]):
             d["tag"] = t
         return d
 
+    def __setstate__(self, dct):
+        for k in self.__slots__:
+            if k in dct:
+                setattr(self, k, dct[k])
+
 
 class AtomicVariable(Variable[_TypeType, None]):
     """A node type that has no ancestors and should never be considered an input to a graph."""
@@ -631,19 +668,12 @@ class AtomicVariable(Variable[_TypeType, None]):
     def __init__(self, type: _TypeType, name: Optional[str] = None, **kwargs):
         super().__init__(type=type, owner=None, index=None, name=name, **kwargs)
 
-    @abc.abstractmethod
-    def signature(self):
-        ...
-
-    def merge_signature(self):
-        return self.signature()
-
     def equals(self, other):
         """
         This does what `__eq__` would normally do, but `Variable` and `Apply`
         should always be hashable by `id`.
         """
-        return isinstance(other, type(self)) and self.signature() == other.signature()
+        return self == other
 
     @property
     def owner(self):
@@ -677,7 +707,10 @@ class NominalVariable(AtomicVariable[_TypeType]):
     __instances__: WeakValueDictionary = WeakValueDictionary()
 
     def __new__(cls, id: _IdType, typ: _TypeType, **kwargs):
-        if (typ, id) not in cls.__instances__:
+
+        idp = (typ, id)
+
+        if idp not in cls.__instances__:
             var_type = typ.variable_type
             type_name = f"Nominal{var_type.__name__}"
 
@@ -692,9 +725,9 @@ class NominalVariable(AtomicVariable[_TypeType]):
             )
             res: NominalVariable = super().__new__(new_type)
 
-            cls.__instances__[(typ, id)] = res
+            cls.__instances__[idp] = res
 
-        return cls.__instances__[(typ, id)]
+        return cls.__instances__[idp]
 
     def __init__(self, id: _IdType, typ: _TypeType, name: Optional[str] = None):
         self.id = id
@@ -720,11 +753,11 @@ class NominalVariable(AtomicVariable[_TypeType]):
     def __repr__(self):
         return f"{type(self).__name__}({repr(self.id)}, {repr(self.type)})"
 
-    def signature(self) -> Tuple[_TypeType, _IdType]:
-        return (self.type, self.id)
 
-
-class Constant(AtomicVariable[_TypeType]):
+class Constant(
+    AtomicVariable[_TypeType],
+    metaclass=UniqueInstanceFactory,
+):
     """A `Variable` with a fixed `data` field.
 
     `Constant` nodes make numerous optimizations possible (e.g. constant
@@ -737,18 +770,21 @@ class Constant(AtomicVariable[_TypeType]):
 
     """
 
-    # __slots__ = ['data']
+    __slots__ = ("type", "data")
+
+    @classmethod
+    def create_key(cls, type, data, *args, **kwargs):
+        # TODO FIXME: This filters the data twice: once here, and again in
+        # `cls.__init__`.  This might not be a big deal, though.
+        return (type, type.filter(data))
 
     def __init__(self, type: _TypeType, data: Any, name: Optional[str] = None):
-        super().__init__(type, name=name)
+        AtomicVariable.__init__(self, type, name=name)
         self.data = type.filter(data)
         add_tag_trace(self)
 
     def get_test_value(self):
         return self.data
-
-    def signature(self):
-        return (self.type, self.data)
 
     def __str__(self):
         if self.name is not None:
@@ -774,6 +810,15 @@ class Constant(AtomicVariable[_TypeType]):
     @property
     def value(self):
         return self.data
+
+    def __hash__(self):
+        return hash((type(self), self.type, self.data))
+
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            return self.type == other.type and self.data == other.data
+
+        return NotImplemented
 
 
 def walk(

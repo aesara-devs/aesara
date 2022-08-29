@@ -5,6 +5,7 @@ import warnings
 from collections import OrderedDict
 from functools import partial
 from io import StringIO
+from typing import TYPE_CHECKING, Mapping, Optional, Sequence
 
 import numpy as np
 
@@ -12,6 +13,11 @@ import aesara
 from aesara.configdefaults import config
 from aesara.graph.basic import Variable, io_toposort
 from aesara.graph.utils import InconsistencyError
+
+
+if TYPE_CHECKING:
+    from aesara.graph.basic import Apply
+    from aesara.graph.fg import FunctionGraph
 
 
 class AlreadyThere(Exception):
@@ -262,31 +268,31 @@ class Feature:
 
     """
 
-    def on_attach(self, fgraph):
-        """
+    def on_attach(self, fgraph) -> None:
+        """Handle the association of an `FunctionGraph` with this `Feature`.
+
         Called by `FunctionGraph.attach_feature`, the method that attaches the
         feature to the `FunctionGraph`. Since this is called after the
         `FunctionGraph` is initially populated, this is where you should run
         checks on the initial contents of the `FunctionGraph`.
 
-        The on_attach method may raise the `AlreadyThere` exception to cancel
-        the attach operation if it detects that another Feature instance
-        implementing the same functionality is already attached to the
+        This method may raise an `AlreadyThere` exception to cancel the
+        attachment operation, e.g. if it detects that another `Feature`
+        instance implementing the same functionality is already attached to the
         `FunctionGraph`.
-
-        The feature has great freedom in what it can do with the `fgraph`: it
-        may, for example, add methods to it dynamically.
 
         """
 
-    def on_detach(self, fgraph):
+    def on_detach(self, fgraph: "FunctionGraph") -> None:
         """
         Called by `FunctionGraph.remove_feature`.  Should remove any
         dynamically-added functionality that it installed into the fgraph.
 
         """
 
-    def on_import(self, fgraph, node, reason):
+    def on_import(
+        self, fgraph: "FunctionGraph", node: "Apply", reason: Optional[str] = None
+    ) -> None:
         """
         Called whenever a node is imported into `fgraph`, which is just before
         the node is actually connected to the graph.
@@ -297,36 +303,55 @@ class Feature:
 
         """
 
-    def on_change_input(self, fgraph, node, i, var, new_var, reason=None):
-        """
-        Called whenever ``node.inputs[i]`` is changed from `var` to `new_var`.
-        At the moment the callback is done, the change has already taken place.
+    def on_change_input(
+        self,
+        fgraph: "FunctionGraph",
+        old_node: "Apply",
+        new_node: "Apply",
+        i: int,
+        old_var: Variable,
+        new_var: Variable,
+        reason: Optional[str] = None,
+    ) -> None:
+        """Handle node and input replacements.
 
-        If you raise an exception in this function, the state of the graph
-        might be broken for all intents and purposes.
+        This is called whenever ``node.inputs[i]`` is changed from `old_var` to
+        `new_var`, and, since `Apply` nodes represent a distinct set of inputs,
+        a new node is created to replace the old one.
+
+        When this method is called, the change has already been made.
+
+        Warning: If an exception is raised in this function, the state of the
+        graph could become invalid.
 
         """
 
-    def on_prune(self, fgraph, node, reason):
-        """
+    def on_prune(
+        self, fgraph: "FunctionGraph", node: "Apply", reason: Optional[str] = None
+    ) -> None:
+        """Handle removal of an `Apply` node.
+
         Called whenever a node is pruned (removed) from the `fgraph`, after it
         is disconnected from the graph.
 
         """
 
-    def orderings(self, fgraph):
-        """
-        Called by `FunctionGraph.toposort`. It should return a dictionary of
+    def orderings(self, fgraph: "FunctionGraph") -> Mapping["Apply", Sequence["Apply"]]:
+        """Return a dictionary mapping nodes to their predecessors.
+
+        It should return a dictionary of
         ``{node: predecessors}`` where ``predecessors`` is a list of
         nodes that should be computed before the key node.
 
-        If you raise an exception in this function, the state of the graph
-        might be broken for all intents and purposes.
+        This is called by `FunctionGraph.toposort`.
+
+        Warning: If an exception is raised in this function, the state of the
+        graph could become invalid.
 
         """
         return OrderedDict()
 
-    def clone(self):
+    def clone(self) -> "Feature":
         """Create a clone that can be attached to a new `FunctionGraph`.
 
         This default implementation returns `self`, which carries the
@@ -361,16 +386,23 @@ class GetCheckpoint:
 
 
 class LambdaExtract:
-    def __init__(self, fgraph, node, i, r, reason=None):
+    """A class that represents `change_node_input` calls."""
+
+    def __init__(self, fgraph, old_node, new_node, i, old_var, reason=None):
         self.fgraph = fgraph
-        self.node = node
+        self.old_node = old_node
+        self.new_node = new_node
         self.i = i
-        self.r = r
+        self.old_var = old_var
         self.reason = reason
 
     def __call__(self):
         return self.fgraph.change_node_input(
-            self.node, self.i, self.r, reason=("Revert", self.reason), check=False
+            self.new_node,
+            self.i,
+            self.old_var,
+            reason=f"Revert: {self.reason}",
+            check=False,
         )
 
 
@@ -417,11 +449,13 @@ class History(Feature):
         del fgraph.revert
         del self.history[fgraph]
 
-    def on_change_input(self, fgraph, node, i, r, new_r, reason=None):
+    def on_change_input(
+        self, fgraph, old_node, new_node, i, old_var, new_var, reason=None
+    ):
         if self.history[fgraph] is None:
             return
         h = self.history[fgraph]
-        h.append(LambdaExtract(fgraph, node, i, r, reason))
+        h.append(LambdaExtract(fgraph, old_node, new_node, i, old_var, reason))
 
     def revert(self, fgraph, checkpoint):
         """
@@ -742,9 +776,13 @@ class PrintListener(Feature):
         if self.active:
             print(f"-- pruning: {node}, reason: {reason}")
 
-    def on_change_input(self, fgraph, node, i, r, new_r, reason=None):
+    def on_change_input(
+        self, fgraph, old_node, new_node, i, old_var, new_var, reason=None
+    ):
         if self.active:
-            print(f"-- changing ({node}.inputs[{i}]) from {r} to {new_r}")
+            print(
+                f"-- changing {old_node}.inputs[{i}] from {old_var} to {new_var} resulting in {new_node}"
+            )
 
 
 class PreserveVariableAttributes(Feature):
@@ -752,14 +790,16 @@ class PreserveVariableAttributes(Feature):
     This preserve some variables attributes and tag during optimization.
     """
 
-    def on_change_input(self, fgraph, node, i, r, new_r, reason=None):
-        if r.name is not None and new_r.name is None:
-            new_r.name = r.name
+    def on_change_input(
+        self, fgraph, old_node, new_node, i, old_var, new_var, reason=None
+    ):
+        if old_var.name is not None and new_var.name is None:
+            new_var.name = old_var.name
         if (
-            getattr(r.tag, "nan_guard_mode_check", False)
-            and getattr(new_r.tag, "nan_guard_mode_check", False) is False
+            getattr(old_var.tag, "nan_guard_mode_check", False)
+            and getattr(new_var.tag, "nan_guard_mode_check", False) is False
         ):
-            new_r.tag.nan_guard_mode_check = r.tag.nan_guard_mode_check
+            new_var.tag.nan_guard_mode_check = old_var.tag.nan_guard_mode_check
 
 
 class NoOutputFromInplace(Feature):

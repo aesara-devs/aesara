@@ -57,12 +57,25 @@ class SliceType(Type[slice]):
 
     def filter(self, x, strict=False, allow_downcast=None):
         if isinstance(x, slice):
+
+            if isinstance(x.start, np.ndarray):
+                assert str(x.start.dtype) in integer_dtypes
+                x = slice(x.start.item(), x.stop, x.step)
+
+            if isinstance(x.stop, np.ndarray):
+                assert str(x.stop.dtype) in integer_dtypes
+                x = slice(x.start, x.stop.item(), x.step)
+
+            if isinstance(x.step, np.ndarray):
+                assert str(x.step.dtype) in integer_dtypes
+                x = slice(x.start, x.stop, x.step.item())
+
             return x
         else:
             raise TypeError("Expected a slice!")
 
     def __str__(self):
-        return "slice"
+        return f"{type(self)}()"
 
     def __eq__(self, other):
         return type(self) == type(other)
@@ -80,25 +93,23 @@ slicetype = SliceType()
 
 
 class SliceConstant(Constant):
-    def __init__(self, type, data, name=None):
-        assert isinstance(data, slice)
-        # Numpy ndarray aren't hashable, so get rid of them.
-        if isinstance(data.start, np.ndarray):
-            assert data.start.ndim == 0
-            assert str(data.start.dtype) in integer_dtypes
-            data = slice(int(data.start), data.stop, data.step)
-        elif isinstance(data.stop, np.ndarray):
-            assert data.stop.ndim == 0
-            assert str(data.stop.dtype) in integer_dtypes
-            data = slice(data.start, int(data.stop), data.step)
-        elif isinstance(data.step, np.ndarray):
-            assert data.step.ndim == 0
-            assert str(data.step.dtype) in integer_dtypes
-            data = slice(data.start, int(data.stop), data.step)
-        Constant.__init__(self, type, data, name)
+    @classmethod
+    def create_key(cls, type, data, *args, **kwargs):
+        return (type, data.start, data.stop, data.step)
 
-    def signature(self):
-        return (SliceConstant, self.data.start, self.data.stop, self.data.step)
+    def __init__(self, type, data, name=None):
+        super().__init__(type, data, name)
+
+    def __eq__(self, other):
+        if isinstance(other, type(self)):
+            if self.data == other.data:
+                return True
+            return False
+
+        return NotImplemented
+
+    def __hash__(self):
+        return hash(self.data.__reduce__())
 
     def __str__(self):
         return "{}{{{}, {}, {}}}".format(
