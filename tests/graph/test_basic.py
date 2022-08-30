@@ -87,56 +87,59 @@ class MyOp(Op):
 MyOp = MyOp()
 
 
-class X:
-    def leaf_formatter(self, leaf):
-        return str(leaf.type)
-
-    def node_formatter(self, node, argstrings):
-        return f"{node.op}({', '.join(argstrings)})"
-
-    def str(self, inputs, outputs):
-        return as_string(
-            inputs,
-            outputs,
-            leaf_formatter=self.leaf_formatter,
-            node_formatter=self.node_formatter,
-        )
+def leaf_formatter(leaf):
+    return str(leaf.type)
 
 
-class TestStr(X):
+def node_formatter(node, argstrings):
+    return f"{node.op}({', '.join(argstrings)})"
+
+
+def format_graph(inputs, outputs):
+    return as_string(
+        inputs,
+        outputs,
+        leaf_formatter=leaf_formatter,
+        node_formatter=node_formatter,
+    )
+
+
+class TestStr:
     def test_as_string(self):
         r1, r2 = MyVariable(1), MyVariable(2)
         node = MyOp.make_node(r1, r2)
-        s = self.str([r1, r2], node.outputs)
+        s = format_graph([r1, r2], node.outputs)
         assert s == ["MyOp(R1, R2)"]
 
     def test_as_string_deep(self):
         r1, r2, r5 = MyVariable(1), MyVariable(2), MyVariable(5)
         node = MyOp.make_node(r1, r2)
         node2 = MyOp.make_node(node.outputs[0], r5)
-        s = self.str([r1, r2, r5], node2.outputs)
+        s = format_graph([r1, r2, r5], node2.outputs)
         assert s == ["MyOp(MyOp(R1, R2), R5)"]
 
     def test_multiple_references(self):
         r1, r2, r5 = MyVariable(1), MyVariable(2), MyVariable(5)
         node = MyOp.make_node(r1, r2)
         node2 = MyOp.make_node(node.outputs[0], node.outputs[0])
-        assert self.str([r1, r2, r5], node2.outputs) == ["MyOp(*1 -> MyOp(R1, R2), *1)"]
+        assert format_graph([r1, r2, r5], node2.outputs) == [
+            "MyOp(*1 -> MyOp(R1, R2), *1)"
+        ]
 
     def test_cutoff(self):
         r1, r2 = MyVariable(1), MyVariable(2)
         node = MyOp.make_node(r1, r2)
         node2 = MyOp.make_node(node.outputs[0], node.outputs[0])
-        assert self.str(node.outputs, node2.outputs) == ["MyOp(R3, R3)"]
-        assert self.str(node2.inputs, node2.outputs) == ["MyOp(R3, R3)"]
+        assert format_graph(node.outputs, node2.outputs) == ["MyOp(R3, R3)"]
+        assert format_graph(node2.inputs, node2.outputs) == ["MyOp(R3, R3)"]
 
 
-class TestClone(X):
+class TestClone:
     def test_accurate(self):
         r1, r2 = MyVariable(1), MyVariable(2)
         node = MyOp.make_node(r1, r2)
         _, new = clone([r1, r2], node.outputs, False)
-        assert self.str([r1, r2], new) == ["MyOp(R1, R2)"]
+        assert format_graph([r1, r2], new) == ["MyOp(R1, R2)"]
 
     def test_copy(self):
         r1, r2, r5 = MyVariable(1), MyVariable(2), MyVariable(5)
@@ -160,10 +163,10 @@ class TestClone(X):
         _, new = clone([r1, r2, r5], node.outputs, False)
         new_node = new[0].owner
         new_node.inputs = [MyVariable(7), MyVariable(8)]
-        assert self.str(graph_inputs(new_node.outputs), new_node.outputs) == [
+        assert format_graph(graph_inputs(new_node.outputs), new_node.outputs) == [
             "MyOp(R7, R8)"
         ]
-        assert self.str(graph_inputs(node.outputs), node.outputs) == [
+        assert format_graph(graph_inputs(node.outputs), node.outputs) == [
             "MyOp(MyOp(R1, R2), R5)"
         ]
 
