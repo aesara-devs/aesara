@@ -47,7 +47,7 @@ Reference
 Distributions
 ==============
 
-Aesara can produce :class:`RandomVariable`\s that draw samples from many different statistical distributions, using the following :class:`Op`\s.
+Aesara can produce :class:`RandomVariable`\s that draw samples from many different statistical distributions, using the following :class:`Op`\s. The :class:`RandomVariable`\s behave similarly to NumPy's *Generalized Universal Functions* (or `gunfunc`): it supports "core" random variable :class:`Op`\s that map distinctly shaped inputs to potentially non-scalar outputs. We document this behavior in the following with `gufunc`-like signatures.
 
 .. autoclass:: aesara.tensor.random.basic.UniformRV
    :members: __call__
