@@ -94,6 +94,11 @@ class UniformRV(RandomVariable):
 
         The results are undefined when `high < low`.
 
+        Signature
+        ---------
+
+        `(), () -> ()`
+
         Parameters
         ----------
         low
@@ -140,6 +145,11 @@ class TriangularRV(RandomVariable):
 
     def __call__(self, left, mode, right, size=None, **kwargs):
         r"""Draw samples from a triangular distribution.
+
+        Signature
+        ---------
+
+        `(), (), () -> ()`
 
         Parameters
         ----------
@@ -191,6 +201,11 @@ class BetaRV(RandomVariable):
     def __call__(self, alpha, beta, size=None, **kwargs):
         r"""Draw samples from a beta distribution.
 
+        Signature
+        ---------
+
+        `(), () -> ()`
+
         Parameters
         ----------
         alpha
@@ -232,6 +247,11 @@ class NormalRV(RandomVariable):
     def __call__(self, loc=0.0, scale=1.0, size=None, **kwargs):
         r"""Draw samples from a normal distribution.
 
+        Signature
+        ---------
+
+        `(), () -> ()`
+
         Parameters
         ----------
         loc
@@ -264,6 +284,11 @@ class StandardNormalRV(NormalRV):
 
     def __call__(self, size=None, **kwargs):
         """Draw samples from a standard normal distribution.
+
+        Signature
+        ---------
+
+        `nil -> ()`
 
         Parameters
         ----------
@@ -301,6 +326,11 @@ class HalfNormalRV(ScipyRandomVariable):
 
     def __call__(self, loc=0.0, scale=1.0, size=None, **kwargs):
         r"""Draw samples from a half-normal distribution.
+
+        Signature
+        ---------
+
+        `(), () -> ()`
 
         Parameters
         ----------
@@ -362,6 +392,11 @@ class LogNormalRV(RandomVariable):
     def __call__(self, mean=0.0, sigma=1.0, size=None, **kwargs):
         r"""Draw sample from a lognormal distribution.
 
+        Signature
+        ---------
+
+        `(), () -> ()`
+
         Parameters
         ----------
         mean
@@ -407,6 +442,11 @@ class GammaRV(ScipyRandomVariable):
 
     def __call__(self, shape, rate, size=None, **kwargs):
         r"""Draw samples from a gamma distribution.
+
+        Signature
+        ---------
+
+        `(), () -> ()`
 
         Parameters
         ----------
@@ -461,6 +501,11 @@ class ChiSquareRV(RandomVariable):
     def __call__(self, df, size=None, **kwargs):
         r"""Draw samples from a chisquare distribution.
 
+        Signature
+        ---------
+
+        `() -> ()`
+
         Parameters
         ----------
         df
@@ -499,6 +544,11 @@ class ParetoRV(ScipyRandomVariable):
 
     def __call__(self, b, scale=1.0, size=None, **kwargs):
         r"""Draw samples from a pareto distribution.
+
+        Signature
+        ---------
+
+        `(), () -> ()`
 
         Parameters
         ----------
@@ -551,6 +601,11 @@ class GumbelRV(ScipyRandomVariable):
     ) -> RandomVariable:
         r"""Draw samples from a gumbel distribution.
 
+        Signature
+        ---------
+
+        `(), () -> ()`
+
         Parameters
         ----------
         loc
@@ -601,6 +656,11 @@ class ExponentialRV(RandomVariable):
     def __call__(self, scale=1.0, size=None, **kwargs):
         r"""Draw samples from an exponential distribution.
 
+        Signature
+        ---------
+
+        `() -> ()`
+
         Parameters
         ----------
         scale
@@ -638,6 +698,11 @@ class WeibullRV(RandomVariable):
 
     def __call__(self, shape, size=None, **kwargs):
         r"""Draw samples from a weibull distribution.
+
+        Signature
+        ---------
+
+        `() -> ()`
 
         Parameters
         ----------
@@ -677,6 +742,12 @@ class LogisticRV(RandomVariable):
 
     def __call__(self, loc=0, scale=1, size=None, **kwargs):
         r"""Draw samples from a logistic distribution.
+
+        Signature
+        ---------
+
+        `(), () -> ()`
+
 
         Parameters
         ----------
@@ -719,6 +790,11 @@ class VonMisesRV(RandomVariable):
 
     def __call__(self, mu, kappa, size=None, **kwargs):
         r"""Draw samples from a von Mises distribution.
+
+        Signature
+        ---------
+
+        `(), () -> ()`
 
         Parameters
         ----------
@@ -781,6 +857,11 @@ class MvNormalRV(RandomVariable):
 
     def __call__(self, mean=None, cov=None, size=None, **kwargs):
         r""" "Draw samples from a multivariate normal distribution.
+
+        Signature
+        ---------
+
+        `(n), (n,n) -> (n)`
 
         Parameters
         ----------
@@ -856,6 +937,11 @@ class DirichletRV(RandomVariable):
     def __call__(self, alphas, size=None, **kwargs):
         r"""Draw samples from a dirichlet distribution.
 
+        Signature
+        ---------
+
+        `(k) -> (k)`
+
         Parameters
         ----------
         alphas
@@ -916,6 +1002,11 @@ class PoissonRV(RandomVariable):
     def __call__(self, lam=1.0, size=None, **kwargs):
         r"""Draw samples from a poisson distribution.
 
+        Signature
+        ---------
+
+        `() -> ()`
+
         Parameters
         ----------
         lam
@@ -956,6 +1047,11 @@ class GeometricRV(RandomVariable):
     def __call__(self, p, size=None, **kwargs):
         r"""Draw samples from a geometric distribution.
 
+        Signature
+        ---------
+
+        `() -> ()`
+
         Parameters
         ----------
         p
@@ -992,6 +1088,11 @@ class HyperGeometricRV(RandomVariable):
 
     def __call__(self, ngood, nbad, nsample, size=None, **kwargs):
         r"""Draw samples from a geometric distribution.
+
+        Signature
+        ---------
+
+        `(), (), () -> ()`
 
         Parameters
         ----------
@@ -1035,6 +1136,11 @@ class CauchyRV(ScipyRandomVariable):
 
     def __call__(self, loc=0.0, scale=1.0, size=None, **kwargs):
         r"""Draw samples from a Cauchy distribution.
+
+        Signature
+        ---------
+
+        `(), () -> ()`
 
         Parameters
         ----------
@@ -1080,6 +1186,11 @@ class HalfCauchyRV(ScipyRandomVariable):
 
     def __call__(self, loc=0.0, scale=1.0, size=None, **kwargs):
         r"""Draw samples from a half-Cauchy distribution.
+
+        Signature
+        ---------
+
+        `(), () -> ()`
 
         Parameters
         ----------
@@ -1130,6 +1241,11 @@ class InvGammaRV(ScipyRandomVariable):
     def __call__(self, shape, scale, size=None, **kwargs):
         r"""Draw samples from an inverse-gamma distribution.
 
+        Signature
+        ---------
+
+        `(), () -> ()`
+
         Parameters
         ----------
         shape
@@ -1175,6 +1291,11 @@ class WaldRV(RandomVariable):
     def __call__(self, mean=1.0, scale=1.0, size=None, **kwargs):
         r"""Draw samples from a Wald distribution.
 
+        Signature
+        ---------
+
+        `(), () -> ()`
+
         Parameters
         ----------
         mean
@@ -1216,6 +1337,11 @@ class TruncExponentialRV(ScipyRandomVariable):
 
     def __call__(self, b, loc=0.0, scale=1.0, size=None, **kwargs):
         r"""Draw samples from a truncated exponential distribution.
+
+        Signature
+        ---------
+
+        `(), (), () -> ()`
 
         Parameters
         ----------
@@ -1272,6 +1398,11 @@ class BernoulliRV(ScipyRandomVariable):
     def __call__(self, p, size=None, **kwargs):
         r"""Draw samples from a Bernoulli distribution.
 
+        Signature
+        ---------
+
+        `() -> ()`
+
         Parameters
         ----------
         p
@@ -1314,6 +1445,12 @@ class LaplaceRV(RandomVariable):
     def __call__(self, loc=0.0, scale=1.0, size=None, **kwargs):
         r"""Draw samples from a Laplace distribution.
 
+        Signature
+        ---------
+
+        `(), () -> ()`
+
+
         Parameters
         ----------
         loc
@@ -1354,6 +1491,11 @@ class BinomialRV(RandomVariable):
     def __call__(self, n, p, size=None, **kwargs):
         r"""Draw samples from a binomial distribution.
 
+        Signature
+        ---------
+
+        `(), () -> ()`
+
         Parameters
         ----------
         n
@@ -1392,6 +1534,11 @@ class NegBinomialRV(ScipyRandomVariable):
 
     def __call__(self, n, p, size=None, **kwargs):
         r"""Draw samples from a negative binomial distribution.
+
+        Signature
+        ---------
+
+        `(), () -> ()`
 
         Parameters
         ----------
@@ -1443,6 +1590,11 @@ class BetaBinomialRV(ScipyRandomVariable):
     def __call__(self, n, a, b, size=None, **kwargs):
         r"""Draw samples from a beta-binomial distribution.
 
+        Signature
+        ---------
+
+        `(), (), () -> ()`
+
         Parameters
         ----------
         n
@@ -1488,6 +1640,11 @@ class GenGammaRV(ScipyRandomVariable):
 
     def __call__(self, alpha=1.0, p=1.0, lambd=1.0, size=None, **kwargs):
         r"""Draw samples from a generalized gamma distribution.
+
+        Signature
+        ---------
+
+        `(), (), () -> ()`
 
         Parameters
         ----------
@@ -1545,6 +1702,11 @@ class MultinomialRV(RandomVariable):
 
     def __call__(self, n, p, size=None, **kwargs):
         r"""Draw samples from a discrete multinomial distribution.
+
+        Signature
+        ---------
+
+        `(), (n) -> (n)`
 
         Parameters
         ----------
@@ -1613,6 +1775,11 @@ class CategoricalRV(RandomVariable):
     def __call__(self, p, size=None, **kwargs):
         r"""Draw samples from a discrete categorical distribution.
 
+        Signature
+        ---------
+
+        `(j) -> ()`
+
         Parameters
         ----------
         p
@@ -1664,6 +1831,11 @@ class RandIntRV(RandomVariable):
     def __call__(self, low, high=None, size=None, **kwargs):
         r"""Draw samples from a discrete uniform distribution.
 
+        Signature
+        ---------
+
+        `() -> ()`
+
         Parameters
         ----------
         low
@@ -1710,6 +1882,11 @@ class IntegersRV(RandomVariable):
 
     def __call__(self, low, high=None, size=None, **kwargs):
         r"""Draw samples from a discrete uniform distribution.
+
+        Signature
+        ---------
+
+        `() -> ()`
 
         Parameters
         ----------
@@ -1771,6 +1948,11 @@ class ChoiceRV(RandomVariable):
     def __call__(self, a, size=None, replace=True, p=None, **kwargs):
         r"""Generate a random sample from an array.
 
+        Signature
+        ---------
+
+        `(x) -> ()`
+
         Parameters
         ----------
         a
@@ -1781,7 +1963,7 @@ class ChoiceRV(RandomVariable):
             k` independent samples are returned. Default is `None`, in
             which case a single sample is returned.
         replace
-            When ``True``, sampling is performed with replacement.
+            When `True`, sampling is performed with replacement.
         p
             The probabilities associated with each entry in `a`. If not
             given, all elements have equal probability.
@@ -1830,6 +2012,11 @@ class PermutationRV(RandomVariable):
 
     def __call__(self, x, **kwargs):
         r"""Randomly permute a sequence or a range of values.
+
+        Signature
+        ---------
+
+        `(x) -> (x)`
 
         Parameters
         ----------
