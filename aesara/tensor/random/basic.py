@@ -1759,7 +1759,14 @@ class ChoiceRV(RandomVariable):
         raise NotImplementedError()
 
     def _infer_shape(self, size, dist_params, param_shapes=None):
-        return size
+        (a, p, _) = dist_params
+
+        if isinstance(p.type, aesara.tensor.type_other.NoneTypeT):
+            shape = super()._infer_shape(size, (a,), param_shapes)
+        else:
+            shape = super()._infer_shape(size, (a, p), param_shapes)
+
+        return shape
 
     def __call__(self, a, size=None, replace=True, p=None, **kwargs):
         r"""Generate a random sample from an array.
@@ -1767,7 +1774,8 @@ class ChoiceRV(RandomVariable):
         Parameters
         ----------
         a
-            The array from which to randomly sample an element.
+            The array from which to randomly sample an element. If an int,
+            a sample is generated from `aesara.tensor.arange(a)`.
         size
             Sample shape. If the given size is `(m, n, k)`, then `m * n *
             k` independent samples are returned. Default is `None`, in
@@ -1778,7 +1786,10 @@ class ChoiceRV(RandomVariable):
             The probabilities associated with each entry in `a`. If not
             given, all elements have equal probability.
         """
-        a = as_tensor_variable(a, ndim=1)
+        a = as_tensor_variable(a)
+
+        if a.ndim == 0:
+            a = aesara.tensor.arange(a)
 
         if p is None:
             p = aesara.tensor.type_other.NoneConst.clone()
