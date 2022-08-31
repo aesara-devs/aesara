@@ -1321,17 +1321,28 @@ def test_choice_samples():
     with pytest.raises(NotImplementedError):
         choice._supp_shape_from_params(np.asarray(5))
 
+    compare_sample_values(choice, np.asarray(5))
     compare_sample_values(choice, np.asarray([5]))
     compare_sample_values(choice, np.array([1.0, 5.0], dtype=config.floatX))
     compare_sample_values(choice, np.asarray([5]), 3)
 
-    with pytest.raises(ValueError):
-        compare_sample_values(choice, np.array([[1, 2], [3, 4]]))
+    compare_sample_values(choice, np.array([[1, 2], [3, 4]]))
+    compare_sample_values(choice, np.array([[1, 2], [3, 4]]), p=[0.4, 0.6])
 
     compare_sample_values(choice, [1, 2, 3], 1)
+
     compare_sample_values(
         choice, [1, 2, 3], 1, p=at.as_tensor([1 / 3.0, 1 / 3.0, 1 / 3.0])
     )
+
+    # p must be 1-dimensional.
+    # TODO: The exception is raised at runtime but could be raised at compile
+    # time in some situations using static shape analysis.
+    with pytest.raises(ValueError):
+        rng = np.random.default_rng()
+        rng_at = shared(rng, borrow=True)
+        choice(a=[1, 2], p=at.as_tensor([[0.1, 0.9], [0.3, 0.7]]), rng=rng_at).eval()
+
     compare_sample_values(choice, [1, 2, 3], (10, 2), replace=True)
     compare_sample_values(choice, at.as_tensor_variable([1, 2, 3]), 2, replace=True)
 
