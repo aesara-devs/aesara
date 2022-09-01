@@ -1792,7 +1792,7 @@ class ChoiceRV(RandomVariable):
             a = aesara.tensor.arange(a)
 
         if p is None:
-            p = aesara.tensor.type_other.NoneConst.clone()
+            p = aesara.tensor.type_other.NoneConst
 
         if isinstance(replace, bool):
             replace = aesara.tensor.constant(np.array(replace))
