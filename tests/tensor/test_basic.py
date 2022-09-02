@@ -1023,6 +1023,12 @@ class TestNonzero:
         rand2d[:4] = 0
         check(rand2d)
 
+        # Test passing a list
+        m = [1, 2, 0]
+        out = flatnonzero(m)
+        f = function([], out)
+        assert np.all(f() == np.flatnonzero(m))
+
     @config.change_flags(compute_test_value="raise")
     def test_nonzero_values(self):
         def check(m):
@@ -1449,8 +1455,7 @@ class TestJoinAndSplit:
 
             assert (out == want).all()
 
-            # Pass a list to make sure `a` is converted to a
-            # TensorVariable by roll
+            # Test rolling passing a list
             a = [1, 2, 3, 4, 5, 6]
             b = roll(a, get_shift(2))
             want = np.array([5, 6, 1, 2, 3, 4])
@@ -2221,6 +2226,16 @@ def test_tile():
             == np.tile(x_, (2, 3, 4, 6))
         )
 
+        # Test passing a float
+        x = scalar()
+        x_ = 1.0
+        assert np.all(run_tile(x, x_, (2,), use_symbolic_reps) == np.tile(x_, (2,)))
+
+        # Test when x is a list
+        x = matrix()
+        x_ = [[1.0, 2.0], [3.0, 4.0]]
+        assert np.all(run_tile(x, x_, (2,), use_symbolic_reps) == np.tile(x_, (2,)))
+
     # Test when reps is integer, scalar or vector.
     # Test 1,2,3,4-dimensional cases.
     # Test input x has the shape [2], [2, 4], [2, 4, 3], [2, 4, 3, 5].
@@ -2793,6 +2808,12 @@ class TestInversePermutation:
         # Check that permutation(inverse) == inverse(permutation) = identity
         assert np.all(p_val[inv_val] == np.arange(10))
         assert np.all(inv_val[p_val] == np.arange(10))
+
+        # Test passing a list
+        p = [2, 4, 3, 0, 1]
+        inv = at.inverse_permutation(p)
+        f = aesara.function([], inv)
+        assert np.all(f() == np.array([3, 4, 0, 2, 1]))
 
     def test_dim2(self):
         # Test the inversion of several permutations at a time
@@ -3448,6 +3469,12 @@ class TestDiag:
         xx = scalar()
         with pytest.raises(ValueError):
             diag(xx)
+
+        # Test passing a list
+        xx = [[1, 2], [3, 4]]
+        g = diag(xx)
+        f = function([], g)
+        assert np.all(f() == np.diag(xx))
 
     def test_infer_shape(self):
         rng = np.random.default_rng(utt.fetch_seed())
@@ -4135,6 +4162,12 @@ def test_identity_like_dtype():
     assert m_out.dtype == m.dtype
     m_out_float = identity_like(m, dtype=np.float64)
     assert m_out_float.dtype == "float64"
+
+    # Test passing list
+    m = [[0, 1], [1, 3]]
+    out = at.identity_like(m)
+    f = aesara.function([], out)
+    assert np.all(f() == np.eye(2))
 
 
 def test_atleast_Nd():
