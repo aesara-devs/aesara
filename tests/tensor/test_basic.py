@@ -1027,7 +1027,7 @@ class TestNonzero:
         m = [1, 2, 0]
         out = flatnonzero(m)
         f = function([], out)
-        assert np.all(f() == np.flatnonzero(m))
+        assert np.array_equal(f(), np.flatnonzero(m))
 
     @config.change_flags(compute_test_value="raise")
     def test_nonzero_values(self):
@@ -1455,7 +1455,6 @@ class TestJoinAndSplit:
 
             assert (out == want).all()
 
-            # Test rolling passing a list
             a = [1, 2, 3, 4, 5, 6]
             b = roll(a, get_shift(2))
             want = np.array([5, 6, 1, 2, 3, 4])
@@ -2228,13 +2227,17 @@ def test_tile():
 
         # Test passing a float
         x = scalar()
-        x_ = 1.0
-        assert np.all(run_tile(x, x_, (2,), use_symbolic_reps) == np.tile(x_, (2,)))
+        x_val = 1.0
+        assert np.array_equal(
+            run_tile(x, x_val, (2,), use_symbolic_reps), np.tile(x_val, (2,))
+        )
 
         # Test when x is a list
         x = matrix()
-        x_ = [[1.0, 2.0], [3.0, 4.0]]
-        assert np.all(run_tile(x, x_, (2,), use_symbolic_reps) == np.tile(x_, (2,)))
+        x_val = [[1.0, 2.0], [3.0, 4.0]]
+        assert np.array_equal(
+            run_tile(x, x_val, (2,), use_symbolic_reps), np.tile(x_val, (2,))
+        )
 
     # Test when reps is integer, scalar or vector.
     # Test 1,2,3,4-dimensional cases.
@@ -2813,7 +2816,7 @@ class TestInversePermutation:
         p = [2, 4, 3, 0, 1]
         inv = at.inverse_permutation(p)
         f = aesara.function([], inv)
-        assert np.all(f() == np.array([3, 4, 0, 2, 1]))
+        assert np.array_equal(f(), np.array([3, 4, 0, 2, 1]))
 
     def test_dim2(self):
         # Test the inversion of several permutations at a time
@@ -3474,7 +3477,7 @@ class TestDiag:
         xx = [[1, 2], [3, 4]]
         g = diag(xx)
         f = function([], g)
-        assert np.all(f() == np.diag(xx))
+        assert np.array_equal(f(), np.diag(xx))
 
     def test_infer_shape(self):
         rng = np.random.default_rng(utt.fetch_seed())
@@ -4167,7 +4170,7 @@ def test_identity_like_dtype():
     m = [[0, 1], [1, 3]]
     out = at.identity_like(m)
     f = aesara.function([], out)
-    assert np.all(f() == np.eye(2))
+    assert np.array_equal(f(), np.eye(2))
 
 
 def test_atleast_Nd():

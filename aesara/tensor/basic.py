@@ -3586,7 +3586,7 @@ def diag(v, k=0):
     elif _v.ndim >= 2:
         return diagonal(_v, offset=k)
     else:
-        raise ValueError("Input must have _v.ndim >= 1.")
+        raise ValueError("Number of dimensions of `v` must be greater than one.")
 
 
 def stacklists(arg):
