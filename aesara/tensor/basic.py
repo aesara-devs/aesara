@@ -940,9 +940,10 @@ def flatnonzero(a):
     nonzero_values : Return the non-zero elements of the input array
 
     """
-    if a.ndim == 0:
+    _a = as_tensor_variable(a)
+    if _a.ndim == 0:
         raise ValueError("Nonzero only supports non-scalar arrays.")
-    return nonzero(a.flatten(), return_matrix=False)[0]
+    return nonzero(_a.flatten(), return_matrix=False)[0]
 
 
 def nonzero_values(a):
@@ -1324,9 +1325,10 @@ def identity_like(x, dtype: Optional[Union[str, np.generic, np.dtype]] = None):
     tensor
         tensor the shape of x with ones on main diagonal and zeroes elsewhere of type of dtype.
     """
+    _x = as_tensor_variable(x)
     if dtype is None:
-        dtype = x.dtype
-    return eye(x.shape[0], x.shape[1], k=0, dtype=dtype)
+        dtype = _x.dtype
+    return eye(_x.shape[0], _x.shape[1], k=0, dtype=dtype)
 
 
 def infer_broadcastable(shape):
@@ -2773,8 +2775,9 @@ def tile(x, reps, ndim=None):
     """
     from aesara.tensor.math import ge
 
-    if ndim is not None and ndim < x.ndim:
-        raise ValueError("ndim should be equal or larger than x.ndim")
+    _x = as_tensor_variable(x)
+    if ndim is not None and ndim < _x.ndim:
+        raise ValueError("ndim should be equal or larger than _x.ndim")
 
     # If reps is a scalar, integer or vector, we convert it to a list.
     if not isinstance(reps, (list, tuple)):
@@ -2799,8 +2802,8 @@ def tile(x, reps, ndim=None):
                 # assert that reps.shape[0] does not exceed ndim
                 offset = assert_op(offset, ge(offset, 0))
 
-                # if reps.ndim is less than x.ndim, we pad the reps with
-                # "1" so that reps will have the same ndim as x.
+                # if reps.ndim is less than _x.ndim, we pad the reps with
+                # "1" so that reps will have the same ndim as _x.
                 reps_ = [switch(i < offset, 1, reps[i - offset]) for i in range(ndim)]
                 reps = reps_
 
@@ -2817,17 +2820,17 @@ def tile(x, reps, ndim=None):
         ):
             raise ValueError("elements of reps must be scalars of integer dtype")
 
-    # If reps.ndim is less than x.ndim, we pad the reps with
-    # "1" so that reps will have the same ndim as x
+    # If reps.ndim is less than _x.ndim, we pad the reps with
+    # "1" so that reps will have the same ndim as _x
     reps = list(reps)
     if ndim is None:
-        ndim = builtins.max(len(reps), x.ndim)
+        ndim = builtins.max(len(reps), _x.ndim)
     if len(reps) < ndim:
         reps = [1] * (ndim - len(reps)) + reps
 
-    _shape = [1] * (ndim - x.ndim) + [x.shape[i] for i in range(x.ndim)]
+    _shape = [1] * (ndim - _x.ndim) + [_x.shape[i] for i in range(_x.ndim)]
     alloc_shape = reps + _shape
-    y = alloc(x, *alloc_shape)
+    y = alloc(_x, *alloc_shape)
     shuffle_ind = np.arange(ndim * 2).reshape(2, ndim)
     shuffle_ind = shuffle_ind.transpose().flatten()
     y = y.dimshuffle(*shuffle_ind)
@@ -3288,8 +3291,9 @@ def inverse_permutation(perm):
     Each row of input should contain a permutation of the first integers.
 
     """
+    _perm = as_tensor_variable(perm)
     return permute_row_elements(
-        arange(perm.shape[-1], dtype=perm.dtype), perm, inverse=True
+        arange(_perm.shape[-1], dtype=_perm.dtype), _perm, inverse=True
     )
 
 
@@ -3575,12 +3579,14 @@ def diag(v, k=0):
 
     """
 
-    if v.ndim == 1:
-        return AllocDiag(k)(v)
-    elif v.ndim >= 2:
-        return diagonal(v, offset=k)
+    _v = as_tensor_variable(v)
+
+    if _v.ndim == 1:
+        return AllocDiag(k)(_v)
+    elif _v.ndim >= 2:
+        return diagonal(_v, offset=k)
     else:
-        raise ValueError("Input must has v.ndim >= 1.")
+        raise ValueError("Number of dimensions of `v` must be greater than one.")
 
 
 def stacklists(arg):
