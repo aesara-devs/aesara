@@ -12,12 +12,13 @@ that satisfies the constraints. That's useful for pattern matching.
 
 from collections.abc import Mapping
 from numbers import Number
-from typing import Dict, Optional, Tuple, Union
+from typing import Callable, Dict, Optional, Tuple, Union
 
 import numpy as np
 from cons.core import ConsError, _car, _cdr
 from etuples import apply, etuple, etuplize
-from etuples.core import ExpressionTuple
+from etuples.core import ExpressionTuple, etuple
+from etuples.dispatch import etuplize_fn
 from unification.core import _unify, assoc
 from unification.utils import transitive_get as walk
 from unification.variable import Var, isvar, var
@@ -72,6 +73,43 @@ class ConstrainedVar(Var):
         return f"{type(self).__name__}({repr(self.constraint)}, {self.token})"
 
 
+class OpExpressionTuple(ExpressionTuple):
+    r"""Etuple form for `Op`s.
+
+    Some `Op.__call__` signatures (e.g `RandomVariable`s) do not match their
+    `Op.make_node` signatures, causing `ExpressionTuple.eval_if_etuple` to
+    fail. To circumvent this constraint we subclass `ExpressionTuple`, and
+    overload the `_eval_apply` method to use `Op.make_node` instead of
+     `Op.__call__`.
+
+    """
+
+    def _eval_apply_fn(self, op: Op) -> Callable:
+        """We evaluate the etuple to the resulting `Apply` node's outputs."""
+
+        def eval_op(*inputs, **kwargs):
+            node = op.make_node(*inputs, **kwargs)
+            return node.outputs
+
+        return eval_op
+
+    def __repr__(self):
+        return "Op" + super().__repr__()
+
+    def __str__(self):
+        return "o" + super().__repr__()
+
+
+@etuple.register(Op, [object])
+def etuple_Op(*args, **kwargs) -> OpExpressionTuple:
+    return OpExpressionTuple(args, **kwargs)
+
+
+@etuplize_fn.register(Op)
+def etuplize_fn_Op(_: Op):
+    return etuple_Op
+
+
 def car_Variable(x):
     if x.owner:
         return x.owner.op
@@ -94,7 +132,32 @@ def cdr_Variable(x):
 _cdr.add((Variable,), cdr_Variable)
 
 
-def car_Op(x):
+def car_Apply(x: Apply):
+    """Return the `car` of an `Apply` node.
+
+    This will only be called for multiple-output nodes.
+
+    """
+    return x.op
+
+
+_car.add((Apply,), car_Apply)
+
+
+def cdr_Apply(x: Apply):
+    """Return the `car` of an `Apply` node.
+
+    This will only be called for multiple-output nodes.
+
+    """
+    x_e = etuple(_car(x), *x.inputs, evaled_obj=x.outputs)
+    return x_e[1:]
+
+
+_cdr.add((Apply,), cdr_Apply)
+
+
+def car_Op(x: Op):
     if hasattr(x, "__props__"):
         return type(x)
 
@@ -104,7 +167,7 @@ def car_Op(x):
 _car.add((Op,), car_Op)
 
 
-def cdr_Op(x):
+def cdr_Op(x: Op):
     if not hasattr(x, "__props__"):
         raise ConsError("Not a cons pair.")
 

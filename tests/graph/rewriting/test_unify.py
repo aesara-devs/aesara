@@ -11,7 +11,11 @@ import aesara.scalar as aes
 import aesara.tensor as at
 from aesara.graph.basic import Apply, Constant, equal_computations
 from aesara.graph.op import Op
-from aesara.graph.rewriting.unify import ConstrainedVar, convert_strs_to_vars
+from aesara.graph.rewriting.unify import (
+    ConstrainedVar,
+    OpExpressionTuple,
+    convert_strs_to_vars,
+)
 from aesara.tensor.type import TensorType
 from tests.graph.utils import MyType
 
@@ -110,10 +114,14 @@ def test_etuples():
     assert res.owner.inputs == [x_at, y_at]
 
     w_at = etuple(at.add, x_at, y_at)
+    assert isinstance(w_at, ExpressionTuple)
 
     res = w_at.evaled_obj
-    assert res.owner.op == at.add
-    assert res.owner.inputs == [x_at, y_at]
+    assert len(res) == 1
+
+    output = res[0]
+    assert output.owner.op == at.add
+    assert output.owner.inputs == [x_at, y_at]
 
     # This `Op` doesn't expand into an `etuple` (i.e. it's "atomic")
     op1_np = CustomOpNoProps(1)
@@ -123,6 +131,8 @@ def test_etuples():
 
     q_at = op1_np(x_at, y_at)
     res = etuplize(q_at)
+    assert isinstance(res, ExpressionTuple)
+    assert isinstance(res[0], CustomOpNoProps)
     assert res[0] == op1_np
 
     with pytest.raises(TypeError):
@@ -143,6 +153,25 @@ def test_etuples():
     assert len(res) == 2
     assert res[0].owner.op == op1_np
     assert res[1].owner.op == op1_np
+
+    mu_at = at.scalar("mu")
+    sigma_at = at.scalar("sigma")
+
+    w_rv = at.random.normal(mu_at, sigma_at)
+    w_at = etuplize(w_rv)
+    assert isinstance(w_at, OpExpressionTuple)
+    assert isinstance(w_at[0], ExpressionTuple)
+
+    z_at = etuple(at.random.normal, mu_at, sigma_at)
+    assert isinstance(z_at, OpExpressionTuple)
+
+    z_at = etuple(at.random.normal, *w_at[1:])
+    assert isinstance(z_at, OpExpressionTuple)
+
+    res = z_at.evaled_obj
+    assert len(res) == 2
+    assert res[1].owner.op == at.random.normal
+    assert res[1].owner.inputs[-2:] == [mu_at, sigma_at]
 
 
 def test_unify_Variable():
@@ -176,7 +205,7 @@ def test_unify_Variable():
     res = reify(z_pat_et, s)
 
     assert isinstance(res, ExpressionTuple)
-    assert equal_computations([res.evaled_obj], [z_at])
+    assert equal_computations([res.evaled_obj[0]], [z_at])
 
     z_et = etuple(at.add, x_at, y_at)
 
@@ -189,7 +218,7 @@ def test_unify_Variable():
     res = reify(z_pat_et, s)
 
     assert isinstance(res, ExpressionTuple)
-    assert equal_computations([res.evaled_obj], [z_et.evaled_obj])
+    assert equal_computations([res.evaled_obj[0]], [z_et.evaled_obj[0]])
 
     # `ExpressionTuple`, `Variable`
     s = unify(z_et, x_at, {})
