@@ -182,7 +182,7 @@ class RewriteDatabaseQuery:
 
     def __init__(
         self,
-        include: Iterable[str],
+        include: Iterable[Union[str, None]],
         require: Optional[Union[OrderedSet, Sequence[str]]] = None,
         exclude: Optional[Union[OrderedSet, Sequence[str]]] = None,
         subquery: Optional[Dict[str, "RewriteDatabaseQuery"]] = None,
