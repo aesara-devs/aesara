@@ -1,7 +1,9 @@
 import jax
 import jax.numpy as jnp
 from numpy.random import Generator, RandomState
-from numpy.random.bit_generator import _coerce_to_uint32_array
+from numpy.random.bit_generator import (  # type: ignore[attr-defined]
+    _coerce_to_uint32_array,
+)
 
 from aesara.link.jax.dispatch.basic import jax_funcify, jax_typify
 from aesara.tensor.random.op import RandomVariable
