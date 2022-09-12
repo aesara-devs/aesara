@@ -114,14 +114,11 @@ def test_etuples():
     assert res.owner.inputs == [x_at, y_at]
 
     w_at = etuple(at.add, x_at, y_at)
-    assert isinstance(w_at, ExpressionTuple)
+    assert isinstance(w_at, OpExpressionTuple)
 
     res = w_at.evaled_obj
-    assert len(res) == 1
-
-    output = res[0]
-    assert output.owner.op == at.add
-    assert output.owner.inputs == [x_at, y_at]
+    assert res.owner.op == at.add
+    assert res.owner.inputs == [x_at, y_at]
 
     # This `Op` doesn't expand into an `etuple` (i.e. it's "atomic")
     op1_np = CustomOpNoProps(1)
@@ -159,13 +156,14 @@ def test_etuples():
 
     w_rv = at.random.normal(mu_at, sigma_at)
     w_at = etuplize(w_rv)
-    assert isinstance(w_at, OpExpressionTuple)
-    assert isinstance(w_at[0], ExpressionTuple)
+    assert isinstance(w_at, ExpressionTuple)
+    assert w_at[1] == 1
+    assert isinstance(w_at[2], OpExpressionTuple)
 
     z_at = etuple(at.random.normal, mu_at, sigma_at)
     assert isinstance(z_at, OpExpressionTuple)
 
-    z_at = etuple(at.random.normal, *w_at[1:])
+    z_at = etuple(at.random.normal, *w_at[2][1:])
     assert isinstance(z_at, OpExpressionTuple)
 
     res = z_at.evaled_obj
@@ -205,7 +203,7 @@ def test_unify_Variable():
     res = reify(z_pat_et, s)
 
     assert isinstance(res, ExpressionTuple)
-    assert equal_computations([res.evaled_obj[0]], [z_at])
+    assert equal_computations([res.evaled_obj], [z_at])
 
     z_et = etuple(at.add, x_at, y_at)
 

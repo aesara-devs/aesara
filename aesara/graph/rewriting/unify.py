@@ -23,7 +23,7 @@ from unification.core import _unify, assoc
 from unification.utils import transitive_get as walk
 from unification.variable import Var, isvar, var
 
-from aesara.graph.basic import Constant, Variable
+from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.op import Op
 from aesara.graph.type import Type
 
@@ -89,7 +89,10 @@ class OpExpressionTuple(ExpressionTuple):
 
         def eval_op(*inputs, **kwargs):
             node = op.make_node(*inputs, **kwargs)
-            return node.outputs
+            if node.nout == 1:
+                return node.outputs[0]
+            else:
+                return node.outputs
 
         return eval_op
 
@@ -110,9 +113,30 @@ def etuplize_fn_Op(_: Op):
     return etuple_Op
 
 
-def car_Variable(x):
+def nth(n: int, node: Apply) -> Variable:
+    """Function that selects the nth output of an `Apply` node."""
+    return node.outputs[n]
+
+
+def car_Variable(x: Variable):
+    """Return the `car` of a `Variable`.
+
+    The outputs of `Apply` nodes are stored in lists, but the `__call__`
+    function of the `Op` that creates this `Op` will return the single
+    output variable instead of the list. We can thus simply return the
+    `Op` as `car`.
+
+    When there are several outputs, however, `__call__` will return a list, so
+    returning the `Op` here would return an expression tuple that evaluates to
+    the list of outputs of the `Apply` node. We thus need to preprend a `nth`
+    operator that will return the output stored at the specified index.
+
+    """
     if x.owner:
-        return x.owner.op
+        if x.owner.nout == 1:
+            return x.owner.op
+        else:
+            return nth
     else:
         raise ConsError("Not a cons pair.")
 
@@ -120,9 +144,19 @@ def car_Variable(x):
 _car.add((Variable,), car_Variable)
 
 
-def cdr_Variable(x):
+def cdr_Variable(x: Variable):
+    """Return the `cdr` of a `Variable`
+
+    For a variable created by a single output `Apply` node the `cdr` is defined as the input list. For
+    a multiple output `Apply` node the `cdr` is the index of the variable in the
+    node's outputs list, and the `Apply` node.
+
+    """
     if x.owner:
-        x_e = etuple(_car(x), *x.owner.inputs, evaled_obj=x)
+        if x.owner.nout == 1:
+            x_e = etuple(_car(x), *x.owner.inputs, evaled_obj=x)
+        else:
+            x_e = etuple(_car(x), x.index, x.owner, evaled_obj=x)
     else:
         raise ConsError("Not a cons pair.")
 
