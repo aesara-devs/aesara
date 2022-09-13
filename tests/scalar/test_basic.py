@@ -488,3 +488,17 @@ def test_mean(mode):
     z = mean()
     z_fn = aesara.function([], z, mode=mode)
     assert z_fn() == 0
+
+
+def test_shape():
+    a = float32("a")
+    assert isinstance(a.type, ScalarType)
+    assert a.shape.type.ndim == 1
+    assert a.shape.type.shape == (0,)
+    assert a.shape.type.dtype == "int64"
+
+    b = constant(2, name="b")
+    assert isinstance(b.type, ScalarType)
+    assert b.shape.type.ndim == 1
+    assert b.shape.type.shape == (0,)
+    assert b.shape.type.dtype == "int64"

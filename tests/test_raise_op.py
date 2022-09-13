@@ -7,6 +7,7 @@ import aesara.tensor as at
 from aesara.compile.mode import OPT_FAST_RUN, Mode
 from aesara.graph.basic import Constant, equal_computations
 from aesara.raise_op import Assert, CheckAndRaise, assert_op
+from aesara.scalar.basic import ScalarType, float64
 from aesara.sparse import as_sparse_variable
 from tests import unittest_tools as utt
 
@@ -94,6 +95,50 @@ def test_CheckAndRaise_basic_c(linker):
     assert np.array_equal(y_fn(x_val), [x_val])
 
 
+@pytest.mark.parametrize(
+    "linker",
+    [
+        pytest.param(
+            "cvm",
+            marks=pytest.mark.skipif(
+                not aesara.config.cxx,
+                reason="G++ not available, so we need to skip this test.",
+            ),
+        ),
+        "py",
+    ],
+)
+def test_perform_CheckAndRaise_scalar(linker):
+    exc_msg = "this is the exception"
+    check_and_raise = CheckAndRaise(CustomException, exc_msg)
+
+    val = float64("val")
+    conds = (val > 0, val > 3)
+    y = check_and_raise(val, *conds)
+
+    assert all(isinstance(i.type, ScalarType) for i in y.owner.inputs)
+    assert isinstance(y.type, ScalarType)
+
+    mode = Mode(linker=linker)
+    y_fn = aesara.function([val], y, mode=mode)
+
+    with pytest.raises(CustomException, match=exc_msg):
+        y_fn(0.0)
+
+    assert y_fn(4.0) == 4.0
+
+    if linker == "cvm":
+        assert isinstance(
+            y_fn.maker.fgraph.outputs[0].owner.inputs[0].owner.op, CheckAndRaise
+        )
+        assert hasattr(y_fn.vm.thunks[-2], "cthunk")
+
+    (y_grad,) = aesara.grad(y, [val])
+    y_fn = aesara.function([val], y_grad, mode=Mode(linker, OPT_FAST_RUN))
+
+    assert np.array_equal(y_fn(4.0), 1.0)
+
+
 class TestCheckAndRaiseInferShape(utt.InferShapeTester):
     def setup_method(self):
         super().setup_method()
@@ -115,6 +160,16 @@ class TestCheckAndRaiseInferShape(utt.InferShapeTester):
         out = assert_op(admat, adscal, bdscal)
         self._compile_and_check(
             [admat, adscal, bdscal], [out], [admat_val, adscal_val, bdscal_val], Assert
+        )
+
+    def test_infer_shape_scalar(self):
+        adscal = float64("adscal")
+        bdscal = float64("bdscal")
+        adscal_val = np.random.random()
+        bdscal_val = np.random.random() + 1
+        out = assert_op(adscal, bdscal)
+        self._compile_and_check(
+            [adscal, bdscal], [out], [adscal_val, bdscal_val], Assert
         )
 
 
