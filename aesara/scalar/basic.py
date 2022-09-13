@@ -729,6 +729,12 @@ class _scalar_py_operators:
     dtype = property(lambda self: self.type.dtype)
     """The dtype of this scalar."""
 
+    @property
+    def shape(self):
+        from aesara.tensor.basic import as_tensor_variable
+
+        return as_tensor_variable([], ndim=1, dtype=np.int64)
+
     # UNARY
     def __abs__(self):
         return abs(self)

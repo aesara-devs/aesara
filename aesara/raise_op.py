@@ -10,6 +10,7 @@ from aesara.graph.basic import Apply, Variable
 from aesara.link.c.op import COp
 from aesara.link.c.params_type import ParamsType
 from aesara.link.c.type import Generic
+from aesara.scalar.basic import ScalarType
 from aesara.tensor.type import DenseTensorType
 
 
@@ -78,7 +79,10 @@ class CheckAndRaise(COp):
         if not isinstance(value, Variable):
             value = at.as_tensor_variable(value)
 
-        conds = [at.as_tensor_variable(c) for c in conds]
+        conds = [
+            at.as_tensor_variable(c) if not isinstance(c, Variable) else c
+            for c in conds
+        ]
 
         assert all(c.type.ndim == 0 for c in conds)
 
@@ -102,7 +106,7 @@ class CheckAndRaise(COp):
         return [[1]] + [[0]] * (len(node.inputs) - 1)
 
     def c_code(self, node, name, inames, onames, props):
-        if not isinstance(node.inputs[0].type, DenseTensorType):
+        if not isinstance(node.inputs[0].type, (DenseTensorType, ScalarType)):
             raise NotImplementedError(
                 f"CheckAndRaise c_code not implemented for input type {node.inputs[0].type}"
             )
@@ -112,25 +116,47 @@ class CheckAndRaise(COp):
         fail_code = props["fail"]
         param_struct_name = props["params"]
         msg = self.msg.replace('"', '\\"').replace("\n", "\\n")
+
         for idx, cond_name in enumerate(cond_names):
-            check.append(
-                f"""
-        if(PyObject_IsTrue((PyObject *){cond_name}) == 0) {{
-            PyObject * exc_type = {param_struct_name}->exc_type;
-            Py_INCREF(exc_type);
-            PyErr_SetString(exc_type, "{msg}");
-            Py_XDECREF(exc_type);
-            {indent(fail_code, " " * 4)}
-        }}
-                """
-            )
+            if isinstance(node.inputs[0].type, DenseTensorType):
+                check.append(
+                    f"""
+            if(PyObject_IsTrue((PyObject *){cond_name}) == 0) {{
+                PyObject * exc_type = {param_struct_name}->exc_type;
+                Py_INCREF(exc_type);
+                PyErr_SetString(exc_type, "{msg}");
+                Py_XDECREF(exc_type);
+                {indent(fail_code, " " * 4)}
+            }}
+                    """
+                )
+            else:
+                check.append(
+                    f"""
+            if({cond_name} == 0) {{
+                PyObject * exc_type = {param_struct_name}->exc_type;
+                Py_INCREF(exc_type);
+                PyErr_SetString(exc_type, "{msg}");
+                Py_XDECREF(exc_type);
+                {indent(fail_code, " " * 4)}
+            }}
+                    """
+                )
+
         check = "\n".join(check)
-        res = f"""
-        {check}
-        Py_XDECREF({out_name});
-        {out_name} = {value_name};
-        Py_INCREF({value_name});
-        """
+
+        if isinstance(node.inputs[0].type, DenseTensorType):
+            res = f"""
+            {check}
+            Py_XDECREF({out_name});
+            {out_name} = {value_name};
+            Py_INCREF({value_name});
+            """
+        else:
+            res = f"""
+            {check}
+            {out_name} = {value_name};
+            """
         return res
 
     def c_code_cache_version(self):
