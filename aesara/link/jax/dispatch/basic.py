@@ -18,19 +18,6 @@ if config.floatX == "float64":
 else:
     jax.config.update("jax_enable_x64", False)
 
-# XXX: Enabling this will break some shape-based functionality, and severely
-# limit the types of graphs that can be converted.
-# See https://github.com/google/jax/blob/4d556837cc9003492f674c012689efc3d68fdf5f/design_notes/omnistaging.md
-# Older versions < 0.2.0 do not have this flag so we don't need to set it.
-try:
-    jax.config.disable_omnistaging()
-except AttributeError:
-    pass
-except Exception as e:
-    # The version might be >= 0.2.12, which means that omnistaging can't be
-    # disabled
-    warnings.warn(f"JAX omnistaging couldn't be disabled: {e}")
-
 
 @singledispatch
 def jax_typify(data, dtype=None, **kwargs):
