@@ -205,7 +205,6 @@ def test_jax_checkandraise():
     p.tag.test_value = 0
 
     res = assert_op(p, p < 1.0)
-    res_fg = FunctionGraph([p], [res])
 
-    with pytest.raises(NotImplementedError):
-        compare_jax_and_py(res_fg, [1.0])
+    with pytest.warns(UserWarning):
+        function((p,), res, mode=jax_mode)

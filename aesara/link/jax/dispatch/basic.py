@@ -10,7 +10,7 @@ from aesara.configdefaults import config
 from aesara.graph.fg import FunctionGraph
 from aesara.ifelse import IfElse
 from aesara.link.utils import fgraph_to_python
-from aesara.raise_op import CheckAndRaise
+from aesara.raise_op import Assert, CheckAndRaise
 
 
 if config.floatX == "float64":
@@ -81,19 +81,18 @@ def jax_funcify_IfElse(op, **kwargs):
     return ifelse
 
 
+@jax_funcify.register(Assert)
 @jax_funcify.register(CheckAndRaise)
 def jax_funcify_CheckAndRaise(op, **kwargs):
-
-    raise NotImplementedError(
-        f"""This exception is raised because you tried to convert an aesara graph with a `CheckAndRaise` Op (message: {op.msg}) to JAX.
-
-        JAX uses tracing to jit-compile functions, and assertions typically
-        don't do well with tracing. The appropriate workaround depends on what
-        you intended to do with the assertions in the first place.
-
-        Note that all assertions can be removed from the graph by adding
-        `local_remove_all_assert` to the rewrites."""
+    warnings.warn(
+        f"""Skipping `CheckAndRaise` Op (assertion: {op.msg}) as JAX tracing would remove it.""",
+        stacklevel=2,
     )
+
+    def assert_fn(x, *inputs):
+        return x
+
+    return assert_fn
 
 
 def jnp_safe_copy(x):
