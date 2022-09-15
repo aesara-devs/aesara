@@ -106,7 +106,6 @@ from aesara.tensor import (  # noqa
     blas,
     blas_c,
     blas_scipy,
-    nnet,
     xlogx,
 )
 import aesara.tensor.rewriting
