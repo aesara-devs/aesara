@@ -19,6 +19,14 @@ from aesara.scalar import bool as bool_t
 from aesara.tensor.type import TensorType, int_dtypes
 
 
+warnings.warn(
+    "The module `aesara.tensor.signal` is deprecated and will "
+    "be removed from Aesara in version 2.8.5.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+
 def max_pool_2d_same_size(input, patch_size):
     """
     Takes as input a 4-D tensor. It sets all non maximum values

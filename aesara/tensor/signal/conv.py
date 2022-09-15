@@ -3,12 +3,20 @@ Contains a wrapper function for tensor.nnet.ConvOp, which can be used to perform
 generic 2D convolution.
 
 """
-
 import logging
+import warnings
 
 from aesara import tensor as at
 from aesara.tensor.nnet import conv
 from aesara.tensor.shape import reshape
+
+
+warnings.warn(
+    "The module `aesara.tensor.signal` is deprecated and will "
+    "be removed from Aesara in version 2.9.0.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 __docformat__ = "restructuredtext en"
