@@ -1,5 +1,13 @@
 import warnings
 
+
+warnings.warn(
+    "The module `aesara.tensor.nnet` is deprecated and will "
+    "be removed from Aesara in version 2.9.0",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
 import aesara.tensor.nnet.rewriting
 from aesara.tensor.nnet.abstract_conv import (
     abstract_conv2d,
