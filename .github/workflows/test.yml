@@ -73,12 +73,10 @@ jobs:
         float32: [0]
         install-numba: [1]
         part:
-          - "tests --ignore=tests/tensor --ignore=tests/sparse --ignore=tests/tensor/nnet"
-          - "tests/tensor tests/sparse --ignore=tests/tensor/test_basic.py --ignore=tests/tensor/test_math.py --ignore=tests/tensor/test_math_scipy.py --ignore=tests/tensor/test_inplace.py --ignore=tests/tensor/test_elemwise.py --ignore=tests/tensor/rewriting/test_basic.py --ignore=tests/tensor/rewriting/test_math.py --ignore=tests/tensor/nnet"
+          - "tests --ignore=tests/tensor --ignore=tests/sparse --ignore=tests/tensor/nnet --ignore=tests/tensor/signal"
+          - "tests/tensor tests/sparse --ignore=tests/tensor/test_basic.py --ignore=tests/tensor/test_math.py --ignore=tests/tensor/test_math_scipy.py --ignore=tests/tensor/test_inplace.py --ignore=tests/tensor/test_elemwise.py --ignore=tests/tensor/rewriting/test_basic.py --ignore=tests/tensor/rewriting/test_math.py --ignore=tests/tensor/nnet --ignore=tests/tensor/signal"
           - "tests/tensor/test_basic.py tests/tensor/test_math.py tests/tensor/test_math_scipy.py tests/tensor/test_inplace.py"
           - "tests/tensor/test_elemwise.py tests/tensor/rewriting/test_basic.py tests/tensor/rewriting/test_math.py"
-          - "tests/tensor/nnet --ignore-glob='*/test_abstract_conv.py'"
-          - "tests/tensor/nnet/test_abstract_conv.py"
         include:
           - python-version: "3.7"
             fast-compile: 1
@@ -90,33 +88,6 @@ jobs:
             float32: 0
             install-numba: 1
             part: "tests --ignore=tests/tensor/nnet --ignore=tests/tensor/signal"
-          - python-version: "3.7"
-            fast-compile: 1
-            float32: 1
-            install-numba: 1
-            part: "tests/tensor/nnet"
-          - python-version: "3.7"
-            fast-compile: 1
-            float32: 0
-            install-numba: 1
-            part: "tests/tensor/nnet"
-          - python-version: "3.7"
-            fast-compile: 1
-            float32: 1
-            install-numba: 1
-            part: "tests/tensor/signal"
-          - python-version: "3.7"
-            fast-compile: 1
-            float32: 0
-            install-numba: 1
-            part: "tests/tensor/signal"
-          - python-version: "3.9"
-            fast-compile: 0
-            float32: 0
-            install-numba: 0
-            # This should run using the most recent version of SciPy
-            part: "tests/tensor/nnet/test_conv.py tests/tensor/nnet/test_abstract_conv.py"
-
     steps:
       - uses: actions/checkout@v2
         with:
