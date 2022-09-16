@@ -273,7 +273,7 @@ the following:
    bvis = aesara.shared(bvis_values)
    bhid = aesara.shared(bhid_values)
 
-   trng = at.random.utils.RandomStream(1234)
+   trng = at.random.RandomStream(1234)
 
    def OneStep(vsample):
 
