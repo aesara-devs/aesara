@@ -257,15 +257,15 @@ the following:
 .. testsetup:: scan1
 
    import aesara
-   import numpy
-   W_values = numpy.random.random((2, 2))
-   bvis_values = numpy.random.random((2,))
-   bhid_values = numpy.random.random((2,))
+   import numpy as np
+   W_values = np.random.random((2, 2))
+   bvis_values = np.random.random((2,))
+   bhid_values = np.random.random((2,))
 
 .. testcode:: scan1
 
    import aesara
-   from aesara import tensor as at
+   import aesara. tensor as at
 
    W = aesara.shared(W_values) # we assume that ``W_values`` contains the
                                # initial values of your weight matrix
@@ -273,16 +273,17 @@ the following:
    bvis = aesara.shared(bvis_values)
    bhid = aesara.shared(bhid_values)
 
-   trng = aesara.tensor.random.utils.RandomStream(1234)
+   trng = at.random.utils.RandomStream(1234)
 
-   def OneStep(vsample) :
-       hmean = at.sigmoid(aesara.dot(vsample, W) + bhid)
-       hsample = trng.binomial(size=hmean.shape, n=1, p=hmean)
-       vmean = at.sigmoid(aesara.dot(hsample, W.T) + bvis)
-       return trng.binomial(size=vsample.shape, n=1, p=vmean,
-                            dtype=aesara.config.floatX)
+   def OneStep(vsample):
 
-   sample = aesara.tensor.vector()
+       hmean = at.sigmoid(at.dot(vsample, W) + bhid)
+       hsample = trng.binomial(1, hmean, size=hmean.shape)
+       vmean = at.sigmoid(at.dot(hsample, W.T) + bvis)
+
+       return trng.binomial(1, vmean, size=vsample.shape)
+
+   sample = aesara.tensor.lvector()
 
    values, updates = aesara.scan(OneStep, outputs_info=sample, n_steps=10)
 
