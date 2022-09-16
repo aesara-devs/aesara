@@ -24,13 +24,12 @@ from aesara.tensor.math import (
     sigmoid,
 )
 from aesara.tensor.math import sum as at_sum
-from aesara.tensor.math import tanh, true_div
+from aesara.tensor.math import tanh
 from aesara.tensor.nnet.basic import (
     CrossentropyCategorical1Hot,
     CrossentropyCategorical1HotGrad,
     CrossentropySoftmax1HotWithBiasDx,
     CrossentropySoftmaxArgmax1HotWithBias,
-    LogSoftmax,
     Prepend_scalar_constant_to_each_row,
     Prepend_scalar_to_each_row,
     Softmax,
@@ -46,7 +45,6 @@ from aesara.tensor.nnet.basic import (
     crossentropy_softmax_argmax_1hot_with_bias,
     elu,
     h_softmax,
-    logsoftmax,
     relu,
     selu,
     sigmoid_binary_crossentropy,
@@ -65,7 +63,6 @@ from aesara.tensor.type import (
     fvector,
     ivector,
     lvector,
-    matrices,
     matrix,
     scalar,
     tensor3,
@@ -102,52 +99,6 @@ def valid_axis_tester(Op):
 
     with pytest.raises(ValueError):
         Op(-4)(*x)
-
-
-class TestSoftmax(utt.InferShapeTester):
-    @pytest.mark.parametrize("axis", [None, 0, 1, 2, 3, -1, -2])
-    def test_perform(self, axis):
-        x = tensor4("x")
-        rng = np.random.default_rng(utt.fetch_seed())
-        xv = rng.standard_normal((2, 3, 4, 5)).astype(config.floatX)
-
-        f = aesara.function([x], softmax(x, axis=axis))
-        assert np.allclose(f(xv), sp.softmax(xv, axis=axis))
-
-    @pytest.mark.parametrize("column", [0, 1, 2, 3])
-    @pytest.mark.parametrize("axis", [None, 0, 1])
-    def test_grad(self, axis, column):
-        def f(a):
-            return softmax(a, axis=axis)[:, column]
-
-        rng = np.random.default_rng(utt.fetch_seed())
-        utt.verify_grad(f, [rng.random((3, 4, 2))])
-
-    def test_infer_shape(self):
-        admat = matrix()
-        rng = np.random.default_rng(utt.fetch_seed())
-        admat_val = rng.random((3, 4)).astype(config.floatX)
-        self._compile_and_check(
-            [admat], [Softmax(axis=-1)(admat)], [admat_val], Softmax
-        )
-
-    def test_vector_perform(self):
-        x = vector()
-        f = aesara.function([x], softmax(x, axis=None))
-
-        rng = np.random.default_rng(utt.fetch_seed())
-        xv = rng.standard_normal((6,)).astype(config.floatX)
-        assert np.allclose(f(xv), sp.softmax(xv))
-
-    def test_vector_grad(self):
-        def f(a):
-            return softmax(a, axis=None)
-
-        rng = np.random.default_rng(utt.fetch_seed())
-        utt.verify_grad(f, [rng.random((4))])
-
-    def test_valid_axis(self):
-        valid_axis_tester(Softmax)
 
 
 class TestSoftmaxWithBias(utt.InferShapeTester):
@@ -215,160 +166,6 @@ class TestSoftmaxWithBias(utt.InferShapeTester):
             [admat_val, advec_val],
             SoftmaxWithBias,
         )
-
-
-class TestLogSoftmax(utt.InferShapeTester):
-    @pytest.mark.parametrize("column", [0, 1, 2, 3])
-    @pytest.mark.parametrize("axis", [None, 0, 1])
-    def test_matrix_grad(self, axis, column):
-        def f(a):
-            return logsoftmax(a, axis=axis)[:, column]
-
-        rng = np.random.default_rng(utt.fetch_seed())
-        utt.verify_grad(f, [rng.random((3, 4))])
-
-    def test_vector_perform(self):
-        x = vector()
-        f = aesara.function([x], logsoftmax(x, axis=None))
-
-        rng = np.random.default_rng(utt.fetch_seed())
-        xv = rng.standard_normal((6,)).astype(config.floatX)
-        assert np.allclose(f(xv), sp.log_softmax(xv))
-
-    def test_vector_grad(self):
-        def f(a):
-            return logsoftmax(a, axis=None)
-
-        rng = np.random.default_rng(utt.fetch_seed())
-        utt.verify_grad(f, [rng.random((4,))])
-
-    def test_matrix_perform_and_rewrite(self):
-        m = config.mode
-        m = aesara.compile.get_mode(m)
-        m.check_isfinite = False
-        x, y = matrices("xy")
-        # regular softmax and crossentropy
-        sm = softmax(x)
-        cm = categorical_crossentropy(sm, y)
-
-        # numerically stable log-softmax with crossentropy
-        logsm = logsoftmax(x)
-        sm2 = exp(logsm)  # just used to show equivalence with sm
-        cm2 = -at_sum(y * logsm, axis=1)
-        grad_node = grad(cm2.mean(), x)
-
-        rng = np.random.default_rng(utt.fetch_seed())
-
-        a = np.exp(10 * rng.random((5, 10)).astype(config.floatX))
-        b = np.eye(5, 10).astype(config.floatX)
-
-        # show equivalence of softmax and exponentiated numerically stable
-        # log-softmax
-        f1 = aesara.function([x], [sm, sm2])
-        sm_, sm2_ = f1(a)
-        utt.assert_allclose(sm_, sm2_)
-
-        # now show that the two versions result in the same crossentropy cost
-        # this indicates that the forward function does provide some numerical
-        # stability
-        f2 = aesara.function([x, y], [cm, cm2], mode=m)
-        cm_, cm2_ = f2(a, b)
-        utt.assert_allclose(cm_, cm2_)
-
-        # now, show that in the standard softmax case the gradients blow up
-        # while in the log-softmax case they don't
-        f3 = aesara.function([x, y], [grad_node])
-        grad_ = f3(a, b)
-        assert not np.any(np.isnan(grad_))
-
-    @pytest.mark.parametrize("axis", [None, 0, -1])
-    def test_local_logsoftmax_rewrite(self, axis):
-        """Test the `Logsoftmax` substitution.
-
-        Check that ``Log(Softmax(x))`` is substituted with ``Logsoftmax(x)``. Note that
-        only the forward pass is checked (i.e., doesn't check the gradient)
-        """
-
-        x = matrix("x")
-        sm = softmax(x, axis=axis)
-        logsm = log(sm)
-        f = aesara.function([x], logsm)
-        assert isinstance(f.maker.fgraph.outputs[0].owner.op, LogSoftmax)
-        assert check_stack_trace(f, ops_to_check=LogSoftmax)
-
-    @pytest.mark.parametrize("axis", [None, 0, -1])
-    def test_local_logsoftmax_grad_rewrite(self, axis):
-        """Test the `Logsoftmax`'s grad substitution.
-
-        Check that ``Log(Softmax(x))``'s grad is substituted with ``Logsoftmax(x)``'s
-        grad and that the new operation does not explode for big inputs.
-        Note that only the grad is checked.
-        """
-
-        m = config.mode
-        m = aesara.compile.get_mode(m)
-        m.check_isfinite = False
-        # some inputs that are large to make the gradient explode in the non
-        # rewritten case
-        rng = np.random.default_rng(utt.fetch_seed())
-        a = np.exp(10 * rng.random((5, 10)).astype(config.floatX))
-
-        def myfunc(x):
-            sm = softmax(x, axis=axis)
-            logsm = log(sm)
-            return logsm
-
-        # We set step to 0.1 because for big values we need a big epsilon
-        utt.verify_grad(myfunc, [a], eps=0.1, mode=m)
-        sa = aesara.shared(a)
-        f = aesara.function([], myfunc(sa))
-        assert check_stack_trace(f, ops_to_check="all")
-
-    def test_logsoftmax_grad_true_div_elemwise(self):
-        """
-        Checks that the gradient of an expression similar to a ``log(softmax)`` but
-        with a different elemwise operation than true_div is not rewritten.
-        """
-
-        x = matrix("x")
-        y = log(softmax(x))
-        g = grad(y.sum(), x)
-
-        softmax_grad_node = g.owner
-        assert softmax_grad_node.op == softmax_grad_legacy
-        true_div_node = softmax_grad_node.inputs[0].owner
-        assert true_div_node.op == true_div
-
-        # We replace the elemwise true_div op by an elemwise add.
-        new_g = softmax_grad_legacy(
-            add(*true_div_node.inputs), softmax_grad_node.inputs[1]
-        )
-
-        fgraph = FunctionGraph([x], [new_g])
-        optdb.query(OPT_FAST_RUN).rewrite(fgraph)
-
-        assert softmax_grad_legacy in [n.op for n in fgraph.toposort()]
-
-    def test_valid_axis(self):
-        valid_axis_tester(LogSoftmax)
-
-
-class TestSoftmaxGrad(utt.InferShapeTester):
-    def test_infer_shape(self):
-        admat = matrix()
-        bdmat = matrix()
-        rng = np.random.default_rng(utt.fetch_seed())
-        admat_val = rng.random((3, 4)).astype(config.floatX)
-        bdmat_val = rng.random((3, 4)).astype(config.floatX)
-        self._compile_and_check(
-            [admat, bdmat],
-            [SoftmaxGrad(axis=-1)(admat, bdmat)],
-            [admat_val, bdmat_val],
-            SoftmaxGrad,
-        )
-
-    def test_valid_axis(self):
-        valid_axis_tester(SoftmaxGrad)
 
 
 class TestCrossEntropySoftmax1Hot:
@@ -1200,27 +997,6 @@ def test_grad_softmax_grad():
         return aesara.grad(None, x, known_grads={y: inputs})
 
     utt.verify_grad(f, [rng.random((3, 4))])
-
-
-def test_stabilize_log_softmax():
-    mode = aesara.compile.mode.get_default_mode()
-    mode = mode.including("local_log_softmax", "specialize")
-
-    x = matrix()
-    y = softmax(x)
-    z = log(y)
-
-    f = aesara.function([x], z, mode=mode)
-    assert check_stack_trace(f, ops_to_check="all")
-
-    # Check that the softmax has been rewritten
-    for node in f.maker.fgraph.toposort():
-        assert not isinstance(node.op, y.owner.op.__class__)
-
-    # Call the function so debug mode can verify the rewritten version matches
-    # the un-rewritten version
-    rng = np.random.default_rng(utt.fetch_seed())
-    f(np.cast[config.floatX](rng.random((2, 3))))
 
 
 def test_relu():

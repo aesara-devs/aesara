@@ -13,7 +13,7 @@ from aesara import pprint, shared
 from aesara.compile import optdb
 from aesara.compile.debugmode import DebugMode
 from aesara.compile.function import function
-from aesara.compile.mode import Mode, get_default_mode, get_mode
+from aesara.compile.mode import OPT_FAST_RUN, Mode, get_default_mode, get_mode
 from aesara.compile.ops import DeepCopyOp, deep_copy_op
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Constant, equal_computations
@@ -33,7 +33,15 @@ from aesara.tensor.basic import Alloc, join, switch
 from aesara.tensor.blas import Dot22, Gemv
 from aesara.tensor.blas_c import CGemv
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
-from aesara.tensor.math import Dot, MaxAndArgmax, Prod, Sum, _conj
+from aesara.tensor.math import (
+    Dot,
+    LogSoftmax,
+    MaxAndArgmax,
+    Prod,
+    SoftmaxGrad,
+    Sum,
+    _conj,
+)
 from aesara.tensor.math import abs as at_abs
 from aesara.tensor.math import add
 from aesara.tensor.math import all as at_all
@@ -76,7 +84,17 @@ from aesara.tensor.math import minimum, mul, neg, neq
 from aesara.tensor.math import pow as at_pow
 from aesara.tensor.math import prod, rad2deg, reciprocal
 from aesara.tensor.math import round as at_round
-from aesara.tensor.math import sgn, sigmoid, sin, sinh, softplus, sqr, sqrt, sub
+from aesara.tensor.math import (
+    sgn,
+    sigmoid,
+    sin,
+    sinh,
+    softmax,
+    softplus,
+    sqr,
+    sqrt,
+    sub,
+)
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tan, tanh, true_div, xor
 from aesara.tensor.rewriting.elemwise import local_dimshuffle_lift
@@ -4578,6 +4596,76 @@ class TestSigmoidUtils:
         assert is_1pexp(1 + 2 * exp_op(x), False) is None
 
 
+class TestLogSoftmaxRewrites:
+    @pytest.mark.parametrize("axis", [None, 0, -1])
+    def test_local_logsoftmax_rewrite(self, axis):
+        """Test the `Logsoftmax` substitution.
+
+        Check that ``Log(Softmax(x))`` is substituted with ``Logsoftmax(x)``. Note that
+        only the forward pass is checked (i.e., doesn't check the gradient)
+        """
+
+        x = matrix("x")
+        sm = softmax(x, axis=axis)
+        logsm = log(sm)
+        f = function([x], logsm)
+        assert isinstance(f.maker.fgraph.outputs[0].owner.op, LogSoftmax)
+        assert check_stack_trace(f, ops_to_check=LogSoftmax)
+
+    @pytest.mark.parametrize("axis", [None, 0, -1])
+    def test_local_logsoftmax_grad_rewrite(self, axis):
+        """Test the `Logsoftmax`'s grad substitution.
+
+        Check that ``Log(Softmax(x))``'s grad is substituted with ``Logsoftmax(x)``'s
+        grad and that the new operation does not explode for big inputs.
+        Note that only the grad is checked.
+        """
+
+        m = config.mode
+        m = get_mode(m)
+        m.check_isfinite = False
+        # some inputs that are large to make the gradient explode in the non
+        # rewritten case
+        rng = np.random.default_rng(utt.fetch_seed())
+        a = np.exp(10 * rng.random((5, 10)).astype(config.floatX))
+
+        def myfunc(x):
+            sm = softmax(x, axis=axis)
+            logsm = log(sm)
+            return logsm
+
+        # We set step to 0.1 because for big values we need a big epsilon
+        utt.verify_grad(myfunc, [a], eps=0.1, mode=m)
+        sa = shared(a)
+        f = function([], myfunc(sa))
+        assert check_stack_trace(f, ops_to_check="all")
+
+    def test_logsoftmax_grad_true_div_elemwise(self):
+        """
+        Checks that the gradient of an expression similar to a ``log(softmax)`` but
+        with a different elemwise operation than true_div is not rewritten.
+        """
+
+        x = matrix("x")
+        y = log(softmax(x))
+        g = aesara.tensor.grad(y.sum(), x)
+
+        softmax_grad_node = g.owner
+        assert softmax_grad_node.op == SoftmaxGrad(axis=-1)
+        true_div_node = softmax_grad_node.inputs[0].owner
+        assert true_div_node.op == true_div
+
+        # We replace the elemwise true_div op by an elemwise add.
+        new_g = SoftmaxGrad(axis=-1)(
+            add(*true_div_node.inputs), softmax_grad_node.inputs[1]
+        )
+
+        fgraph = FunctionGraph([x], [new_g])
+        optdb.query(OPT_FAST_RUN).rewrite(fgraph)
+
+        assert SoftmaxGrad(axis=-1) in [n.op for n in fgraph.toposort()]
+
+
 def test_log1mexp_stabilization():
     mode = Mode("py").including("stabilize")
 
@@ -4639,3 +4727,24 @@ def test_deprecations():
     """Make sure we can import from deprecated modules."""
     with pytest.deprecated_call():
         from aesara.tensor.math_opt import AlgebraicCanonizer  # noqa: F401 F811
+
+
+def test_log_softmax_stabilization():
+    mode = aesara.compile.mode.get_default_mode()
+    mode = mode.including("local_log_softmax", "specialize")
+
+    x = matrix()
+    y = softmax(x)
+    z = log(y)
+
+    f = aesara.function([x], z, mode=mode)
+    assert check_stack_trace(f, ops_to_check="all")
+
+    # Check that the softmax has been rewritten
+    for node in f.maker.fgraph.toposort():
+        assert not isinstance(node.op, y.owner.op.__class__)
+
+    # Call the function so debug mode can verify the rewritten version matches
+    # the un-rewritten version
+    rng = np.random.default_rng(utt.fetch_seed())
+    f(np.cast[config.floatX](rng.random((2, 3))))

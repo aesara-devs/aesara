@@ -24,7 +24,7 @@ class Mlp:
 
         wy = shared(self.rng.normal(0, 1, (nhiddens, noutputs)))
         by = shared(np.zeros(noutputs), borrow=True)
-        y = at.nnet.softmax(at.dot(h, wy) + by)
+        y = at.softmax(at.dot(h, wy) + by)
 
         self.inputs = [x]
         self.outputs = [y]
