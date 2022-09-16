@@ -71,6 +71,18 @@ def test_convert_variable():
     assert res is const_var
 
 
+def test_convert_variable_mixed_specificity():
+    type1 = TensorType(config.floatX, shape=(1, None, 3))
+    type2 = TensorType(config.floatX, shape=(None, 5, 3))
+    type3 = TensorType(config.floatX, shape=(1, 5, 3))
+
+    test_var1 = type1()
+    test_var2 = type2()
+
+    assert type1.convert_variable(test_var2).type == type3
+    assert type2.convert_variable(test_var1).type == type3
+
+
 def test_filter_variable():
     test_type = TensorType(config.floatX, [])
 
