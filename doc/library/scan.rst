@@ -284,7 +284,7 @@ the following:
 
    sample = aesara.tensor.lvector()
 
-   values, updates = aesara.scan(OneStep, outputs_info=sample, n_steps=10)
+   values, updates = aesara.scan(one_step, outputs_info=sample, n_steps=10)
 
    gibbs10 = aesara.function([sample], values[-1], updates=updates)
 
