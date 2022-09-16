@@ -258,9 +258,11 @@ the following:
 
    import aesara
    import numpy as np
-   W_values = np.random.random((2, 2))
-   bvis_values = np.random.random((2,))
-   bhid_values = np.random.random((2,))
+   
+   rng = np.random.default_rng(203940)
+   W_values = rng.uniform(size=(2, 2))
+   bvis_values = rng.uniform(size=(2,))
+   bhid_values = rng.uniform(size=(2,))
 
 .. testcode:: scan1
 
