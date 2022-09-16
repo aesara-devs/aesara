@@ -275,8 +275,7 @@ the following:
 
    srng = at.random.RandomStream(1234)
 
-   def OneStep(vsample):
-
+   def one_step(vsample):
        hmean = at.sigmoid(at.dot(vsample, W) + bhid)
        hsample = srng.binomial(1, hmean, size=hmean.shape)
        vmean = at.sigmoid(at.dot(hsample, W.T) + bvis)
