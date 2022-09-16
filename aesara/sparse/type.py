@@ -1,10 +1,16 @@
+from typing import Iterable, Optional, Union
+
 import numpy as np
 import scipy.sparse
+from typing_extensions import Literal
 
 import aesara
 from aesara import scalar as aes
 from aesara.graph.type import HasDataType
 from aesara.tensor.type import DenseTensorType, TensorType
+
+
+SparsityTypes = Literal["csr", "csc", "bsr"]
 
 
 def _is_sparse(x):
@@ -57,38 +63,39 @@ class SparseTensorType(TensorType, HasDataType):
     }
     ndim = 2
 
-    # Will be set to SparseVariable SparseConstant later.
-    variable_type = None
-    Constant = None
-
-    def __init__(self, format, dtype, shape=None, broadcastable=None, name=None):
-        if shape is None:
+    def __init__(
+        self,
+        format: SparsityTypes,
+        dtype: Union[str, np.dtype],
+        shape: Optional[Iterable[Optional[Union[bool, int]]]] = None,
+        name: Optional[str] = None,
+        broadcastable: Optional[Iterable[bool]] = None,
+    ):
+        if shape is None and broadcastable is None:
             shape = (None, None)
 
-        self.shape = shape
-
-        if not isinstance(format, str):
-            raise TypeError("The sparse format parameter must be a string")
-
-        if format in self.format_cls:
-            self.format = format
-        else:
-            raise NotImplementedError(
+        if format not in self.format_cls:
+            raise ValueError(
                 f'unsupported format "{format}" not in list',
             )
-        if broadcastable is None:
-            broadcastable = [False, False]
 
-        super().__init__(dtype, shape, name=name)
+        self.format = format
 
-    def clone(self, format=None, dtype=None, shape=None, **kwargs):
-        if format is None:
-            format = self.format
+        super().__init__(dtype, shape=shape, name=name, broadcastable=broadcastable)
+
+    def clone(
+        self,
+        dtype=None,
+        shape=None,
+        broadcastable=None,
+        **kwargs,
+    ):
+        format: Optional[SparsityTypes] = kwargs.pop("format", self.format)
         if dtype is None:
             dtype = self.dtype
         if shape is None:
             shape = self.shape
-        return type(self)(format, dtype, shape)
+        return type(self)(format, dtype, shape=shape, **kwargs)
 
     def filter(self, value, strict=False, allow_downcast=None):
         if (
