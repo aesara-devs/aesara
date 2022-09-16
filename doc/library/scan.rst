@@ -278,7 +278,7 @@ the following:
    def OneStep(vsample):
 
        hmean = at.sigmoid(at.dot(vsample, W) + bhid)
-       hsample = trng.binomial(1, hmean, size=hmean.shape)
+       hsample = srng.binomial(1, hmean, size=hmean.shape)
        vmean = at.sigmoid(at.dot(hsample, W.T) + bvis)
 
        return trng.binomial(1, vmean, size=vsample.shape)
