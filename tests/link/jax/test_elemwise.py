@@ -6,10 +6,10 @@ from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import get_test_value
 from aesara.tensor import elemwise as at_elemwise
 from aesara.tensor import nnet as at_nnet
+from aesara.tensor.math import SoftmaxGrad
 from aesara.tensor.math import all as at_all
 from aesara.tensor.math import prod
 from aesara.tensor.math import sum as at_sum
-from aesara.tensor.nnet.basic import SoftmaxGrad
 from aesara.tensor.type import matrix, tensor, vector
 from tests.link.jax.test_basic import compare_jax_and_py
 

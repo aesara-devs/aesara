@@ -40,7 +40,7 @@ from aesara.scan.basic import scan
 from aesara.scan.op import Scan
 from aesara.scan.utils import until
 from aesara.tensor.math import all as at_all
-from aesara.tensor.math import dot, mean, sigmoid
+from aesara.tensor.math import dot, exp, mean, sigmoid
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tanh
 from aesara.tensor.nnet import categorical_crossentropy
@@ -69,7 +69,6 @@ from aesara.tensor.type import (
     vector,
 )
 from tests import unittest_tools as utt
-from tests.tensor.nnet.test_basic import softmax_graph
 
 
 if config.mode == "FAST_COMPILE":
@@ -83,6 +82,10 @@ else:
 
 
 type_eps = {"float64": 1e-7, "float32": 3e-3}
+
+
+def softmax_graph(c):
+    return exp(c) / exp(c).sum(axis=-1, keepdims=True)
 
 
 class multiple_outputs_numeric_grad:

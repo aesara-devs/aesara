@@ -6,14 +6,25 @@ import pytest
 import aesara.tensor as at
 import aesara.tensor.inplace as ati
 import aesara.tensor.math as aem
-import aesara.tensor.nnet.basic as nnetb
 from aesara import config
 from aesara.compile.ops import deep_copy_op
 from aesara.compile.sharedvalue import SharedVariable
 from aesara.graph.basic import Constant
 from aesara.graph.fg import FunctionGraph
 from aesara.tensor import elemwise as at_elemwise
-from aesara.tensor.math import All, Any, Max, Mean, Min, Prod, ProdWithoutZeros, Sum
+from aesara.tensor.math import (
+    All,
+    Any,
+    LogSoftmax,
+    Max,
+    Mean,
+    Min,
+    Prod,
+    ProdWithoutZeros,
+    Softmax,
+    SoftmaxGrad,
+    Sum,
+)
 from tests.link.numba.test_basic import (
     compare_numba_and_py,
     my_multi_out,
@@ -377,7 +388,7 @@ def test_scalar_Elemwise_Clip():
     ],
 )
 def test_SoftmaxGrad(dy, sm, axis, exc):
-    g = nnetb.SoftmaxGrad(axis=axis)(dy, sm)
+    g = SoftmaxGrad(axis=axis)(dy, sm)
     g_fg = FunctionGraph(outputs=[g])
 
     cm = contextlib.suppress() if exc is None else pytest.warns(exc)
@@ -413,7 +424,7 @@ def test_SoftmaxGrad(dy, sm, axis, exc):
     ],
 )
 def test_Softmax(x, axis, exc):
-    g = nnetb.Softmax(axis=axis)(x)
+    g = Softmax(axis=axis)(x)
     g_fg = FunctionGraph(outputs=[g])
 
     cm = contextlib.suppress() if exc is None else pytest.warns(exc)
@@ -449,7 +460,7 @@ def test_Softmax(x, axis, exc):
     ],
 )
 def test_LogSoftmax(x, axis, exc):
-    g = nnetb.LogSoftmax(axis=axis)(x)
+    g = LogSoftmax(axis=axis)(x)
     g_fg = FunctionGraph(outputs=[g])
 
     cm = contextlib.suppress() if exc is None else pytest.warns(exc)
