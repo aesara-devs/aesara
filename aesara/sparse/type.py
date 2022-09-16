@@ -6,6 +6,7 @@ from typing_extensions import Literal
 
 import aesara
 from aesara import scalar as aes
+from aesara.graph.basic import Variable
 from aesara.graph.type import HasDataType
 from aesara.tensor.type import DenseTensorType, TensorType
 
@@ -98,6 +99,13 @@ class SparseTensorType(TensorType, HasDataType):
         return type(self)(format, dtype, shape=shape, **kwargs)
 
     def filter(self, value, strict=False, allow_downcast=None):
+        if isinstance(value, Variable):
+            raise TypeError(
+                "Expected an array-like object, but found a Variable: "
+                "maybe you are trying to call a function on a (possibly "
+                "shared) variable instead of a numeric array?"
+            )
+
         if (
             isinstance(value, self.format_cls[self.format])
             and value.dtype == self.dtype
@@ -117,13 +125,10 @@ class SparseTensorType(TensorType, HasDataType):
             data = self.format_cls[self.format](value)
             up_dtype = aes.upcast(self.dtype, data.dtype)
             if up_dtype != self.dtype:
-                raise NotImplementedError(
-                    f"Expected {self.dtype} dtype but got {data.dtype}"
-                )
+                raise TypeError(f"Expected {self.dtype} dtype but got {data.dtype}")
             sp = data.astype(up_dtype)
 
-        if sp.format != self.format:
-            raise NotImplementedError()
+        assert sp.format == self.format
 
         return sp
 
