@@ -265,7 +265,7 @@ the following:
 .. testcode:: scan1
 
    import aesara
-   import aesara. tensor as at
+   import aesara.tensor as at
 
    W = aesara.shared(W_values) # we assume that ``W_values`` contains the
                                # initial values of your weight matrix
