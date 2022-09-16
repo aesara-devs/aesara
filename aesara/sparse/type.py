@@ -29,17 +29,6 @@ def _is_sparse(x):
 class SparseTensorType(TensorType, HasDataType):
     """A `Type` for sparse tensors.
 
-    Parameters
-    ----------
-    dtype : numpy dtype string such as 'int64' or 'float64' (among others)
-        Type of numbers in the matrix.
-    format: str
-        The sparse storage strategy.
-
-    Returns
-    -------
-    An empty SparseVariable instance.
-
     Notes
     -----
     Currently, sparse tensors can only be matrices (i.e. have two dimensions).
