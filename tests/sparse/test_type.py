@@ -1,5 +1,3 @@
-import pytest
-
 from aesara.sparse import matrix as sp_matrix
 from aesara.sparse.type import SparseTensorType
 from aesara.tensor import dmatrix
@@ -16,13 +14,16 @@ def test_Sparse_convert_variable():
     z = sp_matrix("csr", dtype="float64", name="z")
 
     assert y.type.convert_variable(z) is None
+    assert z.type.convert_variable(y) is None
+
+    res = y.type.convert_variable(x)
+    assert res.type == y.type
+
+    res = z.type.convert_variable(x)
+    assert res.type == z.type
 
     # TODO FIXME: This is a questionable result, because `x.type` is associated
     # with a dense `Type`, but, since `TensorType` is a base class of `Sparse`,
     # we would need to added sparse/dense logic to `TensorType`, and we don't
     # want to do that.
     assert x.type.convert_variable(y) is y
-
-    # TODO FIXME: We should be able to do this.
-    with pytest.raises(NotImplementedError):
-        y.type.convert_variable(x)

@@ -4,7 +4,7 @@ import scipy.sparse
 import aesara
 from aesara import scalar as aes
 from aesara.graph.type import HasDataType
-from aesara.tensor.type import TensorType
+from aesara.tensor.type import DenseTensorType, TensorType
 
 
 def _is_sparse(x):
@@ -154,11 +154,25 @@ class SparseTensorType(TensorType, HasDataType):
     def convert_variable(self, var):
         res = super().convert_variable(var)
 
-        if res and not isinstance(res.type, type(self)):
-            # TODO: Convert to this sparse format
-            raise NotImplementedError()
+        if res is None:
+            return res
 
-        # TODO: Convert sparse `var`s with different formats to this format?
+        if not isinstance(res.type, type(self)):
+            if isinstance(res.type, DenseTensorType):
+                if self.format == "csr":
+                    from aesara.sparse.basic import csr_from_dense
+
+                    return csr_from_dense(res)
+                else:
+                    from aesara.sparse.basic import csc_from_dense
+
+                    return csc_from_dense(res)
+
+            return None
+
+        if res.format != self.format:
+            # TODO: Convert sparse `var`s with different formats to this format?
+            return None
 
         return res
 
