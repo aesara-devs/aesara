@@ -2771,102 +2771,6 @@ def check_chain(r, *chain):
     return _check_chain(r, reduce(list.__iadd__, ([x, 0] for x in chain)))
 
 
-def pre_greedy_node_rewriter(
-    fgraph: FunctionGraph, rewrites: Sequence[NodeRewriter], out: Variable
-) -> Variable:
-    """Apply node rewriters throughout a graph in a greedy, pre-traversal way.
-
-    This function traverses the computation graph in the graph before the
-    variable `out` but that are not in the `fgraph`. It applies
-    `rewrites` to each variable on the traversed graph.
-
-    .. warning::
-
-        This changes the nodes in a graph in-place.
-
-    Its main use is to apply locally constant folding when generating
-    the graph of the indices of a `Subtensor`.
-
-    Changes should not be applied to nodes that are in an `fgraph`,
-    so we use `fgraph` to prevent that.
-
-    Notes
-    -----
-    This doesn't do an equilibrium rewrite, so, if there is a rewrite--like
-    `local_upcast_elemwise_constant_inputs`--in the list that adds additional
-    nodes to the inputs of the node, it might be necessary to call this
-    function multiple times.
-
-    Parameters
-    ----------
-    fgraph
-        The graph used to avoid/filter nodes.
-    rewrites
-        A sequence of rewrites to apply.
-    out
-        The graph to rewrite.
-
-    """
-
-    def local_recursive_function(
-        rewrite_list: Sequence[NodeRewriter],
-        out: Variable,
-        rewritten_vars: Dict[Variable, Variable],
-        depth: int,
-    ) -> Tuple[List[Variable], Dict[Variable, Variable]]:
-        if not getattr(out, "owner", None):
-            return [out], rewritten_vars
-        node = out.owner
-
-        if node in fgraph.apply_nodes:
-            return node.outputs, rewritten_vars
-
-        # Walk up the graph via the node's inputs
-        for idx, inp in enumerate(node.inputs):
-            if inp in rewritten_vars:
-                nw_in = rewritten_vars[inp]
-            else:
-                if inp.owner:
-                    outs, rewritten_vars = local_recursive_function(
-                        rewrite_list, inp, rewritten_vars, depth + 1
-                    )
-                    for k, v in zip(inp.owner.outputs, outs):
-                        rewritten_vars[k] = v
-                    nw_in = outs[inp.owner.outputs.index(inp)]
-
-                else:
-                    nw_in = inp
-                    rewritten_vars[inp] = inp
-
-            # XXX: An in-place change
-            node.inputs[idx] = nw_in
-
-        # Apply the rewrites
-        results = node.outputs
-        for rewrite in rewrite_list:
-            ret = rewrite.transform(fgraph, node)
-            if ret is not False and ret is not None:
-                assert isinstance(ret, Sequence)
-                assert len(ret) == len(node.outputs), rewrite
-                for k, v in zip(node.outputs, ret):
-                    rewritten_vars[k] = v
-                results = ret
-                if ret[0].owner:
-                    node = out.owner
-                else:
-                    break
-
-        return results, rewritten_vars
-
-    if out.owner:
-        out_index: int = out.owner.outputs.index(out)
-    else:
-        out_index = 0
-
-    final_outs, rewritten_nodes = local_recursive_function(rewrites, out, {}, 0)
-    return final_outs[out_index]
-
-
 def copy_stack_trace(from_var, to_var):
     r"""Copy the stack traces from `from_var` to `to_var`.
 
@@ -3091,11 +2995,6 @@ DEPRECATED_NAMES = [
         "local_optimizer",
         "`local_optimizer` is deprecated: use `node_rewriter` instead.",
         node_rewriter,
-    ),
-    (
-        "pre_greedy_local_optimizer",
-        "`pre_greedy_local_optimizer` is deprecated: use `pre_greedy_node_rewriter` instead.",
-        pre_greedy_node_rewriter,
     ),
     (
         "FromFunctionOptimizer",
