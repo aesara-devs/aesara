@@ -278,10 +278,7 @@ class TestFunctionGraph:
 
         capres = capsys.readouterr()
         assert capres.err == ""
-        assert (
-            "rewriting: rewrite test-reason replaces Op1.0 of Op1(var2, var1) with var1 of None"
-            in capres.out
-        )
+        assert capres.out.startswith("rewriting: rewrite test-reason replaces")
 
     def test_replace_circular(self):
         """`FunctionGraph` allows cycles--for better or worse."""

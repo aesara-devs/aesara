@@ -202,7 +202,7 @@ class Apply(Node, Generic[OpType]):
         return self.outputs[do]
 
     def __str__(self):
-        return op_as_string(self.inputs, self)
+        return node_as_string(self.inputs, self)
 
     def __repr__(self):
         return str(self)
@@ -1409,8 +1409,11 @@ def io_toposort(
 default_leaf_formatter = str
 
 
-def default_node_formatter(op, argstrings):
-    return f"{op.op}({', '.join(argstrings)})"
+def default_node_formatter(node, input_strs, output_strs=None):
+    if output_strs:
+        return f"{', '.join(output_strs)} <- {node.op}({', '.join(input_strs)})"
+    else:
+        return f"{node.op}({', '.join(input_strs)})"
 
 
 def io_connection_pattern(inputs, outputs):
@@ -1479,12 +1482,16 @@ def io_connection_pattern(inputs, outputs):
     return global_connection_pattern
 
 
-def op_as_string(
-    i, op, leaf_formatter=default_leaf_formatter, node_formatter=default_node_formatter
+def node_as_string(
+    inputs,
+    node,
+    leaf_formatter=default_leaf_formatter,
+    node_formatter=default_node_formatter,
 ):
     """Return a function that returns a string representation of the subgraph between `i` and :attr:`op.inputs`"""
-    strs = as_string(i, op.inputs, leaf_formatter, node_formatter)
-    return node_formatter(op, strs)
+    in_strs = as_string(inputs, node.inputs, leaf_formatter, node_formatter)
+    out_strs = as_string(node.outputs, node.outputs, leaf_formatter, node_formatter)
+    return node_formatter(node, in_strs, out_strs)
 
 
 def as_string(
