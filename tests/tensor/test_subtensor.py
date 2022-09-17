@@ -12,8 +12,8 @@ import aesara.tensor.basic as at
 from aesara.compile import DeepCopyOp, shared
 from aesara.compile.io import In
 from aesara.configdefaults import config
+from aesara.graph.basic import equal_computations
 from aesara.graph.op import get_test_value
-from aesara.graph.rewriting.utils import is_same_graph
 from aesara.printing import pprint
 from aesara.scalar.basic import as_scalar
 from aesara.tensor import get_vector_length
@@ -1265,7 +1265,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
             assert np.allclose(f_out, output_num), (params, f_out, output_num)
 
     def test_adv_constant_arg(self):
-        # Test case provided (and bug detected, gh-607) by John Salvatier
+        # gh-607
         m = matrix("m")
         gv = np.array([0, 1, 3])
         g = at.constant(gv)
@@ -1275,7 +1275,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         s1 = m[gv, i]
         s2 = m[g, i]
 
-        assert is_same_graph(s1, s2)
+        assert equal_computations([s1], [s2])
 
     def test_adv1_inc_sub_notlastdim(self):
         # Test that taking 1-dimensional advanced indexing
