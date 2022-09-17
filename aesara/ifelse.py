@@ -175,6 +175,11 @@ class IfElse(_NoPythonOp):
             if not isinstance(input_f, Variable):
                 input_f = as_symbolic(input_f)
 
+            if type(input_f.type) != type(input_t.type):  # noqa: E721
+                raise TypeError(
+                    f"Input types {type(input_t.type)} and {type(input_f.type)} do not match."
+                )
+
             if isinstance(input_t.type, HasDataType) and isinstance(
                 input_f.type, HasDataType
             ):
@@ -207,18 +212,18 @@ class IfElse(_NoPythonOp):
                 # TODO FIXME: The presence of this keyword is a strong
                 # assumption.  Find something that's guaranteed by the/a
                 # confirmed interface.
-                output_type_t = input_t.type.clone(shape=new_shape)()
-                output_type_f = input_f.type.clone(shape=new_shape)()
+                output_var_t = input_t.type.clone(shape=new_shape)()
+                output_var_f = input_f.type.clone(shape=new_shape)()
             else:
-                output_type_t = input_t.type()
-                output_type_f = input_f.type()
+                output_var_t = input_t.type()
+                output_var_f = input_f.type()
 
-            input_t = output_type_f.type.convert_variable(input_t)
-            input_f = output_type_t.type.convert_variable(input_f)
+            input_t_ = output_var_f.type.filter_variable(input_t)
+            input_f_ = output_var_t.type.filter_variable(input_f)
 
-            new_inputs_true_branch.append(input_t)
-            new_inputs_false_branch.append(input_f)
-            output_vars.append(output_type_t)
+            new_inputs_true_branch.append(input_t_)
+            new_inputs_false_branch.append(input_f_)
+            output_vars.append(output_var_t)
 
         return Apply(
             self,

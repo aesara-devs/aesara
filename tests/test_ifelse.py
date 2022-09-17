@@ -325,22 +325,24 @@ class TestIfelse(utt.OptimizationTestMixin):
         with pytest.raises(TypeError):
             ifelse(cond, y, x)
 
-    def test_sparse_tensor_error(self):
+    def test_sparse_conversions(self):
+
+        from aesara.sparse import matrix
 
         rng = np.random.default_rng(utt.fetch_seed())
         data = rng.random((2, 3)).astype(self.dtype)
         x = self.shared(data)
-        y = aesara.sparse.matrix("csc", dtype=self.dtype, name="y")
-        z = aesara.sparse.matrix("csr", dtype=self.dtype, name="z")
+        y = matrix("csc", dtype=self.dtype, name="y")
+        z = matrix("csr", dtype=self.dtype, name="z")
         cond = iscalar("cond")
 
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(TypeError, match=".*do not match."):
             ifelse(cond, x, y)
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(TypeError, match=".*do not match."):
             ifelse(cond, y, x)
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(TypeError):
             ifelse(cond, x, z)
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(TypeError):
             ifelse(cond, z, x)
         with pytest.raises(TypeError):
             ifelse(cond, y, z)
@@ -534,6 +536,8 @@ class TestIfelse(utt.OptimizationTestMixin):
         [
             ((2,), (3,), np.r_[1.0, 2.0], np.r_[1.0, 2.0, 3.0], (None,)),
             ((None,), (3,), np.r_[1.0, 2.0], np.r_[1.0, 2.0, 3.0], (None,)),
+            ((3,), (None,), np.r_[1.0, 2.0, 3.0], np.r_[1.0, 2.0], (None,)),
+            ((2, 1), (None, 1), np.c_[[1.0, 2.0]], np.c_[[1.0, 2.0, 3.0]], (None, 1)),
             ((3,), (3,), np.r_[1.0, 2.0, 3.0], np.r_[1.0, 2.0, 3.0], (3,)),
             ((1,), (3,), np.r_[1.0], np.r_[1.0, 2.0, 3.0], (None,)),
         ],
