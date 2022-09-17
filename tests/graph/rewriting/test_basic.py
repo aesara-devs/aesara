@@ -18,15 +18,13 @@ from aesara.graph.rewriting.basic import (
     WalkingGraphRewriter,
     in2out,
     node_rewriter,
-    pre_constant_merge,
     pre_greedy_node_rewriter,
 )
 from aesara.raise_op import assert_op
 from aesara.tensor.math import Dot, add, dot
 from aesara.tensor.rewriting.basic import constant_folding
-from aesara.tensor.subtensor import AdvancedSubtensor
 from aesara.tensor.type import matrix, values_eq_approx_always_true
-from aesara.tensor.type_other import MakeSlice, SliceConstant, slicetype
+from aesara.tensor.type_other import MakeSlice, SliceConstant
 from tests.graph.utils import (
     MyOp,
     MyType,
@@ -493,50 +491,6 @@ class TestEquilibrium:
         with pytest.raises(AssertionError):
             rewriter.rewrite(g)
         assert equal_computations(g.outputs, [op1(x, y)])
-
-
-def test_pre_constant_merge():
-
-    empty_fgraph = FunctionGraph([], [])
-
-    x = MyVariable("x")
-    y = MyVariable("y")
-    c1 = Constant(MyType(), 1, "c1")
-    c2 = Constant(MyType(), 1, "c1")
-    o1 = op2(c1, x)
-    o2 = op1(o1, y, c2)
-
-    assert c1 is not c2
-
-    res = pre_constant_merge(empty_fgraph, [o2])
-
-    assert [o2] == res
-    assert o2.owner.inputs[2] is c1
-
-    o2 = op1(o1, y, c2)
-    fg = FunctionGraph([x, y], [o2], clone=False)
-
-    assert o2.owner in fg.apply_nodes
-
-    res = pre_constant_merge(fg, [o2])
-
-    assert res == [o2]
-    assert o2.owner.inputs[2] is c2
-
-    # What is this supposed to test?
-    ms = MakeSlice()(1)
-    res = pre_constant_merge(empty_fgraph, [ms])
-
-    assert res == [ms]
-
-    const_slice = SliceConstant(type=slicetype, data=slice(1, None, 2))
-
-    assert isinstance(const_slice, Constant)
-
-    adv = AdvancedSubtensor()(matrix(), [2, 3], const_slice)
-
-    res = pre_constant_merge(empty_fgraph, adv)
-    assert res == [adv]
 
 
 def test_pre_greedy_node_rewriter():

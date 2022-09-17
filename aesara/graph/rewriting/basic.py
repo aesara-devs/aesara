@@ -25,7 +25,6 @@ from aesara.graph import destroyhandler as dh
 from aesara.graph.basic import (
     Apply,
     AtomicVariable,
-    Constant,
     Variable,
     applys_between,
     io_toposort,
@@ -879,73 +878,6 @@ class MergeOptimizer(GraphRewriter):
             nb_merged,
             nb_atomic,
         )
-
-
-def pre_constant_merge(fgraph, variables):
-    """Merge constants in the graphs given by `variables`.
-
-    .. warning::
-
-        This changes the nodes in a graph in-place!
-
-    Parameters
-    ----------
-    fgraph
-        A `FunctionGraph` instance in which some of these `variables` may
-        reside.
-
-        We want to avoid terms in `variables` that are contained in `fgraph`.
-        The reason for that: it will break consistency of `fgraph` and its
-        features (e.g. `ShapeFeature`).
-
-    variables
-        A list of nodes for which we want to merge constant inputs.
-
-    Notes
-    -----
-    It is used to pre-merge nodes generated inside an rewrite.  It is
-    useful if there are many such replacements to make, so that `DebugMode`
-    will not check each of them.
-
-    """
-    seen_var = set()
-    # signature -> variable (for constants)
-    const_sig_inv = {}
-    if isinstance(variables, Variable):
-        variables = [variables]
-
-    def recursive_merge(var):
-
-        if var in seen_var:
-            return var
-
-        if not hasattr(var, "owner"):
-            return var
-
-        # We don't want to merge constants that are *within* the
-        # `FunctionGraph`
-        if var.owner in fgraph.apply_nodes:
-            return var
-
-        seen_var.add(var)
-
-        if isinstance(var, Constant):
-            sig = var.signature()
-
-            if sig in const_sig_inv:
-                return const_sig_inv[sig]
-
-            const_sig_inv[sig] = var
-
-            return var
-
-        if var.owner:
-            for idx, inp in enumerate(var.owner.inputs):
-                # XXX: This is changing the graph in place!
-                var.owner.inputs[idx] = recursive_merge(inp)
-        return var
-
-    return [recursive_merge(v) for v in variables]
 
 
 class MetaNodeRewriter(NodeRewriter):
