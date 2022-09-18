@@ -1,0 +1,82 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+      - checks
+  pull_request:
+    branches:
+      - main
+
+# Cancels all previous workflow runs for pull requests that have not completed.
+concurrency:
+  # The concurrency group contains the workflow name and the branch name for pull requests
+  # or the commit hash for any other events.
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.head_ref || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: "Doctest${{ matrix.python-version }}: ${{ matrix.part }}"
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ["3.7", "3.9"]
+        fast-compile: [0]
+        float32: [0]
+        install-numba: [1]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          mamba-version: "*"
+          channels: conda-forge,defaults
+          channel-priority: true
+          python-version: ${{ matrix.python-version }}
+          auto-update-conda: true
+
+      - name: Create matrix id
+        id: matrix-id
+        env:
+          MATRIX_CONTEXT: ${{ toJson(matrix) }}
+        run: |
+          echo $MATRIX_CONTEXT
+          export MATRIX_ID=`echo $MATRIX_CONTEXT | md5sum | cut -c 1-32`
+          echo $MATRIX_ID
+          echo "::set-output name=id::$MATRIX_ID"
+
+      - name: Install dependencies
+        shell: bash -l {0}
+        run: |
+          mamba install --yes -q "python~=${PYTHON_VERSION}=*_cpython" mkl numpy scipy pip mkl-service graphviz cython pytest coverage pytest-cov sympy
+          if [[ $INSTALL_NUMBA == "1" ]]; then mamba install --yes -q -c conda-forge "python~=${PYTHON_VERSION}=*_cpython" "numba>=0.55" numba-scipy; fi
+          mamba install --yes -q -c conda-forge "python~=${PYTHON_VERSION}=*_cpython" jax "jaxlib!=0.3.15"
+          pip install -e ./
+          pip install -r requirements-rtd.txt
+          mamba list && pip freeze
+          python -c 'import aesara; print(aesara.config.__str__(print_doc=False))'
+          python -c 'import aesara; assert(aesara.config.blas__ldflags != "")'
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+          INSTALL_NUMBA: ${{ matrix.install-numba }}
+
+      - name: Run doctests
+        shell: bash -l {0}
+        run: |
+          if [[ $FAST_COMPILE == "1" ]]; then export AESARA_FLAGS=$AESARA_FLAGS,mode=FAST_COMPILE; fi
+          if [[ $FLOAT32 == "1" ]]; then export AESARA_FLAGS=$AESARA_FLAGS,floatX=float32; fi
+          export AESARA_FLAGS=$AESARA_FLAGS,warn__ignore_bug_before=all,on_opt_error=raise,on_shape_error=raise,gcc__cxxflags=-pipe
+          python ./doc/scripts/docgen.py --test
+        env:
+          MATRIX_ID: ${{ steps.matrix-id.outputs.id }}
+          MKL_THREADING_LAYER: GNU
+          MKL_NUM_THREADS: 1
+          OMP_NUM_THREADS: 1
+          PART: ${{ matrix.part }}
+          FAST_COMPILE: ${{ matrix.fast-compile }}
+          FLOAT32: ${{ matrix.float32 }}
