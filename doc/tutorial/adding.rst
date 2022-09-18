@@ -22,7 +22,7 @@ it:
 And now that we've created our function we can use it:
 
 >>> f(2, 3)
-array(5.0)
+array(5.)
 >>> numpy.allclose(f(16.3, 12.1), 28.4)
 True
 
@@ -158,16 +158,16 @@ from the previous example is that you need to instantiate *x* and
 our new function on 2D arrays:
 
 >>> f([[1, 2], [3, 4]], [[10, 20], [30, 40]])
-array([[ 11.,  22.],
-       [ 33.,  44.]])
+array([[11., 22.],
+       [33., 44.]])
 
 The variable is a NumPy array. We can also use NumPy arrays directly as
 inputs:
 
 >>> import numpy
 >>> f(numpy.array([[1, 2], [3, 4]]), numpy.array([[10, 20], [30, 40]]))
-array([[ 11.,  22.],
-       [ 33.,  44.]])
+array([[11., 22.],
+       [33., 44.]])
 
 It is possible to add scalars to matrices, vectors to matrices,
 scalars to vectors, etc. The behavior of these operations is defined
@@ -200,14 +200,15 @@ Exercise
 .. testcode::
 
    import aesara
-   a = aesara.tensor.vector() # declare variable
-   out = a + a ** 10               # build symbolic expression
-   f = aesara.function([a], out)   # compile function
+   import aesara.tensor as at
+   a = at.vector()                  # declare variable
+   out = a + a ** 10                # build symbolic expression
+   f = aesara.function([a], out)    # compile function
    print(f([0, 1, 2]))
 
 .. testoutput::
 
-   [    0.     2.  1026.]
+   [   0.    2. 1026.]
 
 
 Modify and execute this code to compute this expression: a ** 2 + b ** 2 + 2 * a * b.

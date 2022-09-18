@@ -108,9 +108,9 @@ All of the above can be succinctly summarized with the :func:`aesara.dprint`
 function:
 
 >>> aesara.dprint(y)
-Elemwise{mul,no_inplace} [id A] ''
+Elemwise{mul,no_inplace} [id A]
  |x [id B]
- |InplaceDimShuffle{x,x} [id C] ''
+ |InplaceDimShuffle{x,x} [id C]
    |TensorConstant{2.0} [id D]
 
 Starting from this graph structure it is easier to understand how
@@ -353,7 +353,7 @@ Consider the following example of rewrites:
 >>> b = a + a ** 10                    # build symbolic expression
 >>> f = aesara.function([a], b)        # compile function
 >>> print(f([0, 1, 2]))                # prints `array([0,2,1026])`
-[    0.     2.  1026.]
+[   0.    2. 1026.]
 >>> aesara.printing.pydotprint(b, outfile="./pics/symbolic_graph_no_rewrite.png", var_with_name_simple=True)  # doctest: +SKIP
 The output file is available at ./pics/symbolic_graph_no_rewrite.png
 >>> aesara.printing.pydotprint(f, outfile="./pics/symbolic_graph_rewite.png", var_with_name_simple=True)  # doctest: +SKIP

@@ -170,9 +170,9 @@ provide a structured gradient. More explication below.
  [ 0. -2.  1.]
  [ 3.  0.  0.]]
 >>> print(f(a).toarray())
-[[ 0.  0.  1.]
- [ 0.  0.  3.]
- [ 5.  0.  0.]]
+[[0. 0. 1.]
+ [0. 0. 3.]
+ [5. 0. 0.]]
 
 .. _tutsparse_gradient:
 

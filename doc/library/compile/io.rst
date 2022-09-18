@@ -118,7 +118,7 @@ We can also assign to ``inc[s]`` directly:
 
 >>> inc[s] = 10
 >>> inc[s]
-array(10.0)
+array(10.)
 
 Input Argument Restrictions
 ---------------------------
@@ -195,21 +195,21 @@ True
 True
 
 >>> fn['s']
-array(10.0)
+array(10.)
 >>> fn(1, 2)
 []
 >>> fn['s']
-array(13.0)
+array(13.)
 >>> fn['s'] = 99.0
 >>> fn(1, 0)
 []
 >>> fn['s']
-array(100.0)
+array(100.)
 >>> fn.value[c] = 99.0
 >>> fn(1,0)
 []
 >>> fn['s']
-array(100.0)
+array(100.)
 >>> fn['s'] == fn.value[c]
 True
 >>> fn['s'] == fn.container[c].value
@@ -255,21 +255,21 @@ Traceback (most recent call last):
   ...
 TypeError: Missing required input: y
 >>> fn(1, 2)            # legal, z is 42, w goes 0 -> 1 (because w <- w + x)
-array(45.0)
+array(45.)
 >>> fn(1, y=2)        # legal, z is 42, w goes 1 -> 2
-array(45.0)
+array(45.)
 >>> fn(x=1, y=2)    # illegal because x was not named # doctest: +ELLIPSIS
 Traceback (most recent call last):
   ...
 TypeError: Unknown input or state: x. The function has 3 named inputs (y, z, w), and 1 unnamed input which thus cannot be accessed through keyword argument (use 'name=...' in a variable's constructor to give it a name).
 >>> fn(1, 2, 3)         # legal, z is 3, w goes 2 -> 3
-array(6.0)
+array(6.)
 >>> fn(1, z=3, y=2) # legal, z is 3, w goes 3 -> 4
-array(6.0)
+array(6.)
 >>> fn(1, 2, w=400)   # legal, z is 42 again, w goes 400 -> 401
-array(45.0)
+array(45.)
 >>> fn(1, 2)            # legal, z is 42, w goes 401 -> 402
-array(45.0)
+array(45.)
 
 In the example above, ``z`` has value 42 when no value is explicitly given.
 This default value is potentially used at every function invocation, because
@@ -313,18 +313,18 @@ If a list of ``Variable`` or ``Out`` instances is given as argument, then the co
 >>> # print a list of 2 ndarrays
 >>> fn1 = aesara.function([x], [x+x, Out((x+x).T, borrow=True)])
 >>> fn1(numpy.asarray([[1,0],[0,1]]))
-[array([[ 2.,  0.],
-       [ 0.,  2.]]), array([[ 2.,  0.],
-       [ 0.,  2.]])]
+[array([[2., 0.],
+       [0., 2.]]), array([[2., 0.],
+       [0., 2.]])]
 
 >>> # print a list of 1 ndarray
 >>> fn2 = aesara.function([x], [x+x])
 >>> fn2(numpy.asarray([[1,0],[0,1]]))
-[array([[ 2.,  0.],
-       [ 0.,  2.]])]
+[array([[2., 0.],
+       [0., 2.]])]
 
 >>> # print an ndarray
 >>> fn3 = aesara.function([x], outputs=x+x)
 >>> fn3(numpy.asarray([[1,0],[0,1]]))
-array([[ 2.,  0.],
-       [ 0.,  2.]])
+array([[2., 0.],
+       [0., 2.]])

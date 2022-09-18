@@ -29,7 +29,7 @@ Instead there is the :class:`Print` Op.
 >>> printed_x = hello_world_op(x)
 >>> f = function([x], printed_x)
 >>> r = f([1, 2, 3])
-hello world __str__ = [ 1.  2.  3.]
+hello world __str__ = [1. 2. 3.]
 
 If you print more than one thing in a function like `f`, they will not
 necessarily be printed in the order that you think.  The order might even depend
@@ -51,16 +51,16 @@ Aesara also provides :func:`aesara.printing.pydotprint` that creates a png image
 
 1) The first is :func:`aesara.pp`.
 
->>> from aesara import pp, grad,
->>> from aesara import tensor as at
+>>> from aesara import pp, grad
+>>> import aesara.tensor as at
 >>> x = at.dscalar('x')
 >>> y = x ** 2
 >>> gy = grad(y, x)
 >>> pp(gy)  # print out the gradient prior to rewriting
-'((fill((x ** TensorConstant{2}), TensorConstant{1.0}) * TensorConstant{2}) * (x ** (TensorConstant{2} - TensorConstant{1})))'
+'((fill((x ** 2), 1.0) * 2) * (x ** (2 - 1)))'
 >>> f = function([x], gy)
 >>> pp(f.maker.fgraph.outputs[0])
-'(TensorConstant{2.0} * x)'
+'(2.0 * x)'
 
 The parameter in at.dscalar('x') in the first line is the name of this variable
 in the graph. This name is used when printing the graph to make it more readable.

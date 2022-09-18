@@ -55,9 +55,9 @@ array([[0, 1, 2],
        [3, 4, 5],
        [6, 7, 8]])
 >>> f_row(R, M)
-[array([[  0.,   2.,   4.],
-       [  3.,   5.,   7.],
-       [  6.,   8.,  10.]])]
+[array([[ 0.,  2.,  4.],
+       [ 3.,  5.,  7.],
+       [ 6.,  8., 10.]])]
 >>> c = at.col()
 >>> c.broadcastable
 (False, True)
@@ -69,9 +69,9 @@ array([[0],
        [2]])
 >>> M = np.arange(9).reshape(3, 3)
 >>> f_col(C, M)
-[array([[  0.,   1.,   2.],
-       [  4.,   5.,   6.],
-       [  8.,   9.,  10.]])]
+[array([[ 0.,  1.,  2.],
+       [ 4.,  5.,  6.],
+       [ 8.,  9., 10.]])]
 
 In these examples, we can see that both the row vector and the column vector are broadcasted in order to be be added to the matrix.
 

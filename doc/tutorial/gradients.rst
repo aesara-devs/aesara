@@ -28,10 +28,10 @@ Here is the code to compute this gradient:
 >>> y = x ** 2
 >>> gy = at.grad(y, x)
 >>> pp(gy)  # print out the gradient prior to optimization
-'((fill((x ** TensorConstant{2}), TensorConstant{1.0}) * TensorConstant{2}) * (x ** (TensorConstant{2} - TensorConstant{1})))'
+'((fill((x ** 2), 1.0) * 2) * (x ** (2 - 1)))'
 >>> f = aesara.function([x], gy)
 >>> f(4)
-array(8.0)
+array(8.)
 >>> numpy.allclose(f(94.2), 188.4)
 True
 
@@ -69,8 +69,8 @@ logistic is: :math:`ds(x)/dx = s(x) \cdot (1 - s(x))`.
 >>> gs = at.grad(s, x)
 >>> dlogistic = aesara.function([x], gs)
 >>> dlogistic([[0, 1], [-1, -2]])
-array([[ 0.25      ,  0.19661193],
-       [ 0.19661193,  0.10499359]])
+array([[0.25      , 0.19661193],
+       [0.19661193, 0.10499359]])
 
 In general, for any **scalar** expression ``s``, ``at.grad(s, w)`` provides
 the Aesara expression for computing :math:`\frac{\partial s}{\partial w}`. In
@@ -123,8 +123,8 @@ do is to loop over the entries in ``y`` and compute the gradient of
 >>> J, updates = aesara.scan(lambda i, y, x : at.grad(y[i], x), sequences=at.arange(y.shape[0]), non_sequences=[y, x])
 >>> f = aesara.function([x], J, updates=updates)
 >>> f([4, 4])
-array([[ 8.,  0.],
-       [ 0.,  8.]])
+array([[8., 0.],
+       [0., 8.]])
 
 What we do in this code is to generate a sequence of integers from ``0`` to
 ``y.shape[0]`` using `at.arange`. Then we loop through this sequence, and
@@ -162,8 +162,8 @@ scalar.
 >>> H, updates = aesara.scan(lambda i, gy,x : at.grad(gy[i], x), sequences=at.arange(gy.shape[0]), non_sequences=[gy, x])
 >>> f = aesara.function([x], H, updates=updates)
 >>> f([4, 4])
-array([[ 2.,  0.],
-       [ 0.,  2.]])
+array([[2., 0.],
+       [0., 2.]])
 
 
 Jacobian times a Vector
@@ -202,7 +202,7 @@ you need to do something similar to this:
 >>> JV = aesara.gradient.Rop(y, W, V)
 >>> f = aesara.function([W, V, x], JV)
 >>> f([[1, 1], [1, 1]], [[2, 2], [2, 2]], [0,1])
-array([ 2.,  2.])
+array([2., 2.])
 
 :ref:`List <R_op_list>` of Op that implement Rop.
 
@@ -221,8 +221,8 @@ f(x)}{\partial x}`. The L-operator is also supported for generic tensors
 >>> VJ = aesara.gradient.Lop(y, W, v)
 >>> f = aesara.function([v,x], VJ)
 >>> f([2, 2], [0, 1])
-array([[ 0.,  0.],
-       [ 2.,  2.]])
+array([[0., 0.],
+       [2., 2.]])
 
 .. note::
 
@@ -253,7 +253,7 @@ Hence, we suggest profiling the methods before using either one of the two:
 >>> vH = at.grad(at.sum(gy * v), x)
 >>> f = aesara.function([x, v], vH)
 >>> f([4, 4], [2, 2])
-array([ 4.,  4.])
+array([4., 4.])
 
 
 or, making use of the R-operator:
@@ -265,7 +265,7 @@ or, making use of the R-operator:
 >>> Hv = aesara.gradient.Rop(gy, x, v)
 >>> f = aesara.function([x, v], Hv)
 >>> f([4, 4], [2, 2])
-array([ 4.,  4.])
+array([4., 4.])
 
 
 Final Pointers

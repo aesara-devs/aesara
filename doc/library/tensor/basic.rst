@@ -119,6 +119,7 @@ They are all callable, and accept an optional ``name`` argument.  So for example
 
 .. testcode:: constructors
 
+   import aesara.tensor as at
    x = at.dmatrix()        # creates one Variable with no name
    x = at.dmatrix('x')     # creates one Variable with name 'x'
    xyz = at.dmatrix('xyz') # creates one Variable with name 'xyz'
@@ -245,6 +246,8 @@ create one `Variable` for each string, using the string as the `Variable`'s
 name. For example:
 
 .. testcode:: constructors
+
+   import aesara.tensor as at
 
    # Creates three matrix `Variable`s with no names
    x, y, z = at.dmatrices(3)
@@ -886,8 +889,8 @@ Creating Tensors
     >>> X = stacklists([[a, b], [c, d]])
     >>> f = function([a, b, c, d], X)
     >>> f(1, 2, 3, 4)
-    array([[ 1.,  2.],
-           [ 3.,  4.]])
+    array([[1., 2.],
+           [3., 4.]])
 
     We can also stack arbitrarily shaped tensors. Here we stack matrices into
     a 2 by 2 grid:

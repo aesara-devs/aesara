@@ -55,10 +55,10 @@ The full documentation can be found in the library: :ref:`Scan <lib_scan>`.
 
 .. testoutput::
 
-    [[ 0.96402758  0.99505475]
-     [ 0.96402758  0.99505475]]
-    [[ 0.96402758  0.99505475]
-     [ 0.96402758  0.99505475]]
+    [[0.96402758 0.99505475]
+     [0.96402758 0.99505475]]
+    [[0.96402758 0.99505475]
+     [0.96402758 0.99505475]]
 
 **Scan Example: Computing the sequence x(t) = tanh(x(t - 1).dot(W) + y(t).dot(U) + p(T - t).dot(V))**
 
@@ -136,8 +136,8 @@ The full documentation can be found in the library: :ref:`Scan <lib_scan>`.
 
 .. testoutput::
 
-    [ 1.  2.  3.  4.  5.  0.]
-    [ 1.  2.  3.  4.  5.  0.]
+    [1. 2. 3. 4. 5. 0.]
+    [1. 2. 3. 4. 5. 0.]
 
 **Scan Example: Computing norms of columns of X**
 
@@ -161,8 +161,8 @@ The full documentation can be found in the library: :ref:`Scan <lib_scan>`.
 
 .. testoutput::
 
-    [ 0.  1.  2.  3.  4.  5.]
-    [ 0.  1.  2.  3.  4.  5.]
+    [0. 1. 2. 3. 4. 5.]
+    [0. 1. 2. 3. 4. 5.]
 
 **Scan Example: Computing trace of X**
 
@@ -238,26 +238,26 @@ The full documentation can be found in the library: :ref:`Scan <lib_scan>`.
 
 .. testoutput::
 
-    [[  1.40514825   1.40514825]
-     [  2.88898899   2.38898899]
-     [  4.34018291   4.34018291]
-     [  6.53463142   6.78463142]
-     [  9.82972243   9.82972243]
-     [ 14.22203814  14.09703814]
-     [ 20.07439936  20.07439936]
-     [ 28.12291843  28.18541843]
-     [ 39.1913681   39.1913681 ]
-     [ 54.28407732  54.25282732]]
-    [[  1.40514825   1.40514825]
-     [  2.88898899   2.38898899]
-     [  4.34018291   4.34018291]
-     [  6.53463142   6.78463142]
-     [  9.82972243   9.82972243]
-     [ 14.22203814  14.09703814]
-     [ 20.07439936  20.07439936]
-     [ 28.12291843  28.18541843]
-     [ 39.1913681   39.1913681 ]
-     [ 54.28407732  54.25282732]]
+    [[ 1.40514825  1.40514825]
+     [ 2.88898899  2.38898899]
+     [ 4.34018291  4.34018291]
+     [ 6.53463142  6.78463142]
+     [ 9.82972243  9.82972243]
+     [14.22203814 14.09703814]
+     [20.07439936 20.07439936]
+     [28.12291843 28.18541843]
+     [39.1913681  39.1913681 ]
+     [54.28407732 54.25282732]]
+    [[ 1.40514825  1.40514825]
+     [ 2.88898899  2.38898899]
+     [ 4.34018291  4.34018291]
+     [ 6.53463142  6.78463142]
+     [ 9.82972243  9.82972243]
+     [14.22203814 14.09703814]
+     [20.07439936 20.07439936]
+     [28.12291843 28.18541843]
+     [39.1913681  39.1913681 ]
+     [54.28407732 54.25282732]]
 
 
 **Scan Example: Computing the Jacobian of y = tanh(v.dot(A)) wrt x**
@@ -286,12 +286,12 @@ The full documentation can be found in the library: :ref:`Scan <lib_scan>`.
 
 .. testoutput::
 
-    [[ 0.41997434  0.          0.41997434  0.          0.        ]
-     [ 0.          1.          1.          0.          0.        ]
-     [ 0.          0.          1.          0.          0.        ]]
-    [[ 0.41997434  0.          0.41997434  0.          0.        ]
-     [ 0.          1.          1.          0.          0.        ]
-     [ 0.          0.          1.          0.          0.        ]]
+    [[0.41997434 0.         0.41997434 0.         0.        ]
+     [0.         1.         1.         0.         0.        ]
+     [0.         0.         1.         0.         0.        ]]
+    [[0.41997434 0.         0.41997434 0.         0.        ]
+     [0.         1.         1.         0.         0.        ]
+     [0.         0.         1.         0.         0.        ]]
 
 Note that we need to iterate over the indices of ``y`` and not over the elements of ``y``. The reason is that scan create a placeholder variable for its internal function and this placeholder variable does not have the same dependencies than the variables that will replace it.
 
@@ -384,7 +384,7 @@ Note that if you want to use a random variable ``d`` that will not be updated th
 
 .. testoutput::
 
-    [  0.   1.   4.   9.  16.  25.  36.  49.  64.  81.]
+    [ 0.  1.  4.  9. 16. 25. 36. 49. 64. 81.]
 
 
 **Scan Example: Calculating a Polynomial**

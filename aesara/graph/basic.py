@@ -926,6 +926,7 @@ def orphans_between(
 
     Examples
     --------
+    >>> from aesara.graph.basic import orphans_between
     >>> orphans_between([x], [(x+y).out])
     [y]
 

@@ -22,7 +22,7 @@ You've already seen example usage in the basic tutorial... something like this:
 >>> x = aesara.tensor.dscalar()
 >>> f = aesara.function([x], 2*x)
 >>> f(4)
-array(8.0)
+array(8.)
 
 The idea here is that we've compiled the symbolic graph (``2*x``) into a function that can be called on a number and will do some computations.
 

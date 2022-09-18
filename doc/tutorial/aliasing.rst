@@ -78,9 +78,9 @@ subsequently make to ``np_array`` have no effect on our shared variable.
 
 .. testoutput:: borrow
 
-   [ 1.  1.]
-   [ 1.  1.]
-   [ 2.  2.]
+    [1. 1.]
+    [1. 1.]
+    [2. 2.]
 
 
 If we are running this with the CPU as the device,

@@ -349,12 +349,12 @@ must define ``filter`` and ``values_eq_approx``.
 
     # note that we shadow python's function ``filter`` with this
     # definition.
-    def filter(x, strict=false, allow_downcast=none):
+    def filter(x, strict=False, allow_downcast=None):
         if strict:
             if isinstance(x, float):
                 return x
             else:
-                raise typeerror('expected a float!')
+                raise TypeError('expected a float!')
         elif allow_downcast:
             return float(x)
         else:   # covers both the false and none cases.

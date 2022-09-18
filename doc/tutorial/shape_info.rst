@@ -19,10 +19,10 @@ Example:
 >>> x = aesara.tensor.matrix('x')
 >>> f = aesara.function([x], (x ** 2).shape)
 >>> aesara.dprint(f)
-MakeVector{dtype='int64'} [id A] ''   2
- |Shape_i{0} [id B] ''   1
+MakeVector{dtype='int64'} [id A] 2
+ |Shape_i{0} [id B] 1
  | |x [id C]
- |Shape_i{1} [id D] ''   0
+ |Shape_i{1} [id D] 0
    |x [id C]
 
 
@@ -78,14 +78,14 @@ Sometimes this can lead to errors.  Consider this example:
 >>> yv = np.random.random((3, 3))
 
 >>> f = aesara.function([x, y], z.shape)
->>> aesara.printing.debugprint(f) # doctest: +NORMALIZE_WHITESPACE
-MakeVector{dtype='int64'} [id A] ''   4
- |Elemwise{Add}[(0, 0)] [id B] ''   3
- | |Shape_i{0} [id C] ''   2
+>>> aesara.printing.debugprint(f)
+MakeVector{dtype='int64'} [id A] 4
+ |Elemwise{Add}[(0, 0)] [id B] 3
+ | |Shape_i{0} [id C] 2
  | | |x [id D]
- | |Shape_i{0} [id E] ''   1
+ | |Shape_i{0} [id E] 1
  |   |y [id F]
- |Shape_i{1} [id G] ''   0
+ |Shape_i{1} [id G] 0
    |x [id D]
 
 >>> f(xv, yv) # DOES NOT RAISE AN ERROR AS SHOULD BE.
@@ -93,7 +93,7 @@ array([8, 4])
 
 >>> f = aesara.function([x,y], z)# Do not take the shape.
 >>> aesara.printing.debugprint(f) # doctest: +NORMALIZE_WHITESPACE
-Join [id A] ''   0
+Join [id A] 0
  |TensorConstant{0} [id B]
  |x [id C]
  |y [id D]

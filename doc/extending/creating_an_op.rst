@@ -516,6 +516,9 @@ We can test this by running the following segment:
 
 .. testcode:: properties
 
+    import numpy as np
+    import aesara.tensor as at
+
     mult4plus5op = AXPBOp(4, 5)
     another_mult4plus5op = AXPBOp(4, 5)
     mult2plus3op = AXPBOp(2, 3)
@@ -523,7 +526,7 @@ We can test this by running the following segment:
     assert mult4plus5op == another_mult4plus5op
     assert mult4plus5op != mult2plus3op
 
-    x = aesara.tensor.matrix()
+    x = at.matrix()
     f = aesara.function([x], mult4plus5op(x))
     g = aesara.function([x], mult2plus3op(x))
 
@@ -667,8 +670,8 @@ For instance, to verify the :meth:`Rop` method of the ``DoubleOp``, you can use 
 
 .. testcode:: tests
 
-   import numpy
    import tests
+   import numpy as np
    from tests.test_rop import RopLop_checker
    class TestDoubleRop(RopLop_checker):
        def setUp(self):

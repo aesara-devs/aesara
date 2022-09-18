@@ -113,7 +113,7 @@
 
        x, y, b = at.dvectors('x', 'y', 'b')
        W = at.dmatrix('W')
-       y = at.nnet.softplus(at.dot(W,x) + b)
+       y = at.nnet.basic.softplus(at.dot(W,x) + b)
 
 .. function:: softsign(x)
 
@@ -206,7 +206,7 @@
        x_precons = at.dot(V, h) + c
        # final reconstructions are given by sigmoid(x_precons), but we leave
        # them unnormalized as sigmoid_binary_crossentropy applies sigmoid
-       recon_cost = at.sigmoid_binary_crossentropy(x_precons, x).mean()
+       recon_cost = at.nnet.basic.sigmoid_binary_crossentropy(x_precons, x).mean()
 
 .. function:: categorical_crossentropy(coding_dist,true_dist)
 
