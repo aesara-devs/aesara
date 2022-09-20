@@ -1892,7 +1892,7 @@ class Split(COp):
         if splits.type.ndim == 1 and splits.type.dtype not in integer_dtypes:
             raise TypeError("`splits` parameter must be tensors of integer type")
 
-        if axis.type.dtype not in integer_dtypes:
+        if axis.type.dtype not in integer_dtypes or axis.ndim != 0:
             raise TypeError("`axis` parameter must be an integer scalar")
 
         inputs = [x, axis, splits]

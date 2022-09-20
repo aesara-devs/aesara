@@ -1214,6 +1214,9 @@ class TestJoinAndSplit:
             Split(2)(matrix(), dscalar(), [1, 1])
 
         with pytest.raises(TypeError, match=".*integer.*"):
+            Split(2)(matrix(), ivector(), [1, 1])
+
+        with pytest.raises(TypeError, match=".*integer.*"):
             join(dscalar(), matrix(), matrix())
 
     def test_join_scalar(self):
