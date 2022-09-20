@@ -419,30 +419,34 @@ class Elemwise(OpenMPOp):
         # broadcastable bit in turn.
 
         def get_most_specialized_shape(shapes):
-            if None not in shapes:
-                # We could check if shapes are valid under broadcasting
-                # len(set(dims).discard(1)) <= 1
-                return max(shapes)
+            shapes = set(shapes)
+            # All shapes are the same
+            if len(shapes) == 1:
+                return tuple(shapes)[0]
 
-            known_shapes = [shape for shape in shapes if shape is not None]
-            if known_shapes:
-                largest_known_shape = max(known_shapes)
-                # If largest known shape is 1, and there is an unknown shape, we don't
-                # know the final shape, because this could be broadcasted
-                if largest_known_shape > 1:
-                    # Again, we could check that known shapes are valid under broacasting
-                    return largest_known_shape
+            # Only valid indeterminate case
+            if shapes == {None, 1}:
+                return None
 
-            return None
+            shapes.discard(1)
+            shapes.discard(None)
+            if len(shapes) > 1:
+                raise ValueError
+            return tuple(shapes)[0]
 
         # it is multiplied by nout because Elemwise supports multiple outputs
         # (nout of them)
-        out_shapes = [
-            [
-                get_most_specialized_shape(shape)
-                for shape in zip(*[input.type.shape for input in inputs])
-            ]
-        ] * shadow.nout
+        try:
+            out_shapes = [
+                [
+                    get_most_specialized_shape(shape)
+                    for shape in zip(*[inp.type.shape for inp in inputs])
+                ]
+            ] * shadow.nout
+        except ValueError:
+            raise ValueError(
+                f"Incompatible Elemwise input shapes {[inp.type.shape for inp in inputs]}"
+            )
 
         # inplace_pattern maps output idx -> input idx
         inplace_pattern = self.inplace_pattern
