@@ -1896,7 +1896,8 @@ class Split(COp):
             raise TypeError("`axis` parameter must be an integer scalar")
 
         inputs = [x, axis, splits]
-        outputs = [x.type() for i in range(self.len_splits)]
+        out_type = TensorType(dtype=x.dtype, shape=[None] * x.type.ndim)
+        outputs = [out_type() for i in range(self.len_splits)]
 
         return Apply(self, inputs, outputs)
 
