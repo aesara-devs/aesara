@@ -179,3 +179,22 @@ def test_scan_while():
         np.array(45).astype(config.floatX),
     ]
     compare_numba_and_py(out_fg, test_input_vals)
+
+
+def test_scan_multiple_none_output():
+    A = at.dvector("A")
+
+    def power_step(prior_result, x):
+        return prior_result * x, prior_result * x * x, prior_result * x * x * x
+
+    result, _ = scan(
+        power_step,
+        non_sequences=[A],
+        outputs_info=[at.ones_like(A), None, None],
+        n_steps=3,
+    )
+
+    out_fg = FunctionGraph([A], result)
+    test_input_vals = (np.array([1.0, 2.0]),)
+
+    compare_numba_and_py(out_fg, test_input_vals)
