@@ -1937,6 +1937,12 @@ class TestJoinAndSplit:
         with pytest.raises(ValueError):
             f()
 
+    def test_split_static_shape(self):
+        x = TensorType("floatX", shape=(5,))("x")
+        s = iscalar("s")
+        y = Split(2)(x, 0, [s, 5 - s])[0]
+        assert y.type.shape == (None,)
+
 
 def test_join_inplace():
     # Test join to work inplace.
