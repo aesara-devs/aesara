@@ -10,6 +10,7 @@ def pytest_sessionstart(session):
             "warn__ignore_bug_before=all,on_opt_error=raise,on_shape_error=raise,cmodule__warn_no_version=True",
         ]
     )
+    os.environ["NUMBA_BOUNDSCHECK"] = "1"
 
 
 def pytest_addoption(parser):
