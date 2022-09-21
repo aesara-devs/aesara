@@ -1,3 +1,5 @@
+from textwrap import dedent, indent
+
 import numpy as np
 from numba import types
 from numba.extending import overload
@@ -72,11 +74,10 @@ def numba_funcify_Scan(op, node, **kwargs):
     allocate_mem_to_nit_sot = ""
 
     for _name in outer_in_seqs_names:
-        # A sequence with multiple taps is provided as multiple modified
-        # input sequences to the Scan Op sliced appropriately
-        # to keep following the logic of a normal sequence.
-        index = "[i]"
-        inner_in_indexed.append(_name + index)
+        # A sequence with multiple taps is provided as multiple modified input
+        # sequences--all sliced so as to keep following the logic of a normal
+        # sequence.
+        inner_in_indexed.append(f"{_name}[i]")
 
     name_to_input_map = dict(zip(input_names, node.inputs[1:]))
     mit_sot_name_to_taps = dict(zip(outer_in_mit_sot_names, mit_sot_in_taps))
@@ -88,31 +89,34 @@ def numba_funcify_Scan(op, node, **kwargs):
 
             for _tap in curr_taps:
                 index = idx_to_str(_tap - min_tap)
-                inner_in_indexed.append(_name + index)
+                inner_in_indexed.append(f"{_name}{index}")
 
             inner_out_name_to_index[_name] = -min_tap
 
         if _name in outer_in_sit_sot_names:
-            # Note that the outputs with single taps which are not
-            # -1 are (for instance taps = [-2]) are classified
-            # as mit-sot so the code for handling sit-sots remains
-            # constant as follows
-            index = "[i]"
-            inner_in_indexed.append(_name + index)
+            # Note that the outputs with single, non-`-1` taps are (e.g. `taps
+            # = [-2]`) are classified as mit-sot, so the code for handling
+            # sit-sots remains constant as follows
+            inner_in_indexed.append(f"{_name}[i]")
             inner_out_name_to_index[_name] = 1
 
         if _name in outer_in_nit_sot_names:
-            inner_out_name_to_index[_name] = 0
-            # In case of nit-sots we are provided shape of the array
-            # instead of actual arrays like other cases, hence we
-            # allocate space for the results accordingly.
+            output_name = f"{_name}_nitsot_storage"
+            inner_out_name_to_index[output_name] = 0
+            # In case of nit-sots we are provided the shape of the array
+            # instead of actual arrays (like other cases), hence we allocate
+            # space for the results accordingly.
             curr_nit_sot_position = input_names.index(_name) - n_seqs
             curr_nit_sot = inner_fg.outputs[curr_nit_sot_position]
             mem_shape = ["1"] * curr_nit_sot.ndim
             curr_dtype = curr_nit_sot.type.numpy_dtype.name
-            allocate_mem_to_nit_sot += f"""
-    {_name} = [np.zeros(({create_arg_string(mem_shape)}), dtype=np.{curr_dtype})]*{_name}.item()
-"""
+            allocate_mem_to_nit_sot += dedent(
+                f"""
+            {output_name} = [
+                np.empty(({create_arg_string(mem_shape)},), dtype=np.{curr_dtype}) for i in range({_name}.item())
+            ]"""
+            )
+
     # The non_seqs are passed to inner function as-is
     inner_in_indexed += outer_in_non_seqs_names
     inner_out_indexed = [
@@ -121,7 +125,7 @@ def numba_funcify_Scan(op, node, **kwargs):
 
     while_logic = ""
     if op.info.as_while:
-        # The inner function will be returning a boolean as last argument
+        # The inner function will return a boolean as the last value
         inner_out_indexed.append("while_flag")
         while_logic += """
         if while_flag:
@@ -137,18 +141,18 @@ def numba_funcify_Scan(op, node, **kwargs):
     global_env = locals()
     global_env["np"] = np
 
+    output_names = outer_in_mit_sot_names + outer_in_sit_sot_names
+    output_names += [f"{n}_nitsot_storage" for n in outer_in_nit_sot_names]
+
     scan_op_src = f"""
 def scan(n_steps, {", ".join(input_names)}):
-{allocate_mem_to_nit_sot}
+{indent(allocate_mem_to_nit_sot, " " * 4)}
+
     for i in range(n_steps):
         inner_args = {create_tuple_string(inner_in_indexed)}
         {create_tuple_string(inner_out_indexed)} = numba_at_inner_func(*inner_args)
 {while_logic}
-    return {create_arg_string(
-        outer_in_mit_sot_names +
-        outer_in_sit_sot_names +
-        outer_in_nit_sot_names
-    )}
+    return {create_arg_string(output_names)}
     """
     scalar_op_fn = compile_function_src(
         scan_op_src, "scan", {**globals(), **global_env}
