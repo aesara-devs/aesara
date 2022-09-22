@@ -837,6 +837,22 @@ def test_shared():
     np.testing.assert_allclose(numba_res, new_a_value * 2)
 
 
+def test_shared_updates():
+    a = shared(0)
+
+    aesara_numba_fn = function([], a, updates={a: a + 1}, mode="NUMBA")
+    res1, res2 = aesara_numba_fn(), aesara_numba_fn()
+    assert res1 == 0
+    assert res2 == 1
+    assert a.get_value() == 2
+
+    a.set_value(5)
+    res1, res2 = aesara_numba_fn(), aesara_numba_fn()
+    assert res1 == 5
+    assert res2 == 6
+    assert a.get_value() == 7
+
+
 # We were seeing some weird results in CI where the following two almost
 # sign-swapped results were being return from Numba and Python, respectively.
 # The issue might be related to https://github.com/numba/numba/issues/4519.
