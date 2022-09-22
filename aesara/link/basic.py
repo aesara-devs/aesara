@@ -641,7 +641,8 @@ class JITLinker(PerformLinker):
             The JITed function that performs the computations.
 
         """
-        output_nodes = [o.owner for o in self.fgraph.outputs]
+        # This is a bit hackish, but we only return one of the output nodes
+        output_nodes = [o.owner for o in self.fgraph.outputs if o.owner is not None][:1]
 
         converted_fgraph = self.fgraph_convert(
             self.fgraph,
@@ -678,8 +679,7 @@ class JITLinker(PerformLinker):
 
         thunks.append(thunk)
 
-        # This is a bit hackish, but we only return one of the output nodes
-        return thunks, output_nodes[:1], fgraph_jit
+        return thunks, output_nodes, fgraph_jit
 
     def make_all(self, input_storage=None, output_storage=None, storage_map=None):
         fgraph = self.fgraph
