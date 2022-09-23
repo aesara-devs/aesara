@@ -1,7 +1,7 @@
 from abc import abstractmethod
 from typing import Any, Generic, Optional, Text, Tuple, TypeVar, Union
 
-from typing_extensions import TypeAlias
+from typing_extensions import Protocol, TypeAlias, runtime_checkable
 
 from aesara.graph import utils
 from aesara.graph.basic import Constant, Variable
@@ -262,14 +262,22 @@ class Type(MetaObject, Generic[D]):
         return cls.values_eq(a, b)
 
 
-class HasDataType:
-    """A mixin for a type that has a :attr:`dtype` attribute."""
-
-    dtype: str
+DataType = str
 
 
-class HasShape:
-    """A mixin for a type that has :attr:`shape` and :attr:`ndim` attributes."""
+@runtime_checkable
+class HasDataType(Protocol):
+    """A protocol matching any class with :attr:`dtype` attribute."""
+
+    dtype: DataType
+
+
+ShapeType = Tuple[Optional[int], ...]
+
+
+@runtime_checkable
+class HasShape(Protocol):
+    """A protocol matching any class that has :attr:`shape` and :attr:`ndim` attributes."""
 
     ndim: int
-    shape: Tuple[Optional[int], ...]
+    shape: ShapeType

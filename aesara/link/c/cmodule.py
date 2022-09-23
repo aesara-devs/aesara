@@ -2441,7 +2441,7 @@ class GCC_compiler(Compiler):
         if sys.platform != "win32":
             return [f"-l{l}" for l in libs]
 
-        def sort_key(lib):  # type: ignore
+        def sort_key(lib):
             name, *numbers, extension = lib.split(".")
             return (extension == "dll", tuple(map(int, numbers)))
 

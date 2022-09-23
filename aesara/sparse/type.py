@@ -7,7 +7,6 @@ from typing_extensions import Literal
 import aesara
 from aesara import scalar as aes
 from aesara.graph.basic import Variable
-from aesara.graph.type import HasDataType
 from aesara.tensor.type import DenseTensorType, TensorType
 
 
@@ -33,7 +32,7 @@ def _is_sparse(x):
     return isinstance(x, scipy.sparse.spmatrix)
 
 
-class SparseTensorType(TensorType, HasDataType):
+class SparseTensorType(TensorType):
     """A `Type` for sparse tensors.
 
     Notes
