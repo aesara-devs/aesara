@@ -79,7 +79,7 @@ class TDouble(CType):
         return hash(type(self))
 
 
-tdouble = TDouble()
+tdouble = TDouble.subtype()
 
 
 def double(name):

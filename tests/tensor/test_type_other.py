@@ -16,7 +16,7 @@ from aesara.tensor.type_other import (
 
 
 def test_SliceType():
-    st = SliceType()
+    st = SliceType.subtype()
     assert st == st.clone()
 
 
@@ -36,8 +36,8 @@ def test_none_Constant():
     # Tests equals
     # We had an error in the past with unpickling
 
-    o1 = Constant(NoneTypeT(), None, name="NoneConst")
-    o2 = Constant(NoneTypeT(), None, name="NoneConst")
+    o1 = Constant(NoneTypeT.subtype(), None, name="NoneConst")
+    o2 = Constant(NoneTypeT.subtype(), None, name="NoneConst")
     assert o1.equals(o2)
     assert NoneConst.equals(o1)
     assert o1.equals(NoneConst)

@@ -1122,7 +1122,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         rng = np.random.default_rng(utt.fetch_seed())
         maxpoolshps = [(3, 2)]
         imval = rng.random((2, 1, 1, 1, 3, 4))
-        images = TensorType("float64", [False] * 6)()
+        images = TensorType.subtype("float64", [False] * 6)()
 
         for maxpoolshp, ignore_border, mode in product(
             maxpoolshps,

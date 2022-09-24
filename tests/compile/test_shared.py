@@ -36,11 +36,11 @@ class TestSharedVariable:
 
         # test tensor constructor
         b = shared(np.zeros((5, 5), dtype="int32"))
-        assert b.type == TensorType("int32", shape=[False, False])
+        assert b.type == TensorType.subtype("int32", shape=[False, False])
         b = shared(np.random.random((4, 5)))
-        assert b.type == TensorType("float64", shape=[False, False])
+        assert b.type == TensorType.subtype("float64", shape=[False, False])
         b = shared(np.random.random((5, 1, 2)))
-        assert b.type == TensorType("float64", shape=[False, False, False])
+        assert b.type == TensorType.subtype("float64", shape=[False, False, False])
 
         assert shared([]).type == generic
 
@@ -67,7 +67,7 @@ class TestSharedVariable:
         # so creation should work
         SharedVariable(
             name="u",
-            type=TensorType(shape=[False], dtype="float64"),
+            type=TensorType.subtype(shape=[False], dtype="float64"),
             value=np.asarray([1.0, 2.0]),
             strict=False,
         )
@@ -76,7 +76,7 @@ class TestSharedVariable:
         # so creation should work
         SharedVariable(
             name="u",
-            type=TensorType(shape=[False], dtype="float64"),
+            type=TensorType.subtype(shape=[False], dtype="float64"),
             value=[1.0, 2.0],
             strict=False,
         )
@@ -85,7 +85,7 @@ class TestSharedVariable:
         # so creation should work
         SharedVariable(
             name="u",
-            type=TensorType(shape=[False], dtype="float64"),
+            type=TensorType.subtype(shape=[False], dtype="float64"),
             value=[1, 2],  # different dtype and not a numpy array
             strict=False,
         )
@@ -95,7 +95,7 @@ class TestSharedVariable:
         try:
             SharedVariable(
                 name="u",
-                type=TensorType(shape=[False], dtype="float64"),
+                type=TensorType.subtype(shape=[False], dtype="float64"),
                 value=dict(),  # not an array by any stretch
                 strict=False,
             )
@@ -109,7 +109,7 @@ class TestSharedVariable:
         # so creation should work
         u = SharedVariable(
             name="u",
-            type=TensorType(shape=[False], dtype="float64"),
+            type=TensorType.subtype(shape=[False], dtype="float64"),
             value=np.asarray([1.0, 2.0]),
             strict=False,
         )

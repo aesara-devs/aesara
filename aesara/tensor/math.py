@@ -134,7 +134,7 @@ class MaxAndArgmax(COp):
     nin = 2  # tensor, axis
     nout = 2  # max val, max idx
     E_axis = "invalid axis"
-    params_type = Generic()
+    params_type = Generic.subtype()
     __props__ = ("axis",)
     _f16_ok = True
 
@@ -307,7 +307,7 @@ class MaxAndArgmax(COp):
 
         # if the op is totally disconnected, so are its inputs
         if g_max_disconnected and g_max_idx_disconnected:
-            return [DisconnectedType()(), DisconnectedType()()]
+            return [DisconnectedType.subtype()(), DisconnectedType.subtype()()]
 
         # if the max is disconnected but the argmax is not,
         # the gradient on its inputs is zero
@@ -350,7 +350,7 @@ class Argmax(COp):
     __props__ = ("axis",)
     _f16_ok = True
 
-    params_type = ParamsType(c_axis=aes.int64)
+    params_type = ParamsType.subtype(c_axis=aes.int64)
 
     def __init__(self, axis):
         if axis is not None:
@@ -2931,7 +2931,7 @@ class MatMul(Op):
         out_shape = self._get_output_shape(
             a, b, (a.type.shape, b.type.shape), validate=True
         )
-        out = TensorType(dtype=self.dtype, shape=out_shape)()
+        out = TensorType.subtype(dtype=self.dtype, shape=out_shape)()
         return Apply(self, [a, b], [out])
 
     def perform(self, node, inputs, outputs):

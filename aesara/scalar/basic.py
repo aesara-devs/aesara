@@ -298,7 +298,7 @@ class ScalarType(CType):
     def clone(self, dtype=None, **kwargs):
         if dtype is None:
             dtype = self.dtype
-        return type(self)(dtype)
+        return type(self).subtype(dtype)
 
     @staticmethod
     def may_share_memory(a, b):
@@ -679,7 +679,7 @@ def get_scalar_type(dtype, cache: Dict[str, ScalarType] = {}) -> ScalarType:
 
     """
     if dtype not in cache:
-        cache[dtype] = ScalarType(dtype=dtype)
+        cache[dtype] = ScalarType.subtype(dtype=dtype)
     return cache[dtype]
 
 
@@ -2405,13 +2405,13 @@ class Second(BinaryScalarOp):
         (gz,) = gout
         if y.type in continuous_types:
             # x is disconnected because the elements of x are not used
-            return DisconnectedType()(), gz
+            return DisconnectedType.subtype()(), gz
         else:
             # when y is discrete, we assume the function can be extended
             # to deal with real-valued inputs by rounding them to the
             # nearest integer. f(x+eps) thus equals f(x) so the gradient
             # is zero, not disconnected or undefined
-            return DisconnectedType()(), y.zeros_like()
+            return DisconnectedType.subtype()(), y.zeros_like()
 
 
 second = Second(transfer_type(1), name="second")

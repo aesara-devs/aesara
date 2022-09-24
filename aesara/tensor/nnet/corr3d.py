@@ -52,8 +52,8 @@ class BaseCorr3dMM(OpenMPOp, _NoPythonOp):
 
     _direction: Optional[str] = None
 
-    params_type = ParamsType(
-        direction=EnumList(
+    params_type = ParamsType.subtype(
+        direction=EnumList.subtype(
             ("DIRECTION_FORWARD", "forward"),  # 0
             ("DIRECTION_BACKPROP_WEIGHTS", "backprop weights"),  # 1
             ("DIRECTION_BACKPROP_INPUTS", "backprop inputs"),
@@ -639,7 +639,7 @@ class Corr3dMM(BaseCorr3dMM):
             False,
         ]
         dtype = img.type.dtype
-        return Apply(self, [img, kern], [TensorType(dtype, broadcastable)()])
+        return Apply(self, [img, kern], [TensorType.subtype(dtype, broadcastable)()])
 
     def infer_shape(self, fgraph, node, input_shape):
         imshp = input_shape[0]
@@ -719,7 +719,7 @@ class Corr3dMMGradWeights(BaseCorr3dMM):
         return Apply(
             self,
             [img, topgrad] + height_width_depth,
-            [TensorType(dtype, broadcastable)()],
+            [TensorType.subtype(dtype, broadcastable)()],
         )
 
     def infer_shape(self, fgraph, node, input_shape):
@@ -784,7 +784,7 @@ class Corr3dMMGradWeights(BaseCorr3dMM):
             num_groups=self.num_groups,
         )(bottom, weights)
         d_height_width_depth = (
-            (aesara.gradient.DisconnectedType()(),) * 3 if len(inp) == 5 else ()
+            (aesara.gradient.DisconnectedType.subtype()(),) * 3 if len(inp) == 5 else ()
         )
         return (d_bottom, d_top) + d_height_width_depth
 
@@ -842,7 +842,7 @@ class Corr3dMMGradInputs(BaseCorr3dMM):
         return Apply(
             self,
             [kern, topgrad] + height_width_depth,
-            [TensorType(dtype, broadcastable)()],
+            [TensorType.subtype(dtype, broadcastable)()],
         )
 
     def infer_shape(self, fgraph, node, input_shape):
@@ -918,7 +918,7 @@ class Corr3dMMGradInputs(BaseCorr3dMM):
             num_groups=self.num_groups,
         )(bottom, weights)
         d_height_width_depth = (
-            (aesara.gradient.DisconnectedType()(),) * 3 if len(inp) == 5 else ()
+            (aesara.gradient.DisconnectedType.subtype()(),) * 3 if len(inp) == 5 else ()
         )
         return (d_weights, d_top) + d_height_width_depth
 

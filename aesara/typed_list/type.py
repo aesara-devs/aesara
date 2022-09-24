@@ -24,7 +24,7 @@ class TypedListType(CType):
         if depth == 0:
             self.ttype = ttype
         else:
-            self.ttype = TypedListType(ttype, depth - 1)
+            self.ttype = TypedListType.subtype(ttype, depth - 1)
 
     def filter(self, x, strict=False, allow_downcast=None):
         """

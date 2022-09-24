@@ -127,7 +127,7 @@ class SoftmaxWithBias(COp):
         (g_sm,) = grads
 
         if isinstance(g_sm.type, DisconnectedType):
-            return [DisconnectedType()(), DisconnectedType()()]
+            return [DisconnectedType.subtype()(), DisconnectedType.subtype()()]
 
         dx = softmax_grad_legacy(g_sm, outputs[0])
         db = at_sum(dx, axis=0)
@@ -1340,7 +1340,7 @@ class CrossentropySoftmaxArgmax1HotWithBias(COp):
             raise ValueError("y_idx must be 1-d tensor of [u]ints", y_idx.type)
 
         #       TODO: Is this correct? It used to be y, not y_idx
-        nll = TensorType(x.type.dtype, y_idx.type.broadcastable).make_variable()
+        nll = TensorType.subtype(x.type.dtype, y_idx.type.broadcastable).make_variable()
         #        nll = TensorType(x.dtype, y.broadcastable)
         sm = x.type()
         am = y_idx.type()
@@ -1440,7 +1440,7 @@ class CrossentropySoftmaxArgmax1HotWithBias(COp):
 
         def fancy_sum(terms):
             if len(terms) == 0:
-                return DisconnectedType()()
+                return DisconnectedType.subtype()()
             rval = terms[0]
             for term in terms[1:]:
                 rval = rval + term
@@ -1819,7 +1819,7 @@ class CrossentropyCategorical1Hot(Op):
         return Apply(
             self,
             [_coding_dist, _true_one_of_n],
-            [TensorType(dtype=_coding_dist.dtype, shape=[False])()],
+            [TensorType.subtype(dtype=_coding_dist.dtype, shape=[False])()],
         )
 
     def perform(self, node, inp, out):

@@ -26,7 +26,7 @@ from aesara.scalar import ScalarType
 from aesara.link.c.type import Generic
 from aesara.tensor.type import TensorType
 
-tensor_type_0d = TensorType("float64", tuple())
+tensor_type_0d = TensorType.subtype("float64", tuple())
 scalar_type = ScalarType("float64")
 generic_type = Generic()
 
@@ -227,9 +227,9 @@ def test_ExternalCOp_c_code_cache_version():
         out_2, err = get_hash(modname, seed=3849)
         assert err is None
 
-        hash_1, msg, _ = out_1.decode().split("\n")
+        hash_1, msg, *_ = out_1.decode().split("\n")
         assert msg == "__success__"
-        hash_2, msg, _ = out_2.decode().split("\n")
+        hash_2, msg, *_ = out_2.decode().split("\n")
         assert msg == "__success__"
 
         assert hash_1 == hash_2

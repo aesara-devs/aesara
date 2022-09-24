@@ -69,7 +69,7 @@ def tensor_constructor(
     #
     if shape is None:
         shape = (False,) * len(value.shape)
-    type = TensorType(value.dtype, shape=shape)
+    type = TensorType.subtype(value.dtype, shape=shape)
     return TensorSharedVariable(
         type=type,
         value=np.array(value, copy=(not borrow)),
@@ -118,7 +118,7 @@ def scalar_constructor(
 
     dtype = str(dtype)
     value = _asarray(value, dtype=dtype)
-    tensor_type = TensorType(dtype=str(value.dtype), shape=[])
+    tensor_type = TensorType.subtype(dtype=str(value.dtype), shape=[])
 
     try:
         # Do not pass the dtype to asarray because we want this to fail if

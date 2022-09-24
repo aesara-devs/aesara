@@ -71,9 +71,9 @@ def ds(x, y):
 
 
 def inputs(xbc=(0, 0), ybc=(0, 0), zbc=(0, 0)):
-    x = TensorType(shape=xbc, dtype="float64")("x")
-    y = TensorType(shape=ybc, dtype="float64")("y")
-    z = TensorType(shape=zbc, dtype="float64")("z")
+    x = TensorType.subtype(shape=xbc, dtype="float64")("x")
+    y = TensorType.subtype(shape=ybc, dtype="float64")("y")
+    z = TensorType.subtype(shape=zbc, dtype="float64")("z")
     return x, y, z
 
 
@@ -205,10 +205,10 @@ class TestDimshuffleLift:
 
 
 def test_local_useless_dimshuffle_in_reshape():
-    vec = TensorType(shape=(False,), dtype="float64")("vector")
-    mat = TensorType(shape=(False, False), dtype="float64")("mat")
-    row = TensorType(shape=(True, False), dtype="float64")("row")
-    col = TensorType(shape=(False, True), dtype="float64")("col")
+    vec = TensorType.subtype(shape=(False,), dtype="float64")("vector")
+    mat = TensorType.subtype(shape=(False, False), dtype="float64")("mat")
+    row = TensorType.subtype(shape=(True, False), dtype="float64")("row")
+    col = TensorType.subtype(shape=(False, True), dtype="float64")("col")
 
     reshape_dimshuffle_vector = reshape(vec.dimshuffle("x", 0), vec.shape)
     reshape_dimshuffle_mat = reshape(mat.dimshuffle("x", 0, "x", 1), mat.shape)

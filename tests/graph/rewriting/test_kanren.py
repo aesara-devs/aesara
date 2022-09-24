@@ -98,7 +98,7 @@ def test_KanrenRelationSub_filters():
 def test_KanrenRelationSub_multiout():
     class MyMultiOutOp(Op):
         def make_node(self, *inputs):
-            outputs = [MyType()(), MyType()()]
+            outputs = [MyType.subtype()(), MyType.subtype()()]
             return Apply(self, list(inputs), outputs)
 
         def perform(self, node, inputs, outputs):

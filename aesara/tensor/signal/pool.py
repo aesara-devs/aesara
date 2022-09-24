@@ -310,7 +310,7 @@ class Pool(OpenMPOp):
     """
 
     __props__ = ("ignore_border", "mode", "ndim")
-    params_type = ParamsType(
+    params_type = ParamsType.subtype(
         ignore_border=bool_t,
     )
 
@@ -535,7 +535,7 @@ class Pool(OpenMPOp):
             raise TypeError("Padding parameters must be ints.")
         # If the input shape are broadcastable we can have 0 in the output shape
         broad = x.broadcastable[:-nd] + (False,) * nd
-        out = TensorType(x.dtype, broad)
+        out = TensorType.subtype(x.dtype, broad)
         return Apply(self, [x, ws, stride, pad], [out()])
 
     def perform(self, node, inp, out, params):
@@ -602,7 +602,7 @@ class Pool(OpenMPOp):
     def L_op(self, inputs, outputs, grads):
         x, ws, stride, pad = inputs
         (gz,) = grads
-        disc = [DisconnectedType()() for i in inputs[1:]]
+        disc = [DisconnectedType.subtype()() for i in inputs[1:]]
         if self.mode == "max":
             return [
                 MaxPoolGrad(ndim=self.ndim, ignore_border=self.ignore_border)(
@@ -1248,7 +1248,7 @@ class MaxPoolGrad(PoolGrad):
             DownsampleFactorMaxGradGrad(
                 ndim=self.ndim, ignore_border=self.ignore_border
             )(x, maxout, ggx, ws, stride, pad),
-        ] + [DisconnectedType()() for i in inp[3:]]
+        ] + [DisconnectedType.subtype()() for i in inp[3:]]
 
     def connection_pattern(self, node):
         return [[1], [1], [1], [0], [0], [0]]
@@ -1585,7 +1585,7 @@ class AveragePoolGrad(PoolGrad):
             Pool(ignore_border=self.ignore_border, ndim=self.ndim, mode=self.mode)(
                 ggx, ws, stride, pad
             ),
-        ] + [DisconnectedType()() for i in inp[2:]]
+        ] + [DisconnectedType.subtype()() for i in inp[2:]]
 
     def connection_pattern(self, node):
         return [[1], [1], [0], [0], [0]]
@@ -1933,9 +1933,9 @@ class DownsampleFactorMaxGradGrad(OpenMPOp):
             MaxPoolGrad(ignore_border=self.ignore_border, ndim=self.ndim)(
                 x, maxout, gz, ws, stride, pad
             ),
-            DisconnectedType()(),
-            DisconnectedType()(),
-            DisconnectedType()(),
+            DisconnectedType.subtype()(),
+            DisconnectedType.subtype()(),
+            DisconnectedType.subtype()(),
         ]
 
     def connection_pattern(self, node):
@@ -2159,7 +2159,7 @@ class MaxPoolRop(OpenMPOp):
     """
 
     __props__ = ("ignore_border", "mode", "ndim")
-    params_type = ParamsType(
+    params_type = ParamsType.subtype(
         ignore_border=bool_t,
     )
 
@@ -2201,7 +2201,7 @@ class MaxPoolRop(OpenMPOp):
             raise TypeError("Padding parameters must be ints.")
         # If the input shape are broadcastable we can have 0 in the output shape
         broad = x.broadcastable[:-nd] + (False,) * nd
-        out = TensorType(eval_point.dtype, broad)
+        out = TensorType.subtype(eval_point.dtype, broad)
         return Apply(self, [x, eval_point, ws, stride, pad], [out()])
 
     def perform(self, node, inp, out, params):

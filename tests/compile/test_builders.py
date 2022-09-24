@@ -234,7 +234,7 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         op_linear2 = cls_ofg(
             [x, w, b],
             [x * w + b],
-            grad_overrides=[go1, NullType()(), DisconnectedType()()],
+            grad_overrides=[go1, NullType.subtype()(), DisconnectedType.subtype()()],
         )
         zz2 = at_sum(op_linear2(xx, ww, bb))
         dx2, dw2, db2 = grad(

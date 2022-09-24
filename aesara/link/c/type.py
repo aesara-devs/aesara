@@ -115,7 +115,7 @@ class Generic(CType, Singleton):
         return self.__class__.__name__
 
 
-generic = Generic()
+generic = Generic.subtype()
 
 _cdata_type = None
 
@@ -497,7 +497,10 @@ class EnumType(CType, dict):
     def __getattr__(self, key):
         if key in self:
             return self[key]
-        return CType.__getattr__(self, key)
+        else:
+            raise AttributeError(
+                f"{self.__class__.__name__} object has no attribute or enum value {key}"
+            )
 
     def __setattr__(self, key, value):
         if key in self:
@@ -529,6 +532,9 @@ class EnumType(CType, dict):
             and all(self[k] == other[k] for k in self)
             and all(self.aliases[a] == other.aliases[a] for a in self.aliases)
         )
+
+    def __ne__(self, other):
+        return not self == other
 
     # EnumType should be used to create constants available in both Python and C code.
     # However, for convenience, we make sure EnumType can have a value, like other common types,

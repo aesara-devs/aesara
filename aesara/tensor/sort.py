@@ -178,7 +178,7 @@ class ArgSortOp(Op):
         return Apply(
             self,
             [input, axis],
-            [TensorType(dtype="int64", shape=input.type.shape)()],
+            [TensorType.subtype(dtype="int64", shape=input.type.shape)()],
         )
 
     def perform(self, node, inputs, output_storage):
@@ -416,7 +416,9 @@ class TopKOp(Op):
         if self.return_values:
             outs.append(inp.type())
         if self.return_indices:
-            outs.append(TensorType(dtype=self.idx_dtype, shape=inp.type.shape)())
+            outs.append(
+                TensorType.subtype(dtype=self.idx_dtype, shape=inp.type.shape)()
+            )
         return Apply(self, [inp, kth], outs)
 
     def perform(self, node, inputs, output_storage):

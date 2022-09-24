@@ -46,11 +46,11 @@ class MyType(Type):
 
 
 def MyVariable(name):
-    return Variable(MyType(), None, None, name=name)
+    return Variable(MyType.subtype(), None, None, name=name)
 
 
 def MyConstant(data):
-    return Constant(MyType(), data=data)
+    return Constant(MyType.subtype(), data=data)
 
 
 class MyOp(Op):

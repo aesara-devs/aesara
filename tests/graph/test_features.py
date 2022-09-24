@@ -44,7 +44,7 @@ class TestNodeFinder:
                 for input in inputs:
                     if not isinstance(input.type, MyType):
                         raise Exception("Error 1")
-                outputs = [MyType(self.name + "_R")()]
+                outputs = [MyType.subtype(self.name + "_R")()]
                 return Apply(self, inputs, outputs)
 
             def __str__(self):
@@ -58,7 +58,7 @@ class TestNodeFinder:
         dot = MyOp(2, "Dot")
 
         def MyVariable(name):
-            return Variable(MyType(name), None, None)
+            return Variable(MyType.subtype(name), None, None)
 
         def inputs():
             x = MyVariable("x")

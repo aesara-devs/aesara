@@ -626,7 +626,7 @@ class ParamsType(CType):
         """
         self_to_dict = {self.fields[i]: self.types[i] for i in range(self.length)}
         self_to_dict.update(kwargs)
-        return ParamsType(**self_to_dict)
+        return ParamsType.subtype(**self_to_dict)
 
     # Returns a Params object with expected attributes or (in strict mode) checks that data has expected attributes.
     def filter(self, data, strict=False, allow_downcast=None):

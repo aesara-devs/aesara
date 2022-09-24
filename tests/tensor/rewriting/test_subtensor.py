@@ -1939,7 +1939,7 @@ def test_local_subtensor_shape_constant():
         def __eq__(self, other):
             return isinstance(other, MyType) and other.thingy == self.thingy
 
-    x = shape(Variable(MyType(), None, None))[0]
+    x = shape(Variable(MyType.subtype(), None, None))[0]
 
     assert not local_subtensor_shape_constant.transform(None, x.owner)
 

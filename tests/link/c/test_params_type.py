@@ -12,15 +12,15 @@ from aesara.tensor.type import TensorType, matrix
 from tests import unittest_tools as utt
 
 
-tensor_type_0d = TensorType("float64", tuple())
-scalar_type = ScalarType("float64")
-generic_type = Generic()
+tensor_type_0d = TensorType.subtype("float64", tuple())
+scalar_type = ScalarType.subtype("float64")
+generic_type = Generic.subtype()
 
 
 # A test op to compute `y = a*x^2 + bx + c` for any tensor x, with a, b, c as op params.
 class QuadraticOpFunc(COp):
     __props__ = ("a", "b", "c")
-    params_type = ParamsType(a=tensor_type_0d, b=scalar_type, c=generic_type)
+    params_type = ParamsType.subtype(a=tensor_type_0d, b=scalar_type, c=generic_type)
 
     def __init__(self, a, b, c):
         self.a = a
@@ -103,7 +103,7 @@ class QuadraticOpFunc(COp):
 # external file).
 class QuadraticCOpFunc(ExternalCOp):
     __props__ = ("a", "b", "c")
-    params_type = ParamsType(a=tensor_type_0d, b=scalar_type, c=generic_type)
+    params_type = ParamsType.subtype(a=tensor_type_0d, b=scalar_type, c=generic_type)
 
     def __init__(self, a, b, c):
         super().__init__(
@@ -125,17 +125,17 @@ class QuadraticCOpFunc(ExternalCOp):
 
 class TestParamsType:
     def test_hash_and_eq_params(self):
-        wp1 = ParamsType(
-            a=Generic(),
-            array=TensorType("int64", (False,)),
-            floatting=ScalarType("float64"),
-            npy_scalar=TensorType("float64", tuple()),
+        wp1 = ParamsType.subtype(
+            a=Generic.subtype(),
+            array=TensorType.subtype("int64", (False,)),
+            floatting=ScalarType.subtype("float64"),
+            npy_scalar=TensorType.subtype("float64", tuple()),
         )
-        wp2 = ParamsType(
-            a=Generic(),
-            array=TensorType("int64", (False,)),
-            floatting=ScalarType("float64"),
-            npy_scalar=TensorType("float64", tuple()),
+        wp2 = ParamsType.subtype(
+            a=Generic.subtype(),
+            array=TensorType.subtype("int64", (False,)),
+            floatting=ScalarType.subtype("float64"),
+            npy_scalar=TensorType.subtype("float64", tuple()),
         )
         w1 = Params(
             wp1,
@@ -155,11 +155,11 @@ class TestParamsType:
         assert not (w1 != w2)
         assert hash(w1) == hash(w2)
         # Changing attributes names only (a -> other_name).
-        wp2_other = ParamsType(
-            other_name=Generic(),
-            array=TensorType("int64", (False,)),
-            floatting=ScalarType("float64"),
-            npy_scalar=TensorType("float64", tuple()),
+        wp2_other = ParamsType.subtype(
+            other_name=Generic.subtype(),
+            array=TensorType.subtype("int64", (False,)),
+            floatting=ScalarType.subtype("float64"),
+            npy_scalar=TensorType.subtype("float64", tuple()),
         )
         w2 = Params(
             wp2_other,
@@ -189,41 +189,41 @@ class TestParamsType:
         assert w1 != w2
 
     def test_hash_and_eq_params_type(self):
-        w1 = ParamsType(
-            a1=TensorType("int64", (False, False)),
-            a2=TensorType("int64", (False, True, False, False, True)),
-            a3=Generic(),
+        w1 = ParamsType.subtype(
+            a1=TensorType.subtype("int64", (False, False)),
+            a2=TensorType.subtype("int64", (False, True, False, False, True)),
+            a3=Generic.subtype(),
         )
-        w2 = ParamsType(
-            a1=TensorType("int64", (False, False)),
-            a2=TensorType("int64", (False, True, False, False, True)),
-            a3=Generic(),
+        w2 = ParamsType.subtype(
+            a1=TensorType.subtype("int64", (False, False)),
+            a2=TensorType.subtype("int64", (False, True, False, False, True)),
+            a3=Generic.subtype(),
         )
         assert w1 == w2
         assert not (w1 != w2)
         assert hash(w1) == hash(w2)
         assert w1.name == w2.name
         # Changing attributes names only.
-        w2 = ParamsType(
-            a1=TensorType("int64", (False, False)),
-            other_name=TensorType(
+        w2 = ParamsType.subtype(
+            a1=TensorType.subtype("int64", (False, False)),
+            other_name=TensorType.subtype(
                 "int64", (False, True, False, False, True)
             ),  # a2 -> other_name
-            a3=Generic(),
+            a3=Generic.subtype(),
         )
         assert w1 != w2
         # Changing attributes types only.
-        w2 = ParamsType(
-            a1=TensorType("int64", (False, False)),
-            a2=Generic(),  # changing class
-            a3=Generic(),
+        w2 = ParamsType.subtype(
+            a1=TensorType.subtype("int64", (False, False)),
+            a2=Generic.subtype(),  # changing class
+            a3=Generic.subtype(),
         )
         assert w1 != w2
         # Changing attributes types characteristics only.
-        w2 = ParamsType(
-            a1=TensorType("int64", (False, True)),  # changing broadcasting
-            a2=TensorType("int64", (False, True, False, False, True)),
-            a3=Generic(),
+        w2 = ParamsType.subtype(
+            a1=TensorType.subtype("int64", (False, True)),  # changing broadcasting
+            a2=TensorType.subtype("int64", (False, True, False, False, True)),
+            a3=Generic.subtype(),
         )
         assert w1 != w2
 
@@ -238,10 +238,10 @@ class TestParamsType:
         )
         random_tensor = np.random.normal(size=size_tensor5).reshape(shape_tensor5)
 
-        w = ParamsType(
-            a1=TensorType("int32", (False, False)),
-            a2=TensorType("float64", (False, False, False, False, False)),
-            a3=Generic(),
+        w = ParamsType.subtype(
+            a1=TensorType.subtype("int32", (False, False)),
+            a2=TensorType.subtype("float64", (False, False, False, False, False)),
+            a3=Generic.subtype(),
         )
 
         # With a value that does not match the params type.
@@ -298,7 +298,10 @@ class TestParamsType:
     def test_params_type_with_enums(self):
         # Test that we fail if we create a params type with common enum names inside different enum types.
         try:
-            ParamsType(enum1=EnumList("A", "B", "C"), enum2=EnumList("A", "B", "F"))
+            ParamsType.subtype(
+                enum1=EnumList.subtype("A", "B", "C"),
+                enum2=EnumList.subtype("A", "B", "F"),
+            )
         except AttributeError:
             pass
         else:
@@ -308,14 +311,14 @@ class TestParamsType:
 
         # Test that we fail if we create a params type with common names in both aliases and constants.
         try:
-            ParamsType(
-                enum1=EnumList(("A", "a"), ("B", "b")),
-                enum2=EnumList(("ONE", "a"), ("TWO", "two")),
+            ParamsType.subtype(
+                enum1=EnumList.subtype(("A", "a"), ("B", "b")),
+                enum2=EnumList.subtype(("ONE", "a"), ("TWO", "two")),
             )
         except AttributeError:
-            ParamsType(
-                enum1=EnumList(("A", "a"), ("B", "b")),
-                enum2=EnumList(("ONE", "one"), ("TWO", "two")),
+            ParamsType.subtype(
+                enum1=EnumList.subtype(("A", "a"), ("B", "b")),
+                enum2=EnumList.subtype(("ONE", "one"), ("TWO", "two")),
             )
         else:
             raise Exception(
@@ -323,9 +326,9 @@ class TestParamsType:
             )
 
         # Test that we can access enum values through wrapper directly.
-        w = ParamsType(
-            enum1=EnumList("A", ("B", "beta"), "C"),
-            enum2=EnumList(("D", "delta"), "E", "F"),
+        w = ParamsType.subtype(
+            enum1=EnumList.subtype("A", ("B", "beta"), "C"),
+            enum2=EnumList.subtype(("D", "delta"), "E", "F"),
         )
         assert w.A == 0 and w.B == 1 and w.C == 2
         assert w.D == 0 and w.E == 1 and w.F == 2

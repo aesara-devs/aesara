@@ -7,20 +7,20 @@ from aesara.tensor import dmatrix
 
 
 def test_SparseTensorType_constructor():
-    st = SparseTensorType("csc", "float64")
+    st = SparseTensorType.subtype("csc", "float64")
     assert st.format == "csc"
     assert st.shape == (None, None)
 
-    st = SparseTensorType("bsr", "float64", shape=(None, 1))
+    st = SparseTensorType.subtype("bsr", "float64", shape=(None, 1))
     assert st.format == "bsr"
     assert st.shape == (None, 1)
 
     with pytest.raises(ValueError):
-        SparseTensorType("blah", "float64")
+        SparseTensorType.subtype("blah", "float64")
 
 
 def test_SparseTensorType_clone():
-    st = SparseTensorType("csr", "float64", shape=(3, None))
+    st = SparseTensorType.subtype("csr", "float64", shape=(3, None))
     assert st == st.clone()
 
     st_clone = st.clone(format="csc")

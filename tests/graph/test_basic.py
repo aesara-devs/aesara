@@ -66,7 +66,7 @@ class MyType(Type):
 
 
 def MyVariable(thingy):
-    return Variable(MyType(thingy), None, None)
+    return Variable(MyType.subtype(thingy), None, None)
 
 
 class MyOp(Op):
@@ -338,8 +338,8 @@ class TestAutoName:
         # Get counter value
         autoname_id = next(Variable.__count__)
         Variable.__count__ = count(autoname_id)
-        r1 = TensorType(dtype="int32", shape=())("myvar")
-        r2 = TensorVariable(TensorType(dtype="int32", shape=()), None)
+        r1 = TensorType.subtype(dtype="int32", shape=())("myvar")
+        r2 = TensorVariable(TensorType.subtype(dtype="int32", shape=()), None)
         r3 = shared(np.random.standard_normal((3, 4)))
         assert r1.auto_name == "auto_" + str(autoname_id)
         assert r2.auto_name == "auto_" + str(autoname_id + 1)
@@ -731,7 +731,7 @@ def test_clone_get_equiv():
 
 def test_NominalVariable():
 
-    type1 = MyType(1)
+    type1 = MyType.subtype(1)
 
     nv1 = NominalVariable(1, type1)
     nv2 = NominalVariable(1, type1)
@@ -740,13 +740,13 @@ def test_NominalVariable():
     assert nv1.equals(nv2)
     assert hash(nv1) == hash(nv2)
 
-    type2 = MyType(2)
+    type2 = MyType.subtype(2)
     nv3 = NominalVariable(1, type2)
 
     assert not nv1.equals(nv3)
     assert hash(nv1) != hash(nv3)
 
-    type3 = MyType(1)
+    type3 = MyType.subtype(1)
 
     assert type3 == type1
 
@@ -779,7 +779,7 @@ def test_NominalVariable():
 
 def test_NominalVariable_create_variable_type():
 
-    ttype = TensorType("float64", (None, None))
+    ttype = TensorType.subtype("float64", (None, None))
     ntv = NominalVariable(0, ttype)
 
     assert isinstance(ntv, TensorVariable)

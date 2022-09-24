@@ -447,7 +447,7 @@ def makeTester(
             for testname, inputs in good.items():
                 inputs = [copy(input) for input in inputs]
                 inputrs = [
-                    TensorType(
+                    TensorType.subtype(
                         dtype=input.dtype,
                         shape=[shape_elem == 1 for shape_elem in input.shape],
                     )()
@@ -609,7 +609,7 @@ def makeTester(
             for testname, inputs in self.good.items():
                 inputs = [copy(input) for input in inputs]
                 inputrs = [
-                    TensorType(
+                    TensorType.subtype(
                         dtype=input.dtype,
                         shape=[shape_elem == 1 for shape_elem in input.shape],
                     )()
@@ -633,7 +633,7 @@ def makeTester(
                     else:
                         dtype = str(out.dtype)
                     bcast = [shape_elem == 1 for shape_elem in out.shape]
-                    var = TensorType(dtype=dtype, shape=bcast)()
+                    var = TensorType.subtype(dtype=dtype, shape=bcast)()
                     out_grad_vars.append(var)
 
                 try:

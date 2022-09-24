@@ -42,4 +42,4 @@ class NullType(Type):
         return "NullType"
 
 
-null_type = NullType()
+null_type = NullType.subtype()

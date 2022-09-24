@@ -541,7 +541,7 @@ class TestGrad:
                 return Apply(self, inputs=[f, g], outputs=[scalar()])
 
             def grad(self, inputs, output_grads):
-                return [inputs[0].zeros_like(), NullType()()]
+                return [inputs[0].zeros_like(), NullType.subtype()()]
 
             def perform(self, *args, **kwargs):
                 raise NotImplementedError()
@@ -696,7 +696,7 @@ def test_undefined_cost_grad():
     cost = x + y
     assert cost.dtype in discrete_dtypes
     with pytest.raises(NullTypeGradError):
-        grad(cost, [x, y], known_grads={cost: NullType()()})
+        grad(cost, [x, y], known_grads={cost: NullType.subtype()()})
 
 
 def test_disconnected_cost_grad():
@@ -714,7 +714,7 @@ def test_disconnected_cost_grad():
         grad(
             cost,
             [x, y],
-            known_grads={cost: DisconnectedType()()},
+            known_grads={cost: DisconnectedType.subtype()()},
             disconnected_inputs="raise",
         )
     except DisconnectedInputError:

@@ -3045,7 +3045,7 @@ class AbstractConv2d_gradWeights(AbstractConv_gradWeights):
         d_bottom = bottom.type.filter_variable(d_bottom)
         d_top = top.type.filter_variable(d_top)
 
-        d_height_width = (aesara.gradient.DisconnectedType()(),)
+        d_height_width = (aesara.gradient.DisconnectedType.subtype()(),)
         return (d_bottom, d_top) + d_height_width
 
 
@@ -3104,7 +3104,7 @@ class AbstractConv3d_gradWeights(AbstractConv_gradWeights):
         d_bottom = bottom.type.filter_variable(d_bottom)
         d_top = top.type.filter_variable(d_top)
 
-        d_depth_height_width = (aesara.gradient.DisconnectedType()(),)
+        d_depth_height_width = (aesara.gradient.DisconnectedType.subtype()(),)
         return (d_bottom, d_top) + d_depth_height_width
 
 
@@ -3415,7 +3415,7 @@ class AbstractConv2d_gradInputs(AbstractConv_gradInputs):
         d_weights = weights.type.filter_variable(d_weights)
         d_top = top.type.filter_variable(d_top)
 
-        d_height_width = (aesara.gradient.DisconnectedType()(),)
+        d_height_width = (aesara.gradient.DisconnectedType.subtype()(),)
         return (d_weights, d_top) + d_height_width
 
 
@@ -3474,7 +3474,7 @@ class AbstractConv3d_gradInputs(AbstractConv_gradInputs):
         d_weights = weights.type.filter_variable(d_weights)
         d_top = top.type.filter_variable(d_top)
 
-        d_depth_height_width = (aesara.gradient.DisconnectedType()(),)
+        d_depth_height_width = (aesara.gradient.DisconnectedType.subtype()(),)
         return (d_weights, d_top) + d_depth_height_width
 
 

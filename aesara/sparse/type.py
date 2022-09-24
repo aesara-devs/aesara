@@ -95,7 +95,7 @@ class SparseTensorType(TensorType):
             dtype = self.dtype
         if shape is None:
             shape = self.shape
-        return type(self)(format, dtype, shape=shape, **kwargs)
+        return type(self).subtype(format, dtype, shape=shape, **kwargs)
 
     def filter(self, value, strict=False, allow_downcast=None):
         if isinstance(value, Variable):

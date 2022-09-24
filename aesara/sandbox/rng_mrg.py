@@ -325,7 +325,7 @@ def mrg_next_value(rstate, new_rstate, NORM, mask, offset):
 class mrg_uniform_base(Op):
     # TODO : need description for class, parameter
     __props__ = ("output_type", "inplace")
-    params_type = ParamsType(
+    params_type = ParamsType.subtype(
         inplace=bool_t,
         # following params will come from self.output_type.
         # NB: As output object may not be allocated in C code,
@@ -392,7 +392,7 @@ class mrg_uniform(COp, mrg_uniform_base):
         v_size = as_tensor_variable(size)
         if ndim is None:
             ndim = get_vector_length(v_size)
-        op = cls(TensorType(dtype, (False,) * ndim))
+        op = cls(TensorType.subtype(dtype, (False,) * ndim))
         return op(rstate, v_size)
 
     def perform(self, node, inp, out, params):

@@ -50,7 +50,7 @@ def shared(value, name=None, strict=False, allow_downcast=None):
 
     dtype = str(dtype)
     value = getattr(np, dtype)(value)
-    scalar_type = ScalarType(dtype=dtype)
+    scalar_type = ScalarType.subtype(dtype=dtype)
     rval = ScalarSharedVariable(
         type=scalar_type,
         value=value,

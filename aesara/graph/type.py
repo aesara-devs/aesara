@@ -5,13 +5,23 @@ from typing_extensions import Protocol, TypeAlias, runtime_checkable
 
 from aesara.graph import utils
 from aesara.graph.basic import Constant, Variable
-from aesara.graph.utils import MetaObject
+from aesara.graph.utils import MetaType
 
 
 D = TypeVar("D")
 
 
-class Type(MetaObject, Generic[D]):
+class NewTypeMeta(type):
+    # pass
+    def __call__(cls, *args, **kwargs):
+        raise RuntimeError("Use subtype")
+        # return super().__call__(*args, **kwargs)
+
+    def subtype(cls, *args, **kwargs):
+        return super().__call__(*args, **kwargs)
+
+
+class Type(Generic[D], metaclass=NewTypeMeta):
     """
     Interface specification for variable type instances.
 
@@ -34,6 +44,12 @@ class Type(MetaObject, Generic[D]):
     """
     The `Type` that will be created by a call to `Type.make_constant`.
     """
+
+    __props__: tuple[str, ...] = ()
+
+    @classmethod
+    def create(cls, **kwargs):
+        MetaType(f"{cls.__name__}[{kwargs}]", (cls,), kwargs)
 
     def in_same_class(self, otype: "Type") -> Optional[bool]:
         """Determine if another `Type` represents a subset from the same "class" of types represented by `self`.
@@ -214,7 +230,7 @@ class Type(MetaObject, Generic[D]):
 
     def clone(self, *args, **kwargs) -> "Type":
         """Clone a copy of this type with the given arguments/keyword values, if any."""
-        return type(self)(*args, **kwargs)
+        return type(self).subtype(*args, **kwargs)
 
     def __call__(self, name: Optional[Text] = None) -> variable_type:
         """Return a new `Variable` instance of Type `self`.
@@ -260,6 +276,41 @@ class Type(MetaObject, Generic[D]):
 
         """
         return cls.values_eq(a, b)
+
+    def _props(self):
+        """
+        Tuple of properties of all attributes
+        """
+        return tuple(getattr(self, a) for a in self.__props__)
+
+    def _props_dict(self):
+        """This return a dict of all ``__props__`` key-> value.
+
+        This is useful in optimization to swap op that should have the
+        same props. This help detect error that the new op have at
+        least all the original props.
+
+        """
+        return {a: getattr(self, a) for a in self.__props__}
+
+    def __hash__(self):
+        return hash((type(self), tuple(getattr(self, a) for a in self.__props__)))
+
+    def __eq__(self, other):
+        return type(self) == type(other) and tuple(
+            getattr(self, a) for a in self.__props__
+        ) == tuple(getattr(other, a) for a in self.__props__)
+
+    def __str__(self):
+        if self.__props__ is None or len(self.__props__) == 0:
+            return f"{self.__class__.__name__}()"
+        else:
+            return "{}{{{}}}".format(
+                self.__class__.__name__,
+                ", ".join(
+                    "{}={!r}".format(p, getattr(self, p)) for p in self.__props__
+                ),
+            )
 
 
 DataType = str

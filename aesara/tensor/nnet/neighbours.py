@@ -41,7 +41,7 @@ class Images2Neibs(COp):
     """
 
     __props__ = ("mode",)
-    BORDER_MODE = EnumList(
+    BORDER_MODE = EnumList.subtype(
         ("MODE_VALID", "valid"),
         ("MODE_HALF", "half"),
         ("MODE_FULL", "full"),

@@ -71,7 +71,7 @@ class MultinomialFromUniform(COp):
         if self.odtype == "auto":
             t = f"PyArray_TYPE({pvals})"
         else:
-            t = ScalarType(self.odtype).dtype_specs()[1]
+            t = ScalarType.subtype(self.odtype).dtype_specs()[1]
             if t.startswith("aesara_complex"):
                 t = t.replace("aesara_complex", "NPY_COMPLEX")
             else:
@@ -263,7 +263,7 @@ class ChoiceFromUniform(MultinomialFromUniform):
         if self.odtype == "auto":
             t = "NPY_INT64"
         else:
-            t = ScalarType(self.odtype).dtype_specs()[1]
+            t = ScalarType.subtype(self.odtype).dtype_specs()[1]
             if t.startswith("aesara_complex"):
                 t = t.replace("aesara_complex", "NPY_COMPLEX")
             else:

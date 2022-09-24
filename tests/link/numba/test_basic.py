@@ -225,7 +225,7 @@ def compare_numba_and_py(fgraph, inputs, assert_fn=None):
 @pytest.mark.parametrize(
     "v, expected, force_scalar, not_implemented",
     [
-        (MyType(), None, False, True),
+        (MyType.subtype(), None, False, True),
         (aes.float32, numba.types.float32, False, False),
         (at.fscalar, numba.types.Array(numba.types.float32, 0, "A"), False, False),
         (at.fscalar, numba.types.float32, True, False),

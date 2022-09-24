@@ -60,7 +60,7 @@ class MyOp(Op):
         for input in inputs:
             if not isinstance(input.type, MyType):
                 raise Exception("Error 1")
-            outputs = [MyType(sum(input.type.thingy for input in inputs))()]
+            outputs = [MyType.subtype(sum(input.type.thingy for input in inputs))()]
             return Apply(self, inputs, outputs)
 
     def perform(self, *args, **kwargs):
@@ -76,7 +76,7 @@ class NoInputOp(Op):
     __props__ = ()
 
     def make_node(self):
-        return Apply(self, [], [MyType("test")()])
+        return Apply(self, [], [MyType.subtype("test")()])
 
     def perform(self, node, inputs, output_storage):
         output_storage[0][0] = "test Op no input"
@@ -86,18 +86,20 @@ class TestOp:
 
     # Sanity tests
     def test_sanity_0(self):
-        r1, r2 = MyType(1)(), MyType(2)()
+        r1, r2 = MyType.subtype(1)(), MyType.subtype(2)()
         node = MyOp.make_node(r1, r2)
         # Are the inputs what I provided?
         assert [x for x in node.inputs] == [r1, r2]
         # Are the outputs what I expect?
-        assert [x.type for x in node.outputs] == [MyType(3)]
+        assert [x.type for x in node.outputs] == [MyType.subtype(3)]
         assert node.outputs[0].owner is node and node.outputs[0].index == 0
 
     # validate
     def test_validate(self):
         try:
-            MyOp(Generic()(), MyType(1)())  # MyOp requires MyType instances
+            MyOp(
+                Generic.subtype()(), MyType.subtype(1)()
+            )  # MyOp requires MyType instances
             raise Exception("Expected an exception")
         except Exception as e:
             if str(e) != "Error 1":
@@ -234,5 +236,5 @@ def test_op_input_broadcastable():
         def perform(self, *_):
             raise NotImplementedError()
 
-    x = at.TensorType(dtype="float64", shape=(1,))("x")
+    x = at.TensorType.subtype(dtype="float64", shape=(1,))("x")
     assert SomeOp()(x).type == at.dvector

@@ -960,7 +960,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         # The idx can be a broadcastable vector.
         ones = np.ones((4, 3), dtype=self.dtype)
         n = self.shared(ones * 5)
-        idx = TensorType(dtype="int64", shape=(True,))()
+        idx = TensorType.subtype(dtype="int64", shape=(True,))()
         assert idx.type.broadcastable == (True,)
         t = n[idx]
 
@@ -1166,7 +1166,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                         # Symbolic variable to be incremented.
                         # We create a new one every time in order not to
                         # have duplicated variables in the function's inputs
-                        data_var = TensorType(
+                        data_var = TensorType.subtype(
                             shape=[False] * data_n_dims, dtype=self.dtype
                         )()
                         # Symbolic variable with rows to be incremented.
@@ -1189,7 +1189,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                         )
                         idx_num = idx_num.astype("int64")
                         # Symbolic variable with increment value.
-                        inc_var = TensorType(
+                        inc_var = TensorType.subtype(
                             shape=[False] * inc_n_dims, dtype=self.dtype
                         )()
                         # Trick for the case where `inc_shape` is the same as
@@ -1879,7 +1879,7 @@ class TestAdvancedSubtensor:
         subt = self.m[self.ix1, self.ix12]
         a = inc_subtensor(subt, subt, ignore_duplicates=ignore_duplicates)
 
-        typ = TensorType(self.m.type.dtype, self.ix2.type.broadcastable)
+        typ = TensorType.subtype(self.m.type.dtype, self.ix2.type.broadcastable)
         assert a.type == typ
 
         f = aesara.function(

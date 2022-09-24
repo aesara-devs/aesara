@@ -22,11 +22,11 @@ class BNComposite(Composite):
     @config.change_flags(compute_test_value="off")
     def __init__(self, dtype):
         self.dtype = dtype
-        x = aesara.scalar.ScalarType(dtype=dtype).make_variable()
-        mean = aesara.scalar.ScalarType(dtype=dtype).make_variable()
-        std = aesara.scalar.ScalarType(dtype=dtype).make_variable()
-        gamma = aesara.scalar.ScalarType(dtype=dtype).make_variable()
-        beta = aesara.scalar.ScalarType(dtype=dtype).make_variable()
+        x = aesara.scalar.ScalarType.subtype(dtype=dtype).make_variable()
+        mean = aesara.scalar.ScalarType.subtype(dtype=dtype).make_variable()
+        std = aesara.scalar.ScalarType.subtype(dtype=dtype).make_variable()
+        gamma = aesara.scalar.ScalarType.subtype(dtype=dtype).make_variable()
+        beta = aesara.scalar.ScalarType.subtype(dtype=dtype).make_variable()
         o = add(mul(true_div(sub(x, mean), std), gamma), beta)
         inputs = [x, mean, std, gamma, beta]
         outputs = [o]
@@ -485,12 +485,12 @@ class AbstractBatchNormTrain(Op):
         dy = grads[0]
         _, x_mean, x_invstd = outputs[:3]
         disconnected_outputs = [
-            aesara.gradient.DisconnectedType()(),  # epsilon
-            aesara.gradient.DisconnectedType()(),
+            aesara.gradient.DisconnectedType.subtype()(),  # epsilon
+            aesara.gradient.DisconnectedType.subtype()(),
         ]  # running_average_factor
         # Optional running_mean and running_var.
         for i in range(5, len(inputs)):
-            disconnected_outputs.append(aesara.gradient.DisconnectedType()())
+            disconnected_outputs.append(aesara.gradient.DisconnectedType.subtype()())
         return (
             AbstractBatchNormTrainGrad(self.axes)(
                 x, dy, scale, x_mean, x_invstd, epsilon
@@ -628,7 +628,14 @@ class AbstractBatchNormInference(Op):
         dvar = -(dy * (x - est_mean)).sum(axes, keepdims=True) * (
             scale / (two * est_var_eps * est_std)
         )
-        return [dx, dscale, dbias, dmean, dvar, aesara.gradient.DisconnectedType()()]
+        return [
+            dx,
+            dscale,
+            dbias,
+            dmean,
+            dvar,
+            aesara.gradient.DisconnectedType.subtype()(),
+        ]
 
     def connection_pattern(self, node):
         # Specify that epsilon is not connected to outputs.
@@ -735,10 +742,10 @@ class AbstractBatchNormTrainGrad(Op):
             g_wrt_scale,
             g_wrt_x_mean,
             g_wrt_x_invstd,
-            aesara.gradient.DisconnectedType()(),
+            aesara.gradient.DisconnectedType.subtype()(),
         ]
         return [
-            aesara.gradient.DisconnectedType()()
+            aesara.gradient.DisconnectedType.subtype()()
             if (isinstance(r, int) and r == 0)
             else r
             for r in results

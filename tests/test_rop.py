@@ -309,18 +309,18 @@ class TestRopLop(RopLopChecker):
                 filter_shape = (2, 2, 2, 3)
                 image_dim = len(image_shape)
                 filter_dim = len(filter_shape)
-                input = TensorType(aesara.config.floatX, [False] * image_dim)(
+                input = TensorType.subtype(aesara.config.floatX, [False] * image_dim)(
                     name="input"
                 )
-                filters = TensorType(aesara.config.floatX, [False] * filter_dim)(
-                    name="filter"
-                )
-                ev_input = TensorType(aesara.config.floatX, [False] * image_dim)(
-                    name="ev_input"
-                )
-                ev_filters = TensorType(aesara.config.floatX, [False] * filter_dim)(
-                    name="ev_filters"
-                )
+                filters = TensorType.subtype(
+                    aesara.config.floatX, [False] * filter_dim
+                )(name="filter")
+                ev_input = TensorType.subtype(
+                    aesara.config.floatX, [False] * image_dim
+                )(name="ev_input")
+                ev_filters = TensorType.subtype(
+                    aesara.config.floatX, [False] * filter_dim
+                )(name="ev_filters")
 
                 def sym_conv2d(input, filters):
                     return conv_op(input, filters, border_mode=border_mode)

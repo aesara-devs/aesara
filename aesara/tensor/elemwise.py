@@ -119,7 +119,7 @@ class DimShuffle(ExternalCOp):
 
     @property
     def params_type(self):
-        return ParamsType(
+        return ParamsType.subtype(
             shuffle=lvector,
             augment=lvector,
             transposition=lvector,
@@ -209,7 +209,7 @@ class DimShuffle(ExternalCOp):
             else:
                 out_static_shape.append(input.type.shape[dim_idx])
 
-        output = TensorType(dtype=input.type.dtype, shape=out_static_shape)()
+        output = TensorType.subtype(dtype=input.type.dtype, shape=out_static_shape)()
 
         return Apply(self, [input], [output])
 
@@ -484,7 +484,7 @@ class Elemwise(OpenMPOp):
         inputs = [as_tensor_variable(i) for i in inputs]
         out_dtypes, out_shapes, inputs = self.get_output_info(DimShuffle, *inputs)
         outputs = [
-            TensorType(dtype=dtype, shape=shape)()
+            TensorType.subtype(dtype=dtype, shape=shape)()
             for dtype, shape in zip(out_dtypes, out_shapes)
         ]
         return Apply(self, inputs, outputs)
@@ -1331,7 +1331,9 @@ class CAReduce(COp):
 
         broadcastable = [x for i, x in enumerate(inp_bdcast) if i not in axis]
 
-        output = TensorType(dtype=self._output_dtype(inp_dtype), shape=broadcastable)()
+        output = TensorType.subtype(
+            dtype=self._output_dtype(inp_dtype), shape=broadcastable
+        )()
 
         return Apply(op, [input], [output])
 
@@ -1411,7 +1413,9 @@ class CAReduce(COp):
         if acc_dtype is not None:
             if acc_dtype == "float16":
                 raise MethodNotDefined("no c_code for float16")
-            acc_type = TensorType(shape=node.outputs[0].broadcastable, dtype=acc_dtype)
+            acc_type = TensorType.subtype(
+                shape=node.outputs[0].broadcastable, dtype=acc_dtype
+            )
             adtype = acc_type.dtype_specs()[1]
         else:
             adtype = odtype

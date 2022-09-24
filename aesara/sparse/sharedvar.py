@@ -23,7 +23,7 @@ def sparse_constructor(
 
     if format is None:
         format = value.format
-    type = SparseTensorType(format=format, dtype=value.dtype)
+    type = SparseTensorType.subtype(format=format, dtype=value.dtype)
     if not borrow:
         value = copy.deepcopy(value)
     return SparseTensorSharedVariable(
