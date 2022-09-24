@@ -48,6 +48,7 @@ from aesara.tensor.random.basic import (
     poisson,
     randint,
     standard_normal,
+    t,
     triangular,
     truncexpon,
     uniform,
@@ -921,6 +922,48 @@ def test_truncexpon_samples(b, loc, scale, size):
         scale,
         size=size,
         test_fn=lambda *args, size=None, random_state=None, **kwargs: truncexpon.rng_fn(
+            random_state, *(args + (size,))
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    "df, loc, scale, size",
+    [
+        (
+            np.array(2, dtype=config.floatX),
+            np.array(0, dtype=config.floatX),
+            np.array(1, dtype=config.floatX),
+            None,
+        ),
+        (
+            np.array(2, dtype=config.floatX),
+            np.array(0, dtype=config.floatX),
+            np.array(1, dtype=config.floatX),
+            [],
+        ),
+        (
+            np.array(2, dtype=config.floatX),
+            np.array(0, dtype=config.floatX),
+            np.array(1, dtype=config.floatX),
+            [2, 3],
+        ),
+        (
+            np.full((1, 2), 5, dtype=config.floatX),
+            np.array(0, dtype=config.floatX),
+            np.array(1, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_t_samples(df, loc, scale, size):
+    compare_sample_values(
+        t,
+        df,
+        loc,
+        scale,
+        size=size,
+        test_fn=lambda *args, size=None, random_state=None, **kwargs: t.rng_fn(
             random_state, *(args + (size,))
         ),
     )
