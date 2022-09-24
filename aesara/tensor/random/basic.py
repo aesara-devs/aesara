@@ -1370,6 +1370,60 @@ class TruncExponentialRV(ScipyRandomVariable):
 truncexpon = TruncExponentialRV()
 
 
+class StudentTRV(ScipyRandomVariable):
+    r"""A Student's t continuous random variable.
+
+    The probability density function for `t` in terms of its degrees of freedom
+    parameter :math:`\nu`, location parameter :math:`\mu` and scale
+    parameter :math:`\sigma` is:
+
+    .. math::
+
+        f(x; \nu, \alpha, \beta) = \frac{\Gamma(\frac{\nu + 1}{2})}{\Gamma(\frac{\nu}{2})} \left(\frac{1}{\pi\nu\sigma}\right)^{\frac{1}{2}} \left[1+\frac{(x-\mu)^2}{\nu\sigma}\right]^{-\frac{\nu+1}{2}}
+
+    for :math:`\nu > 0`, :math:`\sigma > 0`.
+
+    """
+    name = "t"
+    ndim_supp = 0
+    ndims_params = [0, 0, 0]
+    dtype = "floatX"
+    _print_name = ("StudentT", "\\operatorname{StudentT}")
+
+    def __call__(self, df, loc=0.0, scale=1.0, size=None, **kwargs):
+        r"""Draw samples from a Student's t distribution.
+
+        Signature
+        ---------
+
+        `(), (), () -> ()`
+
+        Parameters
+        ----------
+        df
+            Degrees of freedom parameter :math:`\nu` of the distribution. Must be
+            positive.
+        loc
+            Location parameter :math:`\mu` of the distribution.
+        scale
+            Scale parameter :math:`\sigma` of the distribution. Must be
+            positive.
+        size
+           Sample shape. If the given size is `(m, n, k)`, then `m * n * k`
+           independent, identically distributed samples are returned. Default is
+           `None` in which case a single sample is returned.
+
+        """
+        return super().__call__(df, loc, scale, size=size, **kwargs)
+
+    @classmethod
+    def rng_fn_scipy(cls, rng, df, loc, scale, size):
+        return stats.t.rvs(df, loc=loc, scale=scale, size=size, random_state=rng)
+
+
+t = StudentTRV()
+
+
 class BernoulliRV(ScipyRandomVariable):
     r"""A Bernoulli discrete random variable.
 
@@ -2071,4 +2125,5 @@ __all__ = [
     "standard_normal",
     "negative_binomial",
     "gengamma",
+    "t",
 ]
