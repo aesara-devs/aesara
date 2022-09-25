@@ -1,5 +1,6 @@
-from abc import abstractmethod
-from typing import Any, Generic, Optional, Text, Tuple, TypeVar, Union
+import inspect
+from abc import ABCMeta, abstractmethod
+from typing import Any, Generic, Optional, Text, Tuple, TypeVar, Union, final
 
 from typing_extensions import Protocol, TypeAlias, runtime_checkable
 
@@ -11,14 +12,27 @@ from aesara.graph.utils import MetaType
 D = TypeVar("D")
 
 
-class NewTypeMeta(type):
-    # pass
+class NewTypeMeta(ABCMeta):
+    __props__: tuple[str, ...]
+
     def __call__(cls, *args, **kwargs):
         raise RuntimeError("Use subtype")
         # return super().__call__(*args, **kwargs)
 
     def subtype(cls, *args, **kwargs):
-        return super().__call__(*args, **kwargs)
+        kwargs = cls.type_parameters(*args, **kwargs)
+        return super().__call__(**kwargs)
+
+    def type_parameters(cls, *args, **kwargs):
+        if args:
+            init_args = tuple(inspect.signature(cls.__init__).parameters.keys())[1:]
+            if cls.__props__[: len(args)] != init_args[: len(args)]:
+                raise RuntimeError(
+                    f"{cls.__props__=} doesn't match {init_args=} for {args=}"
+                )
+
+            kwargs |= zip(cls.__props__, args)
+        return kwargs
 
 
 class Type(Generic[D], metaclass=NewTypeMeta):
@@ -292,6 +306,11 @@ class Type(Generic[D], metaclass=NewTypeMeta):
 
         """
         return {a: getattr(self, a) for a in self.__props__}
+
+    @final
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
 
     def __hash__(self):
         return hash((type(self), tuple(getattr(self, a) for a in self.__props__)))

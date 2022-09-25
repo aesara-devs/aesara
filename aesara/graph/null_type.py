@@ -17,6 +17,8 @@ class NullType(Type):
 
     """
 
+    __props__ = ("why_null",)
+
     def __init__(self, why_null="(no explanation given)"):
         self.why_null = why_null
 

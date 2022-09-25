@@ -41,7 +41,7 @@ class SparseTensorType(TensorType):
 
     """
 
-    __props__ = ("dtype", "format", "shape")
+    __props__ = ("format", "dtype", "shape")
     format_cls = {
         "csr": scipy.sparse.csr_matrix,
         "csc": scipy.sparse.csc_matrix,
@@ -63,8 +63,9 @@ class SparseTensorType(TensorType):
     }
     ndim = 2
 
-    def __init__(
-        self,
+    @classmethod
+    def type_parameters(
+        cls,
         format: SparsityTypes,
         dtype: Union[str, np.dtype],
         shape: Optional[Iterable[Optional[Union[bool, int]]]] = None,
@@ -74,14 +75,17 @@ class SparseTensorType(TensorType):
         if shape is None and broadcastable is None:
             shape = (None, None)
 
-        if format not in self.format_cls:
+        if format not in cls.format_cls:
             raise ValueError(
                 f'unsupported format "{format}" not in list',
             )
 
-        self.format = format
+        params = super().type_parameters(
+            dtype, shape=shape, name=name, broadcastable=broadcastable
+        )
 
-        super().__init__(dtype, shape=shape, name=name, broadcastable=broadcastable)
+        params["format"] = format
+        return params
 
     def clone(
         self,

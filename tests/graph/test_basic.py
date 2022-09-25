@@ -46,6 +46,8 @@ from tests.graph.utils import MyInnerGraphOp
 
 
 class MyType(Type):
+    __props__ = ("thingy",)
+
     def __init__(self, thingy):
         self.thingy = thingy
 

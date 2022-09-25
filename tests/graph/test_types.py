@@ -5,6 +5,8 @@ from aesara.graph.type import Type
 
 
 class MyType(Type):
+    __props__ = ("thingy",)
+
     def __init__(self, thingy):
         self.thingy = thingy
 

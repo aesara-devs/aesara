@@ -286,14 +286,14 @@ class ScalarType(CType):
     shape = ()
     dtype: DataType
 
-    def __init__(self, dtype):
+    @classmethod
+    def type_parameters(cls, dtype):
         if isinstance(dtype, str) and dtype == "floatX":
             dtype = config.floatX
         else:
             dtype = np.dtype(dtype).name
 
-        self.dtype = dtype
-        self.dtype_specs()  # error checking
+        return {"dtype": dtype}
 
     def clone(self, dtype=None, **kwargs):
         if dtype is None:

@@ -53,7 +53,7 @@ make_slice = MakeSlice()
 
 class SliceType(Type[slice]):
     def clone(self, **kwargs):
-        return type(self)()
+        return type(self).subtype()
 
     def filter(self, x, strict=False, allow_downcast=None):
         if isinstance(x, slice):

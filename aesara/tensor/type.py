@@ -64,8 +64,9 @@ class TensorType(CType[np.ndarray]):
     ``numpy.nan`` or ``numpy.inf`` entries. (Used in `DebugMode`)
     """
 
-    def __init__(
-        self,
+    @classmethod
+    def type_parameters(
+        cls,
         dtype: Union[str, np.dtype],
         shape: Optional[Iterable[Optional[Union[bool, int]]]] = None,
         name: Optional[str] = None,
@@ -88,6 +89,7 @@ class TensorType(CType[np.ndarray]):
 
         """
 
+        params = dict()
         if broadcastable is not None:
             warnings.warn(
                 "The `broadcastable` keyword is deprecated; use `shape`.",
@@ -96,12 +98,12 @@ class TensorType(CType[np.ndarray]):
             shape = broadcastable
 
         if str(dtype) == "floatX":
-            self.dtype = config.floatX
+            params["dtype"] = config.floatX
         else:
             if np.obj2sctype(dtype) is None:
                 raise TypeError(f"Invalid dtype: {dtype}")
 
-            self.dtype = np.dtype(dtype).name
+            params["dtype"] = np.dtype(dtype).name
 
         def parse_bcast_and_shape(s):
             if isinstance(s, (bool, np.bool_)):
@@ -109,10 +111,12 @@ class TensorType(CType[np.ndarray]):
             else:
                 return s
 
-        self.shape = tuple(parse_bcast_and_shape(s) for s in shape)
-        self.dtype_specs()  # error checking is done there
-        self.name = name
-        self.numpy_dtype = np.dtype(self.dtype)
+        params["shape"] = tuple(parse_bcast_and_shape(s) for s in shape)
+        cls.dtype_specs_params(params)  # error checking is done there
+        params["name"] = name
+        params["numpy_dtype"] = np.dtype(params["dtype"])
+
+        return params
 
     def clone(
         self, dtype=None, shape=None, broadcastable=None, **kwargs
@@ -280,12 +284,18 @@ class TensorType(CType[np.ndarray]):
         This function is used internally as part of C code generation.
 
         """
+        return self.dtype_specs_dtype(self.dtype)
+
+    @classmethod
+    def dtype_specs_params(cls, params):
+        return cls.dtype_specs_dtype(params["dtype"])
+
+    @classmethod
+    def dtype_specs_dtype(cls, dtype):
         try:
-            return self.dtype_specs_map[self.dtype]
+            return cls.dtype_specs_map[dtype]
         except KeyError:
-            raise TypeError(
-                f"Unsupported dtype for {self.__class__.__name__}: {self.dtype}"
-            )
+            raise TypeError(f"Unsupported dtype for {cls.__name__}: {dtype}")
 
     def to_scalar_type(self):
         return aes.get_scalar_type(dtype=self.dtype)

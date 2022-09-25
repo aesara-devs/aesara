@@ -11,6 +11,8 @@ from tests.graph.utils import MyVariable, op1
 class TestNodeFinder:
     def test_straightforward(self):
         class MyType(Type):
+            __props__ = ("name",)
+
             def __init__(self, name):
                 self.name = name
 
