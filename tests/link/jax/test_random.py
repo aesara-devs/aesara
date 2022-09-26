@@ -1,7 +1,10 @@
+import re
+
 import numpy as np
 import pytest
 from packaging.version import parse as version_parse
 
+import aesara
 import aesara.tensor as at
 from aesara.compile.function import function
 from aesara.compile.sharedvalue import shared
@@ -79,8 +82,34 @@ def test_RandomStream():
     srng = RandomStream(seed=123)
     out = srng.normal() - srng.normal()
 
-    fn = function([], out, mode=jax_mode)
+    with pytest.warns(
+        UserWarning,
+        match=r"The RandomType SharedVariables \[.+\] will not be used",
+    ):
+        fn = function([], out, mode=jax_mode)
     jax_res_1 = fn()
     jax_res_2 = fn()
 
-    assert np.array_equal(jax_res_1, jax_res_2)
+    assert not np.array_equal(jax_res_1, jax_res_2)
+
+
+@pytest.mark.parametrize("rng_ctor", (np.random.RandomState, np.random.default_rng))
+def test_random_updates(rng_ctor):
+    original_value = rng_ctor(seed=98)
+    rng = shared(original_value, name="original_rng", borrow=False)
+    next_rng, x = at.random.normal(name="x", rng=rng).owner.outputs
+
+    with pytest.warns(
+        UserWarning,
+        match=re.escape(
+            "The RandomType SharedVariables [original_rng] will not be used"
+        ),
+    ):
+        f = aesara.function([], [x], updates={rng: next_rng}, mode=jax_mode)
+    assert f() != f()
+
+    # Check that original rng variable content was not overwritten when calling jax_typify
+    assert all(
+        a == b if not isinstance(a, np.ndarray) else np.array_equal(a, b)
+        for a, b in zip(rng.get_value().__getstate__(), original_value.__getstate__())
+    )
