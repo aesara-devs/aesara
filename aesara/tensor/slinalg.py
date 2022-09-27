@@ -512,7 +512,6 @@ solve_lower_triangular = SolveTriangular(lower=True)
 solve_upper_triangular = SolveTriangular(lower=False)
 solve_symmetric = Solve(assume_a="sym")
 
-
 # TODO: Optimizations to replace multiplication by matrix inverse
 #      with solve() Op (still unwritten)
 

@@ -514,6 +514,7 @@ def test_expm_grad_3():
 
 
 class TestKron(utt.InferShapeTester):
+
     rng = np.random.default_rng(43)
 
     def setup_method(self):
