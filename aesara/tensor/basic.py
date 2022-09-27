@@ -50,7 +50,6 @@ from aesara.tensor.shape import (
     shape_padright,
     shape_tuple,
 )
-
 from aesara.tensor.type import (
     TensorType,
     discrete_dtypes,
@@ -1426,10 +1425,11 @@ def eye(n, m=None, k=0, dtype=None):
 
     i = switch(k >= 0, k, -k * m)
     eye = zeros(n * m, dtype=dtype)
-    eye = aesara.tensor.subtensor.set_subtensor(eye[i::m + 1], 1).reshape((n, m))
-    eye = aesara.tensor.subtensor.set_subtensor(eye[m - k:, :], 0)
+    eye = aesara.tensor.subtensor.set_subtensor(eye[i :: m + 1], 1).reshape((n, m))
+    eye = aesara.tensor.subtensor.set_subtensor(eye[m - k :, :], 0)
 
     return eye
+
 
 def identity_like(x):
     return eye(x.shape[0], x.shape[1], k=0, dtype=x.dtype)

@@ -847,6 +847,7 @@ def test_eye():
         check(dtype, 5, 3, 1)
         check(dtype, 5, 3, -1)
 
+
 class TestTriangle:
     def test_tri(self):
         def check(dtype, N, M_=None, k=0):

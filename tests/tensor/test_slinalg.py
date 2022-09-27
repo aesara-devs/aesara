@@ -22,8 +22,6 @@ from aesara.tensor.slinalg import (
     expm,
     kron,
     solve,
-    solve_continuous_lyapunov,
-    solve_discrete_lyapunov,
     solve_triangular,
 )
 from aesara.tensor.type import dmatrix, matrix, tensor, vector
@@ -552,67 +550,3 @@ class TestKron(utt.InferShapeTester):
                 b = self.rng.random(shp1).astype(config.floatX)
                 out = f(a, b)
                 assert np.allclose(out, np.kron(a, b))
-
-
-def test_solve_discrete_lyapunov_via_direct_real():
-    N = 5
-    rng = np.random.default_rng(utt.fetch_seed())
-    a = at.dmatrix()
-    q = at.dmatrix()
-    f = function([a, q], [solve_discrete_lyapunov(a, q, method="direct")])
-
-    A = rng.normal(size=(N, N))
-    Q = rng.normal(size=(N, N))
-
-    X = f(A, Q)
-    assert np.allclose(A @ X @ A.T - X + Q, 0.0)
-
-    utt.verify_grad(solve_discrete_lyapunov, pt=[A, Q], rng=rng)
-
-
-def test_solve_discrete_lyapunov_via_direct_complex():
-    N = 5
-    rng = np.random.default_rng(utt.fetch_seed())
-    a = at.zmatrix()
-    q = at.zmatrix()
-    f = function([a, q], [solve_discrete_lyapunov(a, q, method="direct")])
-
-    A = rng.normal(size=(N, N)) + rng.normal(size=(N, N)) * 1j
-    Q = rng.normal(size=(N, N))
-    X = f(A, Q)
-    assert np.allclose(A @ X @ A.conj().T - X + Q, 0.0)
-
-    # TODO: the .conj() method currently does not have a gradient; add this test when gradients are implemented.
-    # utt.verify_grad(solve_discrete_lyapunov, pt=[A, Q], rng=rng)
-
-
-def test_solve_discrete_lyapunov_via_bilinear():
-    N = 5
-    rng = np.random.default_rng(utt.fetch_seed())
-    a = at.dmatrix()
-    q = at.dmatrix()
-    f = function([a, q], [solve_discrete_lyapunov(a, q, method="bilinear")])
-
-    A = rng.normal(size=(N, N))
-    Q = rng.normal(size=(N, N))
-
-    X = f(A, Q)
-    assert np.allclose(A @ X @ A.conj().T - X + Q, 0.0)
-
-    utt.verify_grad(solve_discrete_lyapunov, pt=[A, Q], rng=rng)
-
-
-def test_solve_continuous_lyapunov():
-    N = 5
-    rng = np.random.default_rng(utt.fetch_seed())
-    a = at.dmatrix()
-    q = at.dmatrix()
-    f = function([a, q], [solve_continuous_lyapunov(a, q)])
-
-    A = rng.normal(size=(N, N))
-    Q = rng.normal(size=(N, N))
-    X = f(A, Q)
-
-    assert np.allclose(A @ X + X @ A.conj().T, Q)
-
-    utt.verify_grad(solve_continuous_lyapunov, pt=[A, Q], rng=rng)
