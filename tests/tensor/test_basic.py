@@ -829,7 +829,13 @@ def test_eye():
         if M is None and config.mode in ["DebugMode", "DEBUG_MODE"]:
             M = N
 
-        result = eye(N, M, k, dtype).eval()
+        N_symb = iscalar()
+        M_symb = iscalar()
+        k_symb = iscalar()
+
+        f = function([N_symb, M_symb, k_symb], eye(N_symb, M_symb, k_symb, dtype=dtype))
+        result = f(N, M, k)
+
         assert np.allclose(result, np.eye(N, M_, k, dtype=dtype))
         assert result.dtype == np.dtype(dtype)
 
