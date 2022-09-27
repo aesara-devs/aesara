@@ -1,3 +1,4 @@
+import contextlib
 import os
 import sys
 import time
@@ -332,12 +333,20 @@ def test_broadcastable():
         # the sizes of them are implicitly defined with "pvals" argument.
         if distribution in [R.multinomial, R.multinomial_wo_replacement]:
             # check when all dimensions are constant
-            uu = distribution(pvals=pvals_1)
-            assert uu.broadcastable == (False, True)
+            context_mgr = (
+                pytest.deprecated_call()
+                if distribution == R.multinomial_wo_replacement
+                else contextlib.suppress()
+            )
+
+            with context_mgr:
+                uu = distribution(pvals=pvals_1)
+                assert uu.broadcastable == (False, True)
 
             # check when some dimensions are aesara variables
-            uu = distribution(pvals=pvals_2)
-            assert uu.broadcastable == (False, True)
+            with context_mgr:
+                uu = distribution(pvals=pvals_2)
+                assert uu.broadcastable == (False, True)
         else:
             # check when all dimensions are constant
             uu = distribution(size=size1)
@@ -1109,9 +1118,10 @@ def test_target_parameter():
     basic_target_parameter_test(
         srng.choice(p=pvals.astype("float32"), replace=False, target="cpu")
     )
-    basic_target_parameter_test(
-        srng.multinomial_wo_replacement(pvals=pvals.astype("float32"), target="cpu")
-    )
+    with pytest.deprecated_call():
+        basic_target_parameter_test(
+            srng.multinomial_wo_replacement(pvals=pvals.astype("float32"), target="cpu")
+        )
 
 
 @config.change_flags(compute_test_value="off")

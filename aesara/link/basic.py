@@ -12,8 +12,6 @@ from typing import (
     Union,
 )
 
-from numpy import ndarray
-
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.fg import FunctionGraph
@@ -23,6 +21,8 @@ from aesara.utils import difference
 
 
 if TYPE_CHECKING:
+    from numpy.typing import NDArray
+
     from aesara.compile.profiling import ProfileStats
     from aesara.graph.op import (
         BasicThunkType,
@@ -505,7 +505,7 @@ class WrapLinker(Linker):
     def pre(
         self,
         f: "WrapLinker",
-        inputs: Union[List[ndarray], List[Optional[float]]],
+        inputs: Union[List["NDArray"], List[Optional[float]]],
         order: List[Apply],
         thunk_groups: List[Tuple[Callable]],
     ) -> None:
@@ -609,6 +609,10 @@ class JITLinker(PerformLinker):
     def jit_compile(self, fn: Callable) -> Callable:
         """JIT compile a converted ``FunctionGraph``."""
 
+    def output_filter(self, var: Variable, out: Any) -> Any:
+        """Apply a filter to the data output by a JITed function call."""
+        return out
+
     def create_jitable_thunk(
         self, compute_map, order, input_storage, output_storage, storage_map
     ):
@@ -637,7 +641,8 @@ class JITLinker(PerformLinker):
             The JITed function that performs the computations.
 
         """
-        output_nodes = [o.owner for o in self.fgraph.outputs]
+        # This is a bit hackish, but we only return one of the output nodes
+        output_nodes = [o.owner for o in self.fgraph.outputs if o.owner is not None][:1]
 
         converted_fgraph = self.fgraph_convert(
             self.fgraph,
@@ -663,14 +668,9 @@ class JITLinker(PerformLinker):
         ):
             outputs = fgraph_jit(*[x[0] for x in thunk_inputs])
 
-            for o_node, o_storage, o_val in zip(fgraph.outputs, thunk_outputs, outputs):
-                compute_map[o_node][0] = True
-                if len(o_storage) > 1:
-                    assert len(o_storage) == len(o_val)
-                    for i, o_sub_val in enumerate(o_val):
-                        o_storage[i] = o_sub_val
-                else:
-                    o_storage[0] = o_val
+            for o_var, o_storage, o_val in zip(fgraph.outputs, thunk_outputs, outputs):
+                compute_map[o_var][0] = True
+                o_storage[0] = self.output_filter(o_var, o_val)
             return outputs
 
         thunk.inputs = thunk_inputs
@@ -679,8 +679,7 @@ class JITLinker(PerformLinker):
 
         thunks.append(thunk)
 
-        # This is a bit hackish, but we only return one of the output nodes
-        return thunks, output_nodes[:1], fgraph_jit
+        return thunks, output_nodes, fgraph_jit
 
     def make_all(self, input_storage=None, output_storage=None, storage_map=None):
         fgraph = self.fgraph

@@ -5,12 +5,12 @@ import aesara.tensor as at
 from aesara.configdefaults import config
 from aesara.gradient import grad_undefined
 from aesara.graph.basic import Apply
-from aesara.graph.opt import local_optimizer
+from aesara.graph.rewriting.basic import node_rewriter
 from aesara.link.c.cmodule import GCC_compiler
 from aesara.link.c.op import ExternalCOp, OpenMPOp
-from aesara.tensor.basic_opt import register_canonicalize
 from aesara.tensor.blas import batched_dot
 from aesara.tensor.extra_ops import cpu_contiguous
+from aesara.tensor.rewriting.basic import register_canonicalize
 from aesara.tensor.type import ftensor3, fvector
 
 
@@ -249,7 +249,7 @@ def ctc(activations, labels, input_lengths):
 
 # Disable gradient computation if not needed
 @register_canonicalize("fast_compile")
-@local_optimizer([ConnectionistTemporalClassification])
+@node_rewriter([ConnectionistTemporalClassification])
 def local_ctc_no_grad(fgraph, node):
     if isinstance(node.op, ConnectionistTemporalClassification):
         if len(node.outputs) > 1:

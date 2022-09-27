@@ -1,9 +1,17 @@
+from typing import Iterable, Optional, Union
+
 import numpy as np
 import scipy.sparse
+from typing_extensions import Literal
 
 import aesara
+from aesara import scalar as aes
+from aesara.graph.basic import Variable
 from aesara.graph.type import HasDataType
-from aesara.tensor.type import TensorType
+from aesara.tensor.type import DenseTensorType, TensorType
+
+
+SparsityTypes = Literal["csr", "csc", "bsr"]
 
 
 def _is_sparse(x):
@@ -27,17 +35,6 @@ def _is_sparse(x):
 
 class SparseTensorType(TensorType, HasDataType):
     """A `Type` for sparse tensors.
-
-    Parameters
-    ----------
-    dtype : numpy dtype string such as 'int64' or 'float64' (among others)
-        Type of numbers in the matrix.
-    format: str
-        The sparse storage strategy.
-
-    Returns
-    -------
-    An empty SparseVariable instance.
 
     Notes
     -----
@@ -67,61 +64,72 @@ class SparseTensorType(TensorType, HasDataType):
     }
     ndim = 2
 
-    # Will be set to SparseVariable SparseConstant later.
-    variable_type = None
-    Constant = None
-
-    def __init__(self, format, dtype, shape=None, broadcastable=None, name=None):
-        if shape is None:
+    def __init__(
+        self,
+        format: SparsityTypes,
+        dtype: Union[str, np.dtype],
+        shape: Optional[Iterable[Optional[Union[bool, int]]]] = None,
+        name: Optional[str] = None,
+        broadcastable: Optional[Iterable[bool]] = None,
+    ):
+        if shape is None and broadcastable is None:
             shape = (None, None)
 
-        self.shape = shape
-
-        if not isinstance(format, str):
-            raise TypeError("The sparse format parameter must be a string")
-
-        if format in self.format_cls:
-            self.format = format
-        else:
-            raise NotImplementedError(
+        if format not in self.format_cls:
+            raise ValueError(
                 f'unsupported format "{format}" not in list',
             )
-        if broadcastable is None:
-            broadcastable = [False, False]
 
-        super().__init__(dtype, shape, name=name)
+        self.format = format
 
-    def clone(self, format=None, dtype=None, shape=None, **kwargs):
-        if format is None:
-            format = self.format
+        super().__init__(dtype, shape=shape, name=name, broadcastable=broadcastable)
+
+    def clone(
+        self,
+        dtype=None,
+        shape=None,
+        broadcastable=None,
+        **kwargs,
+    ):
+        format: Optional[SparsityTypes] = kwargs.pop("format", self.format)
         if dtype is None:
             dtype = self.dtype
         if shape is None:
             shape = self.shape
-        return type(self)(format, dtype, shape)
+        return type(self)(format, dtype, shape=shape, **kwargs)
 
     def filter(self, value, strict=False, allow_downcast=None):
+        if isinstance(value, Variable):
+            raise TypeError(
+                "Expected an array-like object, but found a Variable: "
+                "maybe you are trying to call a function on a (possibly "
+                "shared) variable instead of a numeric array?"
+            )
+
         if (
             isinstance(value, self.format_cls[self.format])
             and value.dtype == self.dtype
         ):
             return value
+
         if strict:
             raise TypeError(
                 f"{value} is not sparse, or not the right dtype (is {value.dtype}, "
                 f"expected {self.dtype})"
             )
+
         # The input format could be converted here
         if allow_downcast:
             sp = self.format_cls[self.format](value, dtype=self.dtype)
         else:
-            sp = self.format_cls[self.format](value)
-            if str(sp.dtype) != self.dtype:
-                raise NotImplementedError(
-                    f"Expected {self.dtype} dtype but got {sp.dtype}"
-                )
-        if sp.format != self.format:
-            raise NotImplementedError()
+            data = self.format_cls[self.format](value)
+            up_dtype = aes.upcast(self.dtype, data.dtype)
+            if up_dtype != self.dtype:
+                raise TypeError(f"Expected {self.dtype} dtype but got {data.dtype}")
+            sp = data.astype(up_dtype)
+
+        assert sp.format == self.format
+
         return sp
 
     @classmethod
@@ -147,11 +155,25 @@ class SparseTensorType(TensorType, HasDataType):
     def convert_variable(self, var):
         res = super().convert_variable(var)
 
-        if res and not isinstance(res.type, type(self)):
-            # TODO: Convert to this sparse format
-            raise NotImplementedError()
+        if res is None:
+            return res
 
-        # TODO: Convert sparse `var`s with different formats to this format?
+        if not isinstance(res.type, type(self)):
+            if isinstance(res.type, DenseTensorType):
+                if self.format == "csr":
+                    from aesara.sparse.basic import csr_from_dense
+
+                    return csr_from_dense(res)
+                else:
+                    from aesara.sparse.basic import csc_from_dense
+
+                    return csc_from_dense(res)
+
+            return None
+
+        if res.format != self.format:
+            # TODO: Convert sparse `var`s with different formats to this format?
+            return None
 
         return res
 

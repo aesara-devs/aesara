@@ -62,12 +62,6 @@ for p in sys.path:
     raise RuntimeError("You have the aesara directory in your Python path.")
 
 from aesara.configdefaults import config
-from aesara.utils import deprecated
-
-
-change_flags = deprecated("Use aesara.config.change_flags instead!")(
-    config.change_flags
-)
 
 
 # This is the api version for ops that generate C code.  External ops
@@ -147,7 +141,7 @@ from aesara.updates import OrderedUpdates
 def get_scalar_constant_value(v):
     """Return the constant scalar (i.e. 0-D) value underlying variable `v`.
 
-    If `v` is the output of dim-shuffles, fills, allocs, rebroadcasts, cast
+    If `v` is the output of dim-shuffles, fills, allocs, cast, etc.
     this function digs through them.
 
     If ``aesara.sparse`` is also there, we will look over CSM `Op`.
@@ -178,3 +172,27 @@ from aesara.scan.views import foldl, foldr, map, reduce
 # imports were executed, we can warn about remaining flags provided by the user
 # through AESARA_FLAGS.
 config.warn_unused_flags()
+
+DEPRECATED_NAMES = [
+    (
+        "change_flags",
+        "`aesara.change_flags` is deprecated: use `aesara.config.change_flags` instead.",
+        config.change_flags,
+    ),
+]
+
+
+def __getattr__(name):
+    """Intercept module-level attribute access of deprecated symbols.
+
+    Adapted from https://stackoverflow.com/a/55139609/3006474.
+
+    """
+    from warnings import warn
+
+    for old_name, msg, old_object in DEPRECATED_NAMES:
+        if name == old_name:
+            warn(msg, DeprecationWarning, stacklevel=2)
+            return old_object
+
+    raise AttributeError(f"module {__name__} has no attribute {name}")

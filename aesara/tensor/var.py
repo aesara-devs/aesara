@@ -15,6 +15,7 @@ from aesara.scalar import ComplexError, IntegerDivisionError
 from aesara.tensor import _get_vector_length, as_tensor_variable
 from aesara.tensor.exceptions import AdvancedIndexingError
 from aesara.tensor.type import TensorType
+from aesara.tensor.type_other import NoneConst
 from aesara.tensor.utils import hash_from_ndarray
 
 
@@ -466,7 +467,7 @@ class _tensor_py_operators:
         ellipses = []
         index_dim_count = 0
         for i, arg in enumerate(args):
-            if arg is np.newaxis:
+            if arg is np.newaxis or arg is NoneConst:
                 # no increase in index_dim_count
                 pass
             elif arg is Ellipsis:
@@ -515,13 +516,13 @@ class _tensor_py_operators:
                 isinstance(val, np.ndarray) and val.size == 0
             )
 
-        # Force input to be int64 datatype if input is an empty list or tuple
+        # Force input to be an int datatype if input is an empty list or tuple
         # Else leave it as is if it is a real number
         # Convert python literals to aesara constants
         args = tuple(
             [
                 at.subtensor.as_index_constant(
-                    np.array(inp, dtype=np.int64) if is_empty_array(inp) else inp
+                    np.array(inp, dtype=np.uint8) if is_empty_array(inp) else inp
                 )
                 for inp in args
             ]
@@ -537,7 +538,7 @@ class _tensor_py_operators:
                 advanced = True
                 break
 
-            if arg is not np.newaxis:
+            if arg is not np.newaxis and arg is not NoneConst:
                 try:
                     at.subtensor.index_vars_to_types(arg)
                 except AdvancedIndexingError:
@@ -549,7 +550,7 @@ class _tensor_py_operators:
         if advanced:
             return at.subtensor.advanced_subtensor(self, *args)
         else:
-            if np.newaxis in args:
+            if np.newaxis in args or NoneConst in args:
                 # `np.newaxis` (i.e. `None`) in NumPy indexing mean "add a new
                 # broadcastable dimension at this location".  Since Aesara adds
                 # new broadcastable dimensions via the `DimShuffle` `Op`, the
@@ -561,7 +562,7 @@ class _tensor_py_operators:
                 pattern = []
                 new_args = []
                 for arg in args:
-                    if arg == np.newaxis:
+                    if arg is np.newaxis or arg is NoneConst:
                         pattern.append("x")
                         new_args.append(slice(None, None, None))
                     else:
@@ -579,9 +580,9 @@ class _tensor_py_operators:
                     # with some symbolic variable.
                     if not (
                         isinstance(arg, slice)
-                        and arg.start is None
-                        and arg.stop is None
-                        and arg.step is None
+                        and (arg.start is None or arg.start is NoneConst)
+                        and (arg.stop is None or arg.stop is NoneConst)
+                        and (arg.step is None or arg.step is NoneConst)
                     ):
                         full_slices = False
                 if full_slices:
@@ -877,10 +878,18 @@ TensorType.variable_type = TensorVariable
 
 
 class TensorConstantSignature(tuple):
-    """
-    A Signature object for comparing TensorConstant instances.
+    r"""A signature object for comparing `TensorConstant` instances.
 
-    An instance is a pair: (Type instance, ndarray).
+    An instance is a pair with the type ``(Type, ndarray)``.
+
+    TODO FIXME: Subclassing `tuple` is unnecessary, and it appears to be
+    preventing the use of a much more convenient `__init__` that removes the
+    need for all these lazy computations and their safety checks.
+
+    Also, why do we even need this signature stuff?  We could simply implement
+    good `Constant.__eq__` and `Constant.__hash__` implementations.
+
+    We could also produce plain `tuple`\s with hashable values.
 
     """
 
@@ -929,19 +938,27 @@ class TensorConstantSignature(tuple):
         _, d = self
         return hash_from_ndarray(d)
 
-    def _get_sum(self):
+    @property
+    def sum(self):
         """Compute sum of non NaN / Inf values in the array."""
         try:
             return self._sum
         except AttributeError:
-            self._sum = self.no_nan.sum()
-            # The following 2 lines are needede as in Python 3.3 with NumPy
+
+            # Prevent warnings when there are `inf`s and `-inf`s present
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=RuntimeWarning)
+                self._sum = self.no_nan.sum()
+
+            # The following 2 lines are needed as in Python 3.3 with NumPy
             # 1.7.1, numpy.ndarray and numpy.memmap aren't hashable.
             if isinstance(self._sum, np.memmap):
                 self._sum = np.asarray(self._sum).item()
+
             if self.has_nan and self.no_nan.mask.all():
                 # In this case the sum is not properly computed by numpy.
                 self._sum = 0
+
             if np.isinf(self._sum) or np.isnan(self._sum):
                 # NaN may happen when there are both -inf and +inf values.
                 if self.has_nan:
@@ -956,24 +973,21 @@ class TensorConstantSignature(tuple):
                     self._sum = np.ma.masked_array(self[1], mask).sum()
                 # At this point there should be no more NaN.
                 assert not np.isnan(self._sum)
+
+            if isinstance(self._sum, np.ma.core.MaskedConstant):
+                self._sum = 0
+
         return self._sum
 
-    sum = property(_get_sum)
-
-    def _get_no_nan(self):
+    @property
+    def no_nan(self):
         try:
             return self._no_nan
         except AttributeError:
-            nan_mask = np.isnan(self[1])
-            if nan_mask.any():
-                self._no_nan = np.ma.masked_array(self[1], nan_mask)
-                self.has_nan = True
-            else:
-                self._no_nan = self[1]
-                self.has_nan = False
+            nans = np.isnan(self[1])
+            self._no_nan = np.ma.masked_array(self[1], nans)
+            self.has_nan = np.any(nans)
         return self._no_nan
-
-    no_nan = property(_get_no_nan)
 
 
 def get_unique_value(x: TensorVariable) -> Optional[Number]:

@@ -13,7 +13,7 @@ from aesara.compile import DeepCopyOp, shared
 from aesara.compile.io import In
 from aesara.configdefaults import config
 from aesara.graph.op import get_test_value
-from aesara.graph.opt_utils import is_same_graph
+from aesara.graph.rewriting.utils import is_same_graph
 from aesara.printing import pprint
 from aesara.scalar.basic import as_scalar
 from aesara.tensor import get_vector_length
@@ -351,7 +351,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
         t = n[7]
         assert isinstance(t.owner.op, Subtensor)
         # Silence expected error messages
-        _logger = logging.getLogger("aesara.graph.opt")
+        _logger = logging.getLogger("aesara.graph.rewriting.basic")
         oldlevel = _logger.level
         _logger.setLevel(logging.CRITICAL)
         try:
@@ -432,7 +432,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
             t = n[idx]
             assert isinstance(t.owner.op, Subtensor)
             # Silence expected warnings
-            _logger = logging.getLogger("aesara.graph.opt")
+            _logger = logging.getLogger("aesara.graph.rewriting.basic")
             oldlevel = _logger.level
             _logger.setLevel(logging.CRITICAL)
             try:
@@ -1501,11 +1501,11 @@ class TestIncSubtensor:
                 # This one should work
                 f(rng_randX(3, 1), rng_randX(1))
                 # These ones should not
-                with pytest.raises(ValueError):
+                with pytest.raises(AssertionError):
                     f(rng_randX(3, 1), rng_randX(2))
-                with pytest.raises(ValueError):
+                with pytest.raises(AssertionError):
                     f(rng_randX(3, 1), rng_randX(3))
-                with pytest.raises(ValueError):
+                with pytest.raises(AssertionError):
                     f(rng_randX(3, 1), rng_randX(0))
 
     def test_simple_3d(self):
@@ -2463,90 +2463,83 @@ def test_basic_shape():
     assert get_test_value(res) == (2,)
 
 
-@config.change_flags(compute_test_value="raise")
-def test_indexed_result_shape():
-    _test_idx = np.ix_(np.array([True, True]), np.array([True]), np.array([True, True]))
+def idx_as_tensor(x):
+    if isinstance(x, (slice, type(None))):
+        return x
+    else:
+        return at.as_tensor(x)
 
-    test_shape = (5, 6, 7, 8)
-    test_array = np.arange(np.prod(test_shape)).reshape(test_shape)
 
-    def idx_as_tensor(x):
-        if isinstance(x, (slice, type(None))):
-            return x
-        else:
-            return at.as_tensor(x)
-
-    def bcast_shape_tuple(x):
-        if not hasattr(x, "shape"):
-            return x
-        return tuple(
-            s if not bcast else 1 for s, bcast in zip(tuple(x.shape), x.broadcastable)
-        )
-
-    def compare_index_shapes(test_array, test_idx):
-        res = indexed_result_shape(
-            at.as_tensor(test_array).shape, [idx_as_tensor(i) for i in test_idx]
-        )
-        exp_res = test_array[test_idx].shape
-        assert np.array_equal(tuple(get_test_value(r) for r in res), exp_res)
-
-        # Test shape-only version
-        res = indexed_result_shape(
-            at.as_tensor(test_array).shape,
-            [bcast_shape_tuple(idx_as_tensor(i)) for i in test_idx],
-            indices_are_shapes=True,
-        )
-        exp_res = test_array[test_idx].shape
-        assert np.array_equal(tuple(get_test_value(r) for r in res), exp_res)
-
-    # Simple basic indices
-    test_idx = (slice(None, None),)
-    compare_index_shapes(test_array, test_idx)
-
-    # Advanced indices
-    test_idx = (2,)
-    compare_index_shapes(test_array, test_idx)
-
-    test_idx = _test_idx[:1]
-    compare_index_shapes(test_array, test_idx)
-
-    test_idx = _test_idx[:2]
-    compare_index_shapes(test_array, test_idx)
-
-    # A Mix of advanced and basic indices
-    test_idx = _test_idx[:2] + (slice(None, None),)
-    compare_index_shapes(test_array, test_idx)
-
-    test_idx = (slice(None, None),) + _test_idx[1:]
-    compare_index_shapes(test_array, test_idx)
-
-    test_idx = (slice(None, None), None) + _test_idx[1:2]
-    compare_index_shapes(test_array, test_idx)
-
-    test_idx = (np.array(1), slice(None, None), None)
-    compare_index_shapes(test_array, test_idx)
-
-    test_idx = (slice(None, None), None, np.array(1))
-    compare_index_shapes(test_array, test_idx)
-
-    test_idx = _test_idx[:1] + (slice(None, None),) + _test_idx[1:2]
-    compare_index_shapes(test_array, test_idx)
-
-    test_idx = (
-        _test_idx[:1] + (slice(None, None),) + _test_idx[1:2] + (slice(None, None),)
+def bcast_shape_tuple(x):
+    if not hasattr(x, "shape"):
+        return x
+    return tuple(
+        s if not bcast else 1 for s, bcast in zip(tuple(x.shape), x.broadcastable)
     )
-    compare_index_shapes(test_array, test_idx)
 
-    test_idx = _test_idx[:1] + (None,) + _test_idx[1:2]
-    compare_index_shapes(test_array, test_idx)
 
-    test_shape = (5, 4)
-    test_array = np.arange(np.prod(test_shape)).reshape(test_shape)
-    test_idx = ([1, 3, 2], slice(1, 3))
-    compare_index_shapes(test_array, test_idx)
+test_idx = np.ix_(np.array([True, True]), np.array([True]), np.array([True, True]))
 
-    test_idx = (slice(1, 3), [1, 3, 2])
-    compare_index_shapes(test_array, test_idx)
+
+@pytest.mark.parametrize(
+    "test_array, test_idx",
+    [
+        (np.arange(np.prod((5, 6, 7, 8))).reshape((5, 6, 7, 8)), (slice(None, None),)),
+        (np.arange(np.prod((5, 6, 7, 8))).reshape((5, 6, 7, 8)), (2,)),
+        (np.arange(np.prod((5, 6, 7, 8))).reshape((5, 6, 7, 8)), test_idx[:1]),
+        (np.arange(np.prod((5, 6, 7, 8))).reshape((5, 6, 7, 8)), test_idx[:2]),
+        (
+            np.arange(np.prod((5, 6, 7, 8))).reshape((5, 6, 7, 8)),
+            test_idx[:2] + (slice(None, None),),
+        ),
+        (
+            np.arange(np.prod((5, 6, 7, 8))).reshape((5, 6, 7, 8)),
+            (slice(None, None),) + test_idx[:1],
+        ),
+        (
+            np.arange(np.prod((5, 6, 7, 8))).reshape((5, 6, 7, 8)),
+            (slice(None, None), None) + test_idx[1:2],
+        ),
+        (
+            np.arange(np.prod((5, 6, 7, 8))).reshape((5, 6, 7, 8)),
+            (np.array(1), slice(None, None), None),
+        ),
+        (
+            np.arange(np.prod((5, 6, 7, 8))).reshape((5, 6, 7, 8)),
+            (slice(None, None), None, np.array(1)),
+        ),
+        (
+            np.arange(np.prod((5, 6, 7, 8))).reshape((5, 6, 7, 8)),
+            test_idx[:1] + (slice(None, None),) + test_idx[1:2],
+        ),
+        (
+            np.arange(np.prod((5, 6, 7, 8))).reshape((5, 6, 7, 8)),
+            test_idx[:1] + (slice(None, None),) + test_idx[1:2] + (slice(None, None),),
+        ),
+        (
+            np.arange(np.prod((5, 6, 7, 8))).reshape((5, 6, 7, 8)),
+            test_idx[:1] + (None,) + test_idx[1:2],
+        ),
+        (np.arange(np.prod((5, 4))).reshape((5, 4)), ([1, 3, 2], slice(1, 3))),
+        (np.arange(np.prod((5, 4))).reshape((5, 4)), (slice(1, 3), [1, 3, 2])),
+    ],
+)
+@config.change_flags(compute_test_value="raise")
+def test_indexed_result_shape(test_array, test_idx):
+    res = indexed_result_shape(
+        at.as_tensor(test_array).shape, [idx_as_tensor(i) for i in test_idx]
+    )
+    exp_res = test_array[test_idx].shape
+    assert np.array_equal(tuple(get_test_value(r) for r in res), exp_res)
+
+    # Test shape-only version
+    res = indexed_result_shape(
+        at.as_tensor(test_array).shape,
+        [bcast_shape_tuple(idx_as_tensor(i)) for i in test_idx],
+        indices_are_shapes=True,
+    )
+    exp_res = test_array[test_idx].shape
+    assert np.array_equal(tuple(get_test_value(r) for r in res), exp_res)
 
 
 def test_symbolic_slice():
@@ -2622,3 +2615,8 @@ def test_index_vars_to_types():
 
     res = index_vars_to_types(iscalar)
     assert isinstance(res, scal.ScalarType)
+
+    x = scal.constant(1, dtype=np.uint8)
+    assert isinstance(x.type, scal.ScalarType)
+    res = index_vars_to_types(x)
+    assert res == x.type

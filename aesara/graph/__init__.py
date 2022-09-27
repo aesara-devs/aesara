@@ -13,8 +13,8 @@ from aesara.graph.basic import (
 from aesara.graph.op import Op
 from aesara.graph.type import Type
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.opt import local_optimizer, optimizer
-from aesara.graph.opt_utils import optimize_graph
-from aesara.graph.optdb import OptimizationQuery
+from aesara.graph.rewriting.basic import node_rewriter, graph_rewriter
+from aesara.graph.rewriting.utils import rewrite_graph
+from aesara.graph.rewriting.db import RewriteDatabaseQuery
 
 # isort: on

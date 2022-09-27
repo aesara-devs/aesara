@@ -77,12 +77,12 @@ It has to define the following methods.
 
   ``other`` is also an :class:`Op`.
 
-  Returning ``True`` here is a promise to the optimization system
+  Returning ``True`` here is a promise to the rewrite system
   that the other :class:`Op` will produce exactly the same graph effects
-  (from perform) as this one, given identical inputs. This means it
+  (e.g. from its :meth:`Op.perform`) as this one, given identical inputs. This means it
   will produce the same output values, it will destroy the same
-  inputs (same ``destroy_map``), and will alias outputs to the same
-  inputs (same ``view_map``). For more details, see
+  inputs (same :attr:`Op.destroy_map`), and will alias outputs to the same
+  inputs (same :attr:`Op.view_map`). For more details, see
   :ref:`views_and_inplace`.
 
   .. note::
@@ -99,9 +99,9 @@ It has to define the following methods.
   lifetime of self.  :class:`Op` instances should be immutable in this
   sense.
 
-  .. note::
+.. note::
 
-      If you set `__props__`, this will be automatically generated.
+    If you set :attr:`Op.__props__`, this will be automatically generated.
 
 .. op_optional:
 
@@ -110,7 +110,7 @@ Optional methods or attributes
 
 .. attribute:: __props__
 
-  *Default:* Undefined
+  Default: Undefined
 
   Must be a tuple.  Lists the name of the attributes which influence
   the computation performed.  This will also enable the automatic
@@ -122,7 +122,7 @@ Optional methods or attributes
 
 .. attribute:: default_output
 
-  *Default:* None
+  Default: None
 
   If this member variable is an integer, then the default
   implementation of ``__call__`` will return
@@ -177,7 +177,7 @@ Optional methods or attributes
 
 .. function:: infer_shape(fgraph, node, shapes)
 
-   This function is needed for shape optimization. ``shapes`` is a
+   This function is needed for shape rewrites. ``shapes`` is a
    list with one tuple for each input of the :class:`Apply` node (which corresponds
    to the inputs of the :class:`Op`).  Each tuple contains as many elements as the
    number of dimensions of the corresponding input. The value of each element
@@ -216,9 +216,9 @@ Optional methods or attributes
 
 .. function:: do_constant_folding(fgraph, node)
 
-   *Default:* Return True
+   Default: Return ``True``
 
-   By default when optimizations are enabled, we remove during
+   By default when rewrites are enabled, we remove during
    function compilation :class:`Apply` nodes whose inputs are all constants.
    We replace the :class:`Apply` node with an Aesara constant variable.
    This way, the :class:`Apply` node is not executed at each function

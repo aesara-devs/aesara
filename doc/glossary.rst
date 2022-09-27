@@ -68,13 +68,13 @@ Glossary
         :term:`Type`, or read more about :ref:`graphstructures`.
 
     Destructive
-        An :term:`Op` is destructive (of particular input[s]) if its
+        An :term:`Op` is destructive--of particular input(s)--if its
         computation requires that one or more inputs be overwritten or
         otherwise invalidated.  For example, :term:`inplace`\ :class:`Op`\s are
         destructive.  Destructive :class:`Op`\s can sometimes be faster than
         non-destructive alternatives.  Aesara encourages users not to put
         destructive :class:`Op`\s into graphs that are given to :term:`aesara.function`,
-        but instead to trust the optimizations to insert destructive ops
+        but instead to trust the rewrites to insert destructive :class:`Op`\s
         judiciously.
 
         Destructive :class:`Op`\s are indicated via a :attr:`Op.destroy_map` attribute. (See
@@ -90,14 +90,16 @@ Glossary
         every element, this is an inplace operation because when you are done,
         the original input has been overwritten.  :class:`Op`\s representing inplace
         computations are :term:`destructive`, and by default these can only be
-        inserted by optimizations, not user code.
+        inserted by rewrites, not user code.
 
     Linker
-        Part of a function :term:`Mode` -- an object responsible for 'running'
-        the compiled function.  Among other things, the linker determines whether computations are carried out with C or Python code.
+        A :class:`Linker` instance responsible for "running" the compiled
+        function.  Among other things, the linker determines whether
+        computations are carried out with
+        C or Python code.
 
     Mode
-        An object providing an :term:`optimizer` and a :term:`linker` that is
+        A :class:`Mode` instance specifying an :term:`optimizer` and a :term:`linker` that is
         passed to :term:`aesara.function`.  It parametrizes how an expression
         graph is converted to a callable object.
 
@@ -119,12 +121,6 @@ Glossary
     Optimizer
         An instance of a :term:`rewriter` that has the capacity to provide
         an improvement to the performance of a graph.
-
-    Optimization
-        A :term:`graph` transformation applied by an :term:`optimizer` during
-        the compilation of a :term:`graph` by :term:`aesara.function`.  These
-        are graph rewrites that are intended to improve the performance of
-        a compiled :term:`Graph`.
 
     Pure
         An :term:`Op` is *pure* if it has no :term:`destructive` side-effects.

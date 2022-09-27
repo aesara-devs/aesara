@@ -81,7 +81,7 @@ Scan returns a tuple containing our result (``result``) and a
 dictionary of updates (empty in this case). Note that the result
 is not a matrix, but a 3D tensor containing the value of ``A**k`` for
 each step. We want the last value (after ``k`` steps) so we compile
-a function to return just that. Note that there is an optimization, that
+a function to return just that. Note that there is a rewrite that
 at compile time will detect that you are using just the last value of the
 result and ensure that scan does not store all the intermediate values
 that are used. So do not worry if ``A`` and ``k`` are large.
@@ -254,40 +254,35 @@ Another useful feature of scan, is that it can handle shared variables.
 For example, if we want to implement a Gibbs chain of length 10 we would do
 the following:
 
-.. testsetup:: scan1
-
-   import aesara
-   import numpy
-   W_values = numpy.random.random((2, 2))
-   bvis_values = numpy.random.random((2,))
-   bhid_values = numpy.random.random((2,))
-
 .. testcode:: scan1
 
-   import aesara
-   from aesara import tensor as at
+    import aesara
+    import aesara.tensor as at
+    import numpy as np
 
-   W = aesara.shared(W_values) # we assume that ``W_values`` contains the
-                               # initial values of your weight matrix
+    rng = np.random.default_rng(203940)
+    W_values = rng.uniform(size=(2, 2))
+    bvis_values = rng.uniform(size=(2,))
+    bhid_values = rng.uniform(size=(2,))
 
-   bvis = aesara.shared(bvis_values)
-   bhid = aesara.shared(bhid_values)
+    W = aesara.shared(W_values)
+    bvis = aesara.shared(bvis_values)
+    bhid = aesara.shared(bhid_values)
 
-   trng = aesara.tensor.random.utils.RandomStream(1234)
+    srng = at.random.RandomStream(1234)
 
-   def OneStep(vsample) :
-       hmean = at.sigmoid(aesara.dot(vsample, W) + bhid)
-       hsample = trng.binomial(size=hmean.shape, n=1, p=hmean)
-       vmean = at.sigmoid(aesara.dot(hsample, W.T) + bvis)
-       return trng.binomial(size=vsample.shape, n=1, p=vmean,
-                            dtype=aesara.config.floatX)
+    def one_step(vsample):
+        hmean = at.sigmoid(at.dot(vsample, W) + bhid)
+        hsample = srng.binomial(1, hmean, size=hmean.shape)
+        vmean = at.sigmoid(at.dot(hsample, W.T) + bvis)
 
-   sample = aesara.tensor.vector()
+        return srng.binomial(1, vmean, size=vsample.shape)
 
-   values, updates = aesara.scan(OneStep, outputs_info=sample, n_steps=10)
+    sample = at.lvector()
 
-   gibbs10 = aesara.function([sample], values[-1], updates=updates)
+    values, updates = aesara.scan(one_step, outputs_info=sample, n_steps=10)
 
+    gibbs10 = aesara.function([sample], values[-1], updates=updates)
 
 The first, and probably most crucial observation is that the updates
 dictionary becomes important in this case. It links a shared variable
@@ -341,7 +336,7 @@ function applied at each step) you do not need to pass them as arguments.
 Scan will find them on its own and add them to the graph.
 However, passing them to the scan function is a good practice, as it avoids
 Scan Op calling any earlier (external) Op over and over. This results in a
-simpler computational graph, which speeds up the optimization and the
+simpler computational graph, which speeds up the rewriting and the
 execution. To pass the shared variables to Scan you need to put them in a list
 and give it to the ``non_sequences`` argument. Here is the Gibbs sampling code
 updated:
@@ -381,7 +376,7 @@ Using shared variables - the strict flag
 ----------------------------------------
 
 As we just saw, passing the shared variables to scan may result in a simpler
-computational graph, which speeds up the optimization and the execution. A
+computational graph, which speeds up the rewriting and the execution. A
 good way to remember to pass every shared variable used during scan is to use
 the ``strict`` flag. When set to true, scan checks that all the necessary shared
 variables in ``fn`` are passed as explicit arguments to ``fn``. This has to be
@@ -599,8 +594,8 @@ about 6x slower than the forward, a ~20% slowdown is expected. Apart from the
 is similar to the classic ``scan`` function.
 
 
-Optimizing Scan's performance
------------------------------
+Improving Scan's performance
+----------------------------
 
 This section covers some ways to improve performance of an Aesara function
 using Scan.
@@ -645,29 +640,29 @@ is not provided for this argument, the value of the flag
 ``config.scan__allow_gc`` is used).
 
 
-Graph optimizations
-^^^^^^^^^^^^^^^^^^^
+Graph Rewrites
+^^^^^^^^^^^^^^
 
 This one is simple but still worth pointing out. Aesara is able to
-automatically recognize and optimize many computation patterns. However, there
-are patterns that Aesara doesn't optimize because doing so would change the
+automatically recognize and rewrite many computation patterns. However, there
+are patterns that Aesara doesn't rewrite because doing so would change the
 user interface (such as merging shared variables together into a single one,
 for instance). Additionally, Aesara doesn't catch every case that it could
-optimize and so it remains useful for performance that the user defines an
+rewrite and so it remains useful for performance that the user defines an
 efficient graph in the first place. This is also the case, and sometimes even
 more so, for the graph inside of Scan. This is because it will be executed
 many times for every execution of the Aesara function that contains it.
 
 The `LSTM tutorial <http://deeplearning.net/tutorial/lstm.html>`_ on
-`DeepLearning.net <http://deeplearning.net>`_ provides an example of an
-optimization that Aesara cannot perform. Instead of performing many matrix
+`DeepLearning.net <http://deeplearning.net>`_ provides an example of a
+rewrite that Aesara cannot perform. Instead of performing many matrix
 multiplications between matrix :math:`x_t` and each of the shared matrices
 :math:`W_i`, :math:`W_c`, :math:`W_f` and :math:`W_o`, the matrices
 :math:`W_*`, are merged into a single shared matrix :math:`W` and the graph
 performs a single larger matrix multiplication between :math:`W` and
 :math:`x_t`. The resulting matrix is then sliced to obtain the results of that
 the small individual matrix multiplications would have produced. This
-optimization replaces several small and inefficient matrix multiplications by
+rewrite replaces several small and inefficient matrix multiplications by
 a single larger one and thus improves performance at the cost of a potentially
 higher memory usage.
 

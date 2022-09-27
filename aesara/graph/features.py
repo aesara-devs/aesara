@@ -1,6 +1,7 @@
 import inspect
 import sys
 import time
+import warnings
 from collections import OrderedDict
 from functools import partial
 from io import StringIO
@@ -602,13 +603,13 @@ class ReplaceValidate(History, Validator):
             fgraph.revert(chk)
             if verbose:
                 print(
-                    f"optimizer: validate failed on node {r}.\n Reason: {reason}, {e}"
+                    f"rewriting: validate failed on node {r}.\n Reason: {reason}, {e}"
                 )
             raise
 
         if verbose:
             print(
-                f"optimizer: rewrite {reason} replaces {r} of {r.owner} with {new_r} of {new_r.owner}"
+                f"rewriting: rewrite {reason} replaces {r} of {r.owner} with {new_r} of {new_r.owner}"
             )
 
         # The return is needed by replace_all_validate_remove
@@ -628,7 +629,7 @@ class ReplaceValidate(History, Validator):
             if rm in fgraph.apply_nodes or rm in fgraph.variables:
                 fgraph.revert(chk)
                 if warn:
-                    warn(
+                    warnings.warn(
                         "An optimization wanted to replace a Variable"
                         " in the graph, but the replacement for it doesn't"
                         " remove it. We disabled the optimization."

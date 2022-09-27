@@ -35,21 +35,20 @@ Some relevant :ref:`Features <libdoc_graph_fgraphfeature>` are typically added t
 rewrites from operating in-place on inputs declared as immutable.
 
 
-Step 2 - Perform graph optimizations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Step 2 - Perform graph rewrites
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Once the :class:`FunctionGraph` is constructed, an :term:`optimizer` is produced by
-the :term:`mode` passed to :func:`function` (the :class:`Mode` basically has two
-important fields, :attr:`linker` and :attr:`optimizer`). That optimizer is
-applied on the :class:`FunctionGraph` using its :meth:`Optimizer.optimize` method.
+Once the :class:`FunctionGraph` is constructed, a :term:`rewriter` is produced by
+the :term:`mode` passed to :func:`function`. That rewrite is
+applied to the :class:`FunctionGraph` using its :meth:`GraphRewriter.rewrite` method.
 
-The optimizer is typically obtained through :attr:`optdb`.
+The rewriter is typically obtained through a query on :attr:`optdb`.
 
 
 Step 3 - Execute linker to obtain a thunk
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Once the computation graph is optimized, the :term:`linker` is
+Once the computation graph is rewritten, the :term:`linker` is
 extracted from the :class:`Mode`. It is then called with the :class:`FunctionGraph` as
 argument to produce a ``thunk``, which is a function with no arguments that
 returns nothing. Along with the thunk, one list of input containers (a
@@ -61,9 +60,9 @@ the inputs must be placed in the input containers, the thunk must be
 called, and the outputs must be retrieved from the output containers
 where the thunk put them.
 
-Typically, the linker calls the ``toposort`` method in order to obtain
+Typically, the linker calls the :meth:`FunctionGraph.toposort` method in order to obtain
 a linear sequence of operations to perform. How they are linked
-together depends on the Linker used. The :class:`CLinker` produces a single
+together depends on the :class:`Linker` class used. For example, the :class:`CLinker` produces a single
 block of C code for the whole computation, whereas the :class:`OpWiseCLinker`
 produces one thunk for each individual operation and calls them in
 sequence.

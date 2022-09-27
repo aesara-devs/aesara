@@ -1,6 +1,6 @@
 from collections.abc import Collection
 from functools import reduce
-from typing import Iterable, Tuple, Union
+from typing import Iterable, Set, Tuple, Union
 
 import numpy as np
 import numpy.core.numeric
@@ -14,7 +14,7 @@ from aesara.gradient import (
     disconnected_type,
     grad_undefined,
 )
-from aesara.graph.basic import Apply, Variable, equal_computations
+from aesara.graph.basic import Apply, Constant, Variable, equal_computations
 from aesara.graph.op import Op
 from aesara.link.c.op import COp
 from aesara.link.c.params_type import ParamsType
@@ -1491,7 +1491,12 @@ def broadcast_shape_iter(
 
         array_shapes = [
             (one_at,) * (max_dims - len(a))
-            + tuple(one_at if getattr(sh, "value", sh) == 1 else sh for sh in a)
+            + tuple(
+                one_at
+                if getattr(sh, "value", sh) == 1
+                else (aes.as_scalar(sh) if not isinstance(sh, Variable) else sh)
+                for sh in a
+            )
             for a in arrays
         ]
     else:
@@ -1523,40 +1528,82 @@ def broadcast_shape_iter(
         else:
             # More than one shape might not be broadcastable in this dimension
 
-            all_dims_equal = all(
-                # TODO FIXME: This is a largely deficient means of comparing graphs
-                # (and especially shapes)
-                equal_computations([maybe_non_bcast_shapes[0]], [dim])
-                for dim in maybe_non_bcast_shapes[1:]
-            )
+            nonconst_nb_shapes: Set[int] = set()
+            const_nb_shapes: Set[Variable] = set()
+            for shape in maybe_non_bcast_shapes:
+                if isinstance(shape, Constant):
+                    const_nb_shapes.add(shape.value.item())
+                else:
+                    nonconst_nb_shapes.add(shape)
 
-            if all_dims_equal:
-                result_dims.append(maybe_non_bcast_shapes[0])
-                continue
+            if len(const_nb_shapes) > 1:
+                raise ValueError("Could not broadcast dimensions")
+            elif len(const_nb_shapes) == 1:
+                (const_nb_shape,) = const_nb_shapes
 
-            non_bcast_vec = [
-                aes.switch(aes.eq(nbv, 1), -one_at, nbv)
-                for nbv in maybe_non_bcast_shapes
-            ]
-            dim_max = aes.abs(reduce(aes.scalar_maximum, non_bcast_vec))
+                assert const_nb_shape != 1
 
-            assert_dim = Assert("Could not broadcast dimensions")
-            assert_cond = reduce(
-                aes.and_,
-                (
-                    aes.or_(aes.eq(nbv, -one_at), aes.eq(nbv, dim_max))
-                    for nbv in non_bcast_vec
-                ),
-            )
-            bcast_dim = assert_dim(dim_max, assert_cond)
+                const_nt_shape_var = aesara.scalar.ScalarConstant(
+                    aesara.scalar.int64, const_nb_shape
+                )
+
+                if len(nonconst_nb_shapes) > 0:
+                    # All the potential non-broadcast shapes need to either
+                    # be broadcastable or equal to the one non-broadcastable
+                    # constant `const_nt_shape_var`.
+                    assert_dim = Assert("Could not broadcast dimensions")
+                    assert_cond = reduce(
+                        aes.and_,
+                        (
+                            aes.or_(
+                                aes.eq(nbv, one_at), aes.eq(nbv, const_nt_shape_var)
+                            )
+                            for nbv in nonconst_nb_shapes
+                        ),
+                    )
+                    bcast_dim = assert_dim(const_nt_shape_var, assert_cond)
+                else:
+                    bcast_dim = const_nt_shape_var
+            else:
+                # There are no constant, non-broadcastable shapes in this
+                # dimension.
+
+                all_dims_equal = all(
+                    # TODO FIXME: This is a largely deficient, and expensive, means
+                    # of comparing graphs (and especially shapes)
+                    equal_computations([maybe_non_bcast_shapes[0]], [dim])
+                    for dim in maybe_non_bcast_shapes[1:]
+                )
+
+                if all_dims_equal:
+                    result_dims.append(maybe_non_bcast_shapes[0])
+                    continue
+
+                non_bcast_vec = [
+                    aes.switch(aes.eq(nbv, 1), -one_at, nbv)
+                    for nbv in maybe_non_bcast_shapes
+                ]
+                dim_max = aes.abs(reduce(aes.scalar_maximum, non_bcast_vec))
+
+                assert_dim = Assert("Could not broadcast dimensions")
+                assert_cond = reduce(
+                    aes.and_,
+                    (
+                        aes.or_(aes.eq(nbv, -one_at), aes.eq(nbv, dim_max))
+                        for nbv in non_bcast_vec
+                    ),
+                )
+                bcast_dim = assert_dim(dim_max, assert_cond)
 
             result_dims.append(bcast_dim)
 
     return tuple(result_dims)
 
 
-class BroadcastTo(Op):
+class BroadcastTo(COp):
     """An `Op` for `numpy.broadcast_to`."""
+
+    __props__ = ()
 
     view_map = {0: [0]}
 
@@ -1606,6 +1653,56 @@ class BroadcastTo(Op):
 
     def infer_shape(self, fgraph, node, ins_shapes):
         return [node.inputs[1:]]
+
+    def c_code(self, node, name, inputs, outputs, sub):
+        (x, *shape) = inputs
+        (out,) = outputs
+        ndims = len(shape)
+        fail = sub["fail"]
+
+        # TODO: Could just use `PyArray_Return`, no?
+        dims_array = ", ".join(
+            [
+                f"((dtype_{shape}*)(PyArray_DATA({shape})))[0]"
+                for i, shape in enumerate(shape)
+            ]
+        )
+
+        src = (
+            """
+            npy_intp itershape[%(ndims)s] = {%(dims_array)s};
+
+            PyArrayObject *ops[1] = {%(x)s};
+            npy_uint32 flags = NPY_ITER_MULTI_INDEX | NPY_ITER_REFS_OK | NPY_ITER_ZEROSIZE_OK;
+            npy_uint32 op_flags[1] = {NPY_ITER_READONLY};
+            PyArray_Descr *op_dtypes[1] = {NULL};
+            int oa_ndim = %(ndims)s;
+            int* op_axes[1] = {NULL};
+            npy_intp buffersize = 0;
+
+            NpyIter *iter = NpyIter_AdvancedNew(
+                1, ops, flags, NPY_CORDER, NPY_NO_CASTING, op_flags, op_dtypes, oa_ndim, op_axes, itershape, buffersize
+            );
+
+            %(out)s = NpyIter_GetIterView(iter, 0);
+
+            if(%(out)s == NULL){
+                NpyIter_Deallocate(iter);
+                %(fail)s;
+            }
+
+            if (NpyIter_Deallocate(iter) != NPY_SUCCEED) {
+                %(fail)s;
+            }
+
+            """
+            % locals()
+        )
+
+        return src
+
+    def c_code_cache_version(self):
+        return (1,)
 
 
 broadcast_to_ = BroadcastTo()

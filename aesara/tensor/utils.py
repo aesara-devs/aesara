@@ -63,7 +63,9 @@ def shape_of_variables(fgraph, input_shapes):
     """
 
     if not hasattr(fgraph, "shape_feature"):
-        fgraph.attach_feature(aesara.tensor.basic_opt.ShapeFeature())
+        from aesara.tensor.rewriting.shape import ShapeFeature
+
+        fgraph.attach_feature(ShapeFeature())
 
     input_dims = [
         dimension

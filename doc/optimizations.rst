@@ -4,7 +4,7 @@
 Optimizations
 ==============
 
-Aesara applies many kinds of graph optimizations, with different objectives:
+Aesara applies many kinds of graph rewrites, some of which can be considered "optimizations":
  * simplifying and standardizing the form of the expression graph (e.g.  :term:`merge`, :term:`add canonicalization` ),
  * reducing the maximum memory footprint (e.g. :term:`inplace_elemwise`),
  * increasing execution speed (e.g. :term:`constant folding`).
@@ -17,9 +17,12 @@ If you would like to add an additional optimization, see :ref:`graph_rewriting`.
 
 When compiling, we can make a tradeoff between compile-time and run-time.
 Faster compile times will result in fewer optimizations being applied, hence generally slower run-times.
-For making this tradeoff when compiling, we provide a set of 4 optimization modes, 'o1' to 'o4', where 'o1' leads to fastest compile-time and 'o4' leads to fastest run-time in general.
-For an even faster run-time, we could disable assertions (which could be time consuming) for valid user inputs, using the optimization mode 'unsafe', but this is, as the name suggests, unsafe.
-(Also see note at :ref:`unsafe_optimization`.)
+For making this tradeoff when compiling, we provide a set of 4 optimization
+modes, 'o1' to 'o4', where 'o1' leads to fastest compile-time and 'o4' leads to
+fastest run-time in general.
+For an even faster run-time, we could disable assertions (which could be time
+consuming) for valid user inputs, using the optimization mode 'unsafe', but this
+is, as the name suggests, unsafe.  See :ref:`unsafe_rewrites`.
 
 ..  note::
 
@@ -263,4 +266,4 @@ Optimization                                              o4             o3  o2 
 	remove all assertions in the graph for checking user inputs are valid.
         Use this optimization if you are sure everything is valid in your graph.
 
-	See :ref:`unsafe_optimization`
+	See :ref:`unsafe_rewrites`

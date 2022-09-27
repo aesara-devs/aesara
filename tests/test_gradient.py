@@ -14,8 +14,6 @@ from aesara.gradient import (
     NullTypeGradError,
     Rop,
     UndefinedGrad,
-    consider_constant,
-    consider_constant_,
     disconnected_grad,
     disconnected_grad_,
     grad,
@@ -278,8 +276,6 @@ class TestGrad:
         g = grad(a1.outputs[0], a1.outputs[1], disconnected_inputs="ignore")
         assert g.owner.op == at.fill
         assert g.owner.inputs[1].data == 0
-        with pytest.raises(TypeError):
-            grad(a1.outputs[0], "wtf")
 
     def test_NNone_rval(self):
         # grad: Test returning some zero value from grad
@@ -771,37 +767,45 @@ def test_subgraph_grad():
 
 
 class TestConsiderConstant:
-    def setup_method(self):
-        self.rng = np.random.default_rng(seed=utt.fetch_seed())
-
     def test_op_removed(self):
+        from aesara.gradient import ConsiderConstant, consider_constant
+
         x = matrix("x")
-        y = x * consider_constant(x)
+
+        with pytest.deprecated_call():
+            y = x * consider_constant(x)
+
         f = aesara.function([x], y)
-        # need to refer to aesara.consider_constant_ here,
-        # aesara.consider_constant is a wrapper function!
-        assert consider_constant_ not in [node.op for node in f.maker.fgraph.toposort()]
 
-    def test_grad(self):
-        a = np.asarray(self.rng.standard_normal((5, 5)), dtype=config.floatX)
-
-        x = matrix("x")
-
-        expressions_gradients = [
-            (x * consider_constant(x), x),
-            (x * consider_constant(exp(x)), exp(x)),
-            (consider_constant(x), at.constant(0.0)),
-            (x**2 * consider_constant(x), 2 * x**2),
+        assert ConsiderConstant not in [
+            type(node.op) for node in f.maker.fgraph.toposort()
         ]
 
-        for expr, expr_grad in expressions_gradients:
-            g = grad(expr.sum(), x)
-            # gradient according to aesara
-            f = aesara.function([x], g, on_unused_input="ignore")
-            # desired gradient
-            f2 = aesara.function([x], expr_grad, on_unused_input="ignore")
+    def test_grad(self):
+        from aesara.gradient import consider_constant
 
-            assert np.allclose(f(a), f2(a))
+        rng = np.random.default_rng(seed=utt.fetch_seed())
+
+        a = np.asarray(rng.standard_normal((5, 5)), dtype=config.floatX)
+
+        x = matrix("x")
+
+        with pytest.deprecated_call():
+            expressions_gradients = [
+                (x * consider_constant(x), x),
+                (x * consider_constant(exp(x)), exp(x)),
+                (consider_constant(x), at.constant(0.0)),
+                (x**2 * consider_constant(x), 2 * x**2),
+            ]
+
+            for expr, expr_grad in expressions_gradients:
+                g = grad(expr.sum(), x)
+                # gradient according to aesara
+                f = aesara.function([x], g, on_unused_input="ignore")
+                # desired gradient
+                f2 = aesara.function([x], expr_grad, on_unused_input="ignore")
+
+                assert np.allclose(f(a), f2(a))
 
 
 class TestZeroGrad:

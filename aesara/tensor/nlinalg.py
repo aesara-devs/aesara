@@ -1,4 +1,3 @@
-import logging
 from functools import partial
 from typing import Tuple, Union
 
@@ -12,9 +11,6 @@ from aesara.tensor import basic as at
 from aesara.tensor import math as tm
 from aesara.tensor.basic import as_tensor_variable, extract_diag
 from aesara.tensor.type import dvector, lscalar, matrix, scalar, vector
-
-
-logger = logging.getLogger(__name__)
 
 
 class MatrixPinv(Op):

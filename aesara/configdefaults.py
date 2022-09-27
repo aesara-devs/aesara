@@ -1,4 +1,3 @@
-import distutils.spawn
 import errno
 import logging
 import os
@@ -9,6 +8,7 @@ import sys
 import textwrap
 
 import numpy as np
+from setuptools._distutils.spawn import find_executable
 
 import aesara
 import aesara.configparser
@@ -437,7 +437,7 @@ def add_compile_configvars():
 
     # Try to find the full compiler path from the name
     if param != "":
-        newp = distutils.spawn.find_executable(param)
+        newp = find_executable(param)
         if newp is not None:
             param = newp
         del newp
@@ -1107,7 +1107,7 @@ def add_optimizer_configvars():
 
     config.add(
         "optdb__max_use_ratio",
-        "A ratio that prevent infinite loop in EquilibriumOptimizer.",
+        "A ratio that prevent infinite loop in EquilibriumGraphRewriter.",
         FloatParam(8),
         in_c_key=False,
     )
@@ -1300,7 +1300,8 @@ def _filter_compiledir(path):
     init_file = os.path.join(path, "__init__.py")
     if not os.path.exists(init_file):
         try:
-            open(init_file, "w").close()
+            with open(init_file, "w"):
+                pass
         except OSError as e:
             if os.path.exists(init_file):
                 pass  # has already been created

@@ -17,7 +17,7 @@ of the following two options:
 1. Use the Aesara flag :attr:`config.profile` to enable profiling.
     - To enable the memory profiler use the Aesara flag:
       :attr:`config.profile_memory` in addition to :attr:`config.profile`.
-    - Moreover, to enable the profiling of Aesara optimization phases,
+    - Moreover, to enable the profiling of Aesara rewrite phases,
       use the Aesara flag: :attr:`config.profile_optimizer` in addition
       to :attr:`config.profile`.
     - You can also use the Aesara flags :attr:`profiling__n_apply`,
@@ -55,7 +55,7 @@ calls. The time spent in :meth:`Function.vm.__call__` and in thunks is useful
 to understand Aesara's overhead.
 
 Also, we see the time spent in the two parts of the compilation process:
-optimization (i.e. modifying the graph to make it more stable/faster) and the
+rewriting (i.e. modifying the graph to make it more stable/faster) and the
 linking (i.e. compile C code and make the Python callable returned by
 :func:`aesara.function`).
 
@@ -73,10 +73,10 @@ implementation.
 Developers wishing to optimize the performance of their graph should
 focus on the worst offending `Op`\s and `Apply` nodes--either by optimizing
 an implementation, providing a missing C implementation, or by writing
-a graph optimization that eliminates the offending `Op` altogether.
+a graph rewrite that eliminates the offending `Op` altogether.
 
-Here is some example output when some Aesara optimizations are disabled. With
-all optimizations enabled, there would be only one `Op` left in the graph.
+Here is some example output when Aesara's rewrites are disabled. With all
+rewrites enabled, there would be only one `Op` remaining in the graph.
 
 To run the example:
 

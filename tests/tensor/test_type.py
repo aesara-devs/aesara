@@ -6,13 +6,22 @@ import pytest
 
 import aesara.tensor as at
 from aesara.configdefaults import config
-from aesara.tensor.basic import Rebroadcast
+from aesara.tensor.shape import SpecifyShape
 from aesara.tensor.type import TensorType
 
 
-def test_numpy_dtype():
-    test_type = TensorType(np.int32, [])
-    assert test_type.dtype == "int32"
+@pytest.mark.parametrize(
+    "dtype, exp_dtype",
+    [
+        (np.int32, "int32"),
+        (np.dtype(np.int32), "int32"),
+        ("int32", "int32"),
+        ("floatX", config.floatX),
+    ],
+)
+def test_numpy_dtype(dtype, exp_dtype):
+    test_type = TensorType(dtype, [])
+    assert test_type.dtype == exp_dtype
 
 
 def test_in_same_class():
@@ -62,6 +71,18 @@ def test_convert_variable():
     assert res is const_var
 
 
+def test_convert_variable_mixed_specificity():
+    type1 = TensorType(config.floatX, shape=(1, None, 3))
+    type2 = TensorType(config.floatX, shape=(None, 5, 3))
+    type3 = TensorType(config.floatX, shape=(1, 5, 3))
+
+    test_var1 = type1()
+    test_var2 = type2()
+
+    assert type1.convert_variable(test_var2).type == type3
+    assert type2.convert_variable(test_var1).type == type3
+
+
 def test_filter_variable():
     test_type = TensorType(config.floatX, [])
 
@@ -92,6 +113,10 @@ def test_filter_variable():
     # Make sure it returns the more specific type
     res = test_type.filter_variable(test_var2, allow_convert=True)
     assert res.type == test_type
+
+    test_type3 = TensorType(config.floatX, shape=(1, 20))
+    res = test_type3.filter_variable(test_var, allow_convert=True)
+    assert res.type == test_type3
 
 
 def test_filter_strict():
@@ -277,7 +302,7 @@ def test_fixed_shape_convert_variable():
     t3 = TensorType("float64", (False, True))
     t3_var = t3()
     res = t2.convert_variable(t3_var)
-    assert isinstance(res.owner.op, Rebroadcast)
+    assert isinstance(res.owner.op, SpecifyShape)
 
     t3 = TensorType("float64", (False, False))
     t4 = TensorType("float64", (3, 2))

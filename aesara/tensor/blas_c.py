@@ -1,5 +1,5 @@
 from aesara.configdefaults import config
-from aesara.graph.opt import in2out
+from aesara.graph.rewriting.basic import in2out
 from aesara.link.c.op import COp
 from aesara.link.c.params_type import ParamsType
 from aesara.scalar import bool as bool_t
@@ -15,7 +15,7 @@ from aesara.tensor.blas import (
     ger,
     ger_destructive,
     ldflags,
-    local_optimizer,
+    node_rewriter,
     optdb,
 )
 
@@ -344,7 +344,7 @@ cger_inplace = CGer(True)
 cger_no_inplace = CGer(False)
 
 
-@local_optimizer([ger, ger_destructive])
+@node_rewriter([ger, ger_destructive])
 def use_c_ger(fgraph, node):
     if not config.blas__ldflags:
         return
@@ -355,7 +355,7 @@ def use_c_ger(fgraph, node):
         return [CGer(True)(*node.inputs)]
 
 
-@local_optimizer([CGer(False)])
+@node_rewriter([CGer(False)])
 def make_c_ger_destructive(fgraph, node):
     if isinstance(node.op, CGer) and not node.op.destructive:
         return [cger_inplace(*node.inputs)]
@@ -699,7 +699,7 @@ int main() {
 check_force_gemv_init._force_init_beta = None
 
 
-@local_optimizer([gemv_inplace, gemv_no_inplace])
+@node_rewriter([gemv_inplace, gemv_no_inplace])
 def use_c_gemv(fgraph, node):
     if not config.blas__ldflags:
         return
@@ -710,7 +710,7 @@ def use_c_gemv(fgraph, node):
         return [cgemv_inplace(*node.inputs)]
 
 
-@local_optimizer([CGemv(inplace=False)])
+@node_rewriter([CGemv(inplace=False)])
 def make_c_gemv_destructive(fgraph, node):
     if isinstance(node.op, CGemv) and not node.op.inplace:
         inputs = list(node.inputs)

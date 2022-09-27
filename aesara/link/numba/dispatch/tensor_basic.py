@@ -1,6 +1,5 @@
 from textwrap import indent
 
-import numba
 import numpy as np
 
 from aesara.link.numba.dispatch import basic as numba_basic
@@ -15,10 +14,11 @@ from aesara.tensor.basic import (
     Eye,
     Join,
     MakeVector,
-    Rebroadcast,
     ScalarFromTensor,
+    Split,
     TensorFromScalar,
 )
+from aesara.tensor.shape import Unbroadcast
 
 
 @numba_funcify.register(AllocEmpty)
@@ -139,6 +139,18 @@ def numba_funcify_Join(op, **kwargs):
     return join
 
 
+@numba_funcify.register(Split)
+def numba_funcify_Split(op, **kwargs):
+    @numba_basic.numba_njit
+    def split(tensor, axis, indices):
+        # Work around for https://github.com/numba/numba/issues/8257
+        axis = axis % tensor.ndim
+        axis = numba_basic.to_scalar(axis)
+        return np.split(tensor, np.cumsum(indices)[:-1], axis=axis)
+
+    return split
+
+
 @numba_funcify.register(ExtractDiag)
 def numba_funcify_ExtractDiag(op, **kwargs):
     offset = op.offset
@@ -172,7 +184,7 @@ def numba_funcify_Eye(op, **kwargs):
 def numba_funcify_MakeVector(op, node, **kwargs):
     dtype = np.dtype(op.dtype)
 
-    global_env = {"np": np, "to_scalar": numba_basic.to_scalar}
+    global_env = {"np": np, "to_scalar": numba_basic.to_scalar, "dtype": dtype}
 
     unique_names = unique_name_generator(
         ["np", "to_scalar"],
@@ -186,7 +198,7 @@ def numba_funcify_MakeVector(op, node, **kwargs):
 
     makevector_def_src = f"""
 def makevector({", ".join(input_names)}):
-    return np.array({create_list_string(input_names)}, dtype=np.{dtype})
+    return np.array({create_list_string(input_names)}, dtype=dtype)
     """
 
     makevector_fn = compile_function_src(
@@ -196,20 +208,13 @@ def makevector({", ".join(input_names)}):
     return numba_basic.numba_njit(makevector_fn)
 
 
-@numba_funcify.register(Rebroadcast)
-def numba_funcify_Rebroadcast(op, **kwargs):
-    op_axis = tuple(op.axis.items())
-
+@numba_funcify.register(Unbroadcast)
+def numba_funcify_Unbroadcast(op, **kwargs):
     @numba_basic.numba_njit
-    def rebroadcast(x):
-        for axis, value in numba.literal_unroll(op_axis):
-            if value and x.shape[axis] != 1:
-                raise ValueError(
-                    ("Dimension in Rebroadcast's input was supposed to be 1")
-                )
+    def unbroadcast(x):
         return x
 
-    return rebroadcast
+    return unbroadcast
 
 
 @numba_funcify.register(TensorFromScalar)

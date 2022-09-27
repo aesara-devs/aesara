@@ -8,24 +8,28 @@ from aesara.graph.destroyhandler import DestroyHandler
 from aesara.graph.features import ReplaceValidate
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
-from aesara.graph.opt import (
-    NavigatorOptimizer,
-    OpKeyOptimizer,
-    OpSub,
-    PatternSub,
-    TopoOptimizer,
+from aesara.graph.rewriting.basic import (
+    NodeProcessingGraphRewriter,
+    OpKeyGraphRewriter,
+    PatternNodeRewriter,
+    SubstitutionNodeRewriter,
+    WalkingGraphRewriter,
 )
 from aesara.graph.type import Type
 from aesara.graph.utils import InconsistencyError
 from tests.unittest_tools import assertFailure_fast
 
 
-def PatternOptimizer(p1, p2, ign=True):
-    return OpKeyOptimizer(PatternSub(p1, p2), ignore_newtrees=ign)
+def OpKeyPatternNodeRewriter(p1, p2, ign=True):
+    return OpKeyGraphRewriter(PatternNodeRewriter(p1, p2), ignore_newtrees=ign)
 
 
-def OpSubOptimizer(op1, op2, fail=NavigatorOptimizer.warn_ignore, ign=True):
-    return TopoOptimizer(OpSub(op1, op2), ignore_newtrees=ign, failure_callback=fail)
+def TopoSubstitutionNodeRewriter(
+    op1, op2, fail=NodeProcessingGraphRewriter.warn_ignore, ign=True
+):
+    return WalkingGraphRewriter(
+        SubstitutionNodeRewriter(op1, op2), ignore_newtrees=ign, failure_callback=fail
+    )
 
 
 def as_variable(x):
@@ -127,19 +131,12 @@ def create_fgraph(inputs, outputs, validate=True):
 
 
 class FailureWatch:
-    # when passed to OpSubOptimizer or PatternOptimizer, counts the
-    # number of failures
     def __init__(self):
         self.failures = 0
 
-    def __call__(self, exc, nav, pairs, lopt, node):
+    def __call__(self, exc, nav, pairs, lrewrite, node):
         assert isinstance(exc, InconsistencyError)
         self.failures += 1
-
-
-#################
-# Test protocol #
-#################
 
 
 def test_misc():
@@ -147,7 +144,7 @@ def test_misc():
     e = transpose_view(transpose_view(transpose_view(transpose_view(x))))
     g = create_fgraph([x, y, z], [e])
     assert g.consistent()
-    PatternOptimizer((transpose_view, (transpose_view, "x")), "x").optimize(g)
+    OpKeyPatternNodeRewriter((transpose_view, (transpose_view, "x")), "x").rewrite(g)
     assert str(g) == "FunctionGraph(x)"
     new_e = add(x, y)
     g.replace_validate(x, new_e)
@@ -155,11 +152,6 @@ def test_misc():
     g.replace(new_e, dot(add_in_place(x, y), transpose_view(x)))
     assert str(g) == "FunctionGraph(Dot(AddInPlace(x, y), TransposeView(x)))"
     assert not g.consistent()
-
-
-######################
-# Test protocol skip #
-######################
 
 
 @assertFailure_fast
@@ -229,11 +221,6 @@ def test_destroyers_loop():
     with pytest.raises(InconsistencyError):
         g.replace_validate(e1, add_in_place(x, y))
     assert g.consistent()
-
-
-########
-# Misc #
-########
 
 
 def test_aliased_inputs():
@@ -326,7 +313,7 @@ def test_long_destroyers_loop():
     e = dot(dot(add_in_place(x, y), add_in_place(y, z)), add(z, x))
     g = create_fgraph([x, y, z], [e])
     assert g.consistent()
-    OpSubOptimizer(add, add_in_place).optimize(g)
+    TopoSubstitutionNodeRewriter(add, add_in_place).rewrite(g)
     assert g.consistent()
     # we don't want to see that!
     assert (
@@ -362,7 +349,7 @@ def test_multi_destroyers_through_views():
     g = create_fgraph([x, y, z], [e])
     assert g.consistent()
     fail = FailureWatch()
-    OpSubOptimizer(add, add_in_place, fail).optimize(g)
+    TopoSubstitutionNodeRewriter(add, add_in_place, fail).rewrite(g)
     assert g.consistent()
     assert fail.failures == 1  # should have succeeded once and failed once
 
@@ -384,7 +371,7 @@ def test_usage_loop():
     g = create_fgraph([x, y, z], [dot(add_in_place(x, z), x)], False)
     assert not g.consistent()
     # replace add_in_place with add
-    OpSubOptimizer(add_in_place, add).optimize(g)
+    TopoSubstitutionNodeRewriter(add_in_place, add).rewrite(g)
     assert g.consistent()
 
 
@@ -405,7 +392,7 @@ def test_usage_loop_insert_views():
     g = create_fgraph([x, y, z], [e])
     assert g.consistent()
     fail = FailureWatch()
-    OpSubOptimizer(sigmoid, transpose_view, fail).optimize(g)
+    TopoSubstitutionNodeRewriter(sigmoid, transpose_view, fail).rewrite(g)
     assert g.consistent()
     # it must keep one sigmoid in the long sigmoid chain
     assert fail.failures == 1
@@ -450,24 +437,26 @@ def test_multiple_inplace():
 
     # try to work in-place on x/0 and y/1 (this should fail)
     fail = FailureWatch()
-    OpSubOptimizer(multiple, multiple_in_place_0_1, fail).optimize(g)
+    TopoSubstitutionNodeRewriter(multiple, multiple_in_place_0_1, fail).rewrite(g)
     assert g.consistent()
     assert fail.failures == 1
 
     # try to work in-place on x/0 (this should fail)
     fail = FailureWatch()
-    OpSubOptimizer(multiple, multiple_in_place_0, fail).optimize(g)
+    TopoSubstitutionNodeRewriter(multiple, multiple_in_place_0, fail).rewrite(g)
     assert g.consistent()
     assert fail.failures == 1
 
     # try to work in-place on y/1 (this should succeed)
     fail = FailureWatch()
-    OpSubOptimizer(multiple, multiple_in_place_1, fail).optimize(g)
+    TopoSubstitutionNodeRewriter(multiple, multiple_in_place_1, fail).rewrite(g)
     assert g.consistent()
     assert fail.failures == 0
 
     # try to work in-place on x/0 and y/1 (this should still fail)
     fail = FailureWatch()
-    OpSubOptimizer(multiple_in_place_1, multiple_in_place_0_1, fail).optimize(g)
+    TopoSubstitutionNodeRewriter(
+        multiple_in_place_1, multiple_in_place_0_1, fail
+    ).rewrite(g)
     assert g.consistent()
     assert fail.failures == 1

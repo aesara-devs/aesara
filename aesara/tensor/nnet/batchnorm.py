@@ -4,14 +4,15 @@ import aesara
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
-from aesara.graph.opt import copy_stack_trace, local_optimizer
+from aesara.graph.rewriting.basic import copy_stack_trace, node_rewriter
 from aesara.scalar import Composite, add, as_common_dtype, mul, sub, true_div
 from aesara.tensor import basic as at
 from aesara.tensor.basic import as_tensor_variable
-from aesara.tensor.basic_opt import register_specialize_device
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.math import mean, prod, reciprocal, sqrt
 from aesara.tensor.math import sum as at_sum
+from aesara.tensor.rewriting.basic import register_specialize_device
+from aesara.tensor.shape import specify_broadcastable
 from aesara.tensor.type import TensorType
 
 
@@ -241,8 +242,8 @@ def batch_normalization_train(
         gamma = gamma.dimshuffle(params_dimshuffle_pattern)
         beta = beta.dimshuffle(params_dimshuffle_pattern)
     else:
-        gamma = at.addbroadcast(gamma, *axes)
-        beta = at.addbroadcast(beta, *axes)
+        gamma = specify_broadcastable(gamma, *axes)
+        beta = specify_broadcastable(beta, *axes)
 
     batchnorm_op = AbstractBatchNormTrain(axes=axes)
 
@@ -253,8 +254,8 @@ def batch_normalization_train(
             running_mean = running_mean.dimshuffle(params_dimshuffle_pattern)
             running_var = running_var.dimshuffle(params_dimshuffle_pattern)
         else:
-            running_mean = at.addbroadcast(running_mean, *axes)
-            running_var = at.addbroadcast(running_var, *axes)
+            running_mean = specify_broadcastable(running_mean, *axes)
+            running_var = specify_broadcastable(running_var, *axes)
         out, mean, invstd, new_running_mean, new_running_var = batchnorm_op(
             inputs,
             gamma,
@@ -265,12 +266,14 @@ def batch_normalization_train(
             running_var=running_var,
         )
         if new_running_mean.broadcastable != running_mean.broadcastable:
-            new_running_mean = at.patternbroadcast(
-                new_running_mean, running_mean.broadcastable
+            new_running_mean = specify_broadcastable(
+                new_running_mean,
+                *(ax for (ax, b) in enumerate(running_mean.type.broadcastable) if b),
             )
         if new_running_var.broadcastable != running_var.broadcastable:
-            new_running_var = at.patternbroadcast(
-                new_running_var, running_var.broadcastable
+            new_running_var = specify_broadcastable(
+                new_running_var,
+                *(ax for (ax, b) in enumerate(running_var.type.broadcastable) if b),
             )
         results = (out, mean, invstd, new_running_mean, new_running_var)
     else:
@@ -331,7 +334,7 @@ def batch_normalization_test(
         axes = (0,)
         # for spatial normalization
         axes = (0,) + tuple(range(2, inputs.ndim))
-        gamma, beta, mean, var = (at.addbroadcast(t, *axes)
+        gamma, beta, mean, var = (at.specify_broadcastable(t, *axes)
                                   for t in (gamma, beta, mean, var))
         out = (inputs - mean) * gamma / at.sqrt(var + epsilon) + beta
     """
@@ -377,10 +380,10 @@ def batch_normalization_test(
         mean = mean.dimshuffle(params_dimshuffle_pattern)
         var = var.dimshuffle(params_dimshuffle_pattern)
     else:
-        gamma = at.addbroadcast(gamma, *axes)
-        beta = at.addbroadcast(beta, *axes)
-        mean = at.addbroadcast(mean, *axes)
-        var = at.addbroadcast(var, *axes)
+        gamma = specify_broadcastable(gamma, *axes)
+        beta = specify_broadcastable(beta, *axes)
+        mean = specify_broadcastable(mean, *axes)
+        var = specify_broadcastable(var, *axes)
 
     batchnorm_op = AbstractBatchNormInference(axes=axes)
     return batchnorm_op(inputs, gamma, beta, mean, var, epsilon=epsilon)
@@ -609,7 +612,7 @@ class AbstractBatchNormInference(Op):
             )
 
         scale, bias, est_mean, est_var = (
-            at.addbroadcast(t, *axes) for t in (scale, bias, est_mean, est_var)
+            specify_broadcastable(t, *axes) for t in (scale, bias, est_mean, est_var)
         )
 
         # define helper expressions
@@ -775,7 +778,7 @@ class AbstractBatchNormTrainGrad(Op):
         output_storage[2][0] = g_wrt_bias
 
 
-@local_optimizer([AbstractBatchNormTrain])
+@node_rewriter([AbstractBatchNormTrain])
 def local_abstract_batch_norm_train(fgraph, node):
     if not isinstance(node.op, AbstractBatchNormTrain):
         return None
@@ -823,18 +826,13 @@ def local_abstract_batch_norm_train(fgraph, node):
         )
         results.append(running_var)
 
-    results = [
-        at.patternbroadcast(r, r_orig.broadcastable)
-        for (r, r_orig) in zip(results, node.outputs)
-    ]
-
     for var in aesara.graph.basic.vars_between(node.inputs, results):
         if var not in node.inputs:
             copy_stack_trace(node.outputs[0], var)
     return results
 
 
-@local_optimizer([AbstractBatchNormTrainGrad])
+@node_rewriter([AbstractBatchNormTrainGrad])
 def local_abstract_batch_norm_train_grad(fgraph, node):
     if not isinstance(node.op, AbstractBatchNormTrainGrad):
         return None
@@ -862,18 +860,13 @@ def local_abstract_batch_norm_train_grad(fgraph, node):
     g_wrt_bias = at_sum(dy, axis=axes, keepdims=True)
     results = [g_wrt_inputs, g_wrt_scale, g_wrt_bias]
 
-    results = [
-        at.patternbroadcast(r, r_orig.broadcastable)
-        for (r, r_orig) in zip(results, node.outputs)
-    ]
-
     for var in aesara.graph.basic.vars_between(node.inputs, results):
         if var not in node.inputs:
             copy_stack_trace(node.outputs[0], var)
     return results
 
 
-@local_optimizer([AbstractBatchNormInference])
+@node_rewriter([AbstractBatchNormInference])
 def local_abstract_batch_norm_inference(fgraph, node):
     if not isinstance(node.op, AbstractBatchNormInference):
         return None
@@ -895,7 +888,6 @@ def local_abstract_batch_norm_inference(fgraph, node):
         epsilon = epsilon.astype("float32")
 
     result = (x - estimated_mean) * (scale / sqrt(estimated_variance + epsilon)) + bias
-    result = at.patternbroadcast(result, node.outputs[0].broadcastable)
 
     for var in aesara.graph.basic.vars_between(node.inputs, [result]):
         if var not in node.inputs:
@@ -904,7 +896,7 @@ def local_abstract_batch_norm_inference(fgraph, node):
 
 
 # Register Cpu Optimization
-bn_groupopt = aesara.graph.optdb.LocalGroupDB()
+bn_groupopt = aesara.graph.rewriting.db.LocalGroupDB()
 bn_groupopt.__name__ = "batchnorm_opts"
 register_specialize_device(bn_groupopt, "fast_compile", "fast_run")
 

@@ -10,17 +10,17 @@ from typing import Optional, Tuple, Union
 from aesara.compile.function.types import Supervisor
 from aesara.configdefaults import config
 from aesara.graph.destroyhandler import DestroyHandler
-from aesara.graph.opt import (
-    CheckStackTraceOptimization,
-    GlobalOptimizer,
+from aesara.graph.rewriting.basic import (
+    CheckStackTraceRewriter,
+    GraphRewriter,
     MergeOptimizer,
-    NavigatorOptimizer,
+    NodeProcessingGraphRewriter,
 )
-from aesara.graph.optdb import (
+from aesara.graph.rewriting.db import (
     EquilibriumDB,
     LocalGroupDB,
-    OptimizationDatabase,
-    OptimizationQuery,
+    RewriteDatabase,
+    RewriteDatabaseQuery,
     SequenceDB,
     TopoDB,
 )
@@ -64,15 +64,15 @@ def register_linker(name, linker):
 exclude = []
 if not config.cxx:
     exclude = ["cxx_only"]
-OPT_NONE = OptimizationQuery(include=[], exclude=exclude)
+OPT_NONE = RewriteDatabaseQuery(include=[], exclude=exclude)
 # Even if multiple merge optimizer call will be there, this shouldn't
 # impact performance.
-OPT_MERGE = OptimizationQuery(include=["merge"], exclude=exclude)
-OPT_FAST_RUN = OptimizationQuery(include=["fast_run"], exclude=exclude)
+OPT_MERGE = RewriteDatabaseQuery(include=["merge"], exclude=exclude)
+OPT_FAST_RUN = RewriteDatabaseQuery(include=["fast_run"], exclude=exclude)
 OPT_FAST_RUN_STABLE = OPT_FAST_RUN.requiring("stable")
 
-OPT_FAST_COMPILE = OptimizationQuery(include=["fast_compile"], exclude=exclude)
-OPT_STABILIZE = OptimizationQuery(include=["fast_run"], exclude=exclude)
+OPT_FAST_COMPILE = RewriteDatabaseQuery(include=["fast_compile"], exclude=exclude)
+OPT_STABILIZE = RewriteDatabaseQuery(include=["fast_run"], exclude=exclude)
 OPT_STABILIZE.position_cutoff = 1.5000001
 OPT_NONE.name = "OPT_NONE"
 OPT_MERGE.name = "OPT_MERGE"
@@ -106,13 +106,13 @@ predefined_optimizers = {
 
 
 def register_optimizer(name, opt):
-    """Add a `GlobalOptimizer` which can be referred to by `name` in `Mode`."""
+    """Add a `GraphRewriter` which can be referred to by `name` in `Mode`."""
     if name in predefined_optimizers:
         raise ValueError(f"Optimizer name already taken: {name}")
     predefined_optimizers[name] = opt
 
 
-class AddDestroyHandler(GlobalOptimizer):
+class AddDestroyHandler(GraphRewriter):
     """
     This optimizer performs two important functions:
 
@@ -145,7 +145,7 @@ class AddDestroyHandler(GlobalOptimizer):
         fgraph.attach_feature(DestroyHandler())
 
 
-class AddFeatureOptimizer(GlobalOptimizer):
+class AddFeatureOptimizer(GraphRewriter):
     """
     This optimizer adds a provided feature to the function graph.
     """
@@ -161,7 +161,7 @@ class AddFeatureOptimizer(GlobalOptimizer):
         pass
 
 
-class PrintCurrentFunctionGraph(GlobalOptimizer):
+class PrintCurrentFunctionGraph(GraphRewriter):
     """
     This optimizer is for debugging.
 
@@ -190,10 +190,10 @@ optdb.register(
 # The opt should not do anything that need shape inference.
 # New nodes that don't have infer_shape need that the original node
 # also don't have infer_shape
-local_useless = LocalGroupDB(apply_all_opts=True, profile=True)
+local_useless = LocalGroupDB(apply_all_rewrites=True, profile=True)
 optdb.register(
     "useless",
-    TopoDB(local_useless, failure_callback=NavigatorOptimizer.warn_inplace),
+    TopoDB(local_useless, failure_callback=NodeProcessingGraphRewriter.warn_inplace),
     "fast_run",
     "fast_compile",
     position=0.6,
@@ -212,10 +212,10 @@ optdb.register(
     "canonicalize_db",
     position=1,
 )
-# Register in the canonizer Equilibrium as a clean up opt the merge opt.
+# Register in the canonizer Equilibrium as a clean-up rewrite the merge rewrite.
 # Without this, as the equilibrium have ignore_newtrees=False, we
-# won't merge all nodes if it is set as a global optimizer with
-# final_opt=True.
+# won't merge all nodes if it is set as a global rewriter with
+# final_rewriter=True.
 
 # We need a new instance of MergeOptimizer to don't have its name
 # changed by other usage of it.
@@ -271,25 +271,24 @@ if config.check_stack_trace in ("raise", "warn", "log"):
 if config.check_stack_trace == "off":
     _tags = ()
 
-optdb.register("CheckStackTrace", CheckStackTraceOptimization(), *_tags, position=-1)
+optdb.register("CheckStackTrace", CheckStackTraceRewriter(), *_tags, position=-1)
 del _tags
 
 
 class Mode:
-    """
-    The Mode represents a way to optimize and then link a computation graph.
+    """A class that specifies the rewrites/optimizations used during function compilation.
 
     Parameters
     ----------
-    optimizer: a structure of type Optimizer
+    optimizer
         An Optimizer may simplify the math, put similar computations together,
         improve numerical stability and various other improvements.
-    linker: a structure of type Linker
+    linker
         A Linker decides which implementations to use (C or Python, for example)
         and how to string them together to perform the computation.
-    db:
-        The ``OptimizationDatabase`` used by this ``Mode``.  Note: This value
-        is *not* part of a ``Mode`` instance's pickled state.
+    db
+        The `RewriteDatabase` used by this `Mode`.  Note: This value
+        is *not* part of a `Mode` instance's pickled state.
 
     See Also
     --------
@@ -302,8 +301,8 @@ class Mode:
     def __init__(
         self,
         linker: Optional[Union[str, Linker]] = None,
-        optimizer: Union[str, OptimizationQuery] = "default",
-        db: OptimizationDatabase = None,
+        optimizer: Union[str, RewriteDatabaseQuery] = "default",
+        db: RewriteDatabase = None,
     ):
         if linker is None:
             linker = config.linker
@@ -320,7 +319,7 @@ class Mode:
 
         # self.provided_optimizer - typically the `optimizer` arg.
         # But if the `optimizer` arg is keyword corresponding to a predefined
-        # OptimizationQuery, then this stores the query
+        # RewriteDatabaseQuery, then this stores the query
         # self._optimizer - typically same as provided_optimizer??
 
         # self.__get_optimizer - returns self._optimizer (possibly querying
@@ -342,7 +341,7 @@ class Mode:
         self.linker = linker
         if isinstance(optimizer, str) or optimizer is None:
             optimizer = predefined_optimizers[optimizer]
-        if isinstance(optimizer, OptimizationQuery):
+        if isinstance(optimizer, RewriteDatabaseQuery):
             self.provided_optimizer = optimizer
         self._optimizer = optimizer
         self.call_time = 0
@@ -357,7 +356,7 @@ class Mode:
         )
 
     def __get_optimizer(self):
-        if isinstance(self._optimizer, OptimizationQuery):
+        if isinstance(self._optimizer, RewriteDatabaseQuery):
             return self.optdb.query(self._optimizer)
         else:
             return self._optimizer
@@ -375,7 +374,7 @@ class Mode:
         link, opt = self.get_linker_optimizer(
             self.provided_linker, self.provided_optimizer
         )
-        # N.B. opt might be a OptimizationQuery instance, not sure what else it might be...
+        # N.B. opt might be a RewriteDatabaseQuery instance, not sure what else it might be...
         #     string? Optimizer? OptDB? who knows???
         return self.clone(optimizer=opt.including(*tags), linker=link)
 
@@ -448,11 +447,11 @@ else:
 
 JAX = Mode(
     JAXLinker(),
-    OptimizationQuery(include=["fast_run"], exclude=["cxx_only", "BlasOpt"]),
+    RewriteDatabaseQuery(include=["fast_run"], exclude=["cxx_only", "BlasOpt"]),
 )
 NUMBA = Mode(
     NumbaLinker(),
-    OptimizationQuery(include=["fast_run"], exclude=["cxx_only", "BlasOpt"]),
+    RewriteDatabaseQuery(include=["fast_run"], exclude=["cxx_only", "BlasOpt"]),
 )
 
 

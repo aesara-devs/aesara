@@ -455,3 +455,43 @@ def test_shared_input_output():
     gv0 = gv(0)
     assert np.all(fv0 == 5), fv0
     assert np.all(gv0 == 5), gv0
+
+
+def test_cmodule_key_empty_props():
+    """Make sure `CLinker.cmodule_key_` is correct when `COp.__props__` is empty."""
+
+    class MyAdd(COp):
+        __props__ = ()
+
+        def make_node(self, *inputs):
+            inputs = list(map(as_variable, inputs))
+            outputs = [tdouble()]
+            return Apply(self, inputs, outputs)
+
+        def __str__(self):
+            return self.name
+
+        def perform(self, node, inputs, out_):
+            (out,) = out_
+            out[0] = sum(*inputs)
+
+        def c_code_cache_version(self):
+            return (1,)
+
+        def c_code(self, node, name, inp, out, sub):
+            x, y = inp
+            (z,) = out
+            return f"{z} = {x} + {y};"
+
+    x = tdouble("x")
+    y = tdouble("y")
+
+    z = MyAdd()(x, y)
+
+    fg = FunctionGraph(outputs=[z])
+
+    linker = CLinker()
+    linker.accept(fg)
+    key = linker.cmodule_key()
+    # None of the C version values should be empty
+    assert all(kv for kv in key[0])

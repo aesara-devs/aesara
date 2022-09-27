@@ -53,6 +53,7 @@ expected_erf = scipy.special.erf
 expected_erfc = scipy.special.erfc
 expected_erfinv = scipy.special.erfinv
 expected_erfcinv = scipy.special.erfcinv
+expected_owenst = scipy.special.owens_t
 expected_gamma = scipy.special.gamma
 expected_gammaln = scipy.special.gammaln
 expected_psi = scipy.special.psi
@@ -144,6 +145,55 @@ TestErfcinvBroadcast = makeBroadcastTester(
     grad=_grad_broadcast_unary_0_2_no_complex,
     eps=2e-10,
     mode=mode_no_scipy,
+)
+
+rng = np.random.default_rng(seed=utt.fetch_seed())
+_good_broadcast_binary_owenst = dict(
+    normal=(
+        random_ranged(-5, 5, (2, 3), rng=rng),
+        random_ranged(-5, 5, (2, 3), rng=rng),
+    ),
+    empty=(np.asarray([], dtype=config.floatX), np.asarray([], dtype=config.floatX)),
+    int=(
+        integers_ranged(-5, 5, (2, 3), rng=rng),
+        integers_ranged(-5, 5, (2, 3), rng=rng),
+    ),
+    uint8=(
+        integers_ranged(1, 6, (2, 3), rng=rng).astype("uint8"),
+        integers_ranged(1, 6, (2, 3), rng=rng).astype("uint8"),
+    ),
+    uint16=(
+        integers_ranged(1, 10, (2, 3), rng=rng).astype("uint16"),
+        integers_ranged(1, 10, (2, 3), rng=rng).astype("uint16"),
+    ),
+    uint64=(
+        integers_ranged(1, 10, (2, 3), rng=rng).astype("uint64"),
+        integers_ranged(1, 10, (2, 3), rng=rng).astype("uint64"),
+    ),
+)
+
+_grad_broadcast_binary_owenst = dict(
+    normal=(
+        random_ranged(-5, 5, (2, 3), rng=rng),
+        random_ranged(-5, 5, (2, 3), rng=rng),
+    )
+)
+
+TestOwensTBroadcast = makeBroadcastTester(
+    op=at.owens_t,
+    expected=expected_owenst,
+    good=_good_broadcast_binary_owenst,
+    grad=_grad_broadcast_binary_owenst,
+    eps=2e-10,
+    mode=mode_no_scipy,
+)
+TestOwensTInplaceBroadcast = makeBroadcastTester(
+    op=inplace.owens_t_inplace,
+    expected=expected_owenst,
+    good=_good_broadcast_binary_owenst,
+    eps=2e-10,
+    mode=mode_no_scipy,
+    inplace=True,
 )
 
 rng = np.random.default_rng(seed=utt.fetch_seed())

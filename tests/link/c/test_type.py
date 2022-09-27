@@ -11,66 +11,68 @@ from aesara.link.c.type import CDataType, CEnumType, EnumList, EnumType
 from aesara.tensor.type import TensorType, continuous_dtypes
 
 
+class ProdOp(COp):
+    __props__ = ()
+
+    def make_node(self, i):
+        return Apply(self, [i], [CDataType("void *", "py_decref")()])
+
+    def c_support_code(self, **kwargs):
+        return """
+void py_decref(void *p) {
+Py_XDECREF((PyObject *)p);
+}
+"""
+
+    def c_code(self, node, name, inps, outs, sub):
+        return """
+Py_XDECREF(%(out)s);
+%(out)s = (void *)%(inp)s;
+Py_INCREF(%(inp)s);
+""" % dict(
+            out=outs[0], inp=inps[0]
+        )
+
+    def c_code_cache_version(self):
+        return (0,)
+
+    def perform(self, *args, **kwargs):
+        raise NotImplementedError()
+
+
+class GetOp(COp):
+    __props__ = ()
+
+    def make_node(self, c):
+        return Apply(self, [c], [TensorType("float32", (False,))()])
+
+    def c_support_code(self, **kwargs):
+        return """
+void py_decref(void *p) {
+Py_XDECREF((PyObject *)p);
+}
+"""
+
+    def c_code(self, node, name, inps, outs, sub):
+        return """
+Py_XDECREF(%(out)s);
+%(out)s = (PyArrayObject *)%(inp)s;
+Py_INCREF(%(out)s);
+""" % dict(
+            out=outs[0], inp=inps[0]
+        )
+
+    def c_code_cache_version(self):
+        return (0,)
+
+    def perform(self, *args, **kwargs):
+        raise NotImplementedError()
+
+
 @pytest.mark.skipif(
     not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_cdata():
-    class ProdOp(COp):
-        __props__ = ()
-
-        def make_node(self, i):
-            return Apply(self, [i], [CDataType("void *", "py_decref")()])
-
-        def c_support_code(self, **kwargs):
-            return """
-    void py_decref(void *p) {
-    Py_XDECREF((PyObject *)p);
-    }
-    """
-
-        def c_code(self, node, name, inps, outs, sub):
-            return """
-    Py_XDECREF(%(out)s);
-    %(out)s = (void *)%(inp)s;
-    Py_INCREF(%(inp)s);
-    """ % dict(
-                out=outs[0], inp=inps[0]
-            )
-
-        def c_code_cache_version(self):
-            return (0,)
-
-        def perform(self, *args, **kwargs):
-            raise NotImplementedError()
-
-    class GetOp(COp):
-        __props__ = ()
-
-        def make_node(self, c):
-            return Apply(self, [c], [TensorType("float32", (False,))()])
-
-        def c_support_code(self, **kwargs):
-            return """
-    void py_decref(void *p) {
-    Py_XDECREF((PyObject *)p);
-    }
-    """
-
-        def c_code(self, node, name, inps, outs, sub):
-            return """
-    Py_XDECREF(%(out)s);
-    %(out)s = (PyArrayObject *)%(inp)s;
-    Py_INCREF(%(out)s);
-    """ % dict(
-                out=outs[0], inp=inps[0]
-            )
-
-        def c_code_cache_version(self):
-            return (0,)
-
-        def perform(self, *args, **kwargs):
-            raise NotImplementedError()
-
     i = TensorType("float32", (False,))()
     c = ProdOp()(i)
     i2 = GetOp()(c)

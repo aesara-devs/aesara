@@ -20,6 +20,7 @@ from tempfile import mkdtemp
 import numpy as np
 import pytest
 
+import aesara.tensor as at
 from aesara.compile.debugmode import DebugMode
 from aesara.compile.function import function
 from aesara.compile.function.pfunc import rebuild_collect_shared
@@ -31,14 +32,13 @@ from aesara.gradient import NullTypeGradError, Rop, disconnected_grad, grad, hes
 from aesara.graph.basic import Apply, ancestors, equal_computations
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
-from aesara.graph.opt import MergeOptimizer
+from aesara.graph.rewriting.basic import MergeOptimizer
 from aesara.graph.utils import MissingInputError
 from aesara.misc.safe_asarray import _asarray
 from aesara.raise_op import assert_op
 from aesara.scan.basic import scan
 from aesara.scan.op import Scan
 from aesara.scan.utils import until
-from aesara.tensor import basic as at
 from aesara.tensor.math import all as at_all
 from aesara.tensor.math import dot, mean, sigmoid
 from aesara.tensor.math import sum as at_sum
@@ -824,7 +824,7 @@ class TestScan:
         assert scan_c is not scan_a
 
         g = FunctionGraph([x, y, c], [2 * scan_a, 2 * scan_b, 2 * scan_c], clone=False)
-        MergeOptimizer().optimize(g)
+        MergeOptimizer().rewrite(g)
         scan_a_out, scan_b_out, scan_c_out = g.outputs
 
         assert scan_a_out is scan_b_out
@@ -4028,3 +4028,51 @@ def test_ScanInfo_totals(fn, sequences, outputs_info, non_sequences, n_steps, op
     assert scan_op.info.n_outer_outputs == len(res.owner.outputs)
     assert scan_op.info.n_inner_inputs == len(res.owner.op.inner_inputs)
     assert scan_op.info.n_inner_outputs == len(res.owner.op.inner_outputs)
+
+
+@pytest.mark.parametrize("linker_mode", ["cvm", "py"])
+def test_output_storage_reuse(linker_mode):
+    """Make sure that outer-output storage is correctly initialized when it's non-``None``/empty."""
+
+    if linker_mode == "cvm":
+        # This implicitly confirms that the Cython version is being used
+        from aesara.scan import scan_perform_ext  # noqa: F401
+
+    mode = Mode(linker=linker_mode, optimizer=None)
+
+    def fn(n):
+        """
+        Since the following inner-`Scan` is nested, its outer-output storage
+        will be non-``None`` after the second outer-`Scan` iteration, and all
+        subsequent iterations will use the previous outer-output storage.  Due
+        to the ``n_step`` changes, the shape of the outer-inputs array that's
+        allocated for the lagged/sit-sot ``z`` results should differ from the
+        shape of the previously allocated outer-output array. Since the
+        outer-output arrays are initialized using the outer-input arrays, the
+        shape difference needs to be handled correctly.
+        """
+        s_in_y, _ = scan(
+            fn=lambda z: (z + 1, until(z > 2)),
+            outputs_info=[
+                {"taps": [-1], "initial": at.as_tensor(0.0, dtype=np.float64)}
+            ],
+            mode=mode,
+            n_steps=n - 1,
+            allow_gc=False,
+        )
+
+        return s_in_y.sum()
+
+    s_y, updates = scan(
+        fn=fn,
+        outputs_info=[None],
+        sequences=[at.as_tensor([3, 2, 1], dtype=np.int64)],
+        mode=mode,
+        allow_gc=False,
+    )
+
+    f_cvm = function([], s_y, mode=mode)
+
+    res = f_cvm()
+
+    assert np.array_equal(res, np.array([3, 1, 0]))

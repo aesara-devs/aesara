@@ -59,7 +59,8 @@ try:
     init_file = os.path.join(location, "__init__.py")
     if not os.path.exists(init_file):
         try:
-            open(init_file, "w").close()
+            with open(init_file, "w"):
+                pass
         except OSError as e:
             if os.path.exists(init_file):
                 pass  # has already been created
@@ -126,10 +127,12 @@ except ImportError:
                     "code generation."
                 )
                 raise ImportError("The file lazylinker_c.c is not available.")
-            code = open(cfile).read()
+
+            with open(cfile) as f:
+                code = f.read()
+
             loc = os.path.join(config.compiledir, dirname)
             if not os.path.exists(loc):
-
                 try:
                     os.mkdir(loc)
                 except OSError as e:
@@ -140,14 +143,17 @@ except ImportError:
             GCC_compiler.compile_str(dirname, code, location=loc, preargs=args)
             # Save version into the __init__.py file.
             init_py = os.path.join(loc, "__init__.py")
+
             with open(init_py, "w") as f:
                 f.write(f"_version = {version}\n")
+
             # If we just compiled the module for the first time, then it was
             # imported at the same time: we need to make sure we do not
             # reload the now outdated __init__.pyc below.
             init_pyc = os.path.join(loc, "__init__.pyc")
             if os.path.isfile(init_pyc):
                 os.remove(init_pyc)
+
             try_import()
             try_reload()
             from lazylinker_ext import lazylinker_ext as lazy_c

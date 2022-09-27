@@ -14,7 +14,7 @@ from functools import wraps
 from io import StringIO
 from typing import Callable, Dict, Optional, Sequence, Union
 
-from aesara.utils import deprecated, hash_from_code
+from aesara.utils import hash_from_code
 
 
 _logger = logging.getLogger("aesara.configparser")
@@ -582,8 +582,7 @@ class _ConfigProxy:
         if attr == "_actual":
             return _ConfigProxy._actual
         warnings.warn(
-            "Accessing config through `aesara.configparser.config` is deprecated. "
-            "Use `aesara.config` instead.",
+            "`aesara.configparser.config` is deprecated; use `aesara.config` instead.",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -593,8 +592,7 @@ class _ConfigProxy:
         if attr == "_actual":
             return setattr(_ConfigProxy._actual, attr, value)
         warnings.warn(
-            "Accessing config through `aesara.configparser.config` is deprecated. "
-            "Use `aesara.config` instead.",
+            "`aesara.configparser.config` is deprecated; use `aesara.config` instead.",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -609,12 +607,37 @@ _config = _create_default_config()
 # These imports/accesses should be replaced with `aesara.config`, so this wraps
 # it with warnings:
 config = _ConfigProxy(_config)
-# We can't alias the methods of the `config` variable above without already
-# triggering the warning.  Instead, we wrap the methods of the actual instance
-# with warnings:
-change_flags = deprecated("Use aesara.config.change_flags instead!")(
-    _config.change_flags
-)
-_config_print = deprecated("Use aesara.config.config_print instead!")(
-    _config.config_print
-)
+
+DEPRECATED_NAMES = [
+    (
+        "change_flags",
+        "`change_flags` is deprecated; use `aesara.config.change_flags` instead.",
+        _config.change_flags,
+    ),
+    (
+        "_change_flags",
+        "`_change_flags` is deprecated; use `aesara.config.change_flags` instead.",
+        _config.change_flags,
+    ),
+    (
+        "_config_print",
+        "`_config_print` is deprecated; use `aesara.config.config_print` instead.",
+        _config.config_print,
+    ),
+]
+
+
+def __getattr__(name):
+    """Intercept module-level attribute access of deprecated symbols.
+
+    Adapted from https://stackoverflow.com/a/55139609/3006474.
+
+    """
+    from warnings import warn
+
+    for old_name, msg, old_object in DEPRECATED_NAMES:
+        if name == old_name:
+            warn(msg, DeprecationWarning, stacklevel=2)
+            return old_object
+
+    raise AttributeError(f"module {__name__} has no attribute {name}")

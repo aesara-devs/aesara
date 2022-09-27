@@ -103,7 +103,7 @@ class TestReplaceValidate:
         capres = capsys.readouterr()
         assert capres.err == ""
         assert (
-            "optimizer: rewrite test-reason replaces Op1.0 of Op1(var2, var1) with var1 of None"
+            "rewriting: rewrite test-reason replaces Op1.0 of Op1(var2, var1) with var1 of None"
             in capres.out
         )
 
@@ -119,4 +119,4 @@ class TestReplaceValidate:
             )
 
         capres = capsys.readouterr()
-        assert "optimizer: validate failed on node Op1.0" in capres.out
+        assert "rewriting: validate failed on node Op1.0" in capres.out
