@@ -1,3 +1,9 @@
+import os
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
 import numpy as np
 import pytest
 
@@ -7,6 +13,52 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Apply
 from aesara.graph.utils import MethodNotDefined
 from aesara.link.c.op import COp
+
+
+test_dir = Path(__file__).parent.absolute()
+
+externalcop_test_code = f"""
+from aesara import tensor as at
+from aesara.graph.basic import Apply
+from aesara.link.c.params_type import ParamsType
+from aesara.link.c.op import ExternalCOp
+from aesara.scalar import ScalarType
+from aesara.link.c.type import Generic
+from aesara.tensor.type import TensorType
+
+tensor_type_0d = TensorType("float64", tuple())
+scalar_type = ScalarType("float64")
+generic_type = Generic()
+
+
+class QuadraticCOpFunc(ExternalCOp):
+    __props__ = ("a", "b", "c")
+    params_type = ParamsType(a=tensor_type_0d, b=scalar_type, c=generic_type)
+
+    def __init__(self, a, b, c):
+        super().__init__(
+            "{test_dir}/c_code/test_quadratic_function.c", "APPLY_SPECIFIC(compute_quadratic)"
+        )
+        self.a = a
+        self.b = b
+        self.c = c
+
+    def make_node(self, x):
+        x = at.as_tensor_variable(x)
+        return Apply(self, [x], [x.type()])
+
+    def perform(self, node, inputs, output_storage, coefficients):
+        x = inputs[0]
+        y = output_storage[0]
+        y[0] = coefficients.a * (x**2) + coefficients.b * x + coefficients.c
+
+
+if __name__ == "__main__":
+    qcop = QuadraticCOpFunc(1, 2, 3)
+
+    print(qcop.c_code_cache_version())
+    print("__success__")
+"""
 
 
 class StructOp(COp):
@@ -141,3 +193,43 @@ class TestMakeThunk:
         else:
             with pytest.raises((NotImplementedError, MethodNotDefined)):
                 thunk()
+
+
+def get_hash(modname, seed=None):
+    """From https://hg.python.org/cpython/file/5e8fa1b13516/Lib/test/test_hash.py#l145"""
+    env = os.environ.copy()
+    if seed is not None:
+        env["PYTHONHASHSEED"] = str(seed)
+    else:
+        env.pop("PYTHONHASHSEED", None)
+    cmd_line = [sys.executable, modname]
+    p = subprocess.Popen(
+        cmd_line,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        env=env,
+    )
+    out, err = p.communicate()
+    return out, err
+
+
+def test_ExternalCOp_c_code_cache_version():
+    """Make sure the C cache versions produced by `ExternalCOp` don't depend on `hash` seeding."""
+
+    with tempfile.NamedTemporaryFile(dir=".", suffix=".py") as tmp:
+        tmp.write(externalcop_test_code.encode())
+        tmp.seek(0)
+        # modname = os.path.splitext(tmp.name)[0]
+        modname = tmp.name
+        out_1, err = get_hash(modname, seed=428)
+        assert err is None
+        out_2, err = get_hash(modname, seed=3849)
+        assert err is None
+
+        hash_1, msg, _ = out_1.decode().split("\n")
+        assert msg == "__success__"
+        hash_2, msg, _ = out_2.decode().split("\n")
+        assert msg == "__success__"
+
+        assert hash_1 == hash_2

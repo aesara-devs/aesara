@@ -13,7 +13,6 @@ from typing import (
     Optional,
     Pattern,
     Set,
-    Text,
     Tuple,
     Union,
     cast,
@@ -28,6 +27,7 @@ from aesara.graph.type import HasDataType
 from aesara.graph.utils import MethodNotDefined
 from aesara.link.c.interface import CLinkerOp
 from aesara.link.c.params_type import ParamsType
+from aesara.utils import hash_from_code
 
 
 if TYPE_CHECKING:
@@ -230,7 +230,7 @@ int main( int argc, const char* argv[] )
             self.update_self_openmp()
 
 
-def lquote_macro(txt: Text) -> Text:
+def lquote_macro(txt: str) -> str:
     """Turn the last line of text into a ``\\``-commented line."""
     res = []
     spl = txt.split("\n")
@@ -240,7 +240,7 @@ def lquote_macro(txt: Text) -> Text:
     return "\n".join(res)
 
 
-def get_sub_macros(sub: Dict[Text, Text]) -> Union[Tuple[Text], Tuple[Text, Text]]:
+def get_sub_macros(sub: Dict[str, str]) -> Union[Tuple[str], Tuple[str, str]]:
     define_macros = []
     undef_macros = []
     define_macros.append(f"#define FAIL {lquote_macro(sub['fail'])}")
@@ -253,8 +253,8 @@ def get_sub_macros(sub: Dict[Text, Text]) -> Union[Tuple[Text], Tuple[Text, Text
 
 
 def get_io_macros(
-    inputs: List[Text], outputs: List[Text]
-) -> Union[Tuple[List[Text]], Tuple[str, str]]:
+    inputs: List[str], outputs: List[str]
+) -> Union[Tuple[List[str]], Tuple[str, str]]:
     define_macros = []
     undef_macros = []
 
@@ -285,7 +285,7 @@ class ExternalCOp(COp):
         r"^AESARA_(APPLY|SUPPORT)_CODE_SECTION$", re.MULTILINE
     )
     # This is the set of allowed markers
-    SECTIONS: ClassVar[Set[Text]] = {
+    SECTIONS: ClassVar[Set[str]] = {
         "init_code",
         "init_code_apply",
         "init_code_struct",
@@ -296,9 +296,11 @@ class ExternalCOp(COp):
         "code",
         "code_cleanup",
     }
+    _cop_num_inputs: Optional[int] = None
+    _cop_num_outputs: Optional[int] = None
 
     @classmethod
-    def get_path(cls, f: Text) -> Text:
+    def get_path(cls, f: str) -> str:
         """Convert a path relative to the location of the class file into an absolute path.
 
         Paths that are already absolute are passed through unchanged.
@@ -311,7 +313,7 @@ class ExternalCOp(COp):
         return f
 
     def __init__(
-        self, func_files: Union[Text, List[Text]], func_name: Optional[Text] = None
+        self, func_files: Union[str, List[str]], func_name: Optional[str] = None
     ):
         """
         Sections are loaded from files in order with sections in later
@@ -319,36 +321,37 @@ class ExternalCOp(COp):
 
         """
         if not isinstance(func_files, list):
-            func_files = [func_files]
+            self.func_files = [func_files]
+        else:
+            self.func_files = func_files
 
-        self.func_name = func_name
+        self.func_codes: List[str] = []
         # Keep the original name. If we reload old pickle, we want to
         # find the new path and new version of the file in Aesara.
-        self.func_files = func_files
-        self.load_c_code(func_files)
+        self.func_name = func_name
+        self.code_sections: Dict[str, str] = dict()
+
+        self.load_c_code(self.func_files)
 
         if len(self.code_sections) == 0:
-            raise ValueError("No sections where defined in C files")
+            raise ValueError("No sections where defined in the C files")
 
         if self.func_name is not None:
             if "op_code" in self.code_sections:
                 # maybe a warning instead (and clearing the key)
                 raise ValueError(
-                    'Cannot have an "op_code" section and ' "specify the func_name"
+                    "Cannot have an `op_code` section and specify `func_name`"
                 )
             if "op_code_cleanup" in self.code_sections:
                 # maybe a warning instead (and clearing the key)
                 raise ValueError(
-                    'Cannot have an "op_code_cleanup" section '
-                    "and specify the func_name"
+                    "Cannot have an `op_code_cleanup` section and specify `func_name`"
                 )
 
-    def load_c_code(self, func_files: List[Text]) -> None:
+    def load_c_code(self, func_files: List[str]) -> None:
         """Loads the C code to perform the `Op`."""
         func_files = [self.get_path(f) for f in func_files]
-        self.func_codes = []
         for func_file in func_files:
-            # U (universal) will convert all new lines format to \n.
             with open(func_file) as f:
                 self.func_codes.append(f.read())
 
@@ -370,7 +373,6 @@ class ExternalCOp(COp):
                 "be used at the same time."
             )
 
-        self.code_sections = dict()
         for i, code in enumerate(self.func_codes):
             if self.backward_re.search(code):
                 # This is backward compat code that will go away in a while
@@ -449,7 +451,7 @@ class ExternalCOp(COp):
         return params
 
     def c_code_cache_version(self):
-        version = (hash(tuple(self.func_codes)),)
+        version = (hash_from_code("\n".join(self.func_codes)),)
         if self.params_type is not None:
             version += (self.params_type.c_code_cache_version(),)
         return version
@@ -502,24 +504,35 @@ class ExternalCOp(COp):
         else:
             return super().c_cleanup_code_struct(node, name)
 
-    def format_c_function_args(self, inp: List[Text], out: List[Text]) -> Text:
+    def format_c_function_args(self, inp: List[str], out: List[str]) -> str:
         """Generate a string containing the arguments sent to the external C function.
 
         The result will have the format: ``"input0, input1, input2, &output0, &output1"``.
 
         """
         inp = list(inp)
-        numi = getattr(self, "_cop_num_inputs", len(inp))
+        if self._cop_num_inputs is not None:
+            numi = self._cop_num_inputs
+        else:
+            numi = len(inp)
+
         while len(inp) < numi:
             inp.append("NULL")
+
         out = [f"&{o}" for o in out]
-        numo = getattr(self, "_cop_num_outputs", len(out))
+
+        if self._cop_num_outputs is not None:
+            numo = self._cop_num_outputs
+        else:
+            numo = len(out)
+
         while len(out) < numo:
             out.append("NULL")
+
         return ", ".join(inp + out)
 
     def get_c_macros(
-        self, node: Apply, name: Text, check_input: Optional[bool] = None
+        self, node: Apply, name: str, check_input: Optional[bool] = None
     ) -> Union[Tuple[str], Tuple[str, str]]:
         "Construct a pair of C ``#define`` and ``#undef`` code strings."
         define_template = "#define %s %s"
@@ -544,25 +557,19 @@ class ExternalCOp(COp):
 
                 vname = variable_names[i]
 
-                macro_name = "DTYPE_" + vname
-                macro_value = "npy_" + v.type.dtype
-
-                define_macros.append(define_template % (macro_name, macro_value))
-                undef_macros.append(undef_template % macro_name)
+                macro_items = (f"DTYPE_{vname}", f"npy_{v.type.dtype}")
+                define_macros.append(define_template % macro_items)
+                undef_macros.append(undef_template % macro_items[0])
 
                 d = np.dtype(v.type.dtype)
 
-                macro_name = "TYPENUM_" + vname
-                macro_value = d.num
+                macro_items_2 = (f"TYPENUM_{vname}", d.num)
+                define_macros.append(define_template % macro_items_2)
+                undef_macros.append(undef_template % macro_items_2[0])
 
-                define_macros.append(define_template % (macro_name, macro_value))
-                undef_macros.append(undef_template % macro_name)
-
-                macro_name = "ITEMSIZE_" + vname
-                macro_value = d.itemsize
-
-                define_macros.append(define_template % (macro_name, macro_value))
-                undef_macros.append(undef_template % macro_name)
+                macro_items_3 = (f"ITEMSIZE_{vname}", d.itemsize)
+                define_macros.append(define_template % macro_items_3)
+                undef_macros.append(undef_template % macro_items_3[0])
 
         # Generate a macro to mark code as being apply-specific
         define_macros.append(define_template % ("APPLY_SPECIFIC(str)", f"str##_{name}"))

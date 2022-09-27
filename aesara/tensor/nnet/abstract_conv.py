@@ -30,11 +30,7 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.op import Op
 from aesara.raise_op import Assert
-from aesara.tensor.basic import (
-    as_tensor_variable,
-    get_scalar_constant_value,
-    patternbroadcast,
-)
+from aesara.tensor.basic import as_tensor_variable, get_scalar_constant_value
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.var import TensorConstant, TensorVariable
 
@@ -2704,11 +2700,7 @@ class AbstractConv2d(AbstractConv):
         # Make sure that the broadcastable pattern of the inputs is used
         # for the gradients, even if the grad opts are not able to infer
         # that the dimensions are broadcastable.
-        # Also make sure that the gradient lives on the same device than
-        # the corresponding input.
-        d_bottom = patternbroadcast(d_bottom, bottom.broadcastable)
         d_bottom = bottom.type.filter_variable(d_bottom)
-        d_weights = patternbroadcast(d_weights, weights.broadcastable)
         d_weights = weights.type.filter_variable(d_weights)
         return d_bottom, d_weights
 
@@ -2765,23 +2757,15 @@ class AbstractConv3d(AbstractConv):
         # Make sure that the broadcastable pattern of the inputs is used
         # for the gradients, even if the grad opts are not able to infer
         # that the dimensions are broadcastable.
-        # Also make sure that the gradient lives on the same device than
-        # the corresponding input.
-        d_bottom = patternbroadcast(d_bottom, bottom.broadcastable)
         d_bottom = bottom.type.filter_variable(d_bottom)
-        d_weights = patternbroadcast(d_weights, weights.broadcastable)
         d_weights = weights.type.filter_variable(d_weights)
         return d_bottom, d_weights
 
 
 class AbstractConv_gradWeights(BaseAbstractConv):
-    """Gradient wrt. filters for `AbstractConv`.
-    Refer to :func:`BaseAbstractConv <aesara.tensor.nnet.abstract_conv.BaseAbstractConv>`
-    for a more detailed documentation.
+    """Gradient with respect to filters for `AbstractConv`.
 
-    :note: You will not want to use this directly, but rely on
-           Aesara's automatic differentiation or graph optimization to
-           use it as needed.
+    Refer to :class:`BaseAbstractConv` for more detailed documentation.
 
     """
 
@@ -3003,13 +2987,9 @@ class AbstractConv_gradWeights(BaseAbstractConv):
 
 
 class AbstractConv2d_gradWeights(AbstractConv_gradWeights):
-    """Gradient wrt. filters for `AbstractConv2d`.
-    Refer to :func:`BaseAbstractConv <aesara.tensor.nnet.abstract_conv.BaseAbstractConv>`
-    for a more detailed documentation.
+    """Gradient with respect to filters for `AbstractConv2d`.
 
-    :note: You will not want to use this directly, but rely on
-           Aesara's automatic differentiation or graph optimization to
-           use it as needed.
+    Refer to :class:`BaseAbstractConv` for more detailed documentation.
 
     """
 
@@ -3062,11 +3042,7 @@ class AbstractConv2d_gradWeights(AbstractConv_gradWeights):
         # Make sure that the broadcastable pattern of the inputs is used
         # for the gradients, even if the grad opts are not able to infer
         # that the dimensions are broadcastable.
-        # Also make sure that the gradient lives on the same device than
-        # the corresponding input.
-        d_bottom = patternbroadcast(d_bottom, bottom.broadcastable)
         d_bottom = bottom.type.filter_variable(d_bottom)
-        d_top = patternbroadcast(d_top, top.broadcastable)
         d_top = top.type.filter_variable(d_top)
 
         d_height_width = (aesara.gradient.DisconnectedType()(),)
@@ -3074,13 +3050,9 @@ class AbstractConv2d_gradWeights(AbstractConv_gradWeights):
 
 
 class AbstractConv3d_gradWeights(AbstractConv_gradWeights):
-    """Gradient wrt. filters for `AbstractConv3d`.
-    Refer to :func:`BaseAbstractConv <aesara.tensor.nnet.abstract_conv.BaseAbstractConv>`
-    for a more detailed documentation.
+    """Gradient with respect to filters for `AbstractConv3d`.
 
-    :note: You will not want to use this directly, but rely on
-           Aesara's automatic differentiation or graph optimization to
-           use it as needed.
+    Refer to :class:`BaseAbstractConv` for more detailed documentation.
 
     """
 
@@ -3129,11 +3101,7 @@ class AbstractConv3d_gradWeights(AbstractConv_gradWeights):
         # Make sure that the broadcastable pattern of the inputs is used
         # for the gradients, even if the grad opts are not able to infer
         # that the dimensions are broadcastable.
-        # Also make sure that the gradient lives on the same device than
-        # the corresponding input.
-        d_bottom = patternbroadcast(d_bottom, bottom.broadcastable)
         d_bottom = bottom.type.filter_variable(d_bottom)
-        d_top = patternbroadcast(d_top, top.broadcastable)
         d_top = top.type.filter_variable(d_top)
 
         d_depth_height_width = (aesara.gradient.DisconnectedType()(),)
@@ -3141,13 +3109,9 @@ class AbstractConv3d_gradWeights(AbstractConv_gradWeights):
 
 
 class AbstractConv_gradInputs(BaseAbstractConv):
-    """Gradient wrt. inputs for `AbstractConv`.
-    Refer to :func:`BaseAbstractConv <aesara.tensor.nnet.abstract_conv.BaseAbstractConv>`
-    for a more detailed documentation.
+    """Gradient with respect to inputs for `AbstractConv`.
 
-    :note: You will not want to use this directly, but rely on
-           Aesara's automatic differentiation or graph optimization to
-           use it as needed.
+    Refer to :class:`BaseAbstractConv` for more detailed documentation.
 
     """
 
@@ -3393,13 +3357,9 @@ class AbstractConv_gradInputs(BaseAbstractConv):
 
 
 class AbstractConv2d_gradInputs(AbstractConv_gradInputs):
-    """Gradient wrt. inputs for `AbstractConv2d`.
-    Refer to :func:`BaseAbstractConv <aesara.tensor.nnet.abstract_conv.BaseAbstractConv>`
-    for a more detailed documentation.
+    """Gradient with respect to inputs for `AbstractConv2d`.
 
-    :note: You will not want to use this directly, but rely on
-           Aesara's automatic differentiation or graph optimization to
-           use it as needed.
+    Refer to :class:`BaseAbstractConv` for more detailed documentation.
 
     """
 
@@ -3452,11 +3412,7 @@ class AbstractConv2d_gradInputs(AbstractConv_gradInputs):
         # Make sure that the broadcastable pattern of the inputs is used
         # for the gradients, even if the grad opts are not able to infer
         # that the dimensions are broadcastable.
-        # Also make sure that the gradient lives on the same device than
-        # the corresponding input.
-        d_weights = patternbroadcast(d_weights, weights.broadcastable)
         d_weights = weights.type.filter_variable(d_weights)
-        d_top = patternbroadcast(d_top, top.broadcastable)
         d_top = top.type.filter_variable(d_top)
 
         d_height_width = (aesara.gradient.DisconnectedType()(),)
@@ -3464,13 +3420,9 @@ class AbstractConv2d_gradInputs(AbstractConv_gradInputs):
 
 
 class AbstractConv3d_gradInputs(AbstractConv_gradInputs):
-    """Gradient wrt. inputs for `AbstractConv3d`.
-    Refer to :func:`BaseAbstractConv <aesara.tensor.nnet.abstract_conv.BaseAbstractConv>`
-    for a more detailed documentation.
+    """Gradient with respect to inputs for `AbstractConv3d`.
 
-    :note: You will not want to use this directly, but rely on
-           Aesara's automatic differentiation or graph optimization to
-           use it as needed.
+    Refer to :class:`BaseAbstractConv` for more detailed documentation.
 
     """
 
@@ -3519,11 +3471,7 @@ class AbstractConv3d_gradInputs(AbstractConv_gradInputs):
         # Make sure that the broadcastable pattern of the inputs is used
         # for the gradients, even if the grad opts are not able to infer
         # that the dimensions are broadcastable.
-        # Also make sure that the gradient lives on the same device than
-        # the corresponding input.
-        d_weights = patternbroadcast(d_weights, weights.broadcastable)
         d_weights = weights.type.filter_variable(d_weights)
-        d_top = patternbroadcast(d_top, top.broadcastable)
         d_top = top.type.filter_variable(d_top)
 
         d_depth_height_width = (aesara.gradient.DisconnectedType()(),)

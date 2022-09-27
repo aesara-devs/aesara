@@ -92,9 +92,12 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
             )
             shape = broadcastable
 
-        if isinstance(dtype, str) and dtype == "floatX":
+        if str(dtype) == "floatX":
             self.dtype = config.floatX
         else:
+            if np.obj2sctype(dtype) is None:
+                raise TypeError(f"Invalid dtype: {dtype}")
+
             self.dtype = np.dtype(dtype).name
 
         def parse_bcast_and_shape(s):
@@ -319,19 +322,14 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
 
     def convert_variable(self, var):
         if self.is_super(var.type):
-            # `var.type` is at least as specific as `self`, so we return
-            # `var` as-is
+            # `var.type` is as specific as `self`, so we return `var` as-is
             return var
-        elif var.type.is_super(self):
-            # `var.type` is less specific than `self`, so we convert
-            # `var` to `self`'s `Type`.
-            # Note that, in this case, `var.type != self`, because that's
-            # covered by the branch above.
 
-            # Use the more specific broadcast/shape information of the two
-            return aesara.tensor.basic.Rebroadcast(
-                *[(i, b) for i, b in enumerate(self.broadcastable)]
-            )(var)
+        if (self.ndim == var.type.ndim) and (self.dtype == var.type.dtype):
+            # `var.type` only differs from `self` in that its shape is (at least partially)
+            # less specific than `self`, so we convert `var` to `self`'s `Type`.
+            # `specify_shape` will combine the more precise shapes of the two types
+            return aesara.tensor.specify_shape(var, self.shape)
 
     def value_zeros(self, shape):
         """Create an numpy ndarray full of 0 values.
@@ -780,6 +778,10 @@ bscalar = TensorType("int8", ())
 wscalar = TensorType("int16", ())
 iscalar = TensorType("int32", ())
 lscalar = TensorType("int64", ())
+ubscalar = TensorType("uint8", ())
+uwscalar = TensorType("uint16", ())
+uiscalar = TensorType("uint32", ())
+ulscalar = TensorType("uint64", ())
 
 
 def scalar(name=None, dtype=None):

@@ -5,11 +5,11 @@
 Views and inplace operations
 ============================
 
-Aesara allows the definition of ``Op``\s which return a :term:`view` on one
+Aesara allows the definition of :class:`Op`\s which return a :term:`view` on one
 of their inputs or operate :term:`inplace` on one or several
-inputs. This allows more efficient operations on NumPy's ``ndarray``
+inputs. This allows more efficient operations on NumPy's :class:`ndarray`
 data type than would be possible otherwise.
-However, in order to work correctly, these ``Op``\s need to
+However, in order to work correctly, these :class:`Op`\s need to
 implement an additional interface.
 
 Aesara recognizes views and inplace operations specially. It ensures
@@ -23,7 +23,7 @@ Views
 
 A "view" on an object ``x`` is an object ``y`` which shares memory
 with ``x`` in some way. In other words, changing ``x`` might also
-change ``y`` and vice versa. For example, imagine a ``vector`` structure
+change ``y`` and vice versa. For example, imagine a `vector` structure
 which contains two fields: an integer length and a pointer to a memory
 buffer. Suppose we have:
 
@@ -44,9 +44,9 @@ range ``0xDEADBEFF - 0xDEADBFDF`` and z the range ``0xCAFEBABE -
 0xCAFEBBBE``. Since the ranges for ``x`` and ``y`` overlap, ``y`` is
 considered to be a view of ``x`` and vice versa.
 
-Suppose you had an ``Op`` which took ``x`` as input and returned
+Suppose you had an :class:`Op` which took ``x`` as input and returned
 ``y``. You would need to tell Aesara that ``y`` is a view of ``x``. For this
-purpose, you would set the ``view_map`` field as follows:
+purpose, you would set the :class:`Op.view_map` field as follows:
 
 
 .. testsetup::
@@ -88,15 +88,15 @@ Inplace operations
 
 An inplace operation is one that modifies one or more of its
 inputs. For example, the expression ``x += y`` where ``x`` and ``y``
-are ``numpy.ndarray`` instances would normally represent an inplace
+are :class:`numpy.ndarray` instances would normally represent an inplace
 operation on ``x``.
 
 .. note::
 
    Inplace operations in Aesara still work in a functional setting:
    they need to return the modified input. Symbolically, Aesara
-   requires one Variable standing for the input *before* being modified
-   and *another* Variable representing the input *after* being
+   requires one :class:`Variable` standing for the input before being modified
+   and another :class:`Variable` representing the input after being
    modified. Therefore, code using inplace operations would look like
    this:
 
@@ -121,29 +121,29 @@ operation on ``x``.
 
    Needless to say, this goes for user-defined inplace operations as
    well; the modified input must figure in the list of outputs you
-   give to ``Apply`` in the definition of ``make_node``.
+   give to :class:`Apply` in the definition of :meth:`Apply.make_node`.
 
    Also, for technical reasons but also because they are slightly
    confusing to use as evidenced by the previous code, Aesara does not
    allow the end user to use inplace operations by default. However,
-   it does allow *optimizations* to substitute them in in a later
+   it does allow rewrites to substitute them in in a later
    phase. Therefore, typically, if you define an inplace operation,
-   you will define a pure equivalent and an optimization which
+   you will define a pure equivalent and a rewrite which
    substitutes one for the other. Aesara will automatically verify if
    it is possible to do so and will refuse the substitution if it
    introduces inconsistencies.
 
 
-Take the previous definitions of ``x``, ``y`` and ``z`` and suppose an ``Op`` which
+Take the previous definitions of ``x``, ``y`` and ``z`` and suppose an :class:`Op` which
 adds one to every byte of its input. If we give ``x`` as an input to
-that ``Op``, it can either allocate a new buffer of the same size as ``x``
+that :class:`Op`, it can either allocate a new buffer of the same size as ``x``
 (that could be ``z``) and set that new buffer's bytes to the variable of
-the addition. That would be a normal, :term:`pure` ``Op``. Alternatively,
-it could add one to each byte *in* the buffer ``x``, therefore
-changing it. That would be an inplace ``Op``.
+the addition. That would be a normal, :term:`pure`\ :class:`Op`. Alternatively,
+it could add one to each byte in the buffer ``x``, therefore
+changing it. That would be an inplace :class:`Op`.
 
 Aesara needs to be notified of this fact. The syntax is similar to
-that of ``view_map``:
+that of :attr:`Op.view_map`:
 
 
 .. testcode::
@@ -171,27 +171,27 @@ first input (position 0).
    # unlike for views, the previous line is legal and supported
 
 .. note::
-   ``DestroyHandler`` provides a hackish means of specifying that a variable cannot be
+   :class:`DestroyHandler` provides a hackish means of specifying that a variable cannot be
    "destroyed" by an in-place operation: ``var.tag.indestructible = True``.
 
 Destructive Operations
 ======================
 
 While some operations will operate inplace on their inputs, some might
-simply destroy or corrupt them. For example, an ``Op`` could do temporary
+simply destroy or corrupt them. For example, an :class:`Op` could do temporary
 calculations right in its inputs. If that is the case, Aesara also
 needs to be notified. The way to notify Aesara is to assume that some
 output operated inplace on whatever inputs are changed or corrupted by
-the ``Op`` (even if the output does not technically reuse any of the
+the :class:`Op` (even if the output does not technically reuse any of the
 input(s)'s memory). From there, go to the previous section.
 
 
 .. warning::
    Failure to correctly mark down views and inplace operations using
-   ``view_map`` and ``destroy_map`` can lead to nasty bugs. In the
+   :attr:`Op.view_map` and :attr:`Op.destroy_map` can lead to nasty bugs. In the
    absence of this information, Aesara might assume that it is safe to
-   execute an inplace operation on some inputs *before* doing other
-   calculations on the *previous* values of the inputs. For example,
+   execute an inplace operation on some inputs before doing other
+   calculations on the previous values of the inputs. For example,
    in the code: ``y = log(x); x2 = add_inplace(x, z)`` it is
    imperative to do the logarithm before the addition (because after
    the addition, the original x that we wanted to take the logarithm
@@ -199,25 +199,28 @@ input(s)'s memory). From there, go to the previous section.
    the value of ``x`` it might invert the order and that will
    certainly lead to erroneous computations.
 
-   You can often identify an incorrect ``view_map`` or ``destroy_map``
-   by using :ref:`DebugMode`.  *Be sure to use ``DebugMode`` when developing
-   a new ``Op`` that uses ``view_map`` and/or ``destroy_map``.*
+   You can often identify an incorrect `Op.view_map` or :attr:`Op.destroy_map`
+   by using :ref:`DebugMode`.
 
-Inplace optimization and DebugMode
-==================================
+.. note::
+   Consider using :class:`DebugMode` when developing
+   a new :class:`Op` that uses :attr:`Op.view_map` and/or :attr:`Op.destroy_map`.
 
-It is recommended that during the graph construction, all ``Op``\s are not inplace.
-Then an optimization replaces them with inplace ones. Currently ``DebugMode`` checks
-all optimizations that were tried even if they got rejected. One reason an inplace
-optimization can get rejected is when there is another ``Op`` that is already being applied
-inplace on the same input. Another reason to reject an inplace optimization is
+Inplace Rewriting and `DebugMode`
+=================================
+
+It is recommended that during the graph construction, all :class:`Op`\s are not inplace.
+Then a rewrite replaces them with inplace ones. Currently :class:`DebugMode` checks
+all rewrites that were tried even if they got rejected. One reason an inplace
+rewrite can get rejected is when there is another :class:`Op` that is already being applied
+inplace on the same input. Another reason to reject an inplace rewrite is
 if it would introduce a cycle into the graph.
 
-The problem with ``DebugMode`` is that it will trigger a useless error when
-checking a rejected inplace optimization, since it will lead to wrong results.
-In order to be able to use ``DebugMode`` in more situations, your inplace
-optimization can pre-check whether it will get rejected by using the
-``aesara.graph.destroyhandler.fast_inplace_check()`` function, that will tell
-which ``Op``\s can be performed inplace. You may then skip the optimization if it is
-incompatible with this check. Note however that this check does not cover all
-cases where an optimization may be rejected (it will not detect cycles).
+The problem with `DebugMode` is that it will trigger a useless error when
+checking a rejected inplace rewrite, since it will lead to wrong results.
+In order to be able to use `DebugMode` in more situations, your inplace
+rewrite can pre-check whether it will get rejected by using the
+:func:`aesara.graph.destroyhandler.fast_inplace_check` function, that will tell
+which :class:`Op`\s can be performed inplace. You may then skip the rewrite if it is
+incompatible with this check. Note, however, that this check does not cover all
+cases where a rewrite may be rejected (it will not detect cycles).

@@ -58,10 +58,9 @@ def simple_extract_stack(
         if len(trace) == 0:
             rm = False
             for p in skips:
-                # Julian: I added the 'tests' exception together with
-                # Arnaud.  Otherwise, we'd lose the stack trace during
-                # in our test cases (e.g. in test_opt.py). We're not
-                # sure this is the right way to do it though.
+                # The 'tests' exception was added; otherwise, we'd lose the
+                # stack trace during in our test cases. We're not sure this is
+                # the right way to do it, though.
                 if p in filename and "tests" not in filename:
                     rm = True
                     break

@@ -499,7 +499,6 @@ def numba_funcify_Subtensor(op, node, **kwargs):
 
 @numba_funcify.register(IncSubtensor)
 @numba_funcify.register(AdvancedIncSubtensor)
-@numba_funcify.register(AdvancedIncSubtensor1)
 def numba_funcify_IncSubtensor(op, node, **kwargs):
 
     incsubtensor_def_src = create_index_func(
@@ -513,6 +512,39 @@ def numba_funcify_IncSubtensor(op, node, **kwargs):
     )
 
     return numba_njit(incsubtensor_fn)
+
+
+@numba_funcify.register(AdvancedIncSubtensor1)
+def numba_funcify_AdvancedIncSubtensor1(op, node, **kwargs):
+    inplace = op.inplace
+    set_instead_of_inc = op.set_instead_of_inc
+
+    if set_instead_of_inc:
+
+        @numba_njit
+        def advancedincsubtensor1_inplace(x, vals, idxs):
+            for idx, val in zip(idxs, vals):
+                x[idx] = val
+            return x
+
+    else:
+
+        @numba_njit
+        def advancedincsubtensor1_inplace(x, vals, idxs):
+            for idx, val in zip(idxs, vals):
+                x[idx] += val
+            return x
+
+    if inplace:
+        return advancedincsubtensor1_inplace
+    else:
+
+        @numba_njit
+        def advancedincsubtensor1(x, vals, idxs):
+            x = x.copy()
+            return advancedincsubtensor1_inplace(x, vals, idxs)
+
+        return advancedincsubtensor1
 
 
 @numba_funcify.register(DeepCopyOp)

@@ -1,11 +1,11 @@
 ===================================================================
-:mod:`tensor.math_opt` --  Tensor Optimizations for Math Operations
+:mod:`tensor.rewriting.math` -- Tensor Rewrites for Math Operations
 ===================================================================
 
-.. module:: tensor.math_opt
+.. module:: tensor.rewriting.math
    :platform: Unix, Windows
-   :synopsis: Tensor Optimizations for Math Operations
+   :synopsis: Tensor Rewrites for Math Operations
 .. moduleauthor:: LISA, PyMC Developers, Aesara Developers
 
-.. automodule:: aesara.tensor.math_opt
+.. automodule:: aesara.tensor.rewriting.math
     :members:

@@ -15,7 +15,7 @@ speed improvements over basic numpy by using aesara.
 
 
 With a little work, Aesara could also implement more sophisticated
-optimizations:
+rewrites:
 
  * automatic ordering of matrix multiplications
  * profile-based memory layout decisions (e.g. row-major vs. col-major)

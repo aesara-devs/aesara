@@ -3,7 +3,6 @@ Generate and compile C modules for Python.
 
 """
 import atexit
-import distutils.sysconfig
 import importlib
 import logging
 import os
@@ -20,9 +19,15 @@ import textwrap
 import time
 import warnings
 from io import BytesIO, StringIO
-from typing import Callable, Dict, List, Optional, Set, Tuple, cast
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple, cast
 
-import numpy.distutils
+import numpy as np
+from setuptools._distutils.sysconfig import (
+    get_config_h_filename,
+    get_config_var,
+    get_python_inc,
+    get_python_lib,
+)
 from typing_extensions import Protocol
 
 # we will abuse the lockfile mechanism when reading and writing the registry
@@ -39,6 +44,10 @@ from aesara.utils import (
     output_subprocess_Popen,
     subprocess_Popen,
 )
+
+
+if TYPE_CHECKING:
+    from aesara.link.c.basic import CLinker
 
 
 class StdLibDirsAndLibsType(Protocol):
@@ -254,9 +263,9 @@ class DynamicModule:
 
 def _get_ext_suffix():
     """Get the suffix for compiled extensions"""
-    dist_suffix = distutils.sysconfig.get_config_var("EXT_SUFFIX")
+    dist_suffix = get_config_var("EXT_SUFFIX")
     if dist_suffix is None:
-        dist_suffix = distutils.sysconfig.get_config_var("SO")
+        dist_suffix = get_config_var("SO")
     return dist_suffix
 
 
@@ -550,7 +559,7 @@ class KeyData:
             with open(self.key_pkl, "wb") as f:
                 pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
         except pickle.PicklingError:
-            _logger.warning(f"Cache leak due to unpickle-able key data {self.keys}")
+            warnings.warn(f"Cache leak due to unpickle-able key data: {self.keys}")
             os.remove(self.key_pkl)
             raise
 
@@ -611,38 +620,38 @@ class ModuleCache:
     can import.
 
     The cache contains one directory for each module, containing:
-    - the dynamic library file itself (.so/.pyd),
-    - an empty __init__.py file, so Python can import it,
-    - a file containing the source code for the module (mod.cpp/mod.cu),
-    - a key.pkl file, containing a KeyData object with all the keys
+    - the dynamic library file itself (e.g. ``.so/.pyd``),
+    - an empty ``__init__.py`` file, so Python can import it,
+    - a file containing the source code for the module (e.g. ``mod.cpp/mod.cu``),
+    - a ``key.pkl`` file, containing a KeyData object with all the keys
     associated with that module,
-    - possibly a delete.me file, meaning this directory has been marked
+    - possibly a ``delete.me`` file, meaning this directory has been marked
     for deletion.
 
-    Keys should be tuples of length 2: (version, rest). The
-    ``rest`` can be anything hashable and picklable, that uniquely
+    Keys should be tuples of length two: ``(version, rest)``. The
+    rest can be anything hashable and picklable, that uniquely
     identifies the computation in the module. The key is returned by
-    ``CLinker.cmodule_key_``.
+    `CLinker.cmodule_key_`.
 
-    The ``version`` should be a hierarchy of tuples of integers.
-    If the ``version`` is either 0 or (), then the key is unversioned, and its
-    corresponding module will be marked for deletion in an atexit() handler.
-    If the ``version`` is neither 0 nor (), then the module will be kept in the
-    cache between processes.
+    The ``version`` value should be a hierarchy of tuples of integers.  If the
+    ``version`` value is either ``0`` or ``()``, then the key is unversioned,
+    and its corresponding module will be marked for deletion in an `atexit`
+    handler.  If the ``version`` value is neither ``0`` nor ``()``, then the
+    module will be kept in the cache between processes.
 
     An unversioned module is not always deleted by the process that
     creates it.  Deleting such modules may not work on NFS filesystems
     because the tmpdir in which the library resides is in use until the
     end of the process' lifetime.  In this case, unversioned modules
-    are left in their tmpdirs without corresponding .pkl files.  These
-    modules and their directories are erased by subsequent processes'
-    refresh() functions.
+    are left in their temporary directories without corresponding ``.pkl``
+    files.  These modules and their directories are erased by subsequent
+    processes' `ModuleCache.refresh`functions.
 
     Two different keys are mapped to the same module when all conditions below
     are met:
         - They have the same version.
         - They share the same compilation options in their ``rest`` part (see
-          ``CLinker.cmodule_key_`` for how this part is built).
+          `CLinker.cmodule_key_` for how this part is built).
         - They share the same C code.
     These three elements uniquely identify a module, and are summarized
     in a single "module hash".
@@ -650,12 +659,12 @@ class ModuleCache:
     Parameters
     ----------
     check_for_broken_eq
-        A bad __eq__ implementation can break this cache mechanism.
+        A bad `object.__eq__` implementation can break this cache mechanism.
         This option turns on a not-too-expensive sanity check every
         time a new key is added to the cache.
 
     do_refresh : bool
-        If True, then the ``refresh`` method will be called
+        If ``True``, then the `ModuleCache.refresh` method will be called
         in the constructor.
 
     """
@@ -672,7 +681,7 @@ class ModuleCache:
     """
     entry_from_key: Dict = {}
     """
-    Maps keys to the filename of a .so/.pyd.
+    Maps keys to the filename of a ``.so/.pyd``.
 
     """
     similar_keys: Dict = {}
@@ -682,18 +691,18 @@ class ModuleCache:
     """
     module_hash_to_key_data: Dict = {}
     """
-    Maps a module hash to its corresponding KeyData object.
+    Maps a module hash to its corresponding `KeyData` object.
 
     """
     stats: List = []
     """
     A list with counters for the number of hits, loads, compiles issued by
-    module_from_key().
+    `ModuleCache.module_from_key`.
 
     """
     loaded_key_pkl: Set = set()
     """
-    Set of all key.pkl files that have been loaded.
+    Set of all ``key.pkl`` files that have been loaded.
 
     """
 
@@ -819,8 +828,8 @@ class ModuleCache:
                             # os. So it is normal that this happens from time
                             # to time.
                             _logger.warning(
-                                "ModuleCache.refresh() Found key "
-                                f"without dll in cache, deleting it. {key_pkl}",
+                                "`ModuleCache.refresh` Found a key "
+                                f"without a cached shared library ({key_pkl}); deleting it."
                             )
                         rmtree(
                             root,
@@ -847,7 +856,7 @@ class ModuleCache:
                             rmtree(
                                 root,
                                 ignore_nocleanup=True,
-                                msg="broken cache directory [EOF]",
+                                msg="Broken cache directory [EOF]",
                                 level=logging.WARNING,
                             )
                             continue
@@ -881,9 +890,9 @@ class ModuleCache:
                                 root,
                                 ignore_nocleanup=True,
                                 msg=(
-                                    "invalid cache entry format -- this "
-                                    "should not happen unless your cache "
-                                    "was really old"
+                                    "Invalid cache entry format.  This "
+                                    "should not happen unless the cache "
+                                    "is outdated."
                                 ),
                                 level=logging.WARN,
                             )
@@ -916,14 +925,14 @@ class ModuleCache:
                         # TODO: check if this can happen at all
                         to_del = [key for key in key_data.keys if not key[0]]
                         if to_del:
-                            _logger.warning(
-                                "ModuleCache.refresh() Found unversioned "
-                                f"key in cache, removing it. {key_pkl}",
+                            warnings.warn(
+                                "`ModuleCache.refresh` found an unversioned "
+                                f"key in the cache ({key_pkl}); removing it."
                             )
                             # Since the version is in the module hash, all
                             # keys should be unversioned.
                             if len(to_del) != len(key_data.keys):
-                                _logger.warning(
+                                warnings.warn(
                                     "Found a mix of unversioned and "
                                     "versioned keys for the same "
                                     f"module {key_pkl}",
@@ -981,12 +990,11 @@ class ModuleCache:
                             else:
                                 dir1 = os.path.dirname(self.entry_from_key[key])
                                 dir2 = os.path.dirname(entry)
-                                _logger.warning(
-                                    "The same cache key is associated to "
+                                warnings.warn(
+                                    "The same cache key is associated with "
                                     f"different modules ({dir1} and {dir2}). This "
-                                    "is not supposed to happen! You may "
-                                    "need to manually delete your cache "
-                                    "directory to fix this.",
+                                    "is not supposed to happen.  The cache directory "
+                                    "may need to be manually delete in order to fix this."
                                 )
                         # Clean up the name space to prevent bug.
                         if key_data.keys:
@@ -1008,8 +1016,8 @@ class ModuleCache:
                 entry = key_data.get_entry()
                 try:
                     # Test to see that the file is [present and] readable.
-                    open(entry).close()
-                    gone = False
+                    with open(entry):
+                        gone = False
                 except OSError:
                     gone = True
 
@@ -1020,10 +1028,10 @@ class ModuleCache:
                     # considered a failure of the OTHER process, that deleted
                     # it.
                     if entry in self.module_from_name:
-                        _logger.warning(
+                        warnings.warn(
                             "A module that was loaded by this "
                             "ModuleCache can no longer be read from file "
-                            f"{entry}... this could lead to problems.",
+                            f"{entry}.  This could lead to problems.",
                         )
                         del self.module_from_name[entry]
 
@@ -1040,7 +1048,7 @@ class ModuleCache:
                             # Under /tmp, file are removed periodically by the
                             # os. So it is normal that this happen from time to
                             # time.
-                            _logger.warning(
+                            warnings.warn(
                                 f"Removing key file {pkl_file_to_remove} because the "
                                 "corresponding module is gone from the "
                                 "file system."
@@ -1153,16 +1161,14 @@ class ModuleCache:
         elif config.cmodule__warn_no_version:
             key_flat = flatten(key)
             ops = [k for k in key_flat if isinstance(k, Op)]
-            _logger.warning(
-                "not all the"
-                " following op(s) implement"
-                " c_code_cache_version(). This makes them"
-                " recompiled for each process." + str(ops)
+            warnings.warn(
+                f"The following `Op`(s) do not implement `COp.c_code_cache_version`: {ops}. "
+                "They will be recompiled across processes/Python sessions"
             )
         self._update_mappings(key, key_data, module.__file__, not key_broken)
         return key_data
 
-    def module_from_key(self, key, lnk=None):
+    def module_from_key(self, key, lnk: "CLinker"):
         """
         Return a module from the cache, compiling it if necessary.
 
@@ -1317,7 +1323,7 @@ class ModuleCache:
     age_thresh_del = config.cmodule__age_thresh_use + 60 * 60 * 24 * 7
     age_thresh_del_unversioned = 60 * 60 * 24 * 7  # 7 days
     """
-    The default age threshold for `clear_old` (in seconds).
+    The default age threshold for `ModuleCache.clear_old` (in seconds).
 
     """
 
@@ -1345,7 +1351,7 @@ class ModuleCache:
         # contain all modules older than age_thresh_del.
         if age_thresh_del < self.age_thresh_use:
             if age_thresh_del > 0:
-                _logger.warning(
+                _logger.info(
                     "Clearing modules that were not deemed "
                     f"too old to use: age_thresh_del={age_thresh_del}, "
                     f"self.age_thresh_use={self.age_thresh_use}"
@@ -1429,14 +1435,14 @@ class ModuleCache:
                         shutil.rmtree(to_delete)
                         _logger.debug(f"Deleted: {to_delete}")
                     except Exception:
-                        _logger.warning(f"Could not delete {to_delete}")
+                        warnings.warn(f"Could not delete {to_delete}")
                         continue
                 to_rename = os.path.join(self.dirname, base_dir)
                 if os.path.isdir(to_rename):
                     try:
                         shutil.move(to_rename, to_delete)
                     except Exception:
-                        _logger.warning(f"Could not move {to_rename} to {to_delete}")
+                        warnings.warn(f"Could not move {to_rename} to {to_delete}")
 
     def clear_unversioned(self, min_age=None):
         """Delete unversioned dynamic modules.
@@ -1505,8 +1511,8 @@ class ModuleCache:
             if filename.startswith("tmp"):
                 try:
                     fname = os.path.join(self.dirname, filename, "key.pkl")
-                    open(fname).close()
-                    has_key = True
+                    with open(fname):
+                        has_key = True
                 except OSError:
                     has_key = False
                 if not has_key:
@@ -1599,25 +1605,26 @@ def _rmtree(
         if os.path.exists(parent):
             try:
                 _logger.info(f'placing "delete.me" in {parent}')
-                open(os.path.join(parent, "delete.me"), "w").close()
+                with open(os.path.join(parent, "delete.me"), "w"):
+                    pass
             except Exception as ee:
-                _logger.warning(
+                warnings.warn(
                     f"Failed to remove or mark cache directory {parent} for removal {ee}"
                 )
 
 
-_module_cache = None
+_module_cache: Optional[ModuleCache] = None
 
 
-def get_module_cache(dirname, init_args=None):
-    """
-    Create a new module_cache with the (k, v) pairs in this dictionary
+def get_module_cache(dirname: str, init_args=None) -> ModuleCache:
+    """Create a new module_cache.
 
     Parameters
     ----------
+    dirname
+        The name of the directory used by the cache.
     init_args
-        If not None, the (k, v) pairs in this dictionary will be forwarded to
-        the ModuleCache constructor as keyword arguments.
+        Keyword arguments passed to the `ModuleCache` constructor.
 
     """
     global _module_cache
@@ -1627,14 +1634,14 @@ def get_module_cache(dirname, init_args=None):
         _module_cache = ModuleCache(dirname, **init_args)
         atexit.register(_module_cache._on_atexit)
     elif init_args:
-        _logger.warning(
+        warnings.warn(
             "Ignoring init arguments for module cache because it "
             "was created prior to this call"
         )
     if _module_cache.dirname != dirname:
-        _logger.warning(
+        warnings.warn(
             "Returning module cache instance with different "
-            f"dirname ({_module_cache.dirname}) than you requested ({dirname})"
+            f"dirname ({_module_cache.dirname}) than requested ({dirname})"
         )
     return _module_cache
 
@@ -1664,9 +1671,9 @@ def get_gcc_shared_library_arg():
 
 
 def std_include_dirs():
-    numpy_inc_dirs = numpy.distutils.misc_util.get_numpy_include_dirs()
-    py_inc = distutils.sysconfig.get_python_inc()
-    py_plat_spec_inc = distutils.sysconfig.get_python_inc(plat_specific=True)
+    numpy_inc_dirs = [np.get_include()]
+    py_inc = get_python_inc()
+    py_plat_spec_inc = get_python_inc(plat_specific=True)
     python_inc_dirs = (
         [py_inc] if py_inc == py_plat_spec_inc else [py_inc, py_plat_spec_inc]
     )
@@ -1680,7 +1687,7 @@ def std_lib_dirs_and_libs() -> Optional[Tuple[List[str], ...]]:
     # this method is called many times.
     if std_lib_dirs_and_libs.data is not None:
         return std_lib_dirs_and_libs.data
-    python_inc = distutils.sysconfig.get_python_inc()
+    python_inc = get_python_inc()
     if sys.platform == "win32":
         # Obtain the library name from the Python version instead of the
         # installation directory, in case the user defined a custom
@@ -1754,7 +1761,7 @@ def std_lib_dirs_and_libs() -> Optional[Tuple[List[str], ...]]:
 
             # get the name of the python library (shared object)
 
-            libname = str(distutils.sysconfig.get_config_var("LDLIBRARY"))
+            libname = str(get_config_var("LDLIBRARY"))
 
             if libname.startswith("lib"):
                 libname = libname[3:]
@@ -1765,7 +1772,7 @@ def std_lib_dirs_and_libs() -> Optional[Tuple[List[str], ...]]:
             elif libname.endswith(".a"):
                 libname = libname[:-2]
 
-            libdir = str(distutils.sysconfig.get_config_var("LIBDIR"))
+            libdir = str(get_config_var("LIBDIR"))
 
         std_lib_dirs_and_libs.data = [libname], [libdir]
 
@@ -1773,9 +1780,7 @@ def std_lib_dirs_and_libs() -> Optional[Tuple[List[str], ...]]:
     # explicitly where it is located this returns
     # somepath/lib/python2.x
 
-    python_lib = str(
-        distutils.sysconfig.get_python_lib(plat_specific=True, standard_lib=True)
-    )
+    python_lib = str(get_python_lib(plat_specific=True, standard_lib=True))
     python_lib = os.path.dirname(python_lib)
     if python_lib not in std_lib_dirs_and_libs.data[1]:
         std_lib_dirs_and_libs.data[1].append(python_lib)
@@ -2069,13 +2074,11 @@ class GCC_compiler(Compiler):
             and "clang-omp++" not in config.cxx
             and "icpc" not in config.cxx
         ):
-            _logger.warning(
-                "Your Aesara flag `cxx` seems not to be"
-                " the g++ compiler. So we disable the compiler optimization"
-                " specific to g++ that tell to compile for a specific CPU."
-                " At worst, this could cause slow down.\n"
-                "         You can add those parameters to the compiler yourself"
-                " via the Aesara flag `gcc__cxxflags`."
+            warnings.warn(
+                "`aesara.config.cxx` is not an identifiable `g++` compiler. "
+                "Aesara will disable compiler optimizations specific to `g++`. "
+                "At worst, this could cause slow downs.\n"
+                "Those parameters can be added manually via the `cxxflags` setting."
             )
             detect_march = False
 
@@ -2138,7 +2141,7 @@ class GCC_compiler(Compiler):
                     )
                 else:
                     reported_lines = native_lines
-                _logger.warning(
+                warnings.warn(
                     "Aesara was not able to find the"
                     " g++ parameters that tune the compilation to your "
                     " specific CPU. This can slow down the execution of Aesara"
@@ -2150,15 +2153,17 @@ class GCC_compiler(Compiler):
                 default_lines = get_lines(f"{config.cxx} -E -v -")
                 _logger.info(f"g++ default lines: {default_lines}")
                 if len(default_lines) < 1:
-                    _logger.warning(
-                        "Aesara was not able to find the"
-                        " default g++ parameters. This is needed to tune"
-                        " the compilation to your specific"
-                        " CPU. This can slow down the execution of Aesara"
-                        " functions. Please submit the following lines to"
-                        " Aesara's mailing list so that we can fix this"
-                        " problem:\n %s",
-                        get_lines(f"{config.cxx} -E -v -", parse=False),
+                    reported_lines = get_lines(f"{config.cxx} -E -v -", parse=False)
+                    warnings.warn(
+                        (
+                            "Aesara was not able to find the "
+                            "default g++ parameters. This is needed to tune "
+                            "the compilation to your specific "
+                            "CPU. This can slow down the execution of Aesara "
+                            "functions. Please submit the following lines to "
+                            "Aesara's mailing list so that we can fix this "
+                            f"problem:\n {reported_lines}"
+                        )
                     )
                 else:
                     # Some options are actually given as "-option value",
@@ -2363,7 +2368,7 @@ class GCC_compiler(Compiler):
             # The following nullifies that redefinition, if it is found.
             python_version = sys.version_info[:3]
             if (3,) <= python_version < (3, 7, 3):
-                config_h_filename = distutils.sysconfig.get_config_h_filename()
+                config_h_filename = get_config_h_filename()
                 try:
                     with open(config_h_filename) as config_h:
                         if any(
@@ -2538,7 +2543,7 @@ class GCC_compiler(Compiler):
         if platform.python_implementation() == "PyPy":
             suffix = "." + get_lib_extension()
 
-            dist_suffix = distutils.sysconfig.get_config_var("SO")
+            dist_suffix = get_config_var("SO")
             if dist_suffix is not None and dist_suffix != "":
                 suffix = dist_suffix
 
@@ -2641,7 +2646,8 @@ class GCC_compiler(Compiler):
 
         if py_module:
             # touch the __init__ file
-            open(os.path.join(location, "__init__.py"), "w").close()
+            with open(os.path.join(location, "__init__.py"), "w"):
+                pass
             assert os.path.isfile(lib_filename)
             return dlimport(lib_filename)
 
@@ -2700,27 +2706,9 @@ def default_blas_ldflags():
     str
 
     """
-    import numpy.distutils  # noqa
-
     warn_record = []
     try:
-        # We do this import only here, as in some setup, if we
-        # just import aesara and exit, with the import at global
-        # scope, we get this error at exit: "Exception TypeError:
-        # "'NoneType' object is not callable" in <bound method
-        # Popen.__del__ of <subprocess.Popen object at 0x21359d0>>
-        # ignored"
-
-        # This happen with Python 2.7.3 |EPD 7.3-1 and numpy 1.8.1
-        # isort: off
-        import numpy.distutils.system_info  # noqa
-
-        # We need to catch warnings as in some cases NumPy print
-        # stuff that we don't want the user to see.
-        # I'm not able to remove all printed stuff
-        with warnings.catch_warnings(record=True):
-            numpy.distutils.system_info.system_info.verbosity = 0
-            blas_info = numpy.distutils.system_info.get_info("blas_opt")
+        blas_info = np.__config__.get_info("blas_opt")
 
         # If we are in a EPD installation, mkl is available
         if "EPD" in sys.version:

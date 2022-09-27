@@ -84,7 +84,12 @@ from aesara.sparse.basic import (
     _is_sparse_variable,
     _mtypes,
 )
-from aesara.sparse.opt import CSMGradC, StructuredDotCSC, UsmmCscDense
+from aesara.sparse.rewriting import (
+    AddSD_ccode,
+    CSMGradC,
+    StructuredDotCSC,
+    UsmmCscDense,
+)
 from aesara.tensor.basic import MakeVector
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.math import sum as at_sum
@@ -491,7 +496,7 @@ class TestSparseInferShape(utt.InferShapeTester):
                 sp.sparse.csr_matrix(random_lil((10, 40), config.floatX, 3)),
                 np.random.standard_normal((10, 40)).astype(config.floatX),
             ],
-            (AddSD, sparse.opt.AddSD_ccode),
+            (AddSD, AddSD_ccode),
         )
 
     def test_mul_ss(self):
@@ -3168,6 +3173,15 @@ SqrTester = elemwise_checker(sparse.sqr, lambda x: x * x)
 SqrtTester = elemwise_checker(sparse.sqrt, np.sqrt, gap=(0, 10))
 
 ConjTester = elemwise_checker(sparse.conj, np.conj, grad_test=False)
+
+
+def test_useless_conj():
+    x = sparse.SparseTensorType("csr", dtype="complex128")()
+    assert x.conj() is not x
+
+    # No conjugate when the data type isn't complex
+    x = sparse.SparseTensorType("csr", dtype="float64")()
+    assert x.conj() is x
 
 
 class TestMulSV:

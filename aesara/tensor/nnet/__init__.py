@@ -1,6 +1,6 @@
 import warnings
 
-import aesara.tensor.nnet.opt
+import aesara.tensor.nnet.rewriting
 from aesara.tensor.nnet.abstract_conv import (
     abstract_conv2d,
     conv2d,

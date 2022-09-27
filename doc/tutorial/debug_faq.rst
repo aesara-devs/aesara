@@ -15,7 +15,7 @@ Isolating the Problem/Testing Aesara Compiler
 ---------------------------------------------
 
 You can run your Aesara function in a :ref:`DebugMode<using_debugmode>`.
-This tests the Aesara optimizations and helps to find where NaN, inf and other problems come from.
+This tests the Aesara rewrites and helps to find where NaN, inf and other problems come from.
 
 Interpreting Error Messages
 ---------------------------
@@ -50,7 +50,7 @@ Running the code above we see:
    Inputs strides: [(8,), (8,), (8,)]
    Inputs scalar values: ['not scalar', 'not scalar', 'not scalar']
 
-   HINT: Re-running with most Aesara optimization disabled could give you a back-traces when this node was created. This can be done with by setting the Aesara flags 'optimizer=fast_compile'. If that does not work, Aesara optimization can be disabled with 'optimizer=None'.
+   HINT: Re-running with most Aesara optimizations disabled could give you a back-traces when this node was created. This can be done with by setting the Aesara flags 'optimizer=fast_compile'. If that does not work, Aesara optimizations can be disabled with 'optimizer=None'.
    HINT: Use the Aesara flag 'exception_verbosity=high' for a debugprint of this apply node.
 
 Arguably the most useful information is approximately half-way through
@@ -250,7 +250,7 @@ Running the code above returns the following output:
    x
 
 
-"How do I Print an Intermediate Value in a Function?"
+"How do I print an intermediate value in a function?"
 -----------------------------------------------------
 
 Aesara provides a :class:`Print`\ :class:`Op` to do this.
@@ -278,62 +278,60 @@ Aesara provides a :class:`Print`\ :class:`Op` to do this.
     this is a very important value __str__ = [ 1.  2.  3.]
 
 Since Aesara runs your program in a topological order, you won't have precise
-control over the order in which multiple ``Print()`` ops are evaluated.  For a more
+control over the order in which multiple :class:`Print`\ `Op`\s are evaluated.  For a more
 precise inspection of what's being computed where, when, and how, see the discussion
 :ref:`faq_monitormode`.
 
 .. warning::
 
-    Using this ``Print`` Aesara Op can prevent some Aesara
-    optimization from being applied. This can also happen with
-    stability optimization. So if you use this Print and have nan, try
-    to remove them to know if this is the cause or not.
+    Using this :class:`Print`\ `Op` can prevent some Aesara rewrites from being
+    applied.  So, if you use `Print` and the graph now returns NaNs for example,
+    try removing the `Print`\s to see if they're the cause or not.
 
 
-"How do I Print a Graph?" (before or after compilation)
+"How do I print a graph (before or after compilation)?"
 -------------------------------------------------------
 
 .. TODO: dead links in the next paragraph
 
-Aesara provides two functions (:func:`aesara.pp` and
-:func:`aesara.printing.debugprint`) to print a graph to the terminal before or after
+Aesara provides two functions, :func:`aesara.pp` and
+:func:`aesara.printing.debugprint`, to print a graph to the terminal before or after
 compilation.  These two functions print expression graphs in different ways:
-:func:`pp` is more compact and math-like, :func:`debugprint` is more verbose.
-Aesara also provides :func:`aesara.printing.pydotprint` that creates a png image of the function.
+:func:`pp` is more compact and somewhat math-like, and :func:`debugprint` is more verbose and true to
+the underlying graph objects being printed.
+Aesara also provides :func:`aesara.printing.pydotprint` that creates a PNG image of the graph.
 
 You can read about them in :ref:`libdoc_printing`.
 
-
-
-"The Function I Compiled is Too Slow, what's up?"
+"The function I compiled is too slow; what's up?"
 -------------------------------------------------
 
 First, make sure you're running in ``FAST_RUN`` mode. Even though
 ``FAST_RUN`` is the default mode, insist by passing ``mode='FAST_RUN'``
-to ``aesara.function`` (or ``aesara.make``) or by setting :attr:`config.mode`
+to `aesara.function`  or by setting :attr:`config.mode`
 to ``FAST_RUN``.
 
 Second, try the Aesara :ref:`profiling <tut_profiling>`.  This will tell you which
-``Apply`` nodes, and which ops are eating up your CPU cycles.
+:class:`Apply` nodes, and which :class:`Op`\s are eating up your CPU cycles.
 
 Tips:
 
-* Use the flags ``floatX=float32`` to require type *float32* instead of *float64*;
-  Use the Aesara constructors matrix(),vector(),... instead of dmatrix(), dvector(),...
-  since they respectively involve the default types *float32* and *float64*.
-* Check in the ``profile`` mode that there is no ``Dot`` op in the post-compilation
-  graph while you are multiplying two matrices of the same type. ``Dot`` should be
+* Use the flags ``floatX=float32`` to require type float32 instead of float64.
+  Use the Aesara constructors `matrix`, `vector`, etc., instead of `dmatrix`, `dvector`, etc.,
+  since the latter use the default detected precision and the former use only float64.
+* Check in the ``profile`` mode that there is no `Dot`\ `Op` in the post-compilation
+  graph while you are multiplying two matrices of the same type. `Dot` should be
   optimized to ``dot22`` when the inputs are matrices and of the same type. This can
   still happen when using ``floatX=float32`` when one of the inputs of the graph is
-  of type *float64*.
+  of type float64.
 
 
 .. _faq_monitormode:
 
-"How do I Step through a Compiled Function?"
+"How do I step through a compiled function?"
 --------------------------------------------
 
-You can use ``MonitorMode`` to inspect the inputs and outputs of each
+You can use `MonitorMode` to inspect the inputs and outputs of each
 node being executed when the function is called. The code snipped below
 shows how to print all inputs and outputs:
 
@@ -360,9 +358,9 @@ shows how to print all inputs and outputs:
     0 Elemwise{mul,no_inplace}(TensorConstant{5.0}, x) input(s) value(s): [array(5.0), array(3.0)] output(s) value(s): [array(15.0)]
 
 When using these ``inspect_inputs`` and ``inspect_outputs`` functions
-with ``MonitorMode``, you should see (potentially a lot of) printed output.
-Every ``Apply`` node will be printed out, along with its position in the graph,
-the arguments to the functions ``perform`` or ``c_code`` and the output it
+with `MonitorMode`, you should see (potentially a lot of) printed output.
+Every `Apply` node will be printed out, along with its position in the graph,
+the arguments to the functions `Op.perform` or `COp.c_code` and the output it
 computed.
 Admittedly, this may be a huge amount of output to read through if you are using
 large tensors, but you can choose to add logic that would, for instance, print
@@ -411,14 +409,13 @@ computations, which can be achieved as follows:
    Outputs: [array(nan)]
 
 To help understand what is happening in your graph, you can
-disable the ``local_elemwise_fusion`` and all ``inplace``
-optimizations. The first is a speed optimization that merges elemwise
+disable the `local_elemwise_fusion` and all in-place
+rewrites. The first is a speed optimization that merges elemwise
 operations together. This makes it harder to know which particular
-elemwise causes the problem. The second optimization makes some ops'
-outputs overwrite their inputs. So, if an op creates a bad output, you
+elemwise causes the problem. The second makes some `Op`\s'
+outputs overwrite their inputs. So, if an `Op` creates a bad output, you
 will not be able to see the input that was overwritten in the ``post_func``
-function. To disable those optimizations (with an Aesara version after
-0.6rc3), define the MonitorMode like this:
+function. To disable those rewrites, define the `MonitorMode` like this:
 
 .. testcode:: compiled
 
@@ -430,9 +427,9 @@ function. To disable those optimizations (with an Aesara version after
 .. note::
 
     The Aesara flags ``optimizer_including``, ``optimizer_excluding``
-    and ``optimizer_requiring`` aren't used by the MonitorMode, they
+    and ``optimizer_requiring`` aren't used by the `MonitorMode`, they
     are used only by the ``default`` mode. You can't use the ``default``
-    mode with MonitorMode, as you need to define what you monitor.
+    mode with `MonitorMode`, as you need to define what you monitor.
 
 To be sure all inputs of the node are available during the call to
 ``post_func``, you must also disable the garbage collector. Otherwise,
@@ -448,8 +445,8 @@ flag:
 .. TODO: documentation for link.WrapLinkerMany
 
 
-How to Use pdb
---------------
+How to Use ``pdb``
+------------------
 
 In the majority of cases, you won't be executing from the interactive shell
 but from a set of Python scripts. In such cases, the use of the Python
@@ -515,8 +512,8 @@ The call stack contains some useful information to trace back the source
 of the error. There's the script where the compiled function was called --
 but if you're using (improperly parameterized) prebuilt modules, the error
 might originate from `Op`\s in these modules, not this script. The last line
-tells us about the `Op` that caused the exception. In this case it's a "mul"
-involving variables with names "a" and "b". But suppose we instead had an
+tells us about the `Op` that caused the exception. In this case it's a ``mul``
+involving variables with names ``a`` and ``b``. But suppose we instead had an
 intermediate result to which we hadn't given a name.
 
 After learning a few things about the graph structure in Aesara, we can use
@@ -525,7 +522,7 @@ information about the error. Matrix dimensions, especially, are useful to
 pinpoint the source of the error. In the printout, there are also two of the
 four dimensions of the matrices involved, but for the sake of example say we'd
 need the other dimensions to pinpoint the error. First, we re-launch with the
-debugger module and run the program with "c":
+debugger module and run the program with ``c``:
 
 .. code-block:: text
 

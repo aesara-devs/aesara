@@ -9,7 +9,7 @@ a function that does what you want.
 
 If you can implement something in terms of an existing :ref:`Op`, you should do that.
 Odds are your function that uses existing Aesara expressions is short,
-has no bugs, and potentially profits from optimizations that have already been
+has no bugs, and potentially profits from rewrites that have already been
 implemented.
 
 However, if you cannot implement an :class:`Op` in terms of an existing :class:`Op`, you have to
@@ -55,8 +55,8 @@ details how to write such an :class:`Op` instance. Please refers to
 structure.
 
 
-Op's basic methods
-------------------
+:class:`Op`'s basic methods
+---------------------------
 
 An :class:`Op` is any Python object which inherits from :class:`Op`.
 This section provides an overview of the basic methods you typically have to
@@ -114,11 +114,11 @@ possibilities you may encounter or need.  For that refer to
 
 An :class:`Op` has to implement some methods defined in the the interface of
 :class:`Op`. More specifically, it is mandatory for an :class:`Op` to define either
-the method :func:`make_node` or :attr:`itypes`, :attr:`otypes` and one of the
-implementation methods, either :func:`perform`, :meth:`COp.c_code`
-or :func:`make_thunk`.
+the method :meth:`Op.make_node` or :attr:`Op.itypes`, :attr:`Op.otypes` and one of the
+implementation methods, either :meth:`Op.perform`, :meth:`COp.c_code`
+or :meth:`Op.make_thunk`.
 
-  :func:`make_node` method creates an Apply node representing the application
+  :meth:`Op.make_node` method creates an Apply node representing the application
   of the :class:`Op` on the inputs provided. This method is responsible for three things:
 
     - it first checks that the input :class:`Variable`\s types are compatible
@@ -134,11 +134,11 @@ or :func:`make_thunk`.
 
 
 
-  :func:`perform` method defines the Python implementation of an :class:`Op`.
+  :meth:`Op.perform` method defines the Python implementation of an :class:`Op`.
   It takes several arguments:
 
     - ``node`` is a reference to an Apply node which was previously
-      obtained via the :func:`make_node` method. It is typically not
+      obtained via the :meth:`Op.make_node` method. It is typically not
       used in a simple :class:`Op`, but it contains symbolic information that
       could be required by a complex :class:`Op`.
     - ``inputs`` is a list of references to data which can be operated on using
@@ -156,7 +156,7 @@ or :func:`make_thunk`.
       preallocated in the ``output_storage``, it will be of the good
       dtype, but can have the wrong shape and have any stride pattern.
 
-  :func:`perform` method must be determined by the inputs. That is to say,
+  :meth:`Op.perform` method must be determined by the inputs. That is to say,
   when applied to identical inputs the method must return the same outputs.
 
   An :class:`Op`\s implementation can be defined in other ways, as well.
@@ -165,7 +165,7 @@ or :func:`make_thunk`.
   :meth:`COp.c_code` and other related ``c_**`` methods. Note that an
   :class:`Op` can provide both Python and C implementations.
 
-  :func:`make_thunk` method is another alternative to :func:`perform`.
+  :meth:`Op.make_thunk` method is another alternative to :meth:`Op.perform`.
   It returns a thunk. A thunk is defined as a zero-arguments
   function which encapsulates the computation to be performed by an
   :class:`Op` on the arguments of its corresponding node. It takes several parameters:
@@ -187,78 +187,73 @@ or :func:`make_thunk`.
     - ``impl`` allow to select between multiple implementation.
       It should have a default value of ``None``.
 
-  :func:`make_thunk` is useful if you want to generate code and compile
+  :meth:`Op.make_thunk` is useful if you want to generate code and compile
   it yourself.
 
-  If :func:`make_thunk()` is defined by an :class:`Op`, it will be used by Aesara
+  If :meth:`Op.make_thunk` is defined by an :class:`Op`, it will be used by Aesara
   to obtain the :class:`Op`'s implementation.
-  :func:`perform` and :meth:`COp.c_code` will be ignored.
+  :meth:`Op.perform` and :meth:`COp.c_code` will be ignored.
 
-  If :func:`make_node` is not defined, the :attr:`itypes` and :attr:`otypes`
-  are used by the :class:`Op`'s :func:`make_node` method to implement the functionality
-  of :func:`make_node` method mentioned above.
+  If :meth:`Op.make_node` is not defined, the :attr:`Op.itypes` and :attr:`Op.otypes`
+  are used by the :class:`Op`'s :meth:`Op.make_node` method to implement the functionality
+  of :meth:`Op.make_node` method mentioned above.
 
 :class:`Op`'s auxiliary methods
 -------------------------------
 
 There are other methods that can be optionally defined by the :class:`Op`:
 
-  The :func:`__str__` method provides a meaningful string representation of
-  your :class:`Op`.
-
-  :func:`__eq__` and :func:`__hash__` define respectivelly equality
+  :meth:`Op.__eq__` and :meth:`Op.__hash__` define respectivelly equality
   between two :class:`Op`\s and the hash of an :class:`Op` instance.
-  They will be used by the optimization
-  phase to merge nodes that are doing equivalent computations (same
-  inputs, same operation).
-  Two :class:`Op`\s that are equal according :func:`__eq__`
+  They will be used during the rewriting phase to merge nodes that are doing
+  equivalent computations (same inputs, same operation).
+  Two :class:`Op`\s that are equal according :meth:`Op.__eq__`
   should return the same output when they are applied on the same inputs.
 
-  The :attr:`__props__` attribute lists the properties that influence how the computation
-  is performed (usually these are set in :func:`__init__`). It must be a tuple.
+  The :attr:`Op.__props__` attribute lists the properties that influence how the computation
+  is performed. Usually these are set in :meth:`Op.__init__`. It must be a tuple.
   If you don't have any properties, then you should set this attribute to the
   empty tuple ``()``.
 
-  :attr:`__props__` enables the  automatic generation of appropriate
-  :func:`__eq__` and :func:`__hash__`.
+  :attr:`Op.__props__` enables the  automatic generation of appropriate
+  :meth:`Op.__eq__` and :meth:`Op.__hash__`.
   Given the method :func:`__eq__`, automatically generated from
-  :attr:`__props__`, two :class:`Op`\s will be equal if they have the same values for all
-  the properties listed in :attr:`__props__`.
-  Given to the method :func:`__hash__` automatically generated from
-  :attr:`__props__`, two :class:`Op`\s will be have the same hash if they have the same
-  values for all the properties listed in :attr:`__props__`.
-  :attr:`__props__` will also generate a  suitable :func:`__str__` for your :class:`Op`.
-  This requires development version after September 1st, 2014 or version 0.7.
+  :attr:`Op.__props__`, two :class:`Op`\s will be equal if they have the same values for all
+  the properties listed in :attr:`Op.__props__`.
+  Given to the method :meth:`Op.__hash__` automatically generated from
+  :attr:`Op.__props__`, two :class:`Op`\s will be have the same hash if they have the same
+  values for all the properties listed in :attr:`Op.__props__`.
+  :attr:`Op.__props__` will also generate a  suitable :meth:`Op.__str__` for your :class:`Op`.
 
-  The :func:`infer_shape` method allows an :class:`Op` to infer the shape of its
+  The :meth:`Op.infer_shape` method allows an :class:`Op` to infer the shape of its
   output variables without actually computing them.
   It takes as input ``fgraph``, a :class:`FunctionGraph`; ``node``, a reference
   to the :class:`Op`'s :class:`Apply` node;
   and a list of :class:`Variables`\s (e.g. ``i0_shape``, ``i1_shape``, ...)
   which are the dimensions of the :class:`Op` input :class:`Variable`\s.
-  :func:`infer_shape` returns a list where each element is a tuple representing
+  :meth:`Op.infer_shape` returns a list where each element is a tuple representing
   the shape of one output.
   This could be helpful if one only needs the shape of the output instead of the
-  actual outputs, which can be useful, for instance, for optimization
+  actual outputs, which can be useful, for instance, for rewriting
   procedures.
 
-  The :func:`grad` method is required if you want to differentiate some cost
+  The :meth:`Op.grad` method is required if you want to differentiate some cost
   whose expression includes your :class:`Op`. The gradient may be
   specified symbolically in this method. It takes two arguments ``inputs`` and
   ``output_gradients``, which are both lists of :class:`Variable`\s, and
-  those must be operated on using Aesara's symbolic language. The :func:`grad`
+  those must be operated on using Aesara's symbolic language. The :meth:`Op.grad`
   method must return a list containing one :class:`Variable` for each
   input. Each returned :class:`Variable` represents the gradient with respect
   to that input computed based on the symbolic gradients with respect
   to each output.
   If the output is not differentiable with respect to an input then
-  this method should be defined to return a variable of type ``NullType``
-  for that input. Likewise, if you have not implemented the grad
+  this method should be defined to return a variable of type :class:`NullType`
+  for that input. Likewise, if you have not implemented the gradient
   computation for some input, you may return a variable of type
-  ``NullType`` for that input. Please refer to :func:`grad` for a more detailed
+  :class:`NullType` for that input. Please refer to :meth:`Op.grad` for a more detailed
   view.
 
-  The :func:`R_op` method is needed if you want ``aesara.gradient.Rop`` to
+  The :meth:`Op.R_op` method is needed if you want :func:`aesara.gradient.Rop` to
   work with your :class:`Op`.
   This function implements the application of the R-operator on the
   function represented by your :class:`Op`. Let assume that function is :math:`f`,
@@ -541,7 +536,7 @@ How To Test it
 --------------
 
 Aesara has some functionalities to simplify testing. These help test the
-:meth:`infer_shape`, :meth:`grad` and :meth:`R_op` methods. Put the following code
+:meth:`Op.infer_shape`, :meth:`Op.grad` and :meth:`Op.R_op` methods. Put the following code
 in a file and execute it with the ``pytest`` program.
 
 Basic Tests
@@ -549,8 +544,8 @@ Basic Tests
 
 Basic tests are done by you just by using the :class:`Op` and checking that it
 returns the right answer. If you detect an error, you must raise an
-*exception*. You can use the ``assert`` keyword to automatically raise an
-``AssertionError``.
+exception. You can use the ``assert`` keyword to automatically raise an
+`AssertionError`.
 
 .. testcode:: tests
 
@@ -583,14 +578,14 @@ the default tolerance can be changed with the Aesara flags
 default value do the most strict comparison, 1 and 2 make less strict
 comparison.
 
-Testing the infer_shape
-^^^^^^^^^^^^^^^^^^^^^^^
+Testing the :meth:`Op.infer_shape`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When a class inherits from the :class:`InferShapeTester` class, it gets the
 :meth:`InferShapeTester._compile_and_check` method that tests the :meth:`Op.infer_shape`
-method. It tests that the :class:`Op` gets optimized out of the graph if only
+method. It tests that the :class:`Op` gets rewritten out of the graph if only
 the shape of the output is needed and not the output
-itself. Additionally, it checks that the optimized graph computes
+itself. Additionally, it checks that the rewritten graph computes
 the correct shape, by comparing it to the actual shape of the computed
 output.
 
@@ -607,7 +602,7 @@ When testing with input values with shapes that take the same value
 over different dimensions (for instance, a square matrix, or a ``tensor3``
 with shape ``(n, n, n)``, or ``(m, n, m)``), it is not possible to detect if
 the output shape was computed correctly, or if some shapes with the
-same value have been mixed up. For instance, if the infer_shape uses
+same value have been mixed up. For instance, if the :meth:`Op.infer_shape` uses
 the width of a matrix instead of its height, then testing with only
 square matrices will not detect the problem. This is why the
 :meth:`InferShapeTester._compile_and_check` method prints a warning in such a case. If
@@ -721,17 +716,17 @@ Modify and execute the example to return two outputs: ``x + y`` and `jx - yj`.
 You can omit the :meth:`Rop` functions. Try to implement the testing apparatus
 described above.
 
-(Notice that Aesara's current *elemwise fusion* optimization is
+(Notice that Aesara's current *elemwise fusion* rewrite is
 only applicable to computations involving a single output. Hence, to gain
 efficiency over the basic solution that is asked here, the two operations would
-have to be jointly optimized explicitly in the code.)
+have to be jointly rewritten explicitly in the code.)
 
 Random numbers in tests
 """""""""""""""""""""""
 
-Making tests errors more reproducible is a good practice. To make your
-tests more reproducible, you need a way to get the same random
-numbers. You can do this by seeding NumPy's random number
+Making tests errors more reproducible is a good practice. To make
+tests more reproducible, one needs a way to get the same random
+numbers. This can be done by seeding NumPy's random number
 generator.
 
 For convenience, the classes :class:`InferShapeTester` and :class:`RopLop_checker`
@@ -751,7 +746,7 @@ basic Aesara :class:`Op` that will call the supplied function during execution.
 This isn't the recommended way to build an :class:`Op`, but allows for a quick
 implementation.
 
-It takes an optional :func:`infer_shape` parameter that must have this
+It takes an optional :meth:`Op.infer_shape` parameter that must have this
 signature:
 
 .. code-block:: none
@@ -766,8 +761,8 @@ signature:
 
 .. warning::
 
-    Not providing a :obj:`infer_shape` prevents shape-related
-    optimizations from working with this :class:`Op`. For example
+    Not providing a :meth:`Op.infer_shape` prevents shape-related
+    rewrites from working with this :class:`Op`. For example
     ``your_op(inputs, ...).shape`` will need the :class:`Op` to be executed just
     to get the shape.
 
@@ -838,7 +833,7 @@ checked it, it would generate a false positive. Another case is related to
 
 You can tell :class:`NanGuardMode` to do not check a variable with:
 :attr:`variable.tag.nan_guard_mode_check`. Also, this tag automatically
-follow that variable during optimization. This mean if you tag a
+follows that variable during rewriting. This mean if you tag a
 variable that get replaced by an inplace version, it will keep that
 tag.
 

@@ -61,45 +61,44 @@
 
 .. function:: ultra_fast_sigmoid(x)
 
-   Returns the *approximated* standard :func:`sigmoid` nonlinearity applied to x.
-    :Parameters: *x* - symbolic Tensor (or compatible)
-    :Return type: same as x
+   Returns an approximate standard :func:`sigmoid` nonlinearity applied to ``x``.
+    :Parameters: ``x`` - symbolic Tensor (or compatible)
+    :Return type: same as ``x``
     :Returns: approximated element-wise sigmoid: :math:`sigmoid(x) = \frac{1}{1 + \exp(-x)}`.
-    :note: To automatically change all :func:`sigmoid` ops to this version, use
-      the Aesara optimization ``local_ultra_fast_sigmoid``. This can be done
+    :note: To automatically change all :func:`sigmoid`\ :class:`Op`\s to this version, use
+      the Aesara rewrite `local_ultra_fast_sigmoid`. This can be done
       with the Aesara flag ``optimizer_including=local_ultra_fast_sigmoid``.
-      This optimization is done late, so it should not affect
-      stabilization optimization.
+      This rewrite is done late, so it should not affect stabilization rewrites.
 
    .. note:: The underlying code will return 0.00247262315663 as the
        minimum value and 0.997527376843 as the maximum value. So it
        never returns 0 or 1.
 
-   .. note:: Using directly the ultra_fast_sigmoid in the graph will
-       disable stabilization optimization associated with it. But
-       using the optimization to insert them won't disable the
-       stability optimization.
+   .. note:: Using directly the `ultra_fast_sigmoid` in the graph will
+       disable stabilization rewrites associated with it. But
+       using the rewrite to insert them won't disable the
+       stability rewrites.
 
 
 .. function:: hard_sigmoid(x)
 
-   Returns the *approximated* standard :func:`sigmoid` nonlinearity applied to x.
-    :Parameters: *x* - symbolic Tensor (or compatible)
-    :Return type: same as x
+   Returns an approximate standard :func:`sigmoid` nonlinearity applied to `1x1`.
+    :Parameters: ``x`` - symbolic Tensor (or compatible)
+    :Return type: same as ``x``
     :Returns: approximated element-wise sigmoid: :math:`sigmoid(x) = \frac{1}{1 + \exp(-x)}`.
-    :note: To automatically change all :func:`sigmoid` ops to this version, use
-      the Aesara optimization ``local_hard_sigmoid``. This can be done
+    :note: To automatically change all :func:`sigmoid`\ :class:`Op`\s to this version, use
+      the Aesara rewrite `local_hard_sigmoid`. This can be done
       with the Aesara flag ``optimizer_including=local_hard_sigmoid``.
-      This optimization is done late, so it should not affect
-      stabilization optimization.
+      This rewrite is done late, so it should not affect
+      stabilization rewrites.
 
    .. note:: The underlying code will return an exact 0 or 1 if an
-      element of x is too small or too big.
+      element of ``x`` is too small or too big.
 
-   .. note:: Using directly the ultra_fast_sigmoid in the graph will
-       disable stabilization optimization associated with it. But
-       using the optimization to insert them won't disable the
-       stability optimization.
+   .. note:: Using directly the `ultra_fast_sigmoid` in the graph will
+       disable stabilization rewrites associated with it. But
+       using the rewrites to insert them won't disable the
+       stability rewrites.
 
 .. function:: softplus(x)
 

@@ -36,7 +36,7 @@ The following sections assumes the reader is familiar with the following :
 
 2. The interface and usage of Aesara's :ref:`scan <lib_scan>` function
 
-Additionally, the :ref:`scan_internals_optimizations` section below assumes
+Additionally, the :ref:`scan_internals_rewrites` section below assumes
 knowledge of:
 
 3. Aesara's :ref:`graph rewriting <graph_rewriting>`
@@ -63,7 +63,7 @@ deal with, are :
 * ``views.py`` contains different views of the `Scan` `Op` that have
   simpler and easier signatures to be used in specific cases.
 
-* ``opt.py`` contains the list of all Aesara graph optimizations for the
+* ``opt.py`` contains the list of all Aesara graph rewrites for the
   `Scan` operator.
 
 
@@ -155,15 +155,15 @@ Multiply-recurrent multiple outputs (MITMOT)                 Initial values for 
 ===========================================================  =======================================================  ============================================================  =============================================================  =========================================================  ======================================================
 
 
-.. _scan_internals_optimizations:
+.. _scan_internals_rewrites:
 
-Optimizations
-=============
+Rewrites
+========
 
 `remove_constants_and_unused_inputs_scan`
 -----------------------------------------
 
-This optimization serves two purposes, The first is to remove a `Scan` `Op`'s
+This rewrite serves two purposes, The first is to remove a :class:`Scan`\ `Op`'s
 unused inputs. The second is to take a `Scan` `Op`'s constant inputs and remove
 them, instead injecting the constants directly into the graph or the `Scan`
 `Op`'s inner function. This will allow constant folding to happen inside the
@@ -173,31 +173,31 @@ inner function.
 `PushOutNonSeqScan`
 -------------------
 
-This optimizations pushes, out of `Scan`'s inner function and into the outer
-function, computation that depends only on non-sequence inputs. Such
-computation ends up being done every iteration on the same values so moving
-it to the outer function to be executed only once, before the `Scan` `Op`,
-reduces the amount of computation that needs to be performed.
+This rewrite pushes sub-graphs that depends only on non-sequence inputs out of
+`Scan`'s inner function and into the outer function. Such computation ends up
+being done every iteration on the same values so moving it to the outer function
+to be executed only once, before the `Scan`\ `Op`, reduces the amount of
+computation that needs to be performed.
 
 
 `PushOutSeqScan`
 ----------------
 
-This optimization resembles `PushOutNonSeqScan` but it tries to push, out of
+This rewrite resembles `PushOutNonSeqScan` but it tries to push, out of
 the inner function, the computation that only relies on sequence and
-non-sequence inputs. The idea behind this optimization is that, when it is
+non-sequence inputs. The idea behind this rewrite is that, when it is
 possible to do so, it is generally more computationally efficient to perform
 a single operation on a large tensor rather then perform that same operation
-many times on many smaller tensors. In many cases, this optimization can
+many times on many smaller tensors. In many cases, this rewrite can
 increase memory usage but, in some specific cases, it can also decrease it.
 
 
 `PushOutScanOutput`
 -------------------
 
-This optimizations attempts to push out some of the computation at the end
+This rewrite attempts to push out some of the computation at the end
 of the inner function to the outer function, to be executed after the `Scan`
-node. Like `PushOutSeqScan`, this optimization aims to replace many operations
+node. Like `PushOutSeqScan`, this rewrite aims to replace many operations
 on small tensors by few operations on large tensors. It can also lead to
 increased memory usage.
 
@@ -205,23 +205,23 @@ increased memory usage.
 `PushOutDot1`
 -------------
 
-This is another optimization that attempts to detect certain patterns of
-computation in a `Scan` `Op`'s inner function and move this computation to the
+This is another rewrite that attempts to detect certain patterns of
+computation in a `Scan`\ `Op`'s inner function and move this computation to the
 outer graph.
 
 
 `ScanInplaceOptimizer`
 ----------------------
 
-This optimization attempts to make `Scan` compute its recurrent outputs inplace
-on the input tensors that contain their initial states. This optimization can
+This rewrite attempts to make `Scan` compute its recurrent outputs inplace
+on the input tensors that contain their initial states. This rewrite can
 improve runtime performance as well as reduce memory usage.
 
 
 `ScanSaveMem`
 -------------
 
-This optimizations attempts to determine if a `Scan` node, during its execution,
+This rewrite attempts to determine if a `Scan` node, during its execution,
 for any of its outputs, can get away with allocating a memory buffer that is
 large enough to contain some of the computed timesteps of that output but not
 all of them.
@@ -233,7 +233,7 @@ need to store the most recent ``N`` values, not all of them.
 
 For instance, if a `Scan` node has a SITSOT output (last computed value is
 fed back as an input at the next iteration) and only the last timestep of
-that output is ever used in the outer function, the `ScanSaveMem` optimization
+that output is ever used in the outer function, the `ScanSaveMem` rewrite
 could determine that there is no need to store all computed timesteps for
 that SITSOT output. Only the most recently computed timestep ever needs to
 be kept in memory.
@@ -242,11 +242,11 @@ be kept in memory.
 `ScanMerge`
 -----------
 
-This optimization attempts to fuse distinct `Scan` `Op`s into a single `Scan` `Op`
-that performs all the computation. The main advantage of merging `Scan` `Op`\s
-together comes from the possibility of both original `Op`\s having some
+This rewrite attempts to fuse distinct `Scan` nodes into a single `Scan` node
+that performs all the computation. The main advantage of merging `Scan` nodes
+together comes from the possibility of both original `Scan`\ `Op`\s having some
 computation in common. In such a setting, this computation ends up being done
-twice. The fused `Scan` `Op`, however, would only need to do it once and could
+twice. The fused `Scan`\s, however, would only need to do it once and could
 therefore be more computationally efficient. Also, since every `Scan` node
 involves a certain overhead, at runtime, reducing the number of `Scan` nodes in
 the graph can improve performance.
@@ -255,7 +255,7 @@ the graph can improve performance.
 `scan_merge_inouts`
 -------------------
 
-This optimization attempts to merge a `Scan` `Op`'s identical outer inputs as well
+This rewrite attempts to merge a `Scan`\s identical outer inputs as well
 as merge its identical outer outputs (outputs that perform the same
 computation on the same inputs). This can reduce the amount of computation as
 well as result in a simpler graph for both the inner function and the outer
@@ -267,7 +267,7 @@ Helper classes and functions
 
 Because of the complexity involved in dealing with `Scan`, a large number of
 helper classes and functions have been developed over time to implement
-operations commonly needed when dealing with the `Scan` `Op`. The `Scan` `Op`
+operations commonly needed when dealing with the `Scan`\ `Op`. The `Scan`\ `Op`
 itself defines a large number of them and others can be found in the file
 ``utils.py``. This sections aims to point out the most useful ones sorted
 by usage.

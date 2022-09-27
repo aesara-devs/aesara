@@ -130,11 +130,10 @@ import os
 import time
 
 import numpy as np
-import numpy.distutils
 
 
 try:
-    import numpy.distutils.__config__  # noqa
+    import numpy.__config__  # noqa
 except ImportError:
     pass
 
@@ -146,25 +145,26 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Apply, view_roots
 from aesara.graph.features import ReplacementDidNotRemoveError, ReplaceValidate
 from aesara.graph.op import Op
-from aesara.graph.opt import (
-    EquilibriumOptimizer,
-    GlobalOptimizer,
+from aesara.graph.rewriting.basic import (
+    EquilibriumGraphRewriter,
+    GraphRewriter,
     copy_stack_trace,
     in2out,
-    local_optimizer,
+    node_rewriter,
 )
-from aesara.graph.optdb import SequenceDB
+from aesara.graph.rewriting.db import SequenceDB
 from aesara.graph.utils import InconsistencyError, MethodNotDefined, TestValueError
 from aesara.link.c.op import COp
 from aesara.link.c.params_type import ParamsType
 from aesara.printing import FunctionPrinter, debugprint, pprint
 from aesara.scalar import bool as bool_t
 from aesara.tensor import basic as at
-from aesara.tensor.basic_opt import local_dimshuffle_lift
 from aesara.tensor.blas_headers import blas_header_text, blas_header_version
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.math import Dot, add, mul, neg, sub
+from aesara.tensor.rewriting.elemwise import local_dimshuffle_lift
+from aesara.tensor.shape import specify_broadcastable
 from aesara.tensor.type import (
     DenseTensorType,
     integer_dtypes,
@@ -1496,7 +1496,7 @@ def _gemm_from_node2(fgraph, node):
     return None, t1 - t0, 0, 0
 
 
-class GemmOptimizer(GlobalOptimizer):
+class GemmOptimizer(GraphRewriter):
     """Graph optimizer for inserting Gemm operations."""
 
     def __init__(self):
@@ -1526,7 +1526,9 @@ class GemmOptimizer(GlobalOptimizer):
             if new_node is not node:
                 nodelist.append(new_node)
 
-        u = aesara.graph.opt.Updater(on_import, None, None, name="GemmOptimizer")
+        u = aesara.graph.rewriting.basic.DispatchingFeature(
+            on_import, None, None, name="GemmOptimizer"
+        )
         fgraph.attach_feature(u)
         while did_something:
             nb_iter += 1
@@ -1616,10 +1618,10 @@ class GemmOptimizer(GlobalOptimizer):
             callbacks_time,
         )
 
-    @staticmethod
-    def print_profile(stream, prof, level=0):
+    @classmethod
+    def print_profile(cls, stream, prof, level=0):
         blanc = "    " * level
-        print(blanc, "GemmOptimizer", file=stream)
+        print(blanc, cls.__name__, file=stream)
         print(blanc, " nb_iter", prof[1], file=stream)
         print(blanc, " nb_replacement", prof[2], file=stream)
         print(blanc, " nb_replacement_didn_t_remove", prof[3], file=stream)
@@ -1733,7 +1735,7 @@ class Dot22(GemmRelated):
 _dot22 = Dot22()
 
 
-@local_optimizer([Dot])
+@node_rewriter([Dot])
 def local_dot_to_dot22(fgraph, node):
     # This works for tensor.outer too because basic.outer is a macro that
     # produces a dot(dimshuffle,dimshuffle) of form 4 below
@@ -1766,7 +1768,7 @@ def local_dot_to_dot22(fgraph, node):
     _logger.info(f"Not optimizing dot with inputs {x} {y} {x.type} {y.type}")
 
 
-@local_optimizer([gemm_no_inplace], inplace=True)
+@node_rewriter([gemm_no_inplace], inplace=True)
 def local_inplace_gemm(fgraph, node):
     if node.op == gemm_no_inplace:
         new_out = [gemm_inplace(*node.inputs)]
@@ -1774,7 +1776,7 @@ def local_inplace_gemm(fgraph, node):
         return new_out
 
 
-@local_optimizer([gemv_no_inplace], inplace=True)
+@node_rewriter([gemv_no_inplace], inplace=True)
 def local_inplace_gemv(fgraph, node):
     if node.op == gemv_no_inplace:
         new_out = [gemv_inplace(*node.inputs)]
@@ -1782,7 +1784,7 @@ def local_inplace_gemv(fgraph, node):
         return new_out
 
 
-@local_optimizer([ger], inplace=True)
+@node_rewriter([ger], inplace=True)
 def local_inplace_ger(fgraph, node):
     if node.op == ger:
         new_out = [ger_destructive(*node.inputs)]
@@ -1790,7 +1792,7 @@ def local_inplace_ger(fgraph, node):
         return new_out
 
 
-@local_optimizer([gemm_no_inplace])
+@node_rewriter([gemm_no_inplace])
 def local_gemm_to_gemv(fgraph, node):
     """GEMM acting on row or column matrices -> GEMV."""
     if node.op == gemm_no_inplace:
@@ -1807,7 +1809,7 @@ def local_gemm_to_gemv(fgraph, node):
         return new_out
 
 
-@local_optimizer([gemm_no_inplace])
+@node_rewriter([gemm_no_inplace])
 def local_gemm_to_ger(fgraph, node):
     """GEMM computing an outer-product -> GER."""
     if node.op == gemm_no_inplace:
@@ -1839,7 +1841,7 @@ def local_gemm_to_ger(fgraph, node):
 
 # TODO: delete this optimization when we have the proper dot->gemm->ger pipeline
 #      working
-@local_optimizer([_dot22])
+@node_rewriter([_dot22])
 def local_dot22_to_ger_or_gemv(fgraph, node):
     """dot22 computing an outer-product -> GER."""
     if node.op == _dot22:
@@ -1904,7 +1906,7 @@ blas_optdb.register(
 blas_optdb.register("gemm_optimizer", GemmOptimizer(), "fast_run", position=10)
 blas_optdb.register(
     "local_gemm_to_gemv",
-    EquilibriumOptimizer(
+    EquilibriumGraphRewriter(
         [
             local_gemm_to_gemv,
             local_gemm_to_ger,
@@ -2033,7 +2035,7 @@ class Dot22Scalar(GemmRelated):
 _dot22scalar = Dot22Scalar()
 
 
-@local_optimizer([mul])
+@node_rewriter([mul])
 def local_dot22_to_dot22scalar(fgraph, node):
     """
     Notes
@@ -2552,9 +2554,13 @@ class BatchedDot(COp):
         # above code don't always return the right broadcast pattern.
         # This cause problem down the road. See gh-1461.
         if xgrad.broadcastable != x.broadcastable:
-            xgrad = at.patternbroadcast(xgrad, x.broadcastable)
+            xgrad = specify_broadcastable(
+                xgrad, *(ax for (ax, b) in enumerate(x.type.broadcastable) if b)
+            )
         if ygrad.broadcastable != y.broadcastable:
-            ygrad = at.patternbroadcast(ygrad, y.broadcastable)
+            ygrad = specify_broadcastable(
+                ygrad, *(ax for (ax, b) in enumerate(y.type.broadcastable) if b)
+            )
 
         return xgrad, ygrad
 
@@ -2647,7 +2653,7 @@ _batched_dot = BatchedDot()
 
 # from opt import register_specialize, register_canonicalize
 # @register_specialize
-@local_optimizer([sub, add])
+@node_rewriter([sub, add])
 def local_print_as_we_go_along(fgraph, node):
     if node.op in (sub, add):
         debugprint(node)

@@ -54,6 +54,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
     - uses: pre-commit/action@v2.0.0
 
   test:
@@ -72,9 +74,9 @@ jobs:
         install-numba: [1]
         part:
           - "tests --ignore=tests/tensor --ignore=tests/sparse --ignore=tests/tensor/nnet"
-          - "tests/tensor tests/sparse --ignore=tests/tensor/test_basic.py --ignore=tests/tensor/test_math.py --ignore=tests/tensor/test_math_scipy.py --ignore=tests/tensor/test_inplace.py --ignore=tests/tensor/test_elemwise.py --ignore=tests/tensor/test_basic_opt.py --ignore=tests/tensor/test_math_opt.py --ignore=tests/tensor/nnet"
+          - "tests/tensor tests/sparse --ignore=tests/tensor/test_basic.py --ignore=tests/tensor/test_math.py --ignore=tests/tensor/test_math_scipy.py --ignore=tests/tensor/test_inplace.py --ignore=tests/tensor/test_elemwise.py --ignore=tests/tensor/rewriting/test_basic.py --ignore=tests/tensor/rewriting/test_math.py --ignore=tests/tensor/nnet"
           - "tests/tensor/test_basic.py tests/tensor/test_math.py tests/tensor/test_math_scipy.py tests/tensor/test_inplace.py"
-          - "tests/tensor/test_elemwise.py tests/tensor/test_basic_opt.py tests/tensor/test_math_opt.py"
+          - "tests/tensor/test_elemwise.py tests/tensor/rewriting/test_basic.py tests/tensor/rewriting/test_math.py"
           - "tests/tensor/nnet --ignore-glob='*/test_abstract_conv.py'"
           - "tests/tensor/nnet/test_abstract_conv.py"
         include:
@@ -143,7 +145,7 @@ jobs:
         run: |
           mamba install --yes -q "python~=${PYTHON_VERSION}=*_cpython" mkl numpy scipy pip mkl-service graphviz cython pytest coverage pytest-cov sympy
           if [[ $INSTALL_NUMBA == "1" ]]; then mamba install --yes -q -c conda-forge "python~=${PYTHON_VERSION}=*_cpython" "numba>=0.55" numba-scipy; fi
-          mamba install --yes -q -c conda-forge "python~=${PYTHON_VERSION}=*_cpython" jax jaxlib
+          mamba install --yes -q -c conda-forge "python~=${PYTHON_VERSION}=*_cpython" jax "jaxlib!=0.3.15"
           pip install -e ./
           mamba list && pip freeze
           python -c 'import aesara; print(aesara.config.__str__(print_doc=False))'

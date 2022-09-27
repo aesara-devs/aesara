@@ -231,18 +231,18 @@ List of Implemented Operations
     - :func:`sampling_dot <aesara.sparse.basic.sampling_dot>`.
 
         - Both inputs must be dense.
-        - The grad implemented is structured for `p`.
+        - The grad implemented is structured for ``p``.
         - Sample of the dot and sample of the gradient.
         - C code for perform but not for grad.
         - Returns sparse for perform and grad.
     - :func:`usmm <aesara.sparse.basic.usmm>`.
 
         - You *shouldn't* insert this op yourself!
-           - There is an optimization that transform a
-             :func:`dot <aesara.sparse.basic.dot>` to ``Usmm`` when possible.
+           - There is a rewrite that transforms a
+             :func:`dot <aesara.sparse.basic.dot>` to :class:`Usmm` when possible.
 
-        - This op is the equivalent of gemm for sparse dot.
-        - There is no grad implemented for this op.
+        - This :class:`Op` is the equivalent of gemm for sparse dot.
+        - There is no grad implemented for this :class:`Op`.
         - One of the inputs must be sparse, the other sparse or dense.
         - Returns a dense from perform.
 

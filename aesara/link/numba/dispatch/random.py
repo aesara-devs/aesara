@@ -312,33 +312,21 @@ def numba_funcify_BernoulliRV(op, node, **kwargs):
 @numba_funcify.register(aer.CategoricalRV)
 def numba_funcify_CategoricalRV(op, node, **kwargs):
     out_dtype = node.outputs[1].type.numpy_dtype
-
-    ind_shape_len = node.inputs[3].type.ndim - 1
-    neg_ind_shape_len = -ind_shape_len
-
     size_len = int(get_vector_length(node.inputs[1]))
 
     @numba_basic.numba_njit
     def categorical_rv(rng, size, dtype, p):
-
-        size_tpl = numba_ndarray.to_fixed_tuple(size, size_len)
-        ind_shape = p.shape[:-1]
-
-        if ind_shape_len > 0:
-            if size_len > 0 and size_tpl[neg_ind_shape_len:] != ind_shape:
-                raise ValueError("Parameters shape and size do not match.")
-
-            samples_shape = size_tpl[:neg_ind_shape_len] + ind_shape
-            p_bcast = np.broadcast_to(p, size_tpl[:neg_ind_shape_len] + p.shape)
+        if not size_len:
+            size_tpl = p.shape[:-1]
         else:
-            samples_shape = size_tpl
-            p_bcast = p
+            size_tpl = numba_ndarray.to_fixed_tuple(size, size_len)
+            p = np.broadcast_to(p, size_tpl + p.shape[-1:])
 
-        unif_samples = np.random.uniform(0, 1, samples_shape)
+        unif_samples = np.random.uniform(0, 1, size_tpl)
 
-        res = np.empty(samples_shape, dtype=out_dtype)
-        for idx in np.ndindex(*samples_shape):
-            res[idx] = np.searchsorted(np.cumsum(p_bcast[idx]), unif_samples[idx])
+        res = np.empty(size_tpl, dtype=out_dtype)
+        for idx in np.ndindex(*size_tpl):
+            res[idx] = np.searchsorted(np.cumsum(p[idx]), unif_samples[idx])
 
         return (rng, res)
 

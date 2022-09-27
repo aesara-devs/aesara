@@ -171,7 +171,7 @@ def check_broadcast(v1, v2):
         "dimension is fixed to 1 in the input, while it is still "
         "variable in the output, or vice-verca. You have to make "
         "them consistent, e.g. using aesara.tensor."
-        "{patternbroadcast,unbroadcast,addbroadcast}."
+        "{unbroadcast, specify_broadcastable}."
     )
     size = min(len(v1.broadcastable), len(v2.broadcastable))
     for n, (b1, b2) in enumerate(
@@ -3440,7 +3440,7 @@ def profile_printer(
             )
 
 
-@op_debug_information.register(Scan)  # type: ignore
+@op_debug_information.register(Scan)
 def _op_debug_information_Scan(op, node):
     from typing import Sequence
 

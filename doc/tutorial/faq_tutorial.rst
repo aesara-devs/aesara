@@ -44,7 +44,7 @@ Defining cost which depends only on subset and not the entire lookup_table
 
 There are two ways for updating the parameters:
 Either use inc_subtensor or set_subtensor. It is recommended to use
-inc_subtensor. Some aesara optimizations do the conversion between
+inc_subtensor. Some aesara rewrites do the conversion between
 the two functions, but not in all cases.
 
 .. code-block:: python

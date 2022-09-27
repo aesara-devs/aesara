@@ -1,5 +1,4 @@
 import copy
-import warnings
 from typing import Tuple, Union
 
 import numpy as np
@@ -435,14 +434,3 @@ class ChoiceFromUniform(MultinomialFromUniform):
                             pvals[n, m] = 0.0
                             pvals[n] /= pvals[n].sum()
                         break
-
-
-class MultinomialWOReplacementFromUniform(ChoiceFromUniform):
-    def __init__(self, *args, **kwargs):
-        warnings.warn(
-            "MultinomialWOReplacementFromUniform is deprecated, "
-            "use ChoiceFromUniform instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        super().__init__(*args, **kwargs)

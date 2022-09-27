@@ -181,7 +181,7 @@ Reference
       and update the implicit function arguments according to the `updates`.
 
 
-    Inputs can be given as variables or In instances.
+    Inputs can be given as variables or :class:`In` instances.
     :class:`In` instances also have a variable, but they attach some extra
     information about how call-time arguments corresponding to that variable
     should be used.  Similarly, :class:`Out` instances can attach information
@@ -189,28 +189,28 @@ Reference
 
     The default is typically 'FAST_RUN' but this can be changed in
     :doc:`aesara.config <../config>`.  The mode
-    argument controls the sort of optimizations that will be applied to the
-    graph, and the way the optimized graph will be evaluated.
+    argument controls the sort of rewrites that will be applied to the
+    graph, and the way the rewritten graph will be evaluated.
 
     After each function evaluation, the `updates` mechanism can replace the
-    value of any SharedVariable [implicit] inputs with new values computed
+    value of any (implicit) `SharedVariable` inputs with new values computed
     from the expressions in the `updates` list.  An exception will be raised
-    if you give two update expressions for the same SharedVariable input (that
+    if you give two update expressions for the same `SharedVariable` input (that
     doesn't make sense).
 
-    If a SharedVariable is not given an update expression, but has a
-    ``default_update`` member containing an expression, this expression
+    If a `SharedVariable` is not given an update expression, but has a
+    :attr:`Variable.default_update` member containing an expression, this expression
     will be used as the update expression for this variable.  Passing
     ``no_default_updates=True`` to ``function`` disables this behavior
     entirely, passing ``no_default_updates=[sharedvar1, sharedvar2]``
     disables it for the mentioned variables.
 
     Regarding givens: Be careful to make sure that these substitutions are
-    independent, because behaviour when Var1 of one pair appears in the graph leading
-    to Var2 in another expression is undefined (e.g. with ``{a: x, b: a + 1}``).
-    Replacements specified with
-    givens are different from optimizations in that Var2 is not expected to be
-    equivalent to Var1.
+    independent, because behaviour when ``Var1`` of one pair appears in the graph leading
+    to ``Var2`` in another expression is undefined (e.g. with ``{a: x, b: a + 1}``).
+    Replacements specified with givens are different from replacements that
+    occur during normal rewriting, in that ``Var2`` is not expected to be
+    equivalent to ``Var1``.
 
 .. autofunction:: aesara.compile.function.function_dump
 

@@ -46,28 +46,28 @@ Faster Aesara Function Compilation
 
 Aesara function compilation can be time consuming. It can be sped up by setting
 the flag ``mode=FAST_COMPILE`` which instructs Aesara to skip most
-optimizations and disables the generation of any c/cuda code. This is useful
+rewrites and disables the generation of any c/cuda code. This is useful
 for quickly testing a simple idea.
 
 If C code is necessary, the flag
 ``optimizer=fast_compile`` can be used instead. It instructs Aesara to
-skip time consuming optimizations but still generate C code.
+skip time consuming rewrites but still generate C code.
 
 Similarly using the flag ``optimizer_excluding=inplace`` will speed up
-compilation by preventing optimizations that replace operations with a
+compilation by preventing rewrites that replace operations with a
 version that reuses memory where it will not negatively impact the
-integrity of the operation. Such optimizations can be time
+integrity of the operation. Such rewrites can be time
 consuming. However using this flag will result in greater memory usage
 because space must be allocated for the results which would be
 unnecessary otherwise. In short, using this flag will speed up
 compilation but it will also use more memory because
-``optimizer_excluding=inplace`` excludes inplace optimizations
+``optimizer_excluding=inplace`` excludes inplace rewrites
 resulting in a trade off between speed of compilation and memory
 usage.
 
 Alternatively, if the graph is big, using the flag ``cycle_detection=fast``
 will speedup the computations by removing some of the inplace
-optimizations. This would allow aesara to skip a time consuming cycle
+rewrites. This would allow aesara to skip a time consuming cycle
 detection algorithm. If the graph is big enough,we suggest that you use
 this flag instead of ``optimizer_excluding=inplace``. It will result in a
 computation time that is in between fast compile and fast run.
@@ -82,23 +82,23 @@ garbage collection will keep all intermediate results' memory space to allow to
 reuse them during the next call to the same Aesara function, if they are of the
 correct shape. The shape could change if the shapes of the inputs change.
 
-.. _unsafe_optimization:
+.. _unsafe_rewrites:
 
-Unsafe optimization
-===================
+Unsafe Rewrites
+===============
 
 
-Some Aesara optimizations make the assumption that the user inputs are
+Some Aesara rewrites make the assumption that the user inputs are
 valid. What this means is that if the user provides invalid values (like
 incompatible shapes or indexing values that are out of bounds) and
-the optimizations are applied, the user error will get lost. Most of the
+the rewrites are applied, the user error will get lost. Most of the
 time, the assumption is that the user inputs are valid. So it is good
-to have the optimization being applied, but losing the error is bad.
-The newest optimization in Aesara with such assumption will add an
+to have the rewrite applied, but losing the error is bad.
+The newest rewrite in Aesara with such an assumption will add an
 assertion in the graph to keep the user error message. Computing
 these assertions could take some time. If you are sure everything is valid
-in your graph and want the fastest possible Aesara, you can enable an
-optimization that will remove those assertions with:
+in your graph and want the fastest possible Aesara, you can enable a
+rewrite that will remove the assertions with:
 ``optimizer_including=local_remove_all_assert``
 
 

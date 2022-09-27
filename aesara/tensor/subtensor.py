@@ -20,7 +20,7 @@ from aesara.misc.safe_asarray import _asarray
 from aesara.printing import Printer, pprint, set_precedence
 from aesara.scalar.basic import ScalarConstant
 from aesara.tensor import _get_vector_length, as_tensor_variable, get_vector_length
-from aesara.tensor.basic import addbroadcast, alloc, get_scalar_constant_value
+from aesara.tensor.basic import alloc, get_scalar_constant_value
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.exceptions import (
     AdvancedIndexingError,
@@ -28,7 +28,7 @@ from aesara.tensor.exceptions import (
     ShapeError,
 )
 from aesara.tensor.math import clip
-from aesara.tensor.shape import Reshape
+from aesara.tensor.shape import Reshape, specify_broadcastable
 from aesara.tensor.type import (
     TensorType,
     bscalar,
@@ -41,6 +41,10 @@ from aesara.tensor.type import (
     iscalar,
     lscalar,
     tensor,
+    ubscalar,
+    uiscalar,
+    ulscalar,
+    uwscalar,
     wscalar,
     zscalar,
 )
@@ -50,12 +54,25 @@ from aesara.tensor.type_other import NoneConst, NoneTypeT, SliceType, make_slice
 _logger = logging.getLogger("aesara.tensor.subtensor")
 
 invalid_scal_types = (aes.float64, aes.float32, aes.float16)
-scal_types = (aes.int64, aes.int32, aes.int16, aes.int8)
+scal_types = (
+    aes.int64,
+    aes.int32,
+    aes.int16,
+    aes.int8,
+    aes.uint64,
+    aes.uint32,
+    aes.uint16,
+    aes.uint8,
+)
 tensor_types = (
     lscalar,
     iscalar,
     wscalar,
     bscalar,
+    ulscalar,
+    uiscalar,
+    uwscalar,
+    ubscalar,
 )
 invalid_tensor_types = (
     fscalar,
@@ -376,7 +393,7 @@ def slice_len(slc, n):
 def is_basic_idx(idx):
     """Determine if an index is of the NumPy basic type.
 
-    XXX: This only checks a single index, so an integers is *not* considered a
+    XXX: This only checks a single index, so an integer is *not* considered a
     basic index, because--depending on the other indices its used with--an
     integer can indicate advanced indexing.
 
@@ -1322,8 +1339,8 @@ def inc_subtensor(
             # It is acceptable to try to increment a subtensor with a
             # broadcastable dim with a tensor that is not broadcastable
             # on that dimension. However, its length must then be 1.
-            # We insert a Rebroadcast Op to make sure it is the case.
-            y = addbroadcast(y, dim)
+            # We insert a SpecifyShape Op to make sure it is the case.
+            y = specify_broadcastable(y, dim)
 
     if not x.owner:
         raise TypeError("x must be the result of a subtensor operation")

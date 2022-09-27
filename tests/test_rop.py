@@ -26,6 +26,7 @@ from aesara.graph.op import Op
 from aesara.tensor.math import argmax, dot
 from aesara.tensor.math import max as at_max
 from aesara.tensor.nnet import conv, conv2d
+from aesara.tensor.shape import unbroadcast
 from aesara.tensor.signal.pool import Pool
 from aesara.tensor.type import TensorType, matrix, vector
 from tests import unittest_tools as utt
@@ -237,11 +238,11 @@ class TestRopLop(RopLopChecker):
         # vector
         self.check_rop_lop(self.x[:4].dimshuffle("x", 0).sum(axis=0), (4,))
 
-    def test_rebroadcast(self):
+    def test_unbroadcast(self):
         # I need the sum, because the setup expects the output to be a
         # vector
         self.check_rop_lop(
-            at.unbroadcast(self.x[:4].dimshuffle("x", 0), 0).sum(axis=1), (1,)
+            unbroadcast(self.x[:4].dimshuffle("x", 0), 0).sum(axis=1), (1,)
         )
 
     @pytest.mark.slow

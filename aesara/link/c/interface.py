@@ -1,3 +1,4 @@
+import warnings
 from abc import abstractmethod
 from typing import Callable, Dict, List, Text, Tuple, Union
 
@@ -162,6 +163,9 @@ class CLinkerObject:
         c_code_cache_version_apply()
 
         """
+        warnings.warn(
+            f"{type(self)} specifies no C code cache version and will not be cached."
+        )
         return ()
 
 

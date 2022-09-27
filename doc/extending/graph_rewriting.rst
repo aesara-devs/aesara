@@ -6,80 +6,81 @@ Graph Rewriting
 ===============
 
 In this document we will explain how graph rewriting works and how graph
-optimizations can be constructed using graph rewriting.
+rewrites can be constructed in Aesara.
 
 .. todo::
-   The old "optimization" nomenclature is still in use throughout these documents
-   and the codebase; however, this is being changed to more accurately distinguish
-   between general graph rewriting for any purpose and the kind that is explicitly
-   intended to "optimize" a graph in some way.
+   The old "optimization" nomenclature is still in use throughout some of these
+   documents and the codebase; however, this is being changed to more accurately
+   distinguish between general graph rewriting for any purpose and the kind that
+   is explicitly intended to "optimize" a graph in some way.
 
 
-Global and Local Optimizations
-==============================
+Graph and Node Rewriters
+========================
 
-First, let's lay out the way optimizations work in Aesara. There are
-two types of optimizations: *global* optimizations and *local*
-optimizations. A global optimization takes a :class:`FunctionGraph` object (see its
+There are two types of basic rewriters: *graph* rewriters and *node* rewriters.
+
+A graph rewriter takes a :class:`FunctionGraph` object (see its
 :doc:`documentation </library/graph/fgraph>` for more details) and navigates through it
-in a suitable way, replacing some :class:`Variable`\s by others in the process. A
-local optimization, on the other hand, is defined as a function on a
+in a suitable way, replacing some :class:`Variable`\s by others in the process.
+A node rewriter, on the other hand, is defined as a function on a
 *single* :ref:`apply` node and must return either ``False`` (to mean that
 nothing is to be done) or a list of new :class:`Variable`\s that we would like to
-replace the node's outputs with. A :ref:`navigator` is a special kind
-of global optimization which navigates the computation graph in some
-fashion (e.g. in topological order, reverse-topological order, random
-order, etc.) and applies one or more local optimizations at each step.
+substitute for the node's current outputs.
 
-Optimizations which are holistic, meaning that they must take into
-account dependencies that might be all over the graph, should be
-global. Optimizations that can be done with a narrow perspective are
-better defined as local optimizations. The majority of optimizations
-we want to define are local.
+Some graph rewriters navigate the computation graph in a particular fashion
+(e.g. in topological order, reverse-topological order, random order, etc.) and
+apply one or more node rewriters at each step.  :class:`WalkingGraphRewriter` is
+one such example.
 
-.. optimizer:
+Rewriters that are holistic, meaning that they must take into
+account dependencies that might be all over the graph, should usually be
+graph rewriters. Rewrites that only need a narrow view of sub-graphs are
+better defined as node rewrites.
 
-Global optimization
--------------------
+.. rewriter:
 
-.. class:: GlobalOptimizer
+Graph Rewriting
+---------------
+
+.. class:: GraphRewriter
 
     .. method:: apply(fgraph)
 
       This method takes a :class:`FunctionGraph` object which contains the computation graph
-      and does modifications in line with what the optimization is meant
-      to do. This is one of the main methods of the optimizer.
+      and does modifications in line with what the rewriter is meant
+      to do. This is one of the main methods of the rewriter.
 
     .. method:: add_requirements(fgraph)
 
       This method takes a :class:`FunctionGraph` object and adds :ref:`features
       <libdoc_graph_fgraphfeature>` to it. These features are "plugins" that are needed
-      for the :meth:`GlobalOptimizer.apply` method to do its job properly.
+      for the :meth:`GraphRewriter.apply` method to do its job properly.
 
-    .. method:: optimize(fgraph)
+    .. method:: rewrite(fgraph)
 
       This is the interface function called by Aesara.  It calls
-      :meth:`GlobalOptimizer.apply` by default.
+      :meth:`GraphRewriter.apply` by default.
 
 
-Local optimization
-------------------
+Node Rewriting
+--------------
 
-A local optimization is an object which defines the following methods:
+A node rewriter is an object which defines the following methods:
 
-.. class:: LocalOptimizer
+.. class:: NodeRewriter
 
     .. method:: transform(fgraph, node)
 
       This method takes a :class:`FunctionGraph` and an :class:`Apply` node and
       returns either ``False`` to signify that no changes are to be done or a
       list of :class:`Variable`\s which matches the length of the node's ``outputs``
-      list. When the :class:`LocalOptimizer` is applied by a :class:`NavigatorOptimizer`, the outputs
-      of the node passed as argument to the :class:`LocalOptimizer` will be replaced by
+      list. When the :class:`NodeRewriter` is applied by a :class:`NodeProcessingGraphRewriter`, the outputs
+      of the node passed as argument to the :class:`NodeRewriter` will be replaced by
       the list returned.
 
 
-A simplification rule
+A Simplification Rule
 =====================
 
 For starters, let's define the following simplification:
@@ -88,23 +89,23 @@ For starters, let's define the following simplification:
 
    \frac{xy}{y} = x
 
-We will implement it in three ways: using a global optimization, a
-local optimization with a :class:`NavigatorOptimizer` and then using the :class:`PatternSub`
-facility.
+We will implement it in three ways: using a graph rewriter, a node rewriter with
+a :class:`NodeProcessingGraphRewriter`, and then using the
+:class:`PatternNodeRewriter`.
 
-Global optimization
--------------------
+Graph Rewriter Implementation
+-----------------------------
 
-Here is the code for a global optimization implementing the
+Here is the code for a graph rewriter implementing the
 simplification described above:
 
 .. testcode::
 
    import aesara
-   from aesara.graph.opt import GlobalOptimizer
+   from aesara.graph.rewriting.basic import GraphRewriter
    from aesara.graph.features import ReplaceValidate
 
-   class Simplify(GlobalOptimizer):
+   class Simplify(GraphRewriter):
        def add_requirements(self, fgraph):
            fgraph.attach_feature(ReplaceValidate())
 
@@ -136,7 +137,7 @@ another while respecting certain validation constraints. As an
 exercise, try to rewrite :class:`Simplify` using :class:`NodeFinder`. (Hint: you
 want to use the method it publishes instead of the call to toposort)
 
-Then, in :meth:`GlobalOptimizer.apply` we do the actual job of simplification. We start by
+Then, in :meth:`GraphRewriter.apply` we do the actual job of simplification. We start by
 iterating through the graph in topological order. For each node
 encountered, we check if it's a ``div`` node. If not, we have nothing
 to do here. If so, we put in ``x``, ``y`` and ``z`` the numerator,
@@ -149,7 +150,7 @@ we can now say that ``z == (a*b)/y``. If ``y==a`` then ``z==b`` and if
 ``z`` by either ``a`` or ``b`` using :meth:`FunctionGraph.replace_validate`; otherwise, we do
 nothing.
 
-Now, we test the optimization:
+Now, we test the rewriter:
 
 >>> from aesara.scalar import float64, add, mul, true_div
 >>> x = float64('x')
@@ -159,14 +160,14 @@ Now, we test the optimization:
 >>> e = aesara.graph.fg.FunctionGraph([x, y, z], [a])
 >>> e
 FunctionGraph(add(z, mul(true_div(mul(y, x), y), true_div(z, x))))
->>> simplify.optimize(e)
+>>> simplify.rewrite(e)
 >>> e
 FunctionGraph(add(z, mul(x, true_div(z, x))))
 
 You can check what happens if you put many
 instances of :math:`\frac{xy}{y}` in the graph. Note that it sometimes
 won't work for reasons that have nothing to do with the quality of the
-optimization you wrote. For example, consider the following:
+rewrite you wrote. For example, consider the following:
 
 >>> x = float64('x')
 >>> y = float64('y')
@@ -175,7 +176,7 @@ optimization you wrote. For example, consider the following:
 >>> e = aesara.graph.fg.FunctionGraph([x, y, z], [a])
 >>> e
 FunctionGraph(true_div(mul(add(y, z), x), add(y, z)))
->>> simplify.optimize(e)
+>>> simplify.rewrite(e)
 >>> e
 FunctionGraph(true_div(mul(add(y, z), x), add(y, z)))
 
@@ -183,14 +184,14 @@ Nothing happened here. The reason is: ``add(y, z) != add(y,
 z)``. That is the case for efficiency reasons. To fix this problem we
 first need to merge the parts of the graph that represent the same
 computation, using the :class:`MergeOptimizer` defined in
-:mod:`aesara.graph.opt`.
+:mod:`aesara.graph.rewriting.basic`.
 
->>> from aesara.graph.opt import MergeOptimizer
->>> MergeOptimizer().optimize(e)  # doctest: +ELLIPSIS
+>>> from aesara.graph.rewriting.basic import MergeOptimizer
+>>> MergeOptimizer().rewrite(e)  # doctest: +ELLIPSIS
 (0, ..., None, None, {}, 1, 0)
 >>> e
 FunctionGraph(true_div(mul(*1 -> add(y, z), x), *1))
->>> simplify.optimize(e)
+>>> simplify.rewrite(e)
 >>> e
 FunctionGraph(x)
 
@@ -198,30 +199,30 @@ Once the merge is done, both occurrences of ``add(y, z)`` are
 collapsed into a single one and is used as an input in two
 places. Note that ``add(x, y)`` and ``add(y, x)`` are still considered
 to be different because Aesara has no clue that ``add`` is
-commutative. You may write your own global optimizer to identify
+commutative. You may write your own graph rewrite to identify
 computations that are identical with full knowledge of the rules of
 arithmetic that your Ops implement. Aesara might provide facilities
 for this somewhere in the future.
 
 .. note::
 
-   :class:`FunctionGraph` is an Aesara structure intended for the optimization
+   :class:`FunctionGraph` is an Aesara structure intended for the rewrite
    phase. It is used internally by :func:`aesara.function` and is rarely
    exposed to the end user.
 
 
-Local Optimization
-------------------
+Node Rewriter Implementation
+----------------------------
 
 The local version of the above code would be the following:
 
 
 .. testcode::
 
-   from aesara.graph.opt import LocalOptimizer
+   from aesara.graph.rewriting.basic import NodeRewriter
 
 
-   class LocalSimplify(LocalOptimizer):
+   class LocalSimplify(NodeRewriter):
        def transform(self, fgraph, node):
            if node.op == true_div:
                x, y = node.inputs
@@ -234,7 +235,7 @@ The local version of the above code would be the following:
            return False
 
        def tracks(self):
-           # This tells certain navigators to only apply this `LocalOptimizer`
+           # This tells certain navigators to only apply this `NodeRewriter`
            # on these kinds of `Op`s
            return [true_div]
 
@@ -242,7 +243,7 @@ The local version of the above code would be the following:
 
 
 In this case, the transformation is defined in the
-:meth:`LocalOptimizer.transform` method, which is given an explicit
+:meth:`NodeRewriter.transform` method, which is given an explicit
 :class:`Apply` node on which to work.  The entire graph--as a ``fgraph``--is
 also provided, in case global information is needed.
 
@@ -252,10 +253,10 @@ outputs are returned. This list must have the same length as
 (e.g. available via ``fgraph.clients``), then it is not used elsewhere in the graph and
 you can put ``None`` in the returned list to remove it.
 
-In order to apply the local optimizer we can use it in conjunction
-with a :class:`NavigatorOptimizer`. Basically, a :class:`NavigatorOptimizer` is
-a global optimizer that loops through all nodes in the graph (or a well-defined
-subset of them) and applies one or several local optimizers.
+In order to apply the node rewriter throughout a graph, we use it in conjunction
+with a :class:`NodeProcessingGraphRewriter`.  A :class:`NodeProcessingGraphRewriter` is
+a graph rewriter that loops through all nodes in the graph (or a well-defined
+subset of them) and applies one or several node rewriters.
 
 >>> x = float64('x')
 >>> y = float64('y')
@@ -264,69 +265,69 @@ subset of them) and applies one or several local optimizers.
 >>> e = aesara.graph.fg.FunctionGraph([x, y, z], [a])
 >>> e
 FunctionGraph(add(z, mul(true_div(mul(y, x), y), true_div(z, x))))
->>> simplify = aesara.graph.opt.TopoOptimizer(local_simplify)
->>> simplify.optimize(e)
-(<aesara.graph.opt.TopoOptimizer object at 0x...>, 1, 5, 3, ..., ..., ...)
+>>> simplify = aesara.graph.rewriting.basic.WalkingGraphRewriter(local_simplify)
+>>> simplify.rewrite(e)
+(<aesara.graph.rewriting.basic.WalkingGraphRewriter object at 0x...>, 1, 5, 3, ..., ..., ...)
 >>> e
 FunctionGraph(add(z, mul(x, true_div(z, x))))
 
-:class:`OpSub`, :class:`OpRemove`, :class:`PatternSub`
-++++++++++++++++++++++++++++++++++++++++++++++++++++++
+:class:`SubstitutionNodeRewriter`, :class:`RemovalNodeRewriter`, :class:`PatternNodeRewriter`
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Aesara defines some shortcuts to make :class:`LocalOptimizer`\s:
+Aesara defines some shortcuts to make :class:`NodeRewriter`\s:
 
-.. function:: OpSub(op1, op2)
+.. function:: SubstitutionNodeRewriter(op1, op2)
 
   Replaces all uses of ``op1`` by ``op2``. In other
   words, the outputs of all :class:`Apply` nodes using ``op1`` by the outputs
   of :class:`Apply` nodes involving ``op2``, where their inputs are the same.
 
-.. function:: OpRemove(op)
+.. function:: RemovalNodeRewriter(op)
 
   Removes all uses of ``op`` in the following way:
   if ``y = op(x)`` then ``y`` is replaced by ``x``. ``op`` must have as many
   outputs as it has inputs. The first output becomes the first input,
   the second output becomes the second input, and so on.
 
-.. function:: PatternSub(pattern1, pattern2)
+.. function:: PatternNodeRewriter(pattern1, pattern2)
 
   Replaces all occurrences of the first pattern by the second pattern.
-  See :class:`PatternSub`.
+  See :class:`PatternNodeRewriter`.
 
 .. code::
 
    from aesara.scalar import identity
-   from aesara.graph.opt import OpSub, OpRemove, PatternSub
+   from aesara.graph.rewriting.basic import SubstitutionNodeRewriter, RemovalNodeRewriter, PatternNodeRewriter
 
    # Replacing `add` by `mul` (this is not recommended for primarily
    # mathematical reasons):
-   add_to_mul = OpSub(add, mul)
+   add_to_mul = SubstitutionNodeRewriter(add, mul)
 
    # Removing `identity`
-   remove_identity = OpRemove(identity)
+   remove_identity = RemovalNodeRewriter(identity)
 
    # The "simplify" operation we've been defining in the past few
    # sections. Note that we need two patterns to account for the
    # permutations of the arguments to `mul`.
-   local_simplify_1 = PatternSub((true_div, (mul, 'x', 'y'), 'y'), 'x')
-   local_simplify_2 = PatternSub((true_div, (mul, 'x', 'y'), 'x'), 'y')
+   local_simplify_1 = PatternNodeRewriter((true_div, (mul, 'x', 'y'), 'y'), 'x')
+   local_simplify_2 = PatternNodeRewriter((true_div, (mul, 'x', 'y'), 'x'), 'y')
 
 .. note::
 
-   :class:`OpSub`, :class:`OpRemove` and :class:`PatternSub` produce local optimizers, which
-   means that everything we said previously about local optimizers
-   apply (e.g. they need to be wrapped in a :class:`NavigatorOptimizer`, etc.)
+   :class:`SubstitutionNodeRewriter`, :class:`RemovalNodeRewriter` and :class:`PatternNodeRewriter` produce node rewriters, which
+   means that everything we said previously about node rewriters
+   apply (e.g. they need to be wrapped in a :class:`NodeProcessingGraphRewriter`, etc.)
 
 
-When an optimization can be naturally expressed using :class:`OpSub`, :class:`OpRemove`
-or :class:`PatternSub`, it is highly recommended to use them.
+When a rewriter can be naturally expressed using :class:`SubstitutionNodeRewriter`, :class:`RemovalNodeRewriter`
+or :class:`PatternNodeRewriter`, it is highly recommended to use them.
 
 .. _unification:
 
 Unification and reification
 ===========================
 
-The :class:`PatternSub` class uses `unification and reification
+The :class:`PatternNodeRewriter` class uses `unification and reification
 <https://en.wikipedia.org/wiki/Unification_(computer_science)>`_ to implement a
 more succinct and reusable form of "pattern matching and replacement".
 In general, *use of the unification and reification tools is preferable when
@@ -345,7 +346,7 @@ In order to use :func:`unify` and :func:`reify` with Aesara graphs, we need an i
 structure that will allow us to represent Aesara graphs that contain :class:`var`\s, because
 Aesara :class:`Op`\s and :class:`Apply` nodes will not accept these foreign objects as inputs.
 
-:class:`PatternSub` uses Python ``tuple``\s to effectively represent :class:`Apply` nodes and
+:class:`PatternNodeRewriter` uses Python ``tuple``\s to effectively represent :class:`Apply` nodes and
 ``str``\s to represent logic variables (i.e. :class:`var`\s in the :mod:`unification` library).
 Behind the scenes, these ``tuple``\s are converted to a ``tuple`` subclass called :class:`ExpressionTuple`\s,
 which behave just like normal ``tuple``\s except for some special caching features that allow for easy
@@ -432,8 +433,8 @@ it does so in the context of relational operators (e.g. equations like :math:`x 
 This means that a relation that--say--represents :math:`x + x = 2 x` can be
 utilized in both directions.
 
-Currently, the local optimizer :class:`KanrenRelationSub` provides a means of
-turning :mod:`kanren` relations into :class:`LocalOptimizer`\s; however,
+Currently, the node rewriter :class:`KanrenRelationSub` provides a means of
+turning :mod:`kanren` relations into :class:`NodeRewriter`\s; however,
 :mod:`kanren` can always be used directly from within a custom :class:`Rewriter`, so
 :class:`KanrenRelationSub` is not necessary.
 
@@ -443,9 +444,9 @@ The following is an example that distributes dot products across additions.
 
     import aesara
     import aesara.tensor as at
-    from aesara.graph.kanren import KanrenRelationSub
-    from aesara.graph.opt import EquilibriumOptimizer
-    from aesara.graph.opt_utils import optimize_graph
+    from aesara.graph.rewriting.kanren import KanrenRelationSub
+    from aesara.graph.rewriting.basic import EquilibriumGraphRewriter
+    from aesara.graph.rewriting.utils import rewrite_graph
     from aesara.tensor.math import _dot
     from etuples import etuple
     from kanren import conso, eq, fact, heado, tailo
@@ -484,10 +485,10 @@ The following is an example that distributes dot products across additions.
         )
 
 
-    dot_distribute_opt = EquilibriumOptimizer([KanrenRelationSub(dot_distributeo)], max_use_ratio=10)
+    dot_distribute_rewrite = EquilibriumGraphRewriter([KanrenRelationSub(dot_distributeo)], max_use_ratio=10)
 
 
-Below, we apply `dot_distribute_opt` to a few example graphs.  First we create simple test graph:
+Below, we apply `dot_distribute_rewrite` to a few example graphs.  First we create simple test graph:
 
 >>> x_at = at.vector("x")
 >>> y_at = at.vector("y")
@@ -498,7 +499,7 @@ Below, we apply `dot_distribute_opt` to a few example graphs.  First we create s
 
 Next we apply the rewrite to the graph:
 
->>> res = optimize_graph(test_at, include=[], custom_opt=dot_distribute_opt, clone=False)
+>>> res = rewrite_graph(test_at, include=[], custom_rewrite=dot_distribute_rewrite, clone=False)
 >>> print(aesara.pprint(res))
 ((A @ x) + (A @ y))
 
@@ -510,7 +511,7 @@ few more test cases:
 >>> test_at = A_at.dot((x_at + y_at) + (z_at + w_at))
 >>> print(aesara.pprint(test_at))
 (A @ ((x + y) + (z + w)))
->>> res = optimize_graph(test_at, include=[], custom_opt=dot_distribute_opt, clone=False)
+>>> res = rewrite_graph(test_at, include=[], custom_rewrite=dot_distribute_rewrite, clone=False)
 >>> print(aesara.pprint(res))
 (((A @ x) + (A @ y)) + ((A @ z) + (A @ w)))
 
@@ -519,7 +520,7 @@ few more test cases:
 >>> test_at = A_at.dot(x_at + (y_at + B_at.dot(z_at + w_at)))
 >>> print(aesara.pprint(test_at))
 (A @ (x + (y + ((B @ z) + (B @ w)))))
->>> res = optimize_graph(test_at, include=[], custom_opt=dot_distribute_opt, clone=False)
+>>> res = rewrite_graph(test_at, include=[], custom_rewrite=dot_distribute_rewrite, clone=False)
 >>> print(aesara.pprint(res))
 ((A @ x) + ((A @ y) + ((A @ (B @ z)) + (A @ (B @ w)))))
 
@@ -531,8 +532,8 @@ relational properties.
 To do that, we will create another :class:`Rewriter` that simply reverses the arguments
 to the relation :func:`dot_distributeo` and apply it to the distributed result in ``res``:
 
->>> dot_gather_opt = EquilibriumOptimizer([KanrenRelationSub(lambda x, y: dot_distributeo(y, x))], max_use_ratio=10)
->>> rev_res = optimize_graph(res, include=[], custom_opt=dot_gather_opt, clone=False)
+>>> dot_gather_rewrite = EquilibriumGraphRewriter([KanrenRelationSub(lambda x, y: dot_distributeo(y, x))], max_use_ratio=10)
+>>> rev_res = rewrite_graph(res, include=[], custom_rewrite=dot_gather_rewrite, clone=False)
 >>> print(aesara.pprint(rev_res))
 (A @ (x + (y + (B @ (z + w)))))
 
@@ -549,32 +550,34 @@ high-level overview of miniKanren's use as a tool for symbolic computation see
 
 .. _optdb:
 
-The optimization database (:obj:`optdb`)
+The Optimization Database (:obj:`optdb`)
 ========================================
 
-Aesara exports a symbol called :obj:`optdb` which acts as a sort of
-ordered database of optimizations. When you make a new optimization,
-you must insert it at the proper place in the database. Furthermore,
-you can give each optimization in the database a set of tags that can
-serve as a basis for filtering.
+Aesara exports a symbol called :obj:`optdb` which acts as a sort of ordered
+database of rewrites. When a new rewrite is constructed, it must be inserted at
+the proper place in the database in order for it to be deployed during function
+compilation.
 
-The point of :obj:`optdb` is that you might want to apply many optimizations
-to a computation graph in many unique patterns. For example, you might
-want to do optimization X, then optimization Y, then optimization Z. And then
-maybe optimization Y is an :class:`EquilibriumOptimizer` containing :class:`LocalOptimizer`\s A, B
-and C which are applied on every node of the graph until they all fail to change
-it. If some optimizations act up, we want an easy way to turn them off. Ditto if
-some optimizations are very CPU-intensive and we don't want to take the time to
-apply them.
+Each rewrite in a database can be assigned a set of tags that serve as a basis
+for filtering/querying.
 
-The :obj:`optdb` system allows us to tag each optimization with a unique name
-as well as informative tags such as 'stable', 'buggy' or
-'cpu_intensive', all this without compromising the structure of the
-optimizations.
+The point of :obj:`optdb` is that one might want to apply many rewrites
+to a graph in many unique patterns.
 
-For instance, the optimization tag ``cxx_only`` is used for optimizations that
+For example, one might want to perform rewrite X, then rewrite Y, then
+rewrite Z. Perhaps rewrite Y is an :class:`EquilibriumGraphRewriter` containing
+:class:`NodeRewriter`\s A, B and C, which are applied on every node of until
+they all fail to change it. If some rewrites fail, we may want an easy way to
+turn them off. Similarly, if some rewrites are very CPU-intensive and we don't
+want to take the time to apply them, then we should be able to disable them.
+
+The :obj:`optdb` system allows us to tag each rewrite with a unique name,
+as well as informative descriptions such as 'stable', 'buggy' or
+'cpu_intensive'.
+
+For instance, the rewrite tag ``cxx_only`` is used for rewrites that
 insert :class:`Op`\s that have no Python implementation (i.e. they only have C
-implementations).  Optimizations with this tag can be skipped when the C backend
+implementations).  Rewrites with this tag can be skipped when the C backend
 is not being used.
 
 
@@ -582,164 +585,164 @@ Definition of :obj:`optdb`
 --------------------------
 
 :obj:`optdb` is an object which is an instance of
-:class:`SequenceDB <optdb.SequenceDB>`,
-itself a subclass of :class:`OptimizationDatabase <optdb.OptimizationDatabase>`.
-There exist (for now) two types of :class:`OptimizationDatabase`, :class:`SequenceDB` and :class:`EquilibriumDB`.
-When given an appropriate :class:`OptimizationQuery`, :class:`OptimizationDatabase` objects build an :class:`Optimizer` matching
+:class:`SequenceDB`,
+itself a subclass of :class:`RewriteDatabase`.
+There exist (for now) two types of :class:`RewriteDatabase`, :class:`SequenceDB` and :class:`EquilibriumDB`.
+When given an appropriate :class:`RewriteDatabaseQuery`, :class:`RewriteDatabase` objects build an :class:`Rewriter` matching
 the query.
 
-A :class:`SequenceDB` contains :class:`Optimizer` or :class:`OptimizationDatabase` objects. Each of them
+A :class:`SequenceDB` contains :class:`Rewriter` or :class:`RewriteDatabase` objects. Each of them
 has a name, an arbitrary number of tags and an integer representing their order
-in the sequence. When a :class:`OptimizationQuery` is applied to a :class:`SequenceDB`, all :class:`Optimizer`\s whose
-tags match the query are inserted in proper order in a :class:`SequenceOptimizer`, which
-is returned. If the :class:`SequenceDB` contains :class:`OptimizationDatabase`
-instances, the :class:`OptimizationQuery` will be passed to them as well and the
-optimizers they return will be put in their places.
+in the sequence. When a :class:`RewriteDatabaseQuery` is applied to a :class:`SequenceDB`, all :class:`Rewriter`\s whose
+tags match the query are inserted in proper order in a :class:`SequenceRewriter`, which
+is returned. If the :class:`SequenceDB` contains :class:`RewriteDatabase`
+instances, the :class:`RewriteDatabaseQuery` will be passed to them as well and the
+rewriters they return will be put in their places.
 
-An :class:`EquilibriumDB` contains :class:`LocalOptimizer` or :class:`OptimizationDatabase` objects. Each of them
-has a name and an arbitrary number of tags. When a :class:`OptimizationQuery` is applied to
-an :class:`EquilibriumDB`, all :class:`LocalOptimizer`\s that match the query are
-inserted into an :class:`EquilibriumOptimizer`, which is returned. If the
-:class:`SequenceDB` contains :class:`OptimizationDatabase` instances, the
-:class:`OptimizationQuery` will be passed to them as well and the
-:class:`LocalOptimizer`\s they return will be put in their places
-(note that as of yet no :class:`OptimizationDatabase` can produce :class:`LocalOptimizer` objects, so this
+An :class:`EquilibriumDB` contains :class:`NodeRewriter` or :class:`RewriteDatabase` objects. Each of them
+has a name and an arbitrary number of tags. When a :class:`RewriteDatabaseQuery` is applied to
+an :class:`EquilibriumDB`, all :class:`NodeRewriter`\s that match the query are
+inserted into an :class:`EquilibriumGraphRewriter`, which is returned. If the
+:class:`SequenceDB` contains :class:`RewriteDatabase` instances, the
+:class:`RewriteDatabaseQuery` will be passed to them as well and the
+:class:`NodeRewriter`\s they return will be put in their places
+(note that as of yet no :class:`RewriteDatabase` can produce :class:`NodeRewriter` objects, so this
 is a moot point).
 
-Aesara contains one principal :class:`OptimizationDatabase` object, :class:`optdb`, which
-contains all of Aesara's optimizers with proper tags. It is
-recommended to insert new :class:`Optimizer`\s in it. As mentioned previously,
-optdb is a :class:`SequenceDB`, so, at the top level, Aesara applies a sequence
-of global optimizations to the computation graphs.
+Aesara contains one principal :class:`RewriteDatabase` object, :class:`optdb`, which
+contains all of Aesara's rewriters with proper tags. It is
+recommended to insert new :class:`Rewriter`\s in it. As mentioned previously,
+:obj:`optdb` is a :class:`SequenceDB`, so, at the top level, Aesara applies a sequence
+of graph rewrites to the graphs it compiles.
 
 
-:class:`OptimizationQuery`
---------------------------
+:class:`RewriteDatabaseQuery`
+-----------------------------
 
-A :class:`OptimizationQuery` is built by the following call:
+A :class:`RewriteDatabaseQuery` is built by the following call:
 
 .. code-block:: python
 
-   aesara.graph.optdb.OptimizationQuery(include, require=None, exclude=None, subquery=None)
+   aesara.graph.rewriting.db.RewriteDatabaseQuery(include, require=None, exclude=None, subquery=None)
 
-.. class:: OptimizationQuery
+.. class:: RewriteDatabaseQuery
 
     .. attribute:: include
 
        A set of tags (a tag being a string) such that every
-       optimization obtained through this :class:`OptimizationQuery` must have **one** of the tags
+       rewrite obtained through this :class:`RewriteDatabaseQuery` must have **one** of the tags
        listed. This field is required and basically acts as a starting point
        for the search.
 
     .. attribute:: require
 
-       A set of tags such that every optimization obtained
-       through this :class:`OptimizationQuery` must have **all** of these tags.
+       A set of tags such that every rewrite obtained
+       through this :class:`RewriteDatabaseQuery` must have **all** of these tags.
 
     .. attribute:: exclude
 
-       A set of tags such that every optimization obtained
-       through this :class:`OptimizationQuery` must have **none** of these tags.
+       A set of tags such that every rewrite obtained
+       through this :class:`RewriteDatabaseQuery` must have **none** of these tags.
 
     .. attribute:: subquery
 
        :obj:`optdb` can contain sub-databases; subquery is a
-       dictionary mapping the name of a sub-database to a special :class:`OptimizationQuery`.
-       If no subquery is given for a sub-database, the original :class:`OptimizationQuery` will be
+       dictionary mapping the name of a sub-database to a special :class:`RewriteDatabaseQuery`.
+       If no subquery is given for a sub-database, the original :class:`RewriteDatabaseQuery` will be
        used again.
 
-Furthermore, a :class:`OptimizationQuery` object includes three methods, :meth:`including`,
-:meth:`requiring` and :meth:`excluding`, which each produce a new :class:`OptimizationQuery` object
+Furthermore, a :class:`RewriteDatabaseQuery` object includes three methods, :meth:`including`,
+:meth:`requiring` and :meth:`excluding`, which each produce a new :class:`RewriteDatabaseQuery` object
 with the include, require, and exclude sets refined to contain the new entries.
 
 
 Examples
 --------
 
-Here are a few examples of how to use a :class:`OptimizationQuery` on :obj:`optdb` to produce an
-:class:`Optimizer`:
+Here are a few examples of how to use a :class:`RewriteDatabaseQuery` on :obj:`optdb` to produce an
+:class:`Rewriter`:
 
 .. testcode::
 
-   from aesara.graph.optdb import OptimizationQuery
+   from aesara.graph.rewriting.db import RewriteDatabaseQuery
    from aesara.compile import optdb
 
-   # This is how the optimizer for the fast_run mode is defined
-   fast_run = optdb.query(OptimizationQuery(include=['fast_run']))
+   # This is how the rewrites for the fast_run mode are defined
+   fast_run = optdb.query(RewriteDatabaseQuery(include=['fast_run']))
 
-   # This is how the optimizer for the fast_compile mode is defined
-   fast_compile = optdb.query(OptimizationQuery(include=['fast_compile']))
+   # This is how the rewrites for the fast_compile mode are defined
+   fast_compile = optdb.query(RewriteDatabaseQuery(include=['fast_compile']))
 
-   # This is the same as fast_run but no optimizations will replace
+   # This is the same as fast_run but no rewrites will replace
    # any operation by an inplace version. This assumes, of course,
    # that all inplace operations are tagged as 'inplace' (as they
    # should!)
-   fast_run_no_inplace = optdb.query(OptimizationQuery(include=['fast_run'],
+   fast_run_no_inplace = optdb.query(RewriteDatabaseQuery(include=['fast_run'],
                                            exclude=['inplace']))
 
 
-Registering an :class:`Optimizer`
+Registering a :class:`Rewriter`
 ---------------------------------
 
-Let's say we have a global optimizer called ``simplify``. We can add
+Let's say we have a graph rewriter called ``simplify``. We can add
 it to :obj:`optdb` as follows:
 
 .. testcode::
 
-   # optdb.register(name, optimizer, order, *tags)
    optdb.register('simplify', simplify, 'fast_run', position=0.5)
 
-Once this is done, the ``FAST_RUN`` mode will automatically include your
-optimization (since you gave it the ``'fast_run'`` tag). Of course,
-already-compiled functions will see no change. The 'order' parameter
-(what it means and how to choose it) will be explained in
-:ref:`optdb-structure` below.
+Once this is done, the ``FAST_RUN`` mode will automatically include the
+rewrite, since it was given the ``'fast_run'`` tag. Of course,
+already-compiled functions will see no change. The ``position`` parameter
+is specific to the type of rewrite database that :obj:`obtdb` is, and
+is explained in :ref:`optdb-structure`.
 
 
 
-Registering a :class:`LocalOptimizer`
--------------------------------------
+Registering a :class:`NodeRewriter`
+-----------------------------------
 
-:class:`LocalOptimizer`\s may be registered in two ways:
+:class:`NodeRewriter`\s may be registered in two ways:
 
-* Wrap them in a :class:`NavigatorOptimizer` and insert them like a global optimizer
+* Wrap them in a :class:`NodeProcessingGraphRewriter` and insert them like a graph rewriter
   (see previous section).
 * Put them in an :class:`EquilibriumDB`.
 
-Aesara defines two :class:`EquilibriumDB`\s in which one can put local
-optimizations:
+Aesara defines two :class:`EquilibriumDB`\s in which one can put node
+rewrites:
 
 
 .. function:: canonicalize
 
-  This contains optimizations that aim to *simplify* the graph:
+  This contains rewrites that aim to put graphs in a standard "canonical" form:
 
   * Replace rare or esoterical operations with their equivalents using
     elementary operations.
 
-  * Order operations in a canonical way (any sequence of
-    multiplications and divisions can be rewritten to contain at most
-    one division, for example; ``x*x`` can be rewritten ``x**2``; etc.)
+  * Order operations in a canonical way.
+    For example, any sequence of multiplications and divisions can be rewritten to contain at most
+    one division (e.g. ``x * x`` can be rewritten to ``x**2``, etc.)
 
-  * Fold constants (``Constant(2)*Constant(2)`` becomes ``Constant(4)``)
+  * Fold constants (e.g. ``Constant(2) * Constant(2)`` becomes ``Constant(4)``).
 
 
 .. function:: specialize
 
-  This contains optimizations that aim to *specialize* the graph:
+  This contains rewrites that aim to *specialize* the graph:
 
   * Replace a combination of operations with a special operation that
     does the same thing (but better).
 
 
-For each group, all optimizations of the group that are selected by
-the :class:`OptimizationQuery` will be applied on the graph over and over again until none
-of them is applicable, so keep that in mind when designing it: check
-carefully that your optimization leads to a fixpoint (a point where it
-cannot apply anymore) at which point it returns ``False`` to indicate its
-job is done. Also be careful not to undo the work of another local
-optimizer in the group, because then the graph will oscillate between
-two or more states and nothing will get done.
+For each group, all rewrites of the group that are selected by
+the :class:`RewriteDatabaseQuery` will be applied on the graph over and over
+again until no changes are made.
+
+When using :class:`EquilibriumDB`, be sure to check carefully that your rewrite
+leads to a fixed-point (i.e. a graph for which the rewrite cannot be applied
+anymore), at which point it returns ``False`` to indicate its job is done. Also
+be careful not to undo the work of another rewrites in the group, because the
+graph will oscillate between two or more states and nothing will get done.
 
 
 .. _optdb-structure:
@@ -747,7 +750,7 @@ two or more states and nothing will get done.
 :obj:`optdb` structure
 ----------------------
 
-:obj:`optdb` contains the following :class:`Optimizer`\s and sub-DBs, with the given
+:obj:`optdb` contains the following :class:`Rewriters`\s and sub-DBs, with the given
 priorities and tags:
 
 +-------+---------------------+------------------------------+
@@ -761,13 +764,13 @@ priorities and tags:
 +-------+---------------------+------------------------------+
 | 49    | merge2              | Second merge operation       |
 +-------+---------------------+------------------------------+
-| 49.5  | add_destroy_handler | Enable inplace optimizations |
+| 49.5  | add_destroy_handler | Enable inplace rewrites      |
 +-------+---------------------+------------------------------+
 | 100   | merge3              | Third merge operation        |
 +-------+---------------------+------------------------------+
 
 The merge operations are meant to put together parts of the graph that
-represent the same computation. Since optimizations can modify the
+represent the same computation. Since rewrites can modify the
 graph in such a way that two previously different-looking parts of the
 graph become similar, we merge at the beginning, in the middle and at
 the very end. Technically, we only really need to do it at the end,
@@ -777,38 +780,40 @@ therefore increases the efficiency of the process.
 See previous section for more information about the canonicalize and
 specialize steps.
 
-The ``add_destroy_handler`` step is not really an optimization. It is
+The ``add_destroy_handler`` step is not really an rewrite. It is
 a marker. Basically:
 
 .. warning::
 
-   Any optimization which inserts inplace operations in the
+   Any rewrite which inserts inplace operations in the
    computation graph must appear **after** the ``add_destroy_handler``
-   "optimizer". In other words, the priority of any such optimization
+   "rewriter". In other words, the priority of any such rewrites
    must be **>= 50**. Failure to comply by this restriction can lead
    to the creation of incorrect computation graphs.
 
 The reason the destroy handler is not inserted at the beginning is
-that it is costly to run. It is cheaper to run most optimizations
+that it is costly to run. It is cheaper to run most rewrites
 under the assumption there are no inplace operations.
 
 
-.. _navigator:
+.. _node_processing_rewriter:
 
-:class:`NavigatorOptimizer`
----------------------------
+:class:`NodeProcessingGraphRewriter`
+------------------------------------
 
-WRITEME
+.. autoclass:: aesara.graph.rewriting.basic.NodeProcessingGraphRewriter
+    :noindex:
 
-.. _profiling_opt:
 
-Profiling Aesara function compilation
+.. _profiling_rewrite:
+
+Profiling Aesara Function Compilation
 =====================================
 
-You find that compiling an Aesara function is taking too much time? You
-can get profiling information about Aesara optimization. The normal
-:ref:`Aesara profiler <tut_profiling>` will provide you with very
-high-level information. The indentation shows the included in/subset
+If one finds that compiling an Aesara function is taking too much time,
+profiling information about each Aesara rewrite can be obtained. The normal
+:ref:`Aesara profiler <tut_profiling>` provides some
+high-level performance information. The indentation shows the included in/subset
 relationship between sections. The top of its output look like this:
 
 .. code-block:: none
@@ -819,7 +824,7 @@ relationship between sections. The top of its output look like this:
       Time in 0 calls to Function.__call__: 0.000000e+00s
       Total compile time: 1.131874e+01s
         Number of Apply nodes: 50
-        Aesara Optimizer time: 1.152431e+00s
+        Aesara rewriter time: 1.152431e+00s
            Aesara validate time: 2.790451e-02s
         Aesara Linker time (includes C, CUDA code generation/compiling): 7.893991e-02s
            Import time 1.153541e-02s
@@ -828,12 +833,12 @@ relationship between sections. The top of its output look like this:
 Explanations:
 
 * ``Total compile time: 1.131874e+01s`` gives the total time spent inside `aesara.function`.
-* ``Number of Apply nodes: 50`` means that after optimization, there are 50 apply node in the graph.
-* ``Aesara Optimizer time: 1.152431e+00s`` means that we spend 1.15s in the ``aesara.function`` phase where we optimize (modify) the graph to make it faster / more stable numerically /...
-* ``Aesara validate time: 2.790451e-02s`` means that we spent 2.8e-2s in the *validate* subset of the optimization phase.
-* ``Aesara Linker time (includes C code generation/compiling): 7.893991e-02s`` means that we spent 7.9e-2s in *linker* phase of ``aesara.function``.
+* ``Number of Apply nodes: 50`` means that after rewriting, there are 50 apply node in the graph.
+* ``Aesara rewrite time: 1.152431e+00s`` means that we spend 1.15s in the rewriting phase of `aesara.function`.
+* ``Aesara validate time: 2.790451e-02s`` means that we spent 2.8e-2s in the validation phase of rewriting.
+* ``Aesara Linker time (includes C code generation/compiling): 7.893991e-02s`` means that we spent 7.9e-2s in linker phase of `aesara.function`.
 * ``Import time 1.153541e-02s`` is a subset of the linker time where we import the compiled module.
-* ``Time in all call to aesara.grad() 4.732513e-02s`` tells that we spent a total of 4.7e-2s in all calls to ``aesara.grad``. This is outside of the calls to ``aesara.function``.
+* ``Time in all call to aesara.grad() 4.732513e-02s`` tells that we spent a total of 4.7e-2s in all calls to `aesara.grad`. This is outside of the calls to `aesara.function`.
 
 The *linker* phase includes the generation of the C code, the time spent
 by g++ to compile and the time needed by Aesara to build the object we
@@ -841,11 +846,11 @@ return. The C code generation and compilation is cached, so the first
 time you compile a function and the following ones could take different
 amount of execution time.
 
-Detailed profiling of Aesara optimizations
-------------------------------------------
+Detailed Profiling of Aesara Rewrites
+-------------------------------------
 
 You can get more detailed profiling information about the Aesara
-optimizer phase by setting to ``True`` the Aesara flags
+rewriting phase by setting to ``True`` the Aesara flags
 :attr:`config.profile_optimizer` (this requires ``config.profile`` to be ``True``
 as well).
 
@@ -853,33 +858,33 @@ This will output something like this:
 
 .. code-block:: none
 
-    Optimizer Profile
-    -----------------
-     SeqOptimizer  OPT_FAST_RUN  time 1.152s for 123/50 nodes before/after optimization
+    Rewriter Profile
+    ----------------
+     SequentialGraphRewriter  OPT_FAST_RUN  time 1.152s for 123/50 nodes before/after rewriting
        0.028s for fgraph.validate()
        0.131s for callback
        time      - (name, class, index) - validate time
-       0.751816s - ('canonicalize', 'EquilibriumOptimizer', 4) - 0.004s
-         EquilibriumOptimizer      canonicalize
+       0.751816s - ('canonicalize', 'EquilibriumGraphRewriter', 4) - 0.004s
+         EquilibriumGraphRewriter      canonicalize
            time 0.751s for 14 passes
            nb nodes (start, end,  max) 108 81 117
            time io_toposort 0.029s
-           time in local optimizers 0.687s
-           time in global optimizers 0.010s
-            0 - 0.050s 27 (0.000s in global opts, 0.002s io_toposort) - 108 nodes - ('local_dimshuffle_lift', 9) ('local_upcast_elemwise_constant_inputs', 5) ('local_shape_to_shape_i', 3) ('local_fill_sink', 3) ('local_fill_to_alloc', 2) ...
-            1 - 0.288s 26 (0.002s in global opts, 0.002s io_toposort) - 117 nodes - ('local_dimshuffle_lift', 8) ('local_fill_sink', 4) ('constant_folding', 4) ('local_useless_elemwise', 3) ('local_subtensor_make_vector', 3) ...
-            2 - 0.044s 13 (0.002s in global opts, 0.003s io_toposort) - 96 nodes - ('constant_folding', 4) ('local_dimshuffle_lift', 3) ('local_fill_sink', 3) ('local_useless_elemwise', 1) ('local_fill_to_alloc', 1) ...
-            3 - 0.045s 11 (0.000s in global opts, 0.002s io_toposort) - 91 nodes - ('constant_folding', 3) ('local_fill_to_alloc', 2) ('local_dimshuffle_lift', 2) ('local_mul_canonizer', 2) ('MergeOptimizer', 1) ...
-            4 - 0.035s 8 (0.002s in global opts, 0.002s io_toposort) - 93 nodes - ('local_fill_sink', 3) ('local_dimshuffle_lift', 2) ('local_fill_to_alloc', 1) ('MergeOptimizer', 1) ('constant_folding', 1)
-            5 - 0.035s 6 (0.000s in global opts, 0.002s io_toposort) - 88 nodes - ('local_fill_sink', 2) ('local_dimshuffle_lift', 2) ('local_fill_to_alloc', 1) ('local_mul_canonizer', 1)
-            6 - 0.038s 10 (0.001s in global opts, 0.002s io_toposort) - 95 nodes - ('local_fill_sink', 3) ('local_dimshuffle_lift', 3) ('constant_folding', 2) ('local_fill_to_alloc', 1) ('MergeOptimizer', 1)
-            7 - 0.032s 5 (0.001s in global opts, 0.002s io_toposort) - 91 nodes - ('local_fill_sink', 3) ('MergeOptimizer', 1) ('local_dimshuffle_lift', 1)
-            8 - 0.034s 5 (0.000s in global opts, 0.002s io_toposort) - 92 nodes - ('local_fill_sink', 3) ('MergeOptimizer', 1) ('local_greedy_distributor', 1)
-            9 - 0.031s 6 (0.001s in global opts, 0.002s io_toposort) - 90 nodes - ('local_fill_sink', 2) ('local_fill_to_alloc', 1) ('MergeOptimizer', 1) ('local_dimshuffle_lift', 1) ('local_greedy_distributor', 1)
-           10 - 0.032s 5 (0.000s in global opts, 0.002s io_toposort) - 89 nodes - ('local_dimshuffle_lift', 2) ('local_fill_to_alloc', 1) ('MergeOptimizer', 1) ('local_fill_sink', 1)
-           11 - 0.030s 5 (0.000s in global opts, 0.002s io_toposort) - 88 nodes - ('local_dimshuffle_lift', 2) ('local_fill_to_alloc', 1) ('MergeOptimizer', 1) ('constant_folding', 1)
-           12 - 0.026s 1 (0.000s in global opts, 0.003s io_toposort) - 81 nodes - ('MergeOptimizer', 1)
-           13 - 0.031s 0 (0.000s in global opts, 0.003s io_toposort) - 81 nodes -
+           time in node rewriters 0.687s
+           time in graph rewriters 0.010s
+            0 - 0.050s 27 (0.000s in global rewrites, 0.002s io_toposort) - 108 nodes - ('local_dimshuffle_lift', 9) ('local_upcast_elemwise_constant_inputs', 5) ('local_shape_to_shape_i', 3) ('local_fill_sink', 3) ('local_fill_to_alloc', 2) ...
+            1 - 0.288s 26 (0.002s in global rewrites, 0.002s io_toposort) - 117 nodes - ('local_dimshuffle_lift', 8) ('local_fill_sink', 4) ('constant_folding', 4) ('local_useless_elemwise', 3) ('local_subtensor_make_vector', 3) ...
+            2 - 0.044s 13 (0.002s in global rewrites, 0.003s io_toposort) - 96 nodes - ('constant_folding', 4) ('local_dimshuffle_lift', 3) ('local_fill_sink', 3) ('local_useless_elemwise', 1) ('local_fill_to_alloc', 1) ...
+            3 - 0.045s 11 (0.000s in global rewrites, 0.002s io_toposort) - 91 nodes - ('constant_folding', 3) ('local_fill_to_alloc', 2) ('local_dimshuffle_lift', 2) ('local_mul_canonizer', 2) ('MergeOptimizer', 1) ...
+            4 - 0.035s 8 (0.002s in global rewrites, 0.002s io_toposort) - 93 nodes - ('local_fill_sink', 3) ('local_dimshuffle_lift', 2) ('local_fill_to_alloc', 1) ('MergeOptimizer', 1) ('constant_folding', 1)
+            5 - 0.035s 6 (0.000s in global rewrites, 0.002s io_toposort) - 88 nodes - ('local_fill_sink', 2) ('local_dimshuffle_lift', 2) ('local_fill_to_alloc', 1) ('local_mul_canonizer', 1)
+            6 - 0.038s 10 (0.001s in global rewrites, 0.002s io_toposort) - 95 nodes - ('local_fill_sink', 3) ('local_dimshuffle_lift', 3) ('constant_folding', 2) ('local_fill_to_alloc', 1) ('MergeOptimizer', 1)
+            7 - 0.032s 5 (0.001s in global rewrites, 0.002s io_toposort) - 91 nodes - ('local_fill_sink', 3) ('MergeOptimizer', 1) ('local_dimshuffle_lift', 1)
+            8 - 0.034s 5 (0.000s in global rewrites, 0.002s io_toposort) - 92 nodes - ('local_fill_sink', 3) ('MergeOptimizer', 1) ('local_greedy_distributor', 1)
+            9 - 0.031s 6 (0.001s in global rewrites, 0.002s io_toposort) - 90 nodes - ('local_fill_sink', 2) ('local_fill_to_alloc', 1) ('MergeOptimizer', 1) ('local_dimshuffle_lift', 1) ('local_greedy_distributor', 1)
+           10 - 0.032s 5 (0.000s in global rewrites, 0.002s io_toposort) - 89 nodes - ('local_dimshuffle_lift', 2) ('local_fill_to_alloc', 1) ('MergeOptimizer', 1) ('local_fill_sink', 1)
+           11 - 0.030s 5 (0.000s in global rewrites, 0.002s io_toposort) - 88 nodes - ('local_dimshuffle_lift', 2) ('local_fill_to_alloc', 1) ('MergeOptimizer', 1) ('constant_folding', 1)
+           12 - 0.026s 1 (0.000s in global rewrites, 0.003s io_toposort) - 81 nodes - ('MergeOptimizer', 1)
+           13 - 0.031s 0 (0.000s in global rewrites, 0.003s io_toposort) - 81 nodes -
            times - times applied - nb node created - name:
            0.263s - 15 - 0 - constant_folding
            0.096s - 2 - 14 - local_greedy_distributor
@@ -896,7 +901,7 @@ This will output something like this:
            0.002s - 2 - 4 - local_subtensor_lift
            0.001s - 3 - 0 - local_subtensor_make_vector
            0.001s - 1 - 1 - local_sum_all_to_none
-           0.131s - in 62 optimization that where not used (display only those with a runtime > 0)
+           0.131s - in 62 rewrite(s) that where not used (display only those with a runtime > 0)
              0.050s - local_add_canonizer
              0.018s - local_mul_zero
              0.016s - local_one_minus_erf
@@ -924,8 +929,8 @@ This will output something like this:
              0.000s - local_subtensor_of_alloc
              0.000s - local_subtensor_of_dot
              0.000s - local_subtensor_merge
-       0.101733s - ('elemwise_fusion', 'SeqOptimizer', 13) - 0.000s
-         SeqOptimizer      elemwise_fusion  time 0.102s for 78/50 nodes before/after optimization
+       0.101733s - ('elemwise_fusion', 'SequentialGraphRewriter', 13) - 0.000s
+         SequentialGraphRewriter      elemwise_fusion  time 0.102s for 78/50 nodes before/after rewriting
            0.000s for fgraph.validate()
            0.004s for callback
            0.095307s - ('composite_elemwise_fusion', 'FusionOptimizer', 1) - 0.000s
@@ -944,9 +949,9 @@ This will output something like this:
               validate_time 6.43730163574e-05
               callback_time 0.000783205032349
               time_toposort 0.0035240650177
-       0.090089s - ('inplace_elemwise_optimizer', 'FromFunctionOptimizer', 30) - 0.019s
-       0.048993s - ('BlasOpt', 'SeqOptimizer', 8) - 0.000s
-         SeqOptimizer      BlasOpt  time 0.049s for 81/80 nodes before/after optimization
+       0.090089s - ('inplace_elemwise_optimizer', 'FromFunctionGraphRewriter', 30) - 0.019s
+       0.048993s - ('BlasOpt', 'SequentialGraphRewriter', 8) - 0.000s
+         SequentialGraphRewriter      BlasOpt  time 0.049s for 81/80 nodes before/after rewriting
            0.000s for fgraph.validate()
            0.003s for callback
            0.035997s - ('gemm_optimizer', 'GemmOptimizer', 1) - 0.000s
@@ -962,54 +967,54 @@ This will output something like this:
               time_toposort 0.00311398506165
               validate_time 4.60147857666e-05
               callback_time 0.00174236297607
-           0.004569s - ('local_dot_to_dot22', 'TopoOptimizer', 0) - 0.000s
-             TopoOptimizer
+           0.004569s - ('local_dot_to_dot22', 'WalkingGraphRewriter', 0) - 0.000s
+             WalkingGraphRewriter
                nb_node (start, end, changed) (81, 81, 5)
                init io_toposort 0.00139284133911
                loop time 0.00312399864197
                callback_time 0.00172805786133
-           0.002283s - ('local_dot22_to_dot22scalar', 'TopoOptimizer', 2) - 0.000s
-             TopoOptimizer
+           0.002283s - ('local_dot22_to_dot22scalar', 'WalkingGraphRewriter', 2) - 0.000s
+             WalkingGraphRewriter
                nb_node (start, end, changed) (80, 80, 0)
                init io_toposort 0.00171804428101
                loop time 0.000502109527588
                callback_time 0.0
-           0.002257s - ('local_gemm_to_gemv', 'EquilibriumOptimizer', 3) - 0.000s
-             EquilibriumOptimizer          local_gemm_to_gemv
+           0.002257s - ('local_gemm_to_gemv', 'EquilibriumGraphRewriter', 3) - 0.000s
+             EquilibriumGraphRewriter          local_gemm_to_gemv
                time 0.002s for 1 passes
                nb nodes (start, end,  max) 80 80 80
                time io_toposort 0.001s
-               time in local optimizers 0.000s
-               time in global optimizers 0.000s
-                0 - 0.002s 0 (0.000s in global opts, 0.001s io_toposort) - 80 nodes -
-           0.002227s - ('use_c_blas', 'TopoOptimizer', 4) - 0.000s
-             TopoOptimizer
+               time in node rewriters 0.000s
+               time in graph rewriters 0.000s
+                0 - 0.002s 0 (0.000s in global rewrites, 0.001s io_toposort) - 80 nodes -
+           0.002227s - ('use_c_blas', 'WalkingGraphRewriter', 4) - 0.000s
+             WalkingGraphRewriter
                nb_node (start, end, changed) (80, 80, 0)
                init io_toposort 0.0014750957489
                loop time 0.00068998336792
                callback_time 0.0
-           0.001632s - ('use_scipy_ger', 'TopoOptimizer', 5) - 0.000s
-             TopoOptimizer
+           0.001632s - ('use_scipy_ger', 'WalkingGraphRewriter', 5) - 0.000s
+             WalkingGraphRewriter
                nb_node (start, end, changed) (80, 80, 0)
                init io_toposort 0.00138401985168
                loop time 0.000202178955078
                callback_time 0.0
-       0.031740s - ('specialize', 'EquilibriumOptimizer', 9) - 0.000s
-         EquilibriumOptimizer      specialize
+       0.031740s - ('specialize', 'EquilibriumGraphRewriter', 9) - 0.000s
+         EquilibriumGraphRewriter      specialize
            time 0.031s for 2 passes
            nb nodes (start, end,  max) 80 78 80
            time io_toposort 0.003s
-           time in local optimizers 0.022s
-           time in global optimizers 0.004s
-            0 - 0.017s 6 (0.002s in global opts, 0.001s io_toposort) - 80 nodes - ('constant_folding', 2) ('local_mul_to_sqr', 1) ('local_elemwise_alloc', 1) ('local_div_to_inv', 1) ('local_mul_specialize', 1)
-            1 - 0.014s 0 (0.002s in global opts, 0.001s io_toposort) - 78 nodes -
+           time in node rewriters 0.022s
+           time in graph rewriters 0.004s
+            0 - 0.017s 6 (0.002s in global rewrites, 0.001s io_toposort) - 80 nodes - ('constant_folding', 2) ('local_mul_to_sqr', 1) ('local_elemwise_alloc', 1) ('local_div_to_inv', 1) ('local_mul_specialize', 1)
+            1 - 0.014s 0 (0.002s in global rewrites, 0.001s io_toposort) - 78 nodes -
            times - times applied - nb node created - name:
            0.003s - 1 - 1 - local_mul_specialize
            0.002s - 1 - 2 - local_elemwise_alloc
            0.002s - 2 - 0 - constant_folding
            0.001s - 1 - 1 - local_div_to_inv
            0.001s - 1 - 1 - local_mul_to_sqr
-           0.016s - in 69 optimization that where not used (display only those with a runtime > 0)
+           0.016s - in 69 rewrite(s) that where not used (display only those with a runtime > 0)
              0.004s - crossentropy_to_crossentropy_with_softmax_with_bias
              0.002s - local_one_minus_erf
              0.002s - Elemwise{sub,no_inplace}(z, Elemwise{mul,no_inplace}(alpha subject to <function <lambda> at 0x7f475e4da050>, SparseDot(x, y))) -> Usmm{no_inplace}(Elemwise{neg,no_inplace}(alpha), x, y, z)
@@ -1039,68 +1044,68 @@ This will output something like this:
     ...
 
 
-To understand this profile here is some explanation of how optimizations work:
+To understand this profile here is some explanation of how rewrites work:
 
-* Optimizations are organized in an hierarchy. At the top level, there
-  is a :class:`SeqOptimizer`. It contains other optimizers,
-  and applies them in the order they were specified. Those sub-optimizers can be
-  of other types, but are all *global* optimizers.
+* Rewrites are organized in a hierarchy. At the top level, there
+  is a :class:`SequentialGraphRewriter`. It contains other rewriters,
+  and applies them in the order they were specified. Those sub-rewriters can be
+  of other types, but are all **graph** rewriters.
 
-* Each :class:`Optimizer` in the hierarchy will print some stats about
+* Each :class:`Rewriter` in the hierarchy will print some stats about
   itself. The information that it prints depends of the type of the
-  optimizer.
+  rewriter.
 
-* The :class:`SeqOptimizer` will print some stats at the start:
+* The :class:`SequentialGraphRewriter` will print some stats at the start:
 
     .. code-block:: none
 
-        Optimizer Profile
-        -----------------
-         SeqOptimizer  OPT_FAST_RUN  time 1.152s for 123/50 nodes before/after optimization
+        Rewriter Profile
+        ----------------
+         SequentialGraphRewriter  OPT_FAST_RUN  time 1.152s for 123/50 nodes before/after rewriting
            0.028s for fgraph.validate()
            0.131s for callback
            time      - (name, class, index) - validate time
 
-  Then it will print, with some additional indentation, each sub-optimizer's profile
+  Then it will print, with some additional indentation, each sub-rewriter's profile
   information. These sub-profiles are ordered by the time they took to execute,
   not by their execution order.
 
-  * ``OPT_FAST_RUN`` is the name of the optimizer
-  * 1.152s is the total time spent in that optimizer
-  * 123/50 means that before this optimization, there were 123 apply node in the function graph, and after only 50.
+  * ``OPT_FAST_RUN`` is the name of the rewriter
+  * 1.152s is the total time spent in that rewriter
+  * 123/50 means that before this rewriter, there were 123 apply node in the function graph, and after only 50.
   * 0.028s means it spent that time calls to ``fgraph.validate()``
   * 0.131s means it spent that time for callbacks. This is a mechanism that can trigger other execution when there is a change to the FunctionGraph.
-  * ``time      - (name, class, index) - validate time`` tells how the information for each sub-optimizer get printed.
-  * All other instances of :class:`SeqOptimizer` are described like this. In
-    particular, some sub-optimizer from ``OPT_FAST_RUN`` that are also
-    :class:`SeqOptimizer`.
+  * ``time      - (name, class, index) - validate time`` tells how the information for each sub-rewriter get printed.
+  * All other instances of :class:`SequentialGraphRewriter` are described like this. In
+    particular, some sub-rewriter from ``OPT_FAST_RUN`` that are also
+    :class:`SequentialGraphRewriter`.
 
 
-* The :class:`SeqOptimizer` will print some stats at the start:
+* The :class:`SequentialGraphRewriter` will print some stats at the start:
 
     .. code-block:: none
 
-       0.751816s - ('canonicalize', 'EquilibriumOptimizer', 4) - 0.004s
-         EquilibriumOptimizer      canonicalize
+       0.751816s - ('canonicalize', 'EquilibriumGraphRewriter', 4) - 0.004s
+         EquilibriumGraphRewriter      canonicalize
            time 0.751s for 14 passes
            nb nodes (start, end,  max) 108 81 117
            time io_toposort 0.029s
-           time in local optimizers 0.687s
-           time in global optimizers 0.010s
-            0 - 0.050s 27 (0.000s in global opts, 0.002s io_toposort) - 108 nodes - ('local_dimshuffle_lift', 9) ('local_upcast_elemwise_constant_inputs', 5) ('local_shape_to_shape_i', 3) ('local_fill_sink', 3) ('local_fill_to_alloc', 2) ...
-            1 - 0.288s 26 (0.002s in global opts, 0.002s io_toposort) - 117 nodes - ('local_dimshuffle_lift', 8) ('local_fill_sink', 4) ('constant_folding', 4) ('local_useless_elemwise', 3) ('local_subtensor_make_vector', 3) ...
-            2 - 0.044s 13 (0.002s in global opts, 0.003s io_toposort) - 96 nodes - ('constant_folding', 4) ('local_dimshuffle_lift', 3) ('local_fill_sink', 3) ('local_useless_elemwise', 1) ('local_fill_to_alloc', 1) ...
-            3 - 0.045s 11 (0.000s in global opts, 0.002s io_toposort) - 91 nodes - ('constant_folding', 3) ('local_fill_to_alloc', 2) ('local_dimshuffle_lift', 2) ('local_mul_canonizer', 2) ('MergeOptimizer', 1) ...
-            4 - 0.035s 8 (0.002s in global opts, 0.002s io_toposort) - 93 nodes - ('local_fill_sink', 3) ('local_dimshuffle_lift', 2) ('local_fill_to_alloc', 1) ('MergeOptimizer', 1) ('constant_folding', 1)
-            5 - 0.035s 6 (0.000s in global opts, 0.002s io_toposort) - 88 nodes - ('local_fill_sink', 2) ('local_dimshuffle_lift', 2) ('local_fill_to_alloc', 1) ('local_mul_canonizer', 1)
-            6 - 0.038s 10 (0.001s in global opts, 0.002s io_toposort) - 95 nodes - ('local_fill_sink', 3) ('local_dimshuffle_lift', 3) ('constant_folding', 2) ('local_fill_to_alloc', 1) ('MergeOptimizer', 1)
-            7 - 0.032s 5 (0.001s in global opts, 0.002s io_toposort) - 91 nodes - ('local_fill_sink', 3) ('MergeOptimizer', 1) ('local_dimshuffle_lift', 1)
-            8 - 0.034s 5 (0.000s in global opts, 0.002s io_toposort) - 92 nodes - ('local_fill_sink', 3) ('MergeOptimizer', 1) ('local_greedy_distributor', 1)
-            9 - 0.031s 6 (0.001s in global opts, 0.002s io_toposort) - 90 nodes - ('local_fill_sink', 2) ('local_fill_to_alloc', 1) ('MergeOptimizer', 1) ('local_dimshuffle_lift', 1) ('local_greedy_distributor', 1)
-           10 - 0.032s 5 (0.000s in global opts, 0.002s io_toposort) - 89 nodes - ('local_dimshuffle_lift', 2) ('local_fill_to_alloc', 1) ('MergeOptimizer', 1) ('local_fill_sink', 1)
-           11 - 0.030s 5 (0.000s in global opts, 0.002s io_toposort) - 88 nodes - ('local_dimshuffle_lift', 2) ('local_fill_to_alloc', 1) ('MergeOptimizer', 1) ('constant_folding', 1)
-           12 - 0.026s 1 (0.000s in global opts, 0.003s io_toposort) - 81 nodes - ('MergeOptimizer', 1)
-           13 - 0.031s 0 (0.000s in global opts, 0.003s io_toposort) - 81 nodes -
+           time in node rewriters 0.687s
+           time in graph rewriters 0.010s
+            0 - 0.050s 27 (0.000s in global rewrites, 0.002s io_toposort) - 108 nodes - ('local_dimshuffle_lift', 9) ('local_upcast_elemwise_constant_inputs', 5) ('local_shape_to_shape_i', 3) ('local_fill_sink', 3) ('local_fill_to_alloc', 2) ...
+            1 - 0.288s 26 (0.002s in global rewrites, 0.002s io_toposort) - 117 nodes - ('local_dimshuffle_lift', 8) ('local_fill_sink', 4) ('constant_folding', 4) ('local_useless_elemwise', 3) ('local_subtensor_make_vector', 3) ...
+            2 - 0.044s 13 (0.002s in global rewrites, 0.003s io_toposort) - 96 nodes - ('constant_folding', 4) ('local_dimshuffle_lift', 3) ('local_fill_sink', 3) ('local_useless_elemwise', 1) ('local_fill_to_alloc', 1) ...
+            3 - 0.045s 11 (0.000s in global rewrites, 0.002s io_toposort) - 91 nodes - ('constant_folding', 3) ('local_fill_to_alloc', 2) ('local_dimshuffle_lift', 2) ('local_mul_canonizer', 2) ('MergeOptimizer', 1) ...
+            4 - 0.035s 8 (0.002s in global rewrites, 0.002s io_toposort) - 93 nodes - ('local_fill_sink', 3) ('local_dimshuffle_lift', 2) ('local_fill_to_alloc', 1) ('MergeOptimizer', 1) ('constant_folding', 1)
+            5 - 0.035s 6 (0.000s in global rewrites, 0.002s io_toposort) - 88 nodes - ('local_fill_sink', 2) ('local_dimshuffle_lift', 2) ('local_fill_to_alloc', 1) ('local_mul_canonizer', 1)
+            6 - 0.038s 10 (0.001s in global rewrites, 0.002s io_toposort) - 95 nodes - ('local_fill_sink', 3) ('local_dimshuffle_lift', 3) ('constant_folding', 2) ('local_fill_to_alloc', 1) ('MergeOptimizer', 1)
+            7 - 0.032s 5 (0.001s in global rewrites, 0.002s io_toposort) - 91 nodes - ('local_fill_sink', 3) ('MergeOptimizer', 1) ('local_dimshuffle_lift', 1)
+            8 - 0.034s 5 (0.000s in global rewrites, 0.002s io_toposort) - 92 nodes - ('local_fill_sink', 3) ('MergeOptimizer', 1) ('local_greedy_distributor', 1)
+            9 - 0.031s 6 (0.001s in global rewrites, 0.002s io_toposort) - 90 nodes - ('local_fill_sink', 2) ('local_fill_to_alloc', 1) ('MergeOptimizer', 1) ('local_dimshuffle_lift', 1) ('local_greedy_distributor', 1)
+           10 - 0.032s 5 (0.000s in global rewrites, 0.002s io_toposort) - 89 nodes - ('local_dimshuffle_lift', 2) ('local_fill_to_alloc', 1) ('MergeOptimizer', 1) ('local_fill_sink', 1)
+           11 - 0.030s 5 (0.000s in global rewrites, 0.002s io_toposort) - 88 nodes - ('local_dimshuffle_lift', 2) ('local_fill_to_alloc', 1) ('MergeOptimizer', 1) ('constant_folding', 1)
+           12 - 0.026s 1 (0.000s in global rewrites, 0.003s io_toposort) - 81 nodes - ('MergeOptimizer', 1)
+           13 - 0.031s 0 (0.000s in global rewrites, 0.003s io_toposort) - 81 nodes -
            times - times applied - nb node created - name:
            0.263s - 15 - 0 - constant_folding
            0.096s - 2 - 14 - local_greedy_distributor
@@ -1117,7 +1122,7 @@ To understand this profile here is some explanation of how optimizations work:
            0.002s - 2 - 4 - local_subtensor_lift
            0.001s - 3 - 0 - local_subtensor_make_vector
            0.001s - 1 - 1 - local_sum_all_to_none
-           0.131s - in 62 optimization that where not used (display only those with a runtime > 0)
+           0.131s - in 62 rewrite(s) that where not used (display only those with a runtime > 0)
              0.050s - local_add_canonizer
              0.018s - local_mul_zero
              0.016s - local_one_minus_erf
@@ -1146,22 +1151,22 @@ To understand this profile here is some explanation of how optimizations work:
              0.000s - local_subtensor_of_dot
              0.000s - local_subtensor_merge
 
-  * ``0.751816s - ('canonicalize', 'EquilibriumOptimizer', 4) - 0.004s``
-    This line is from :class:`SeqOptimizer`, and indicates information related
-    to a sub-optimizer. It means that this sub-optimizer took
+  * ``0.751816s - ('canonicalize', 'EquilibriumGraphRewriter', 4) - 0.004s``
+    This line is from :class:`SequentialGraphRewriter`, and indicates information related
+    to a sub-rewriter. It means that this sub-rewriter took
     a total of .7s. Its name is ``'canonicalize'``. It is an
-    :class:`EquilibriumOptimizer`. It was executed at index 4 by the
-    :class:`SeqOptimizer`. It spent 0.004s in the *validate* phase.
-  * All other lines are from the profiler of the :class:`EquilibriumOptimizer`.
+    :class:`EquilibriumGraphRewriter`. It was executed at index 4 by the
+    :class:`SequentialGraphRewriter`. It spent 0.004s in the *validate* phase.
+  * All other lines are from the profiler of the :class:`EquilibriumGraphRewriter`.
 
-  * An :class:`EquilibriumOptimizer` does multiple passes on the Apply nodes from
-    the graph, trying to apply local and global optimizations.
-    Conceptually, it tries to execute all global optimizations,
-    and to apply all local optimizations on all
-    nodes in the graph. If no optimization got applied during a pass, it
-    stops. So it tries to find an equilibrium state where none of the
-    optimizations get applied. This is useful when we do not know a fixed order for
-    the execution of the optimization.
+  * An :class:`EquilibriumGraphRewriter` does multiple passes on the Apply nodes from
+    the graph, trying to apply local and graph rewriters.
+    Conceptually, it tries to execute all graph rewriters,
+    and to apply all node rewriters on all
+    nodes in the graph. If no rewrites got applied during a pass, it
+    stops. So it tries to find an equilibrium state where no further rewrites
+    can be applied. This is useful when we do not know a fixed order for the
+    execution of rewrites.
   * ``time 0.751s for 14 passes`` means that it took .7s and did 14 passes over the graph.
 
   * ``nb nodes (start, end, max) 108 81 117`` means that at the start,
@@ -1169,30 +1174,30 @@ To understand this profile here is some explanation of how optimizations work:
     was 117.
 
   * Then it prints some global timing information: it spent 0.029s in
-    :func:`io_toposort`, all local optimizers took 0.687s together for all
-    passes, and global optimizers took a total of 0.010s.
+    :func:`io_toposort`, all node rewriters took 0.687s together for all
+    passes, and graph rewriters took a total of 0.010s.
 
-  * Then we print the timing for each pass, the optimization that
+  * Then we print the timing for each pass, the rewrite that
     got applied, and the number of time they got applied. For example,
-    in pass 0, the :func:`local_dimshuffle_lift` optimizer changed the graph 9
-    time.
+    in pass zero, the :func:`local_dimshuffle_lift` rewrite changed the graph
+    nine time.
 
-  * Then we print the time spent in each optimizer, the number of times
+  * Then we print the time spent in each rewriter, the number of times
     they changed the graph and the number of nodes they introduced in
     the graph.
 
-  * Optimizations with that pattern :func:`local_op_lift` means that a node
-    with that op will be replaced by another node, with the same op,
-    but will do computation closer to the inputs of the graph.
-    For instance, ``local_op(f(x))`` getting replaced by ``f(local_op(x))``.
+  * Rewrites with that pattern :func:`local_op_lift` indicate that a node
+    with that `Op` will be replaced by another node with the same `Op`,
+    but will do computation closer to the inputs of the graph: i.e. a "lift" of
+    the `Op`.
+    For instance, in ``local_op(f(x))``, ``local_op`` is lifted through ``f`` to
+    produce ``f(local_op(x))``.
 
-  * Optimization with that pattern :func:`local_op_sink` is the opposite of
-    "lift". For instance ``f(local_op(x))`` getting replaced by ``local_op(f(x))``.
+  * Rewrites with that pattern :func:`local_op_sink` is the opposite of
+    lifting. For instance, in ``f(local_op(x))``, ``local_op`` is sunk through
+    ``f`` to produce ``local_op(f(x))``.
 
-  * Local optimizers can replace any arbitrary node in the graph, not
-    only the node it received as input. For this, it must return a
-    ``dict``. The keys being nodes to replace and the
-    values being the corresponding replacement.
-
-    This is useful to replace a client of the node received as
-    parameter.
+  * Local rewriters can replace any arbitrary node in the graph, not
+    only the nodes they receive as input. In this case, the local rewrite returns a
+    ``dict``, where the keys are `Variable`\s to be replaced and the
+    values are the corresponding replacements.

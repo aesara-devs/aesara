@@ -481,7 +481,7 @@ class FunctionGraph(MetaObject):
             verbose = config.optimizer_verbose
         if verbose:
             print(
-                f"optimizer: rewrite {reason} replaces {var} of {var.owner} with {new_var} of {new_var.owner}"
+                f"rewriting: rewrite {reason} replaces {var} of {var.owner} with {new_var} of {new_var.owner}"
             )
 
         new_var = var.type.filter_variable(new_var, allow_convert=True)
@@ -909,7 +909,9 @@ class FunctionGraph(MetaObject):
         for feature in self._features:
             for attr in getattr(feature, "pickle_rm_attr", []):
                 del d[attr]
-        # The class Updater take fct as parameter and they are lambda function, so unpicklable.
+
+        # XXX: The `Feature` `DispatchingFeature` takes functions as parameter
+        # and they can be lambda functions, making them unpicklable.
 
         # execute_callbacks_times have reference to optimizer, and they can't
         # be pickled as the decorators with parameters aren't pickable.

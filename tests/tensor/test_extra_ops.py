@@ -8,8 +8,8 @@ from aesara import function
 from aesara import tensor as at
 from aesara.compile.mode import Mode
 from aesara.configdefaults import config
-from aesara.graph.basic import applys_between
-from aesara.graph.optdb import OptimizationQuery
+from aesara.graph.basic import Constant, applys_between
+from aesara.graph.rewriting.db import RewriteDatabaseQuery
 from aesara.raise_op import Assert
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.extra_ops import (
@@ -1143,6 +1143,35 @@ def test_broadcast_shape_basic():
     assert isinstance(b_at[-1].owner.op, Assert)
 
 
+def test_broadcast_shape_constants():
+    """Make sure `broadcast_shape` uses constants when it can."""
+    x1_shp_at = iscalar("x1")
+    y2_shp_at = iscalar("y2")
+    b_at = broadcast_shape((x1_shp_at, 2), (3, y2_shp_at), arrays_are_shapes=True)
+    assert len(b_at) == 2
+    assert isinstance(b_at[0].owner.op, Assert)
+    assert b_at[0].owner.inputs[0].value.item() == 3
+    assert isinstance(b_at[1].owner.op, Assert)
+    assert b_at[1].owner.inputs[0].value.item() == 2
+
+    b_at = broadcast_shape((1, 2), (3, 2), arrays_are_shapes=True)
+    assert len(b_at) == 2
+    assert all(isinstance(x, Constant) for x in b_at)
+    assert b_at[0].value.item() == 3
+    assert b_at[1].value.item() == 2
+
+    b_at = broadcast_shape((1,), (1, 1), arrays_are_shapes=True)
+    assert len(b_at) == 2
+    assert all(isinstance(x, Constant) for x in b_at)
+    assert b_at[0].value.item() == 1
+    assert b_at[1].value.item() == 1
+
+    b_at = broadcast_shape((1,), (1,), arrays_are_shapes=True)
+    assert len(b_at) == 1
+    assert all(isinstance(x, Constant) for x in b_at)
+    assert b_at[0].value.item() == 1
+
+
 @pytest.mark.parametrize(
     ("s1_vals", "s2_vals", "exp_res"),
     [
@@ -1169,6 +1198,31 @@ def test_broadcast_shape_symbolic(s1_vals, s2_vals, exp_res):
     assert tuple(res.eval(eval_point)) == exp_res
 
 
+def test_broadcast_shape_symbolic_one_symbolic():
+    """Test case for a constant non-broadcast shape and a symbolic shape."""
+    one_at = at.as_tensor(1, dtype=np.int64)
+    three_at = at.as_tensor(3, dtype=np.int64)
+    int_div = one_at / one_at
+
+    assert int_div.owner.op == at.true_div
+
+    index_shapes = [
+        (one_at, one_at, three_at),
+        (one_at, int_div, one_at),
+        (one_at, one_at, int_div),
+    ]
+
+    res_shape = broadcast_shape(*index_shapes, arrays_are_shapes=True)
+
+    from aesara.graph.rewriting.utils import rewrite_graph
+
+    res_shape = rewrite_graph(res_shape)
+
+    assert res_shape[0].data == 1
+    assert res_shape[1].data == 1
+    assert res_shape[2].data == 3
+
+
 class TestBroadcastTo(utt.InferShapeTester):
     def setup_method(self):
         super().setup_method()
@@ -1188,24 +1242,70 @@ class TestBroadcastTo(utt.InferShapeTester):
         assert y.owner.inputs[1].owner is None
         assert y.owner.inputs[2].owner is None
 
-    @config.change_flags(compute_test_value="raise")
-    def test_perform(self):
-        a = scalar()
-        a.tag.test_value = 5
+    @pytest.mark.parametrize("linker", ["cvm", "py"])
+    def test_perform(self, linker):
 
+        a = aesara.shared(5)
         s_1 = iscalar("s_1")
-        s_1.tag.test_value = 4
         shape = (s_1, 1)
 
         bcast_res = broadcast_to(a, shape)
-
         assert bcast_res.broadcastable == (False, True)
 
+        bcast_fn = aesara.function(
+            [s_1], bcast_res, mode=Mode(optimizer=None, linker=linker)
+        )
+        bcast_fn.vm.allow_gc = False
+
+        bcast_at = bcast_fn(4)
         bcast_np = np.broadcast_to(5, (4, 1))
-        bcast_at = bcast_res.get_test_value()
 
         assert np.array_equal(bcast_at, bcast_np)
-        assert np.shares_memory(bcast_at, a.get_test_value())
+
+        bcast_var = bcast_fn.maker.fgraph.outputs[0].owner.inputs[0]
+        bcast_in = bcast_fn.vm.storage_map[a]
+        bcast_out = bcast_fn.vm.storage_map[bcast_var]
+
+        if linker != "py":
+            assert np.shares_memory(bcast_out[0], bcast_in[0])
+
+    @pytest.mark.skipif(
+        not config.cxx, reason="G++ not available, so we need to skip this test."
+    )
+    def test_memory_leak(self):
+        import gc
+        import tracemalloc
+
+        from aesara.link.c.cvm import CVM
+
+        n = 100_000
+        x = aesara.shared(np.ones(n, dtype=np.float64))
+        y = broadcast_to(x, (5, n))
+
+        f = aesara.function([], y, mode=Mode(optimizer=None, linker="cvm"))
+        assert isinstance(f.vm, CVM)
+
+        assert len(f.maker.fgraph.apply_nodes) == 2
+        assert any(
+            isinstance(node.op, BroadcastTo) for node in f.maker.fgraph.apply_nodes
+        )
+
+        tracemalloc.start()
+
+        blocks_last = None
+        block_diffs = []
+        for i in range(1, 50):
+            x.set_value(np.ones(n))
+            _ = f()
+            _ = gc.collect()
+            blocks_i, _ = tracemalloc.get_traced_memory()
+            if blocks_last is not None:
+                blocks_diff = (blocks_i - blocks_last) // 10**3
+                block_diffs.append(blocks_diff)
+            blocks_last = blocks_i
+
+        tracemalloc.stop()
+        assert np.allclose(np.mean(block_diffs), 0)
 
     @pytest.mark.parametrize(
         "fn,input_dims",
@@ -1256,7 +1356,7 @@ class TestBroadcastTo(utt.InferShapeTester):
         q = b[np.r_[0, 1, 3]]
         e = at.set_subtensor(q, np.r_[0, 0, 0])
 
-        opts = OptimizationQuery(include=["inplace"])
+        opts = RewriteDatabaseQuery(include=["inplace"])
         py_mode = Mode("py", opts)
         e_fn = function([d], e, mode=py_mode)
 

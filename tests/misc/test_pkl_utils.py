@@ -66,6 +66,6 @@ class TestStripPickler:
         with open("test.pkl", "wb") as f:
             m = matrix()
             dest_pkl = "my_test.pkl"
-            f = open(dest_pkl, "wb")
-            strip_pickler = StripPickler(f, protocol=-1)
-            strip_pickler.dump(m)
+            with open(dest_pkl, "wb") as f:
+                strip_pickler = StripPickler(f, protocol=-1)
+                strip_pickler.dump(m)

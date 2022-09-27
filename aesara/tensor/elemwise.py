@@ -418,24 +418,45 @@ class Elemwise(OpenMPOp):
         # of all inputs in parallel... the all() gives us each output
         # broadcastable bit in turn.
 
+        def get_most_specialized_shape(shapes):
+            shapes = set(shapes)
+            # All shapes are the same
+            if len(shapes) == 1:
+                return tuple(shapes)[0]
+
+            # Only valid indeterminate case
+            if shapes == {None, 1}:
+                return None
+
+            shapes.discard(1)
+            shapes.discard(None)
+            if len(shapes) > 1:
+                raise ValueError
+            return tuple(shapes)[0]
+
         # it is multiplied by nout because Elemwise supports multiple outputs
         # (nout of them)
-        out_broadcastables = [
-            [
-                all(bcast)
-                for bcast in zip(*[input.type.broadcastable for input in inputs])
-            ]
-        ] * shadow.nout
+        try:
+            out_shapes = [
+                [
+                    get_most_specialized_shape(shape)
+                    for shape in zip(*[inp.type.shape for inp in inputs])
+                ]
+            ] * shadow.nout
+        except ValueError:
+            raise ValueError(
+                f"Incompatible Elemwise input shapes {[inp.type.shape for inp in inputs]}"
+            )
 
         # inplace_pattern maps output idx -> input idx
         inplace_pattern = self.inplace_pattern
         if inplace_pattern:
             for overwriter, overwritten in inplace_pattern.items():
                 for ob, ib in zip(
-                    out_broadcastables[overwriter],
+                    out_shapes[overwriter],
                     inputs[overwritten].type.broadcastable,
                 ):
-                    if ib and not ob:
+                    if ib and not ob == 1:
                         raise ValueError(
                             "Operation cannot be done inplace on an input "
                             "with broadcasted dimensions."
@@ -451,8 +472,8 @@ class Elemwise(OpenMPOp):
                     ([i.type.dtype for i in inputs], out_dtypes, inplace_pattern),
                 )
             )
-        assert len(out_dtypes) == len(out_broadcastables)
-        return out_dtypes, out_broadcastables, inputs
+        assert len(out_dtypes) == len(out_shapes)
+        return out_dtypes, out_shapes, inputs
 
     def make_node(self, *inputs):
         """
@@ -461,12 +482,10 @@ class Elemwise(OpenMPOp):
         using DimShuffle.
         """
         inputs = [as_tensor_variable(i) for i in inputs]
-        out_dtypes, out_broadcastables, inputs = self.get_output_info(
-            DimShuffle, *inputs
-        )
+        out_dtypes, out_shapes, inputs = self.get_output_info(DimShuffle, *inputs)
         outputs = [
-            TensorType(dtype=dtype, shape=broadcastable)()
-            for dtype, broadcastable in zip(out_dtypes, out_broadcastables)
+            TensorType(dtype=dtype, shape=shape)()
+            for dtype, shape in zip(out_dtypes, out_shapes)
         ]
         return Apply(self, inputs, outputs)
 
@@ -806,7 +825,7 @@ class Elemwise(OpenMPOp):
     def infer_shape(self, fgraph, node, i_shapes) -> List[Tuple[TensorVariable, ...]]:
 
         if len(node.outputs) > 1:
-            from aesara.tensor.basic_opt import ShapeError
+            from aesara.tensor.exceptions import ShapeError
 
             raise ShapeError(
                 "Multiple outputs are not supported by the default `Elemwise.infer_shape`"

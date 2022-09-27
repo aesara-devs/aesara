@@ -28,7 +28,7 @@ class RandomType(Type[T]):
 
     @staticmethod
     def may_share_memory(a: T, b: T):
-        return a._bit_generator is b._bit_generator
+        return a._bit_generator is b._bit_generator  # type: ignore[attr-defined]
 
 
 class RandomStateType(RandomType[np.random.RandomState]):

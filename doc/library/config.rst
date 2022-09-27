@@ -170,8 +170,8 @@ import ``aesara`` and print the config variable, as in:
 
     Default: ``True``
 
-    This enables, or disables, an optimization in :class:`Scan` that tries to
-    pre-allocate memory for its outputs. Enabling the optimization can give a
+    This enables, or disables, a rewrite in :class:`Scan` that tries to
+    pre-allocate memory for its outputs. Enabling the rewrite can give a
     significant speed up at the cost of slightly increased memory usage.
 
 .. attribute:: config.scan__allow_gc
@@ -202,10 +202,10 @@ import ``aesara`` and print the config variable, as in:
 
     Default: ``off``
 
-    This is a flag for checking the stack trace during graph optimization.
+    This is a flag for checking stack traces during graph rewriting.
     If :attr:`check_stack_trace` is set to ``off``, no check is performed on the
     stack trace. If :attr:`check_stack_trace` is set to ``log`` or ``warn``, a
-    dummy stack trace is inserted that indicates which optimization inserted the
+    dummy stack trace is inserted that indicates which rewrite inserted the
     variable that had an empty stack trace, but, when ``warn`` is set, a warning
     is also printed.
     If :attr:`check_stack_trace` is set to ``raise``, an exception is raised if a
@@ -315,7 +315,7 @@ import ``aesara`` and print the config variable, as in:
 
     Default: ``False``
 
-    When ``True``, the VM and CVM linkers profile the optimization phase when
+    When ``True``, the :class:`VM` and :class:`CVM` linkers profile the rewriting phase when
     compiling an Aesara function.  This only works when ``profile=True``.
 
 .. attribute:: config.profiling__n_apply
@@ -398,7 +398,7 @@ import ``aesara`` and print the config variable, as in:
 
     Default: ``'fast_run'``
 
-    When the mode is ``'Mode'``, it sets the default optimizer used.
+    When the mode is ``'Mode'``, it sets the default rewrites used during compilation.
 
 .. attribute:: on_opt_error
 
@@ -406,8 +406,8 @@ import ``aesara`` and print the config variable, as in:
 
     Default: ``'warn'``
 
-    When a crash occurs while trying to apply an optimization, either warn the
-    user and skip the optimization (i.e. ``'warn'``), raise the exception
+    When a crash occurs while trying to apply a rewrite, either warn the
+    user and skip the rewrite (i.e. ``'warn'``), raise the exception
     (i.e. ``'raise'``), drop into the ``pdb`` debugger (i.e. ``'pdb'``), or
     ignore it (i.e. ``'ignore'``).
     We suggest never using ``'ignore'`` except during testing.
@@ -503,9 +503,9 @@ import ``aesara`` and print the config variable, as in:
 
     When ``True``, add asserts that highlight shape errors.
 
-    Without such asserts, the underlying optimization could hide errors in user
+    Without such asserts, the underlying rewrite could hide errors in user
     code.  Aesara adds the asserts only if it cannot infer that the shapes are
-    equivalent.  When it can determine equivalence, this optimization does not
+    equivalent.  When it can determine equivalence, this rewrite does not
     introduce an assert.
 
     Removing these asserts can speed up execution.
@@ -653,11 +653,11 @@ import ``aesara`` and print the config variable, as in:
 
     Default: ``""``
 
-    A list of optimizer tags that shouldn't be included in the default ``Mode``.
+    A list of rewriter tags that shouldn't be included in the default ``Mode``.
     If multiple tags are provided, separate them by ``':'``.
-    For example, to remove the ``Elemwise`` in-place optimizations,
+    For example, to remove the ``Elemwise`` in-place rewrites,
     use the flags: ``optimizer_excluding:inplace_opt``, where
-    ``inplace_opt`` is the name of the optimization group.
+    ``inplace_opt`` is the name of the rewrite group.
 
     This flag's value cannot be modified during the program execution.
 
@@ -665,7 +665,7 @@ import ``aesara`` and print the config variable, as in:
 
     Default: ``""``
 
-    A list of optimizer tags to be included in the default ``Mode``.
+    A list of rewriter tags to be included in the default ``Mode``.
     If multiple tags are provided, separate them by ``':'``.
 
     This flag's value cannot be modified during the program execution.
@@ -674,7 +674,7 @@ import ``aesara`` and print the config variable, as in:
 
     Default: ``""``
 
-    A list of optimizer tags that are required for optimization in the default
+    A list of rewriter tags that are required for rewriting in the default
     ``Mode``.
     If multiple tags are provided, separate them by ``':'``.
 
@@ -686,7 +686,7 @@ import ``aesara`` and print the config variable, as in:
 
     Default: ``False``
 
-    When ``True``, print the optimizations applied to stdout.
+    When ``True``, print the rewrites applied to stdout.
 
 .. attribute:: nocleanup
 
@@ -792,7 +792,7 @@ import ``aesara`` and print the config variable, as in:
     Setting this attribute to something other than ``'off'`` activates a
     debugging mechanism, for which Aesara executes the graph on-the-fly, as it
     is being built. This allows the user to spot errors early on (such as
-    dimension mis-matches) **before** optimizations are applied.
+    dimension mis-matches) **before** rewrites are applied.
 
     Aesara will execute the graph using constants and/or shared variables
     provided by the user. Purely symbolic variables (e.g. ``x =
@@ -809,8 +809,8 @@ import ``aesara`` and print the config variable, as in:
 .. attribute:: compute_test_value_opt
 
     As ``compute_test_value``, but it is the value used during Aesara's
-    optimization phase.  This is used to help debug shape errors in Aesara's
-    optimizations.
+    rewriting phase.  This is used to help debug shape errors in Aesara's
+    rewrites.
 
 .. attribute:: print_test_value
 
@@ -898,21 +898,21 @@ import ``aesara`` and print the config variable, as in:
 
     Int value, default: 0
 
-    The verbosity level of the meta-optimizer: ``0`` for silent, ``1`` to only
-    warn when Aesara cannot meta-optimize an :class:`Op`, ``2`` for full output (e.g.
-    timings and the optimizations selected).
+    The verbosity level of the meta-rewriter: ``0`` for silent, ``1`` to only
+    warn when Aesara cannot meta-rewrite an :class:`Op`, ``2`` for full output (e.g.
+    timings and the rewrites selected).
 
 
 .. attribute:: config.metaopt__optimizer_excluding
 
     Default: ``""``
 
-    A list of optimizer tags that we don't want included in the meta-optimizer.
+    A list of rewrite tags that we don't want included in the meta-rewriter.
     Multiple tags are separate by ``':'``.
 
 .. attribute:: config.metaopt__optimizer_including
 
     Default: ``""``
 
-    A list of optimizer tags to be included during meta-optimization.
+    A list of rewriter tags to be included during meta-rewriting.
     Multiple tags are separate by ``':'``.

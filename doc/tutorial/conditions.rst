@@ -72,7 +72,7 @@ Unless ``linker='vm'`` or ``linker='cvm'`` are used, ``ifelse`` will compute bot
 variables and take the same computation time as ``switch``. Although the linker
 is not currently set by default to ``cvm``, it will be in the near future.
 
-There is no automatic optimization replacing a ``switch`` with a
+There is no automatic rewrite replacing a ``switch`` with a
 broadcasted scalar to an ``ifelse``, as this is not always faster. See
 this `ticket <http://www.assembla.com/spaces/theano/tickets/764>`_.
 

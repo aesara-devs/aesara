@@ -3,7 +3,11 @@ from aesara import tensor as at
 from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
-from aesara.graph.opt import TopoOptimizer, copy_stack_trace, local_optimizer
+from aesara.graph.rewriting.basic import (
+    WalkingGraphRewriter,
+    copy_stack_trace,
+    node_rewriter,
+)
 
 
 def get_diagonal_subtensor_view(x, i0, i1):
@@ -102,7 +106,10 @@ class DiagonalSubtensor(Op):
     def make_node(self, x, i0, i1):
         _i0 = at.as_tensor_variable(i0)
         _i1 = at.as_tensor_variable(i1)
-        return Apply(self, [x, _i0, _i1], [x.type()])
+        # TODO: We could produce a more precise static shape output type
+        type_shape = (1 if shape == 1 else None for shape in x.type.shape)
+        out_type = at.TensorType(x.type.dtype, shape=type_shape)
+        return Apply(self, [x, _i0, _i1], [out_type()])
 
     def perform(self, node, inputs, output_storage):
         xview = get_diagonal_subtensor_view(*inputs)
@@ -296,7 +303,7 @@ def conv3d(
     return out_5d
 
 
-@local_optimizer([DiagonalSubtensor, IncDiagonalSubtensor])
+@node_rewriter([DiagonalSubtensor, IncDiagonalSubtensor])
 def local_inplace_DiagonalSubtensor(fgraph, node):
     """Also work for IncDiagonalSubtensor."""
     if (
@@ -312,8 +319,9 @@ def local_inplace_DiagonalSubtensor(fgraph, node):
 
 aesara.compile.optdb.register(
     "local_inplace_DiagonalSubtensor",
-    TopoOptimizer(
-        local_inplace_DiagonalSubtensor, failure_callback=TopoOptimizer.warn_inplace
+    WalkingGraphRewriter(
+        local_inplace_DiagonalSubtensor,
+        failure_callback=WalkingGraphRewriter.warn_inplace,
     ),
     "fast_run",
     "inplace",

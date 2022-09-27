@@ -408,6 +408,9 @@ commonly used.
         this function should return a tuple of integers as previously
         described.
 
+        Also, do not use the built-in ``hash``; it will produce different values
+        between Python sessions and confound the caching process.
+
 Important restrictions when implementing a :class:`COp`
 =======================================================
 
@@ -719,8 +722,8 @@ simple but it still involves defining many methods as well as mixing, in the
 same file, both Python and C code which tends to make the result less
 readable.
 
-To help with this, Aesara defines a class, ``ExternalCOp``, from which new C :class:`Op`\s
-can inherit. The class ``ExternalCOp`` aims to simplify the process of implementing
+To help with this, Aesara defines a class, `ExternalCOp`, from which new C :class:`Op`\s
+can inherit. The class `ExternalCOp` aims to simplify the process of implementing
 C :class:`Op`\s by doing the following :
 
 *      It allows you to define the C implementation of your :class:`Op` in a distinct
@@ -728,15 +731,15 @@ C :class:`Op`\s by doing the following :
        readable and well indented.
 
 *      It can automatically handle all the methods that return C code,
-       in addition to :meth:`Op.c_code_cache_version()` based on the
+       in addition to :meth:`Op.c_code_cache_version` based on the
        provided external C implementation.
 
-To illustrate how much simpler the class ``ExternalCOp`` makes the process of defining
+To illustrate how much simpler the class `ExternalCOp` makes the process of defining
 a new :class:`Op` with a C implementation, let's revisit the second example of this
-tutorial, the ``VectorTimesVector`` :class:`Op`. In that example, we implemented an :class:`Op`
+tutorial, the `VectorTimesVector`\ :class:`Op`. In that example, we implemented an :class:`Op`
 to perform the task of element-wise vector-vector multiplication. The two
 following blocks of code illustrate what the :class:`Op` would look like if it was
-implemented using the ``ExternalCOp`` class.
+implemented using the `ExternalCOp` class.
 
 The new :class:`Op` is defined inside a Python file with the following code :
 
@@ -850,23 +853,23 @@ in the same file and the C code contained string formatting markers.
 
 Now that we have motivated the `ExternalCOp` class, we can have a more precise look at
 what it does for us. For this, we go through the various elements that make up
-this new version of the ``VectorTimesVector`` `Op` :
+this new version of the `VectorTimesVector`\ `Op` :
 
 *       Parent class : instead of inheriting from the class :class:`Op`,
-        VectorTimesVector inherits from the class ``ExternalCOp``.
+        VectorTimesVector inherits from the class `ExternalCOp`.
 
-*       Constructor : in our new `COp`, the ``__init__()`` method has an
-        important use; to inform the constructor of the ``ExternalCOp`` class
+*       Constructor : in our new `COp`, the :meth:`COp.__init__` method has an
+        important use; to inform the constructor of the `ExternalCOp` class
         of the location, on the filesystem of the C implementation of
         this `COp`. To do this, it gives a list of file paths containing
         the C code for this `COp`.  To auto-generate the c_code method
         with a function call you can specify the function name as the
         second parameter.  The paths should be given as a relative
-        path from the folder where the descendant of the ``ExternalCOp`` class
+        path from the folder where the descendant of the `ExternalCOp` class
         is defined.
 
-*       ``make_node()`` : the ``make_node()`` method is absolutely
-        identical to the one in our old example. Using the ``ExternalCOp``
+*       :meth:`ExternalCOp.make_node` : this method is absolutely
+        identical to the one in our old example. Using the `ExternalCOp`
         class doesn't change anything here.
 
 *       External C code : the external C code implements the various
@@ -877,8 +880,8 @@ this new version of the ``VectorTimesVector`` `Op` :
 Main function
 -------------
 
-If you pass a function name to the ``__init__()`` method of the
-``ExternalCOp`` class, it must respect the following constraints:
+If you pass a function name to :meth:`ExternalCOp.__init___`, it must respect
+the following constraints:
 
 *       It must return an int. The value of that int indicates whether
         the `Op` could perform its task or not. A value of 0 indicates

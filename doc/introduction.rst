@@ -5,28 +5,28 @@
 Aesara at a Glance
 ==================
 
-Aesara is a Python library that lets you define, optimize, and evaluate
-mathematical expressions, especially ones involving multi-dimensional arrays
-(e.g. :class:`numpy.ndarray`\s).  Using Aesara it is
-possible to attain speeds rivaling hand-crafted C implementations for problems
-involving large amounts of data.
+Aesara is a Python library that allows one to define, optimize/rewrite, and
+evaluate mathematical expressions, especially ones involving multi-dimensional
+arrays (e.g. :class:`numpy.ndarray`\s).  Using Aesara, it is possible to attain
+speeds rivaling hand-crafted C implementations for problems involving large
+amounts of data.
 
 Aesara combines aspects of a computer algebra system (CAS) with aspects of an
-optimizing compiler. It can also generate customized C code for many
-mathematical operations.  This combination of CAS with optimizing compilation
+optimizing compiler. It can also generate customized code for multiple compiled
+languages and/or their Python-based interfaces, such as C, Numba, and JAX.  This
+combination of CAS features with optimizing compilation and transpilation
 is particularly useful for tasks in which complicated mathematical expressions
 are evaluated repeatedly and evaluation speed is critical.  For situations
 where many different expressions are each evaluated once, Aesara can minimize
-the amount of compilation/analysis overhead, but still provide symbolic
+the amount of compilation and analysis overhead, but still provide symbolic
 features such as automatic differentiation.
 
-Aesara's compiler applies many optimizations of varying complexity to
-these symbolic expressions. These optimizations include, but are not
-limited to:
+Aesara's compiler applies many default optimizations of varying
+complexity. These optimizations include, but are not limited to:
 
 * constant folding
-* merging of similar subgraphs, to avoid redundant calculation
-* arithmetic simplification (e.g. ``x*y/x -> y``, ``--x -> x``)
+* merging of similar sub-graphs, to avoid redundant calculations
+* arithmetic simplifications (e.g. ``x * y / x -> y``, ``-(-x) -> x``)
 * inserting efficient BLAS_ operations (e.g. ``GEMM``) in a variety of
   contexts
 * using memory aliasing to avoid unnecessary calculations
@@ -37,7 +37,7 @@ limited to:
 For more information see :ref:`optimizations`.
 
 Theano
------------------
+------
 
 The library that Aesara is based on, Theano, was written at the LISA lab to support rapid development of efficient machine learning algorithms but while Theano was commonly referred to as a "deep learning" (DL) library, Aesara is not a DL library.
 

@@ -15,9 +15,8 @@ that creates an image of the function. You can read about them in
 
 .. note::
 
-
     When printing Aesara functions, they can sometimes be hard to
-    read.  To help with this, you can disable some Aesara optimizations
+    read.  To help with this, you can disable some Aesara rewrites
     by using the Aesara flag:
     ``optimizer_excluding=fusion:inplace``. Do not use this during
     real job execution, as this will make the graph slower and use more
