@@ -230,6 +230,6 @@ def numba_funcify_TensorFromScalar(op, **kwargs):
 def numba_funcify_ScalarFromTensor(op, **kwargs):
     @numba_basic.numba_njit(inline="always")
     def scalar_from_tensor(x):
-        return x.item()
+        return numba_basic.to_scalar(x)
 
     return scalar_from_tensor
