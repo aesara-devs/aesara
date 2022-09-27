@@ -89,23 +89,6 @@ def compare_jax_and_py(
     return jax_res
 
 
-def test_jax_FunctionGraph_names():
-    import inspect
-
-    from aesara.link.jax.dispatch import jax_funcify
-
-    x = scalar("1x")
-    y = scalar("_")
-    z = scalar()
-    q = scalar("def")
-
-    out_fg = FunctionGraph([x, y, z, q], [x, y, z, q], clone=False)
-    out_jx = jax_funcify(out_fg)
-    sig = inspect.signature(out_jx)
-    assert (x.auto_name, "_", z.auto_name, q.auto_name) == tuple(sig.parameters.keys())
-    assert (1, 2, 3, 4) == out_jx(1, 2, 3, 4)
-
-
 def test_jax_FunctionGraph_once():
     """Make sure that an output is only computed once when it's referenced multiple times."""
     from aesara.link.jax.dispatch import jax_funcify

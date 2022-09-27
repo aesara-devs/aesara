@@ -54,7 +54,7 @@ def numba_funcify_Scan(op, node, **kwargs):
     p_outer_in_nit_sot = p_outer_in_shared + n_shared_outs
     p_outer_in_non_seqs = p_outer_in_nit_sot + n_nit_sot
 
-    input_names = [f"{n.auto_name}_{i}" for i, n in enumerate(node.inputs[1:])]
+    input_names = [f"outer_in_{i}" for i, n in enumerate(node.inputs[1:])]
     outer_in_seqs_names = input_names[:n_seqs]
     outer_in_mit_mot_names = input_names[p_in_mit_mot : p_in_mit_mot + n_mit_mot]
     outer_in_mit_sot_names = input_names[p_in_mit_sot : p_in_mit_sot + n_mit_sot]

@@ -613,8 +613,8 @@ def compile_function_src(
 def get_name_for_object(x: Any) -> str:
     """Get the name for an arbitrary object."""
 
-    if isinstance(x, Variable):
-        name = re.sub("[^0-9a-zA-Z]+", "_", x.name) if x.name else ""
+    if isinstance(x, Variable) and x.name:
+        name = re.sub("[^0-9a-zA-Z]+", "_", x.name)
         name = (
             name
             if (
@@ -622,19 +622,22 @@ def get_name_for_object(x: Any) -> str:
                 and not iskeyword(name)
                 and name not in dir(builtins)
             )
-            else x.auto_name
+            else ""
         )
     else:
-        name = getattr(x, "__name__", "")
+        name = re.sub(r"(?<!^)(?=[A-Z])", "_", getattr(x, "__name__", "")).lower()
 
     if not name or (not name.isidentifier() or iskeyword(name)):
-        name = type(x).__name__
+        # Try to get snake-case out of the type name
+        name = re.sub(r"(?<!^)(?=[A-Z])", "_", type(x).__name__).lower()
+
+    assert name.isidentifier() and not iskeyword(name)
 
     return name
 
 
 def unique_name_generator(
-    external_names: Optional[List[str]] = None, suffix_sep: str = ""
+    external_names: Optional[List[str]] = None, suffix_sep: str = "_"
 ) -> Callable:
     """Create a function that generates unique names."""
 

@@ -394,10 +394,14 @@ def numba_funcify_FunctionGraph(
 def create_index_func(node, objmode=False):
     """Create a Python function that assembles and uses an index on an array."""
 
+    unique_names = unique_name_generator(
+        ["subtensor", "incsubtensor", "z"], suffix_sep="_"
+    )
+
     def convert_indices(indices, entry):
         if indices and issubtype(entry, Type):
             rval = indices.pop(0)
-            return rval.auto_name
+            return unique_names(rval)
         elif isinstance(entry, slice):
             return (
                 f"slice({convert_indices(indices, entry.start)}, "
@@ -413,10 +417,6 @@ def create_index_func(node, objmode=False):
         node.op, (IncSubtensor, AdvancedIncSubtensor1, AdvancedIncSubtensor)
     )
     index_start_idx = 1 + int(set_or_inc)
-
-    unique_names = unique_name_generator(
-        ["subtensor", "incsubtensor", "z"], suffix_sep="_"
-    )
 
     input_names = [unique_names(v, force_unique=True) for v in node.inputs]
     op_indices = list(node.inputs[index_start_idx:])
