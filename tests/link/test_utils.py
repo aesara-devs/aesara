@@ -12,7 +12,7 @@ from aesara.link.utils import (
     get_name_for_object,
     unique_name_generator,
 )
-from aesara.scalar.basic import Add
+from aesara.scalar.basic import Add, float64
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.type import scalar, vector
 from aesara.tensor.type_other import NoneConst
@@ -42,7 +42,7 @@ def test_fgraph_to_python_names():
 
     x = scalar("1x")
     y = scalar("_")
-    z = scalar()
+    z = float64()
     q = scalar("def")
     r = NoneConst
 
@@ -50,9 +50,13 @@ def test_fgraph_to_python_names():
     out_jx = fgraph_to_python(out_fg, to_python)
 
     sig = inspect.signature(out_jx)
-    assert (x.auto_name, "_", z.auto_name, q.auto_name, r.name) == tuple(
-        sig.parameters.keys()
-    )
+    assert (
+        "tensor_variable",
+        "_",
+        "scalar_variable",
+        "tensor_variable_1",
+        r.name,
+    ) == tuple(sig.parameters.keys())
     assert (1, 2, 3, 4, 5) == out_jx(1, 2, 3, 4, 5)
 
     obj = object()
@@ -191,7 +195,7 @@ def test_unique_name_generator():
     q_name_1 = unique_names(q)
     q_name_2 = unique_names(q)
 
-    assert q_name_1 == q_name_2 == q.auto_name
+    assert q_name_1 == q_name_2 == "tensor_variable"
 
     unique_names = unique_name_generator()
 
