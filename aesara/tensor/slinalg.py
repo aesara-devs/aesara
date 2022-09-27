@@ -1,6 +1,6 @@
 import logging
 import warnings
-from typing import Optional, Union
+from typing import Union
 
 import numpy as np
 import scipy.linalg
@@ -11,6 +11,7 @@ from aesara.graph.op import Op
 from aesara.tensor import as_tensor_variable
 from aesara.tensor import basic as at
 from aesara.tensor import math as atm
+from aesara.tensor.shape import reshape
 from aesara.tensor.type import matrix, tensor, vector
 from aesara.tensor.var import TensorVariable
 
@@ -783,12 +784,7 @@ class SolveContinuousLyapunov(at.Op):
         return [A_bar, Q_bar]
 
 
-class SolveDiscreteLyapunov(at.Op):
-    __props__ = ("method",)
-
-    def __init__(self, method=None):
-        self.method = method
-
+class BilinearSolveDiscreteLyapunov(at.Op):
     def make_node(self, A, B):
         A = as_tensor_variable(A)
         B = as_tensor_variable(B)
@@ -802,7 +798,7 @@ class SolveDiscreteLyapunov(at.Op):
         (A, B) = inputs
         X = output_storage[0]
 
-        X[0] = scipy.linalg.solve_discrete_lyapunov(A, B, method=self.method)
+        X[0] = scipy.linalg.solve_discrete_lyapunov(A, B, method="bilinear")
 
     def infer_shape(self, fgraph, node, shapes):
         return [shapes[0]]
@@ -813,9 +809,9 @@ class SolveDiscreteLyapunov(at.Op):
         (dX,) = output_grads
 
         X = self(A, Q)
-        S = self(
-            A.conj().T, dX
-        )  # Eq 41, note that it is not written as a proper Lyapunov equation
+
+        # Eq 41, note that it is not written as a proper Lyapunov equation
+        S = self(A.conj().T, dX)
 
         A_bar = aesara.tensor.linalg.matrix_dot(
             S, A, X.conj().T
@@ -825,9 +821,26 @@ class SolveDiscreteLyapunov(at.Op):
 
 
 _solve_continuous_lyapunov = SolveContinuousLyapunov()
+_solve_bilinear_direct_lyapunov = BilinearSolveDiscreteLyapunov()
 
 
-def solve_discrete_lyapunov(A, Q, method: Optional[str] = None) -> TensorVariable:
+def iscomplexobj(x):
+    type_ = x.type
+    dtype = type_.dtype
+    return "complex" in dtype
+
+
+def _direct_solve_discrete_lyapunov(A, Q):
+    if iscomplexobj(A):
+        AA = kron(A, A.conj())
+    else:
+        AA = kron(A, A)
+
+    X = solve(at.eye(AA.shape[0]) - AA, Q.ravel())
+    return reshape(X, Q.shape)
+
+
+def solve_discrete_lyapunov(A, Q, method="direct") -> TensorVariable:
     """
     Solve the discrete Lyapunov equation :math:`AXA^H - X = Q`.
     Parameters
@@ -836,22 +849,31 @@ def solve_discrete_lyapunov(A, Q, method: Optional[str] = None) -> TensorVariabl
         Square matrix of shape N x N; must have the same shape as Q
     Q: ArrayLike
         Square matrix of shape N x N; must have the same shape as A
-    method: Optional, string
-        Solver method passed to scipy.linalg.solve_discrete_lyapunov, either "bilinear", "direct", or None. "direct"
-        scales poorly with size. If None, uses "direct" if N < 10, else "bilinear".
+    method: str, default "direct"
+        Solver method used, one of "direct" or "bilinar". "direct" solves the problem directly via matrix inversion.
+        This has a pure Aesara implementation and can thus be cross-compiled to supported backends, and should be
+        preferred when N is not large. The direct method scales poorly with the size of N, and the bilinear can be
+        used in these cases.
 
     Returns
     -------
     X: at.matrix
         Square matrix of shape N x N, representing the solution to the Lyapunov equation
     """
+    if method not in ["direct", "bilinear"]:
+        raise ValueError(
+            f'Parameter "method" must be one of "direct" or "bilinear", found {method}'
+        )
 
-    return SolveDiscreteLyapunov(method)(A, Q)
+    if method == "direct":
+        return _direct_solve_discrete_lyapunov(A, Q)
+    if method == "bilinear":
+        return _solve_bilinear_direct_lyapunov(A, Q)
 
 
 def solve_continuous_lyapunov(A, Q) -> TensorVariable:
     """
-    Solve the continuous Lyapunov equation :math: `AX + XA^H = Q
+    Solve the continuous Lyapunov equation :math: `AX + XA^H + Q = 0
 
     Parameters
     ----------
