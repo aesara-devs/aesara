@@ -2,6 +2,7 @@ import functools
 import itertools
 
 import numpy as np
+import numpy.linalg
 import pytest
 import scipy
 
