@@ -30,6 +30,7 @@ from aesara.tensor.basic import (
     ARange,
     Choose,
     ExtractDiag,
+    Eye,
     Join,
     MakeVector,
     PermuteRowElements,
@@ -3857,21 +3858,21 @@ class TestInferShape(utt.InferShapeTester):
             excluding=["local_useless_reshape"],
         )
 
-    # def test_Eye(self):
-    #     aiscal = iscalar()
-    #     biscal = iscalar()
-    #     ciscal = iscalar()
-    #     self._compile_and_check(
-    #         [aiscal, biscal, ciscal], [Eye()(aiscal, biscal, ciscal)], [4, 4, 0], Eye
-    #     )
-    #
-    #     self._compile_and_check(
-    #         [aiscal, biscal, ciscal], [Eye()(aiscal, biscal, ciscal)], [4, 5, 0], Eye
-    #     )
-    #
-    #     self._compile_and_check(
-    #         [aiscal, biscal, ciscal], [Eye()(aiscal, biscal, ciscal)], [3, 5, 0], Eye
-    #     )
+    def test_Eye(self):
+        aiscal = iscalar()
+        biscal = iscalar()
+        ciscal = iscalar()
+        self._compile_and_check(
+            [aiscal, biscal, ciscal], [Eye()(aiscal, biscal, ciscal)], [4, 4, 0], Eye
+        )
+
+        self._compile_and_check(
+            [aiscal, biscal, ciscal], [Eye()(aiscal, biscal, ciscal)], [4, 5, 0], Eye
+        )
+
+        self._compile_and_check(
+            [aiscal, biscal, ciscal], [Eye()(aiscal, biscal, ciscal)], [3, 5, 0], Eye
+        )
 
     def test_Tri(self):
         aiscal = iscalar()
