@@ -50,6 +50,7 @@ from aesara.tensor.shape import (
     shape_padright,
     shape_tuple,
 )
+
 from aesara.tensor.type import (
     TensorType,
     discrete_dtypes,
@@ -1409,18 +1410,26 @@ def eye(n, m=None, k=0, dtype=None):
 
     Returns
     -------
-    ndarray of shape (N,M)
-        An array where all elements are equal to zero, except for the `k`-th
-        diagonal, whose values are equal to one.
-
+    aesara tensor of shape (N,M)
+        A symbolic tensor representing a matrix where all elements are equal to zero,
+        except for the `k`-th diagonal, whose values are equal to one.
     """
-    if dtype is None:
-        dtype = config.floatX
+
     if m is None:
         m = n
-    localop = Eye(dtype)
-    return localop(n, m, k)
+    if dtype is None:
+        dtype = aesara.config.floatX
 
+    n = as_tensor_variable(n)
+    m = as_tensor_variable(m)
+    k = as_tensor_variable(k)
+
+    i = switch(k >= 0, k, -k * m)
+    eye = zeros(n * m, dtype=dtype)
+    eye = aesara.tensor.subtensor.set_subtensor(eye[i::m + 1], 1).reshape((n, m))
+    eye = aesara.tensor.subtensor.set_subtensor(eye[m - k:, :], 0)
+
+    return eye
 
 def identity_like(x):
     return eye(x.shape[0], x.shape[1], k=0, dtype=x.dtype)
