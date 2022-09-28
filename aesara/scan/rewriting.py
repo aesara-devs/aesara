@@ -1694,52 +1694,46 @@ class ScanMerge(GraphRewriter):
         inner_outs = [[] for nd in nodes]
         outer_outs = []
 
-        def rename(ls, suffix):
-            for k in ls:
-                if k.name:
-                    k.name += str(suffix)
-            return ls
-
         for idx, nd in enumerate(nodes):
-            inner_ins[idx].append(rename(nd.op.inner_seqs(nd.op.inner_inputs), idx))
-            outer_ins += rename(nd.op.outer_seqs(nd.inputs), idx)
+            inner_ins[idx].append(nd.op.inner_seqs(nd.op.inner_inputs))
+            outer_ins += nd.op.outer_seqs(nd.inputs)
 
         mit_mot_out_slices = ()
 
         mit_mot_in_slices = ()
         for idx, nd in enumerate(nodes):
-            inner_ins[idx].append(rename(nd.op.inner_mitmot(nd.op.inner_inputs), idx))
+            inner_ins[idx].append(nd.op.inner_mitmot(nd.op.inner_inputs))
             inner_outs[idx].append(nd.op.inner_mitmot_outs(nd.op.inner_outputs))
             mit_mot_in_slices += nd.op.info.mit_mot_in_slices
             mit_mot_out_slices += nd.op.info.mit_mot_out_slices[: nd.op.info.n_mit_mot]
-            outer_ins += rename(nd.op.outer_mitmot(nd.inputs), idx)
+            outer_ins += nd.op.outer_mitmot(nd.inputs)
             outer_outs += nd.op.outer_mitmot_outs(nd.outputs)
 
         mit_sot_in_slices = ()
         for idx, nd in enumerate(nodes):
-            inner_ins[idx].append(rename(nd.op.inner_mitsot(nd.op.inner_inputs), idx))
+            inner_ins[idx].append(nd.op.inner_mitsot(nd.op.inner_inputs))
             inner_outs[idx].append(nd.op.inner_mitsot_outs(nd.op.inner_outputs))
             mit_sot_in_slices += nd.op.info.mit_sot_in_slices
-            outer_ins += rename(nd.op.outer_mitsot(nd.inputs), idx)
+            outer_ins += nd.op.outer_mitsot(nd.inputs)
             outer_outs += nd.op.outer_mitsot_outs(nd.outputs)
 
         sit_sot_in_slices = ()
         for idx, nd in enumerate(nodes):
-            inner_ins[idx].append(rename(nd.op.inner_sitsot(nd.op.inner_inputs), idx))
+            inner_ins[idx].append(nd.op.inner_sitsot(nd.op.inner_inputs))
             sit_sot_in_slices += tuple((-1,) for x in range(nd.op.info.n_sit_sot))
             inner_outs[idx].append(nd.op.inner_sitsot_outs(nd.op.inner_outputs))
-            outer_ins += rename(nd.op.outer_sitsot(nd.inputs), idx)
+            outer_ins += nd.op.outer_sitsot(nd.inputs)
             outer_outs += nd.op.outer_sitsot_outs(nd.outputs)
 
         for idx, nd in enumerate(nodes):
             # Shared
-            inner_ins[idx].append(rename(nd.op.inner_shared(nd.op.inner_inputs), idx))
-            outer_ins += rename(nd.op.outer_shared(nd.inputs), idx)
+            inner_ins[idx].append(nd.op.inner_shared(nd.op.inner_inputs))
+            outer_ins += nd.op.outer_shared(nd.inputs)
 
         for idx, nd in enumerate(nodes):
             # NitSot
             inner_outs[idx].append(nd.op.inner_nitsot_outs(nd.op.inner_outputs))
-            outer_ins += rename(nd.op.outer_nitsot(nd.inputs), idx)
+            outer_ins += nd.op.outer_nitsot(nd.inputs)
             outer_outs += nd.op.outer_nitsot_outs(nd.outputs)
 
         for idx, nd in enumerate(nodes):
@@ -1752,8 +1746,8 @@ class ScanMerge(GraphRewriter):
             # Non Seqs
             node_inner_non_seqs = nd.op.inner_non_seqs(nd.op.inner_inputs)
             n_non_seqs += len(node_inner_non_seqs)
-            inner_ins[idx].append(rename(node_inner_non_seqs, idx))
-            outer_ins += rename(nd.op.outer_non_seqs(nd.inputs), idx)
+            inner_ins[idx].append(node_inner_non_seqs)
+            outer_ins += nd.op.outer_non_seqs(nd.inputs)
 
         # Add back the number of steps
         outer_ins = [nodes[0].inputs[0]] + outer_ins
