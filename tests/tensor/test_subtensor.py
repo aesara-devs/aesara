@@ -527,12 +527,6 @@ class TestSubtensor(utt.OptimizationTestMixin):
         with pytest.raises(Exception):
             n[: (2**63)]
 
-    def test_list_slice(self):
-        x = at.arange(100).reshape((5, 5, 4))
-        res = x[[slice(1, -1)] * x.ndim].eval()
-        x = np.arange(100).reshape((5, 5, 4))
-        np.allclose(res, x[[slice(1, -1)] * x.ndim])
-
     def test_slice_symbol(self):
         x = self.shared(np.random.random((5, 4)).astype(self.dtype))
         y = self.shared(np.random.random((1, 2, 3)).astype(self.dtype))
@@ -623,15 +617,15 @@ class TestSubtensor(utt.OptimizationTestMixin):
             test_array_np[np.newaxis, 1:, mask], test_array[np.newaxis, 1:, mask].eval()
         )
         assert_array_equal(
-            numpy_inc_subtensor(test_array_np, [0, mask], 1),
+            numpy_inc_subtensor(test_array_np, (0, mask), 1),
             inc_subtensor(test_array[(0,) + mask.nonzero()], 1).eval(),
         )
         assert_array_equal(
-            numpy_inc_subtensor(test_array_np, [0, mask], 1),
+            numpy_inc_subtensor(test_array_np, (0, mask), 1),
             inc_subtensor(test_array[0, mask], 1).eval(),
         )
         assert_array_equal(
-            numpy_inc_subtensor(test_array_np, [slice(None), mask], 1),
+            numpy_inc_subtensor(test_array_np, (slice(None), mask), 1),
             inc_subtensor(test_array[:, mask], 1).eval(),
         )
 
@@ -657,15 +651,15 @@ class TestSubtensor(utt.OptimizationTestMixin):
             numpy_n4[test_array_np > 2, ..., 0, 1], n4[test_array > 2, ..., 0, 1].eval()
         )
         assert_array_equal(
-            numpy_inc_subtensor(numpy_n4, [test_array_np > 2, Ellipsis], 1),
+            numpy_inc_subtensor(numpy_n4, (test_array_np > 2, Ellipsis), 1),
             inc_subtensor(n4[test_array > 2, ...], 1).eval(),
         )
         assert_array_equal(
-            numpy_inc_subtensor(numpy_n4, [test_array_np > 2, Ellipsis, 1], 1),
+            numpy_inc_subtensor(numpy_n4, (test_array_np > 2, Ellipsis, 1), 1),
             inc_subtensor(n4[test_array > 2, ..., 1], 1).eval(),
         )
         assert_array_equal(
-            numpy_inc_subtensor(numpy_n4, [test_array_np > 2, Ellipsis, 0, 1], 1),
+            numpy_inc_subtensor(numpy_n4, (test_array_np > 2, Ellipsis, 0, 1), 1),
             inc_subtensor(n4[test_array > 2, ..., 0, 1], 1).eval(),
         )
 
@@ -730,8 +724,6 @@ class TestSubtensor(utt.OptimizationTestMixin):
                 test_array.__getitem__((False,))
             with pytest.raises(TypeError):
                 test_array.__getitem__((True, False))
-            with pytest.raises(TypeError):
-                test_array.__getitem__([True, False])
             with pytest.raises(TypeError):
                 test_array.__getitem__(([0, 1], [0, False]))
             with pytest.raises(TypeError):
