@@ -18,9 +18,7 @@ They are grouped into the following sections:
     :maxdepth: 1
 
     basic
-    nnet/index
     random/index
-    signal/index
     utils
     elemwise
     extra_ops
