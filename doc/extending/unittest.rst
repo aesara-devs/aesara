@@ -209,29 +209,6 @@ Here is an example showing how to use :func:`verify_grad` on an :class:`Op` inst
         rng = np.random.default_rng(42)
         aesara.gradient.verify_grad(at.Flatten(), [a_val], rng=rng)
 
-Here is another example, showing how to verify the gradient w.r.t. a subset of
-an :class:`Op`'s inputs. This is useful in particular when the gradient w.r.t. some of
-the inputs cannot be computed by finite difference (e.g. for discrete inputs),
-which would cause :func:`verify_grad` to crash.
-
-.. testcode::
-
-    def test_crossentropy_softmax_grad():
-        op = at.nnet.crossentropy_softmax_argmax_1hot_with_bias
-
-        def op_with_fixed_y_idx(x, b):
-            # Input `y_idx` of this `Op` takes integer values, so we fix them
-            # to some constant array.
-            # Although this `Op` has multiple outputs, we can return only one.
-            # Here, we return the first output only.
-            return op(x, b, y_idx=np.asarray([0, 2]))[0]
-
-        x_val = np.asarray([[-1, 0, 1], [3, 2, 1]], dtype='float64')
-        b_val = np.asarray([1, 2, 3], dtype='float64')
-        rng = np.random.default_rng(42)
-
-        aesara.gradient.verify_grad(op_with_fixed_y_idx, [x_val, b_val], rng=rng)
-
 .. note::
 
     Although :func:`verify_grad` is defined in :mod:`aesara.gradient`, unittests

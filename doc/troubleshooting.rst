@@ -127,9 +127,6 @@ Could lower the memory usage, but raise computation time:
 
 - :attr:`config.scan__allow_gc` = True
 - :attr:`config.scan__allow_output_prealloc` =False
-- Use :func:`batch_normalization()
-  <aesara.tensor.nnet.batchnorm.batch_normalization>`. It use less memory
-  then building a corresponding Aesara graph.
 - Disable one or scan more rewrites:
     - ``optimizer_excluding=scan_pushout_seqs_ops``
     - ``optimizer_excluding=scan_pushout_dot1``

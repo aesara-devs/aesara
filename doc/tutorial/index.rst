@@ -41,7 +41,6 @@ Advanced
 .. toctree::
 
     sparse
-    conv_arithmetic
 
 Advanced configuration and debugging
 ------------------------------------
