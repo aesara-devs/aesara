@@ -535,6 +535,15 @@ class GemmRelated(COp):
             gettimeofday(&tv, 0);
             return (double) tv.tv_sec + (double) tv.tv_usec / 1000000.0;
         }
+
+        void compute_strides(npy_intp *shape, int N_shape, int type_size, npy_intp *res) {
+            int s;
+            res[N_shape - 1] = type_size;
+            for (int i = N_shape - 1; i > 0; i--) {
+                s = shape[i];
+                res[i - 1] = res[i] * (s > 0 ? s : 1);
+            }
+        }
         """
         return blas_header_text() + mod_str
 
@@ -672,6 +681,9 @@ class GemmRelated(COp):
             Py_XDECREF(%(_x)s);
             %(_x)s = _x_copy;
             Sx = PyArray_STRIDES(%(_x)s);
+            if ((Sx[0] < 1) || (Sx[1] < 1)) {
+                compute_strides(Nx, 2, type_size, Sx);
+            }
         }
 
         if ((Sy[0] < 1) || (Sy[1] < 1) || (Sy[0] MOD type_size) || (Sy[1] MOD type_size)
@@ -683,6 +695,9 @@ class GemmRelated(COp):
             Py_XDECREF(%(_y)s);
             %(_y)s = _y_copy;
             Sy = PyArray_STRIDES(%(_y)s);
+            if ((Sy[0] < 1) || (Sy[1] < 1)) {
+                compute_strides(Ny, 2, type_size, Sy);
+            }
         }
 
         if ((Sz[0] < 1) || (Sz[1] < 1) || (Sz[0] MOD type_size) || (Sz[1] MOD type_size)
@@ -694,6 +709,9 @@ class GemmRelated(COp):
             Py_XDECREF(%(_zout)s);
             %(_zout)s = _z_copy;
             Sz = PyArray_STRIDES(%(_zout)s);
+            if ((Sz[0] < 1) || (Sz[1] < 1)) {
+                compute_strides(Nz, 2, type_size, Sz);
+            }
         }
         """
 
