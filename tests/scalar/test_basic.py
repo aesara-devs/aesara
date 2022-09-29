@@ -444,7 +444,7 @@ def test_grad_inrange():
 
 def test_grad_abs():
     a = fscalar("a")
-    b = aesara.tensor.nnet.relu(a)
+    b = 0.5 * (a + aesara.tensor.abs(a))
     c = aesara.grad(b, a)
     f = aesara.function([a], c, mode=Mode(optimizer=None))
     # Currently Aesara return 0.5, but it isn't sure it won't change

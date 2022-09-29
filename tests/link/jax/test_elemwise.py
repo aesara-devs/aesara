@@ -5,10 +5,9 @@ from aesara.configdefaults import config
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import get_test_value
 from aesara.tensor import elemwise as at_elemwise
-from aesara.tensor import nnet as at_nnet
 from aesara.tensor.math import SoftmaxGrad
 from aesara.tensor.math import all as at_all
-from aesara.tensor.math import prod
+from aesara.tensor.math import log_softmax, prod, softmax
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.type import matrix, tensor, vector
 from tests.link.jax.test_basic import compare_jax_and_py
@@ -76,7 +75,7 @@ def test_jax_CAReduce():
 def test_softmax(axis):
     x = matrix("x")
     x.tag.test_value = np.arange(6, dtype=config.floatX).reshape(2, 3)
-    out = at_nnet.softmax(x, axis=axis)
+    out = softmax(x, axis=axis)
     fgraph = FunctionGraph([x], [out])
     compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
 
@@ -85,7 +84,7 @@ def test_softmax(axis):
 def test_logsoftmax(axis):
     x = matrix("x")
     x.tag.test_value = np.arange(6, dtype=config.floatX).reshape(2, 3)
-    out = at_nnet.logsoftmax(x, axis=axis)
+    out = log_softmax(x, axis=axis)
     fgraph = FunctionGraph([x], [out])
     compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
 
