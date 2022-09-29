@@ -43,7 +43,6 @@ from aesara.tensor.math import all as at_all
 from aesara.tensor.math import dot, exp, mean, sigmoid
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tanh
-from aesara.tensor.nnet import categorical_crossentropy
 from aesara.tensor.random import normal
 from aesara.tensor.random.utils import RandomStream
 from aesara.tensor.shape import Shape_i, reshape, specify_shape
@@ -58,7 +57,6 @@ from aesara.tensor.type import (
     fscalar,
     ftensor3,
     fvector,
-    imatrix,
     iscalar,
     ivector,
     lscalar,
@@ -3809,36 +3807,6 @@ class TestExamples:
         ny2[4] = np.dot(v_u1[4], vW_in1)
 
         # TODO FIXME: What is this testing?  At least assert something.
-
-    def test_grad_two_scans(self):
-
-        # data input & output
-        x = tensor3("x")
-        t = imatrix("t")
-
-        # forward pass
-        W = shared(
-            np.random.default_rng(utt.fetch_seed()).random((2, 2)).astype("float32"),
-            name="W",
-            borrow=True,
-        )
-
-        def forward_scanner(x_t):
-            a2_t = dot(x_t, W)
-            y_t = softmax_graph(a2_t)
-            return y_t
-
-        y, _ = scan(fn=forward_scanner, sequences=x, outputs_info=[None])
-
-        # loss function
-        def error_scanner(y_t, t_t):
-            return mean(categorical_crossentropy(y_t, t_t))
-
-        L, _ = scan(fn=error_scanner, sequences=[y, t], outputs_info=[None])
-        L = mean(L)
-
-        # backward pass
-        grad(L, [W])
 
     def _grad_mout_helper(self, n_iters, mode):
         rng = np.random.default_rng(utt.fetch_seed())

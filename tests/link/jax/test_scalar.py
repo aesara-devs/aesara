@@ -7,7 +7,6 @@ from aesara.configdefaults import config
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import get_test_value
 from aesara.scalar.basic import Composite
-from aesara.tensor import nnet as at_nnet
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.math import all as at_all
 from aesara.tensor.math import (
@@ -125,10 +124,6 @@ def test_nnet():
     x.tag.test_value = np.r_[1.0, 2.0].astype(config.floatX)
 
     out = sigmoid(x)
-    fgraph = FunctionGraph([x], [out])
-    compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
-
-    out = at_nnet.ultra_fast_sigmoid(x)
     fgraph = FunctionGraph([x], [out])
     compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
 
