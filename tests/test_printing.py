@@ -3,7 +3,9 @@ Tests of printing functionality
 """
 import logging
 from io import StringIO
+from textwrap import dedent
 
+import numpy as np
 import pytest
 
 import aesara
@@ -121,12 +123,12 @@ def test_debugprint():
     with pytest.raises(TypeError):
         debugprint("blah")
 
-    A = matrix(name="A")
-    B = matrix(name="B")
+    A = dmatrix(name="A")
+    B = dmatrix(name="B")
     C = A + B
     C.name = "C"
-    D = matrix(name="D")
-    E = matrix(name="E")
+    D = dmatrix(name="D")
+    E = dmatrix(name="E")
 
     F = D + E
     G = C + F
@@ -140,21 +142,17 @@ def test_debugprint():
     s = StringIO()
     debugprint(G, file=s, id_type="int")
     s = s.getvalue()
-    # The additional white space are needed!
-    reference = (
-        "\n".join(
-            [
-                "Elemwise{add,no_inplace} [id 0]",
-                " |Elemwise{add,no_inplace} [id 1] 'C'",
-                " | |A [id 2]",
-                " | |B [id 3]",
-                " |Elemwise{add,no_inplace} [id 4]",
-                "   |D [id 5]",
-                "   |E [id 6]",
-            ]
-        )
-        + "\n"
-    )
+    reference = dedent(
+        r"""
+        Elemwise{add,no_inplace} [id 0]
+         |Elemwise{add,no_inplace} [id 1] 'C'
+         | |A [id 2]
+         | |B [id 3]
+         |Elemwise{add,no_inplace} [id 4]
+           |D [id 5]
+           |E [id 6]
+        """
+    ).lstrip()
 
     assert s == reference
 
@@ -162,20 +160,17 @@ def test_debugprint():
     debugprint(G, file=s, id_type="CHAR")
     s = s.getvalue()
     # The additional white space are needed!
-    reference = (
-        "\n".join(
-            [
-                "Elemwise{add,no_inplace} [id A]",
-                " |Elemwise{add,no_inplace} [id B] 'C'",
-                " | |A [id C]",
-                " | |B [id D]",
-                " |Elemwise{add,no_inplace} [id E]",
-                "   |D [id F]",
-                "   |E [id G]",
-            ]
-        )
-        + "\n"
-    )
+    reference = dedent(
+        r"""
+        Elemwise{add,no_inplace} [id A]
+         |Elemwise{add,no_inplace} [id B] 'C'
+         | |A [id C]
+         | |B [id D]
+         |Elemwise{add,no_inplace} [id E]
+           |D [id F]
+           |E [id G]
+        """
+    ).lstrip()
 
     assert s == reference
 
@@ -183,60 +178,85 @@ def test_debugprint():
     debugprint(G, file=s, id_type="CHAR", stop_on_name=True)
     s = s.getvalue()
     # The additional white space are needed!
-    reference = (
-        "\n".join(
-            [
-                "Elemwise{add,no_inplace} [id A]",
-                " |Elemwise{add,no_inplace} [id B] 'C'",
-                " |Elemwise{add,no_inplace} [id C]",
-                "   |D [id D]",
-                "   |E [id E]",
-            ]
-        )
-        + "\n"
-    )
+    reference = dedent(
+        r"""
+        Elemwise{add,no_inplace} [id A]
+         |Elemwise{add,no_inplace} [id B] 'C'
+         |Elemwise{add,no_inplace} [id C]
+           |D [id D]
+           |E [id E]
+        """
+    ).lstrip()
 
     assert s == reference
 
     s = StringIO()
     debugprint(G, file=s, id_type="")
     s = s.getvalue()
-    # The additional white space are needed!
-    reference = (
-        "\n".join(
-            [
-                "Elemwise{add,no_inplace}",
-                " |Elemwise{add,no_inplace} 'C'",
-                " | |A",
-                " | |B",
-                " |Elemwise{add,no_inplace}",
-                "   |D",
-                "   |E",
-            ]
-        )
-        + "\n"
-    )
+    reference = dedent(
+        r"""
+        Elemwise{add,no_inplace}
+         |Elemwise{add,no_inplace} 'C'
+         | |A
+         | |B
+         |Elemwise{add,no_inplace}
+           |D
+           |E
+        """
+    ).lstrip()
 
     assert s == reference
 
-    # test print_storage=True
     s = StringIO()
     debugprint(g, file=s, id_type="", print_storage=True)
     s = s.getvalue()
-    reference = (
-        "\n".join(
-            [
-                "Elemwise{add,no_inplace} 0 [None]",
-                " |A [None]",
-                " |B [None]",
-                " |D [None]",
-                " |E [None]",
-            ]
-        )
-        + "\n"
-    )
+    reference = dedent(
+        r"""
+        Elemwise{add,no_inplace} 0 [None]
+         |A [None]
+         |B [None]
+         |D [None]
+         |E [None]
+        """
+    ).lstrip()
 
     assert s == reference
+
+    # Test the `profile` handling when profile data is missing
+    g = aesara.function([A, B, D, E], G, mode=mode, profile=True)
+
+    s = StringIO()
+    debugprint(g, file=s, id_type="", print_storage=True)
+    s = s.getvalue()
+    reference = dedent(
+        r"""
+        Elemwise{add,no_inplace} 0 [None]
+         |A [None]
+         |B [None]
+         |D [None]
+         |E [None]
+        """
+    ).lstrip()
+
+    assert s == reference
+
+    # Add profile data
+    g(np.c_[[1.0]], np.c_[[1.0]], np.c_[[1.0]], np.c_[[1.0]])
+
+    s = StringIO()
+    debugprint(g, file=s, id_type="", print_storage=True)
+    s = s.getvalue()
+    reference = dedent(
+        r"""
+        Elemwise{add,no_inplace} 0 [None]
+         |A [None]
+         |B [None]
+         |D [None]
+         |E [None]
+        """
+    ).lstrip()
+
+    assert reference in s
 
     A = dmatrix(name="A")
     B = dmatrix(name="B")
@@ -251,19 +271,22 @@ def test_debugprint():
         print_view_map=True,
     )
     s = s.getvalue()
-    exp_res = r"""Elemwise{Composite{(i0 + (i1 - i2))}} 4
- |A
- |InplaceDimShuffle{x,0} v={0: [0]} 3
- | |CGemv{inplace} d={0: [0]} 2
- |   |AllocEmpty{dtype='float64'} 1
- |   | |Shape_i{0} 0
- |   |   |B
- |   |TensorConstant{1.0}
- |   |B
- |   |<TensorType(float64, (None,))>
- |   |TensorConstant{0.0}
- |D
-    """
+    exp_res = dedent(
+        r"""
+        Elemwise{Composite{(i0 + (i1 - i2))}} 4
+         |A
+         |InplaceDimShuffle{x,0} v={0: [0]} 3
+         | |CGemv{inplace} d={0: [0]} 2
+         |   |AllocEmpty{dtype='float64'} 1
+         |   | |Shape_i{0} 0
+         |   |   |B
+         |   |TensorConstant{1.0}
+         |   |B
+         |   |<TensorType(float64, (None,))>
+         |   |TensorConstant{0.0}
+         |D
+        """
+    ).lstrip()
 
     assert [l.strip() for l in s.split("\n")] == [
         l.strip() for l in exp_res.split("\n")
