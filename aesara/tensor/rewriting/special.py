@@ -1,13 +1,14 @@
-from aesara.tensor.rewriting.basic import (
-    register_specialize,
-)
 from aesara import scalar as aes
-from aesara.tensor.math import true_div, exp, Sum
-from aesara.tensor.special import LogSoftmax, Softmax, SoftmaxGrad
+from aesara.graph.rewriting.basic import copy_stack_trace, node_rewriter
+from aesara.tensor.elemwise import DimShuffle, Elemwise
+from aesara.tensor.math import Sum, exp
+from aesara.tensor.math import sum as at_sum
+from aesara.tensor.math import true_div
+from aesara.tensor.rewriting.basic import register_specialize
 from aesara.tensor.rewriting.math import local_mul_canonizer
-from aesara.graph.rewriting.basic import node_rewriter, copy_stack_trace
+from aesara.tensor.special import LogSoftmax, Softmax, SoftmaxGrad
 from aesara.tensor.subtensor import AdvancedIncSubtensor
-from aesara.tensor.elemwise import Elemwise, DimShuffle
+from aesara.tensor.type import values_eq_approx_remove_inf, values_eq_approx_remove_nan
 
 
 # This is not registered in stabilize, as it cause some crossentropy
@@ -63,7 +64,7 @@ def local_logsoftmax_grad(fgraph, node):
                 node.inputs[0].owner.inputs[0].owner.op, AdvancedIncSubtensor
             )
             # the rewrite only applies to legacy SoftmaxGrad
-            and node.op == softmax_grad_legacy
+            and node.op == SoftmaxGrad(axis=-1)
             and node.inputs[0].owner.inputs[1].ndim == 2
         )
     ):
