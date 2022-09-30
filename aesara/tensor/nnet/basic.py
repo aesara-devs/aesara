@@ -24,10 +24,7 @@ from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.extra_ops import Unique
 from aesara.tensor.math import (
-    LogSoftmax,
     MaxAndArgmax,
-    Softmax,
-    SoftmaxGrad,
     Sum,
     add,
     dot,
@@ -35,13 +32,11 @@ from aesara.tensor.math import (
     exp,
     expm1,
     log,
-    log_softmax,
     max_and_argmax,
     mul,
     neg,
     or_,
     sigmoid,
-    softmax,
     softplus,
 )
 from aesara.tensor.math import sum as at_sum
@@ -54,15 +49,9 @@ from aesara.tensor.rewriting.basic import (
 )
 from aesara.tensor.rewriting.math import local_mul_canonizer
 from aesara.tensor.shape import Shape, shape_padleft
+from aesara.tensor.special import Softmax, SoftmaxGrad, log_softmax, softmax
 from aesara.tensor.subtensor import AdvancedIncSubtensor, AdvancedSubtensor
-from aesara.tensor.type import (
-    TensorType,
-    discrete_dtypes,
-    float_dtypes,
-    integer_dtypes,
-    values_eq_approx_remove_inf,
-    values_eq_approx_remove_nan,
-)
+from aesara.tensor.type import TensorType, discrete_dtypes, float_dtypes, integer_dtypes
 
 
 class SoftmaxWithBias(COp):
@@ -325,71 +314,6 @@ softmax_grad_legacy = SoftmaxGrad(axis=-1)
 
 
 softmax_legacy = Softmax(axis=-1)
-
-
-# This is not registered in stabilize, as it cause some crossentropy
-# optimization to not be inserted.
-@register_specialize("stabilize", "fast_compile")
-@node_rewriter([Elemwise])
-def local_logsoftmax(fgraph, node):
-    """
-    Detect Log(Softmax(x)) and replace it with LogSoftmax(x)
-
-    Note: only forward pass is affected
-    """
-    if (
-        isinstance(node.op, Elemwise)
-        and isinstance(node.op.scalar_op, aes.Log)
-        and len(node.inputs) == 1
-        and node.inputs[0].owner is not None
-        and isinstance(node.inputs[0].owner.op, Softmax)
-    ):
-        inVars = node.inputs[0].owner.inputs[0]
-        new_op = LogSoftmax(axis=node.inputs[0].owner.op.axis)
-        ret = new_op(inVars)
-        ret.tag.values_eq_approx = values_eq_approx_remove_inf
-        copy_stack_trace([node.inputs[0], node.outputs[0]], ret)
-        return [ret]
-
-
-# This is not registered in stabilize, as it cause some crossentropy
-# optimization to not be inserted.
-@register_specialize("stabilize", "fast_compile")
-@node_rewriter([SoftmaxGrad])
-def local_logsoftmax_grad(fgraph, node):
-    """
-    Detect Log(Softmax(x))'s grad and replace it with LogSoftmax(x)'s grad
-
-    Note: only grad is affected
-    """
-    if (
-        isinstance(node.op, SoftmaxGrad)
-        and len(node.inputs) == 2
-        and node.inputs[0].owner is not None
-        and node.inputs[0].owner.op == true_div
-        and len(node.inputs[0].owner.inputs) >= 2
-        and node.inputs[0].owner.inputs[1].owner is not None
-        and isinstance(node.inputs[0].owner.inputs[1].owner.op, Softmax)
-        and node.inputs[1] == node.inputs[0].owner.inputs[1]
-        and not (
-            # skip if it will be optimized by
-            # local_advanced_indexing_crossentropy_onehot_grad
-            node.inputs[0].owner.op == true_div
-            and node.inputs[0].owner.inputs[0].owner is not None
-            and isinstance(
-                node.inputs[0].owner.inputs[0].owner.op, AdvancedIncSubtensor
-            )
-            # the rewrite only applies to legacy SoftmaxGrad
-            and node.op == softmax_grad_legacy
-            and node.inputs[0].owner.inputs[1].ndim == 2
-        )
-    ):
-        # get parameters from unoptimized op
-        grads, sm = node.inputs[0].owner.inputs
-        ret = grads - at_sum(grads, axis=sm.owner.op.axis, keepdims=True) * sm
-        ret.tag.values_eq_approx = values_eq_approx_remove_nan
-        copy_stack_trace(node.outputs[0], ret)
-        return [ret]
 
 
 @register_specialize("fast_compile")
@@ -2211,12 +2135,12 @@ def confusion_matrix(actual, pred):
 DEPRECATED_NAMES = [
     (
         "softmax",
-        "`aesara.tensor.nnet.basic.softmax` has been moved to `aesara.tensor.math.softmax`.",
+        "`aesara.tensor.nnet.basic.softmax` has been moved to `aesara.tensor.special.softmax`.",
         softmax,
     ),
     (
         "logsoftmax",
-        "`aesara.tensor.nnet.basic.logsoftmax` has been moved to `aesara.tensor.math.logsoftmax`.",
+        "`aesara.tensor.nnet.basic.logsoftmax` has been moved to `aesara.tensor.special.log_softmax`.",
         log_softmax,
     ),
 ]

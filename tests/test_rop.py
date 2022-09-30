@@ -328,7 +328,7 @@ class TestRopLop(RopLopChecker):
         self.check_mat_rop_lop(self.mx.sum(axis=1), (self.mat_in_shape[0],))
 
     def test_softmax(self):
-        self.check_rop_lop(aesara.tensor.math.softmax(self.x), self.in_shape)
+        self.check_rop_lop(aesara.tensor.special.softmax(self.x), self.in_shape)
 
     def test_alloc(self):
         # Alloc of the sum of x into a vector

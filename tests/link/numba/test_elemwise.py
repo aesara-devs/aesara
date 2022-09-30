@@ -12,19 +12,8 @@ from aesara.compile.sharedvalue import SharedVariable
 from aesara.graph.basic import Constant
 from aesara.graph.fg import FunctionGraph
 from aesara.tensor import elemwise as at_elemwise
-from aesara.tensor.math import (
-    All,
-    Any,
-    LogSoftmax,
-    Max,
-    Mean,
-    Min,
-    Prod,
-    ProdWithoutZeros,
-    Softmax,
-    SoftmaxGrad,
-    Sum,
-)
+from aesara.tensor.math import All, Any, Max, Mean, Min, Prod, ProdWithoutZeros, Sum
+from aesara.tensor.special import LogSoftmax, Softmax, SoftmaxGrad
 from tests.link.numba.test_basic import (
     compare_numba_and_py,
     my_multi_out,
