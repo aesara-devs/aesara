@@ -630,11 +630,7 @@ def _debugprint(
         if node_info and var in node_info:
             var_output = f"{var_output} ({node_info[var]})"
 
-        if profile is None:
-            print(var_output, file=file)
-        elif profile.apply_time and node not in profile.apply_time:
-            print(var_output, file=file)
-        elif profile.apply_time and node in profile.apply_time:
+        if profile and profile.apply_time and node in profile.apply_time:
             op_time = profile.apply_time[node]
             op_time_percent = (op_time / profile.fct_call_time) * 100
             tot_time_dict = profile.compute_total_times()
@@ -652,6 +648,8 @@ def _debugprint(
                 ),
                 file=file,
             )
+        else:
+            print(var_output, file=file)
 
         if not already_done and (
             not stop_on_name or not (hasattr(var, "name") and var.name is not None)
