@@ -3,6 +3,7 @@ import numpy as np
 import aesara.tensor as at
 from aesara import shared
 from aesara.compile.builders import OpFromGraph
+from aesara.tensor.special import softmax
 from aesara.tensor.type import dmatrix, scalars
 
 
@@ -24,8 +25,7 @@ class Mlp:
 
         wy = shared(self.rng.normal(0, 1, (nhiddens, noutputs)))
         by = shared(np.zeros(noutputs), borrow=True)
-        y = at.softmax(at.dot(h, wy) + by)
-
+        y = softmax(at.dot(h, wy) + by)
         self.inputs = [x]
         self.outputs = [y]
 

@@ -67,7 +67,7 @@ hidden layer and a softmax output layer.
 
     wy = th.shared(rng.normal(0, 1, (nhiddens, noutputs)))
     by = th.shared(np.zeros(noutputs), borrow=True)
-    y = at.math.softmax(at.dot(h, wy) + by)
+    y = at.special.softmax(at.dot(h, wy) + by)
 
     predict = th.function([x], y)
 

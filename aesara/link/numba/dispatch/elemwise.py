@@ -38,13 +38,8 @@ from aesara.scalar.basic import (
 from aesara.scalar.basic import add as add_as
 from aesara.scalar.basic import scalar_maximum
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
-from aesara.tensor.math import (
-    LogSoftmax,
-    MaxAndArgmax,
-    MulWithoutZeros,
-    Softmax,
-    SoftmaxGrad,
-)
+from aesara.tensor.math import MaxAndArgmax, MulWithoutZeros
+from aesara.tensor.special import LogSoftmax, Softmax, SoftmaxGrad
 
 
 @singledispatch

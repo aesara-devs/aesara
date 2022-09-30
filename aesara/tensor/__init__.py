@@ -113,6 +113,7 @@ import aesara.tensor.rewriting
 
 # isort: off
 from aesara.tensor import linalg  # noqa
+from aesara.tensor import special
 
 # For backward compatibility
 from aesara.tensor import nlinalg  # noqa

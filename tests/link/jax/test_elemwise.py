@@ -5,10 +5,10 @@ from aesara.configdefaults import config
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import get_test_value
 from aesara.tensor import elemwise as at_elemwise
-from aesara.tensor.math import SoftmaxGrad
 from aesara.tensor.math import all as at_all
-from aesara.tensor.math import log_softmax, prod, softmax
+from aesara.tensor.math import prod
 from aesara.tensor.math import sum as at_sum
+from aesara.tensor.special import SoftmaxGrad, log_softmax, softmax
 from aesara.tensor.type import matrix, tensor, vector
 from tests.link.jax.test_basic import compare_jax_and_py
 
