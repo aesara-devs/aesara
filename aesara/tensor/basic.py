@@ -1284,7 +1284,7 @@ class Eye(Op):
         return [grad_undefined(self, i, inp[i]) for i in range(3)]
 
 
-def eye(n, m=None, k=0, dtype=None):
+def eye(n: int, m: int = None, k: int = 0, dtype=None) -> TensorVariable:
     """Return a 2-D array with ones on the diagonal and zeros elsewhere.
 
     Parameters
@@ -1312,14 +1312,29 @@ def eye(n, m=None, k=0, dtype=None):
     if dtype is None:
         dtype = aesara.config.floatX
 
-    n = as_tensor_variable(n)
-    m = as_tensor_variable(m)
-    k = as_tensor_variable(k)
+    n = aesara.scalar.as_scalar(n)
+    m = aesara.scalar.as_scalar(m)
+    k = aesara.scalar.as_scalar(k)
 
-    i = switch(k >= 0, k, -k * m)
+    i = aesara.scalar.switch(k >= 0, k, -k * m)
+    i_comp_op = aesara.scalar.Composite([n, m, k], [i])
+    i_comp = i_comp_op(n, m, k)
+
+    mkm = (m - k) * m
+    mkm_comp_op = aesara.scalar.Composite([m, k], [mkm])
+    mkm_comp = mkm_comp_op(m, k)
+
+    last_row = aesara.scalar.switch(m - k > 0, m - k, 0)
+    last_row_op = aesara.scalar.Composite([m, k], [last_row])
+    last_valid_row = last_row_op(m, k)
+
     eye = zeros(n * m, dtype=dtype)
-    eye = aesara.tensor.subtensor.set_subtensor(eye[i :: m + 1], 1).reshape((n, m))
-    eye = aesara.tensor.subtensor.set_subtensor(eye[m - k :, :], 0)
+
+    ones_slice = slice(i_comp, mkm_comp, m + 1)
+    overflow_rows = slice(last_valid_row, None, None)
+
+    eye = aesara.tensor.subtensor.set_subtensor(eye[ones_slice], 1).reshape((n, m))
+    eye = aesara.tensor.subtensor.set_subtensor(eye[overflow_rows, :], 0)
 
     return eye
 
