@@ -291,10 +291,10 @@ def _topk_py_impl(op, x, k, axis, idx_dtype):
     idx[axis] = slice(-k, None) if k > 0 else slice(-k)
 
     if not op.return_indices:
-        zv = np.partition(x, -k, axis=axis)[idx]
+        zv = np.partition(x, -k, axis=axis)[tuple(idx)]
         return zv
     elif op.return_values:
-        zi = np.argpartition(x, -k, axis=axis)[idx]
+        zi = np.argpartition(x, -k, axis=axis)[tuple(idx)]
         idx2 = tuple(
             np.arange(s).reshape((s,) + (1,) * (ndim - i - 1)) if i != axis else zi
             for i, s in enumerate(x.shape)
@@ -302,7 +302,7 @@ def _topk_py_impl(op, x, k, axis, idx_dtype):
         zv = x[idx2]
         return zv, zi.astype(idx_dtype)
     else:
-        zi = np.argpartition(x, -k, axis=axis)[idx]
+        zi = np.argpartition(x, -k, axis=axis)[tuple(idx)]
         return zi.astype(idx_dtype)
 
 
