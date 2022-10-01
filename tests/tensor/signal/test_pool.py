@@ -216,7 +216,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
                         r_stride = builtins.max(r_stride, pad[i])
                         r_end = builtins.min(r_end, input.shape[-nd + i] + pad[i])
                     region.append(slice(r_stride, r_end))
-                patch = padded_input[l][region]
+                patch = padded_input[l][tuple(region)]
                 output_val[l][r] = func(patch)
         return output_val
 
@@ -325,7 +325,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
                     r_stride = r[i] * stride[i]
                     r_end = builtins.min(r_stride + ws[i], input.shape[-nd + i])
                     region.append(slice(r_stride, r_end))
-                patch = input[l][region]
+                patch = input[l][tuple(region)]
                 output_val[l][r] = func(patch)
         return output_val
 
