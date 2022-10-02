@@ -90,7 +90,7 @@ def grad_not_implemented(op, x_pos, x, comment=""):
     """
 
     return (
-        NullType(
+        NullType.subtype(
             (
                 "This variable is Null because the grad method for "
                 f"input {x_pos} ({x}) of the {op} op is not implemented. {comment}"
@@ -113,7 +113,7 @@ def grad_undefined(op, x_pos, x, comment=""):
     """
 
     return (
-        NullType(
+        NullType.subtype(
             (
                 "This variable is Null because the grad method for "
                 f"input {x_pos} ({x}) of the {op} op is not implemented. {comment}"
@@ -158,7 +158,7 @@ class DisconnectedType(Type):
         return "DisconnectedType"
 
 
-disconnected_type = DisconnectedType()
+disconnected_type = DisconnectedType.subtype()
 
 
 def Rop(
@@ -1803,7 +1803,7 @@ def verify_grad(
     )
 
     tensor_pt = [
-        aesara.tensor.type.TensorType(
+        aesara.tensor.type.TensorType.subtype(
             aesara.tensor.as_tensor_variable(p).dtype,
             aesara.tensor.as_tensor_variable(p).broadcastable,
         )(name=f"input {i}")

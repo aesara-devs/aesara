@@ -191,7 +191,7 @@ class TestFunctionGraph:
         with pytest.raises(TypeError, match="Computation graph contains.*"):
             from aesara.graph.null_type import NullType
 
-            fg.import_var(NullType()(), "testing")
+            fg.import_var(NullType.subtype()(), "testing")
 
     def test_change_input(self):
 
@@ -695,7 +695,7 @@ class TestFunctionGraph:
         assert fg.clients == {var1: [], var2: []}
 
     def test_nominals(self):
-        t1 = MyType()
+        t1 = MyType.subtype()
 
         nm = NominalVariable(1, t1)
         nm2 = NominalVariable(2, t1)

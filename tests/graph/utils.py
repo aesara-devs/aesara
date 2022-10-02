@@ -41,15 +41,15 @@ class MyType2(Type):
 
 
 def MyVariable(name):
-    return Variable(MyType(), None, None, name=name)
+    return Variable(MyType.subtype(), None, None, name=name)
 
 
 def MyConstant(name, data=None):
-    return Constant(MyType(), data, name=name)
+    return Constant(MyType.subtype(), data, name=name)
 
 
 def MyVariable2(name):
-    return Variable(MyType2(), None, None, name=name)
+    return Variable(MyType2.subtype(), None, None, name=name)
 
 
 class MyOp(Op):
@@ -66,7 +66,7 @@ class MyOp(Op):
         for input in inputs:
             if not isinstance(input.type, MyType):
                 raise Exception("Error 1")
-        outputs = [MyType()() for i in range(self.n_outs)]
+        outputs = [MyType.subtype()() for i in range(self.n_outs)]
         return Apply(self, inputs, outputs)
 
     def perform(self, node, inputs, outputs):
@@ -101,7 +101,7 @@ class MyOpCastType2(MyOp):
             if not isinstance(input.type, MyType):
                 raise Exception("Error 1")
 
-        outputs = [MyType2()()]
+        outputs = [MyType2.subtype()()]
         return Apply(self, inputs, outputs)
 
 

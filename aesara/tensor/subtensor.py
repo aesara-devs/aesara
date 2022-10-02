@@ -809,7 +809,7 @@ class Subtensor(COp):
             # set subtensor here at:
             # aesara/tensor/opt.py:local_incsubtensor_of_zeros_to_setsubtensor()
             first = IncSubtensor(self.idx_list)(x.zeros_like(), gz, *rest)
-        return [first] + [DisconnectedType()()] * len(rest)
+        return [first] + [DisconnectedType.subtype()()] * len(rest)
 
     def connection_pattern(self, node):
 
@@ -1868,7 +1868,7 @@ class IncSubtensor(COp):
             gy = Subtensor(idx_list=self.idx_list)(g_output, *idx_list)
             gy = _sum_grad_over_bcasted_dims(y, gy)
 
-        return [gx, gy] + [DisconnectedType()()] * len(idx_list)
+        return [gx, gy] + [DisconnectedType.subtype()()] * len(idx_list)
 
 
 class IncSubtensorPrinter(SubtensorPrinter):
@@ -1949,7 +1949,9 @@ class AdvancedSubtensor1(COp):
         if x_.type.ndim == 0:
             raise TypeError("cannot index into a scalar")
         bcast = (ilist_.broadcastable[0],) + x_.broadcastable[1:]
-        return Apply(self, [x_, ilist_], [TensorType(dtype=x.dtype, shape=bcast)()])
+        return Apply(
+            self, [x_, ilist_], [TensorType.subtype(dtype=x.dtype, shape=bcast)()]
+        )
 
     def perform(self, node, inp, out_):
         x, i = inp
@@ -2009,7 +2011,7 @@ class AdvancedSubtensor1(COp):
             else:
                 gx = x.zeros_like()
             rval1 = [advanced_inc_subtensor1(gx, gz, ilist)]
-        return rval1 + [DisconnectedType()()] * (len(inputs) - 1)
+        return rval1 + [DisconnectedType.subtype()()] * (len(inputs) - 1)
 
     def R_op(self, inputs, eval_points):
         if eval_points[0] is None:
@@ -2134,7 +2136,7 @@ class AdvancedIncSubtensor1(COp):
 
     __props__ = ("inplace", "set_instead_of_inc")
     check_input = False
-    params_type = ParamsType(inplace=aes.bool, set_instead_of_inc=aes.bool)
+    params_type = ParamsType.subtype(inplace=aes.bool, set_instead_of_inc=aes.bool)
 
     def __init__(self, inplace=False, set_instead_of_inc=False):
         self.inplace = bool(inplace)
@@ -2493,7 +2495,7 @@ class AdvancedIncSubtensor1(COp):
             gy = advanced_subtensor1(g_output, idx_list)
             gy = _sum_grad_over_bcasted_dims(y, gy)
 
-        return [gx, gy] + [DisconnectedType()()]
+        return [gx, gy] + [DisconnectedType.subtype()()]
 
 
 advanced_inc_subtensor1 = AdvancedIncSubtensor1()
@@ -2641,9 +2643,9 @@ class AdvancedSubtensor(Op):
         else:
             gx = x.zeros_like()
         rest = inputs[1:]
-        return [advanced_inc_subtensor(gx, gz, *rest)] + [DisconnectedType()()] * len(
-            rest
-        )
+        return [advanced_inc_subtensor(gx, gz, *rest)] + [
+            DisconnectedType.subtype()()
+        ] * len(rest)
 
 
 advanced_subtensor = AdvancedSubtensor()
@@ -2743,7 +2745,7 @@ class AdvancedIncSubtensor(Op):
             # Make sure to sum gy over the dimensions of y that have been
             # added or broadcasted
             gy = _sum_grad_over_bcasted_dims(y, gy)
-        return [gx, gy] + [DisconnectedType()() for _ in idxs]
+        return [gx, gy] + [DisconnectedType.subtype()() for _ in idxs]
 
 
 advanced_inc_subtensor = AdvancedIncSubtensor()

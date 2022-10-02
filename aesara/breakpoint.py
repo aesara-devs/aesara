@@ -143,7 +143,7 @@ class PdbBreakpoint(Op):
                 output_storage[i][0] = inputs[i + 1]
 
     def grad(self, inputs, output_gradients):
-        return [DisconnectedType()()] + output_gradients
+        return [DisconnectedType.subtype()()] + output_gradients
 
     def infer_shape(self, fgraph, inputs, input_shapes):
         # Return the shape of every input but the condition (first input)

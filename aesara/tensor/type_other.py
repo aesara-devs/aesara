@@ -45,7 +45,7 @@ class MakeSlice(Op):
         out[0] = slice(*inp)
 
     def grad(self, inputs, grads):
-        return [DisconnectedType()() for i in inputs]
+        return [DisconnectedType.subtype()() for i in inputs]
 
 
 make_slice = MakeSlice()
@@ -53,7 +53,7 @@ make_slice = MakeSlice()
 
 class SliceType(Type[slice]):
     def clone(self, **kwargs):
-        return type(self)()
+        return type(self).subtype()
 
     def filter(self, x, strict=False, allow_downcast=None):
         if isinstance(x, slice):
@@ -76,7 +76,7 @@ class SliceType(Type[slice]):
         return isinstance(a, slice) and a is b
 
 
-slicetype = SliceType()
+slicetype = SliceType.subtype()
 
 
 class SliceConstant(Constant):
@@ -140,7 +140,7 @@ class NoneTypeT(Generic):
         return False
 
 
-none_type_t = NoneTypeT()
+none_type_t = NoneTypeT.subtype()
 
 NoneConst = Constant(none_type_t, None, name="NoneConst")
 

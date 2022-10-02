@@ -7,24 +7,27 @@ class TypedListType(CType):
     Parameters
     ----------
     ttype
-        Type of aesara variable this list will contains, can be another list.
+        Type of aesara variable this list will contain, can be another list.
     depth
         Optional parameters, any value above 0 will create a nested list of
         this depth. (0-based)
 
     """
 
-    def __init__(self, ttype, depth=0):
+    __props__ = ("ttype",)
+
+    @classmethod
+    def type_parameters(cls, ttype, depth=0):
 
         if depth < 0:
             raise ValueError("Please specify a depth superior or" "equal to 0")
         if not isinstance(ttype, Type):
             raise TypeError("Expected an Aesara Type")
 
-        if depth == 0:
-            self.ttype = ttype
-        else:
-            self.ttype = TypedListType(ttype, depth - 1)
+        if depth > 0:
+            ttype = TypedListType.subtype(ttype, depth - 1)
+
+        return {"ttype": ttype}
 
     def filter(self, x, strict=False, allow_downcast=None):
         """
@@ -50,16 +53,6 @@ class TypedListType(CType):
 
             else:
                 raise TypeError(f"Expected all elements to be {self.ttype}")
-
-    def __eq__(self, other):
-        """
-        Two lists are equal if they contain the same type.
-
-        """
-        return type(self) == type(other) and self.ttype == other.ttype
-
-    def __hash__(self):
-        return hash((type(self), self.ttype))
 
     def __str__(self):
         return "TypedList <" + str(self.ttype) + ">"

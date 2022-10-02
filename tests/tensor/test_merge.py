@@ -35,7 +35,7 @@ class MyOp(Op):
         for input in inputs:
             if not isinstance(input.type, MyType):
                 raise Exception("Error 1")
-        outputs = [MyType()()]
+        outputs = [MyType.subtype()()]
         return Apply(self, inputs, outputs)
 
     def perform(self, *args, **kwargs):

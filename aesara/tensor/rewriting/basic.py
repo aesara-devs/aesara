@@ -1153,7 +1153,7 @@ def constant_folding(fgraph, node):
         # instances appropriate for a given constant.
         # TODO: Add handling for sparse types.
         if isinstance(output.type, DenseTensorType):
-            output_type = TensorType(
+            output_type = TensorType.subtype(
                 output.type.dtype,
                 tuple(s == 1 for s in data.shape),
                 name=output.type.name,

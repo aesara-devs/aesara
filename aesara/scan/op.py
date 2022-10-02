@@ -793,7 +793,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         self.output_types = []
 
         def tensorConstructor(shape, dtype):
-            return TensorType(dtype=dtype, shape=shape)
+            return TensorType.subtype(dtype=dtype, shape=shape)
 
         if typeConstructor is None:
             typeConstructor = tensorConstructor
@@ -3033,7 +3033,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         if not isinstance(outputs, (list, tuple)):
             outputs = [outputs]
         # Re-order the gradients correctly
-        gradients = [DisconnectedType()()]
+        gradients = [DisconnectedType.subtype()()]
 
         offset = info.n_mit_mot + info.n_mit_sot + info.n_sit_sot + n_sitsot_outs
         for p, (x, t) in enumerate(
@@ -3057,7 +3057,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 else:
                     gradients.append(x[::-1])
             elif t == "disconnected":
-                gradients.append(DisconnectedType()())
+                gradients.append(DisconnectedType.subtype()())
             elif t == "through_shared":
                 gradients.append(
                     grad_undefined(
@@ -3066,7 +3066,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 )
             else:
                 # t contains the "why_null" string of a NullType
-                gradients.append(NullType(t)())
+                gradients.append(NullType.subtype(t)())
 
         end = info.n_mit_mot + info.n_mit_sot + info.n_sit_sot
         for p, (x, t) in enumerate(zip(outputs[:end], type_outs[:end])):
@@ -3085,7 +3085,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 else:
                     gradients.append(x[::-1])
             elif t == "disconnected":
-                gradients.append(DisconnectedType()())
+                gradients.append(DisconnectedType.subtype()())
             elif t == "through_shared":
                 gradients.append(
                     grad_undefined(
@@ -3097,7 +3097,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 )
             else:
                 # t contains the "why_null" string of a NullType
-                gradients.append(NullType(t)())
+                gradients.append(NullType.subtype(t)())
 
         start = len(gradients)
         node = outs[0].owner
@@ -3108,7 +3108,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 if not isinstance(dC_dout.type, DisconnectedType) and connected:
                     disconnected = False
             if disconnected:
-                gradients.append(DisconnectedType()())
+                gradients.append(DisconnectedType.subtype()())
             else:
                 gradients.append(
                     grad_undefined(
@@ -3117,7 +3117,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 )
 
         start = len(gradients)
-        gradients += [DisconnectedType()() for _ in range(info.n_nit_sot)]
+        gradients += [DisconnectedType.subtype()() for _ in range(info.n_nit_sot)]
         begin = end
 
         end = begin + n_sitsot_outs
@@ -3125,7 +3125,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             if t == "connected":
                 gradients.append(x[-1])
             elif t == "disconnected":
-                gradients.append(DisconnectedType()())
+                gradients.append(DisconnectedType.subtype()())
             elif t == "through_shared":
                 gradients.append(
                     grad_undefined(
@@ -3137,7 +3137,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 )
             else:
                 # t contains the "why_null" string of a NullType
-                gradients.append(NullType(t)())
+                gradients.append(NullType.subtype(t)())
 
         # Mask disconnected gradients
         # Ideally we would want to assert that the gradients we are
@@ -3153,7 +3153,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 ):
                     disconnected = False
             if disconnected:
-                gradients[idx] = DisconnectedType()()
+                gradients[idx] = DisconnectedType.subtype()()
         return gradients
 
     def R_op(self, inputs, eval_points):

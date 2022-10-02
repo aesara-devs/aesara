@@ -15,7 +15,7 @@ class ProdOp(COp):
     __props__ = ()
 
     def make_node(self, i):
-        return Apply(self, [i], [CDataType("void *", "py_decref")()])
+        return Apply(self, [i], [CDataType.subtype("void *", "py_decref")()])
 
     def c_support_code(self, **kwargs):
         return """
@@ -44,7 +44,7 @@ class GetOp(COp):
     __props__ = ()
 
     def make_node(self, c):
-        return Apply(self, [c], [TensorType("float32", (False,))()])
+        return Apply(self, [c], [TensorType.subtype("float32", (False,))()])
 
     def c_support_code(self, **kwargs):
         return """
@@ -73,7 +73,7 @@ Py_INCREF(%(out)s);
     not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_cdata():
-    i = TensorType("float32", (False,))()
+    i = TensorType.subtype("float32", (False,))()
     c = ProdOp()(i)
     i2 = GetOp()(c)
     mode = None
@@ -91,7 +91,7 @@ def test_cdata():
 
 class MyOpEnumList(COp):
     __props__ = ("op_chosen",)
-    params_type = EnumList(
+    params_type = EnumList.subtype(
         ("ADD", "+"),
         ("SUB", "-"),
         ("MULTIPLY", "*"),
@@ -164,7 +164,7 @@ class MyOpEnumList(COp):
 
 class MyOpCEnumType(COp):
     __props__ = ("python_value",)
-    params_type = CEnumType(
+    params_type = CEnumType.subtype(
         ("MILLION", "million"),
         ("BILLION", "billion"),
         ("TWO_BILLIONS", "two_billions"),
@@ -212,14 +212,14 @@ class TestEnumTypes:
         # Check that invalid enum name raises exception.
         for invalid_name in ("a", "_A", "0"):
             try:
-                EnumList(invalid_name)
+                EnumList.subtype(invalid_name)
             except AttributeError:
                 pass
             else:
                 raise Exception("EnumList with invalid name should fail.")
 
             try:
-                EnumType(**{invalid_name: 0})
+                EnumType.subtype(**{invalid_name: 0})
             except AttributeError:
                 pass
             else:
@@ -227,15 +227,15 @@ class TestEnumTypes:
 
         # Check that invalid enum value raises exception.
         try:
-            EnumType(INVALID_VALUE="string is not allowed.")
+            EnumType.subtype(INVALID_VALUE="string is not allowed.")
         except TypeError:
             pass
         else:
             raise Exception("EnumType with invalid value should fail.")
 
         # Check EnumType.
-        e1 = EnumType(C1=True, C2=12, C3=True, C4=-1, C5=False, C6=0.0)
-        e2 = EnumType(C1=1, C2=12, C3=1, C4=-1.0, C5=0.0, C6=0)
+        e1 = EnumType.subtype(C1=True, C2=12, C3=True, C4=-1, C5=False, C6=0.0)
+        e2 = EnumType.subtype(C1=1, C2=12, C3=1, C4=-1.0, C5=0.0, C6=0)
         assert e1 == e2
         assert not (e1 != e2)
         assert hash(e1) == hash(e2)
@@ -243,9 +243,9 @@ class TestEnumTypes:
         assert len((e1.ctype, e1.C1, e1.C2, e1.C3, e1.C4, e1.C5, e1.C6)) == 7
 
         # Check enum with aliases.
-        e1 = EnumType(A=("alpha", 0), B=("beta", 1), C=2)
-        e2 = EnumType(A=("alpha", 0), B=("beta", 1), C=2)
-        e3 = EnumType(A=("a", 0), B=("beta", 1), C=2)
+        e1 = EnumType.subtype(A=("alpha", 0), B=("beta", 1), C=2)
+        e2 = EnumType.subtype(A=("alpha", 0), B=("beta", 1), C=2)
+        e3 = EnumType.subtype(A=("a", 0), B=("beta", 1), C=2)
         assert e1 == e2
         assert e1 != e3
         assert e1.filter("beta") == e1.fromalias("beta") == e1.B == 1
@@ -253,9 +253,9 @@ class TestEnumTypes:
 
         # Check that invalid alias (same as a constant) raises exception.
         try:
-            EnumList(("A", "a"), ("B", "B"))
+            EnumList.subtype(("A", "a"), ("B", "B"))
         except TypeError:
-            EnumList(("A", "a"), ("B", "b"))
+            EnumList.subtype(("A", "a"), ("B", "b"))
         else:
             raise Exception(
                 "Enum with an alias name equal to a constant name should fail."

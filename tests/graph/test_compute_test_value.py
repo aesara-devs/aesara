@@ -65,7 +65,7 @@ class TestComputeTestValue:
             def perform(self, node, inputs, outputs):
                 outputs[0][0] = inputs[0]
 
-        test_input = SomeType()()
+        test_input = SomeType.subtype()()
         orig_object = object()
         test_input.tag.test_value = orig_object
 

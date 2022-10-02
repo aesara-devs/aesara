@@ -108,7 +108,7 @@ class DiagonalSubtensor(Op):
         _i1 = at.as_tensor_variable(i1)
         # TODO: We could produce a more precise static shape output type
         type_shape = (1 if shape == 1 else None for shape in x.type.shape)
-        out_type = at.TensorType(x.type.dtype, shape=type_shape)
+        out_type = at.TensorType.subtype(x.type.dtype, shape=type_shape)
         return Apply(self, [x, _i0, _i1], [out_type()])
 
     def perform(self, node, inputs, output_storage):
@@ -121,7 +121,7 @@ class DiagonalSubtensor(Op):
     def grad(self, inputs, g_outputs):
         z = at.zeros_like(inputs[0])
         gx = inc_diagonal_subtensor(z, inputs[1], inputs[2], g_outputs[0])
-        return [gx, DisconnectedType()(), DisconnectedType()()]
+        return [gx, DisconnectedType.subtype()(), DisconnectedType.subtype()()]
 
     def connection_pattern(self, node):
         rval = [[True], [False], [False]]
@@ -167,8 +167,8 @@ class IncDiagonalSubtensor(Op):
         gy = g_outputs[0]
         return [
             gy,
-            DisconnectedType()(),
-            DisconnectedType()(),
+            DisconnectedType.subtype()(),
+            DisconnectedType.subtype()(),
             diagonal_subtensor(gy, i0, i1),
         ]
 

@@ -562,7 +562,7 @@ TestCosBroadcast = makeBroadcastTester(
 
 
 def test_py_c_match():
-    a = TensorType(dtype="int8", shape=(False,))()
+    a = TensorType.subtype(dtype="int8", shape=(False,))()
     f = function([a], arccos(a), mode="DebugMode")
     # This can fail in DebugMode
     f(np.asarray([1, 0, -1], dtype="int8"))
@@ -1934,7 +1934,7 @@ class TestDot:
                     (False, True),
                     (False, False),
                 ):
-                    x = TensorType(dtype=dtype0, shape=bc0)()
+                    x = TensorType.subtype(dtype=dtype0, shape=bc0)()
                     for bc1 in (
                         (True,),
                         (False,),
@@ -1944,7 +1944,7 @@ class TestDot:
                         (False, False),
                     ):
 
-                        y = TensorType(dtype=dtype1, shape=bc1)()
+                        y = TensorType.subtype(dtype=dtype1, shape=bc1)()
                         z = dense_dot(x, y)
 
                         if dtype0.startswith("float") and dtype1.startswith("float"):
@@ -2117,7 +2117,7 @@ class TestTensordot:
 
     def test_broadcastable1(self):
         rng = np.random.default_rng(seed=utt.fetch_seed())
-        x = TensorType(dtype=config.floatX, shape=(True, False, False))("x")
+        x = TensorType.subtype(dtype=config.floatX, shape=(True, False, False))("x")
         y = tensor3("y")
         z = tensordot(x, y)
         assert z.broadcastable == (True, False)
@@ -2129,7 +2129,7 @@ class TestTensordot:
 
     def test_broadcastable2(self):
         rng = np.random.default_rng(seed=utt.fetch_seed())
-        x = TensorType(dtype=config.floatX, shape=(True, False, False))("x")
+        x = TensorType.subtype(dtype=config.floatX, shape=(True, False, False))("x")
         y = tensor3("y")
         axes = [[2, 1], [0, 1]]
         z = tensordot(x, y, axes=axes)
@@ -2156,7 +2156,7 @@ def test_smallest():
 
 
 def test_var():
-    a = TensorType(dtype="float64", shape=[False, False, False])()
+    a = TensorType.subtype(dtype="float64", shape=[False, False, False])()
     f = function([a], var(a))
 
     a_val = np.arange(6).reshape(1, 2, 3)
@@ -2206,7 +2206,7 @@ def test_var():
 class TestSum:
     def test_sum_overflow(self):
         # Ensure that overflow errors are a little bit harder to get
-        a = TensorType(dtype="int8", shape=[False])()
+        a = TensorType.subtype(dtype="int8", shape=[False])()
         f = function([a], at_sum(a))
         assert f([1] * 300) == 300
 
@@ -2269,7 +2269,7 @@ class TestArithmeticCast:
             return np.array([1], dtype=dtype)
 
         def aesara_i_scalar(dtype):
-            return aes.ScalarType(str(dtype))()
+            return aes.ScalarType.subtype(str(dtype))()
 
         def numpy_i_scalar(dtype):
             return numpy_scalar(dtype)
@@ -3262,7 +3262,7 @@ def test_grad_useless_sum():
 
     mode = get_default_mode().including("canonicalize")
     mode.check_isfinite = False
-    x = TensorType(config.floatX, (True,))("x")
+    x = TensorType.subtype(config.floatX, (True,))("x")
     l = log(1.0 - sigmoid(x))[0]
     g = grad(l, x)
 

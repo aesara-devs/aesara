@@ -336,7 +336,7 @@ class RandomVariable(Op):
             dtype_idx = constant(dtype, dtype="int64")
             dtype = all_dtypes[dtype_idx.data]
 
-        outtype = TensorType(dtype=dtype, shape=bcast)
+        outtype = TensorType.subtype(dtype=dtype, shape=bcast)
         out_var = outtype()
         inputs = (rng, size, dtype_idx) + dist_params
         outputs = (rng.type(), out_var)
@@ -405,7 +405,7 @@ class AbstractRNGConstructor(Op):
 
 
 class RandomStateConstructor(AbstractRNGConstructor):
-    random_type = RandomStateType()
+    random_type = RandomStateType.subtype()
     random_constructor = "RandomState"
 
 
@@ -413,7 +413,7 @@ RandomState = RandomStateConstructor()
 
 
 class DefaultGeneratorMakerOp(AbstractRNGConstructor):
-    random_type = RandomGeneratorType()
+    random_type = RandomGeneratorType.subtype()
     random_constructor = "default_rng"
 
 

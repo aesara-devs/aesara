@@ -60,8 +60,8 @@ class BaseCorrMM(OpenMPOp, _NoPythonOp):
 
     _direction: Optional[str] = None
 
-    params_type = ParamsType(
-        direction=EnumList(
+    params_type = ParamsType.subtype(
+        direction=EnumList.subtype(
             ("DIRECTION_FORWARD", "forward"),  # 0
             ("DIRECTION_BACKPROP_WEIGHTS", "backprop weights"),  # 1
             ("DIRECTION_BACKPROP_INPUTS", "backprop inputs"),
@@ -699,7 +699,7 @@ class CorrMM(BaseCorrMM):
             False,
         ]
         dtype = img.type.dtype
-        return Apply(self, [img, kern], [TensorType(dtype, broadcastable)()])
+        return Apply(self, [img, kern], [TensorType.subtype(dtype, broadcastable)()])
 
     def infer_shape(self, fgraph, node, input_shape):
         imshp = input_shape[0]
@@ -787,7 +787,9 @@ class CorrMM_gradWeights(BaseCorrMM):
             ]
         dtype = img.type.dtype
         return Apply(
-            self, [img, topgrad] + height_width, [TensorType(dtype, broadcastable)()]
+            self,
+            [img, topgrad] + height_width,
+            [TensorType.subtype(dtype, broadcastable)()],
         )
 
     def infer_shape(self, fgraph, node, input_shape):
@@ -857,7 +859,7 @@ class CorrMM_gradWeights(BaseCorrMM):
             self.unshared,
         )(bottom, weights)
         d_height_width = (
-            (aesara.gradient.DisconnectedType()(),) * 2 if len(inp) == 4 else ()
+            (aesara.gradient.DisconnectedType.subtype()(),) * 2 if len(inp) == 4 else ()
         )
         return (d_bottom, d_top) + d_height_width
 
@@ -915,7 +917,9 @@ class CorrMM_gradInputs(BaseCorrMM):
             ]
         dtype = kern.type.dtype
         return Apply(
-            self, [kern, topgrad] + height_width, [TensorType(dtype, broadcastable)()]
+            self,
+            [kern, topgrad] + height_width,
+            [TensorType.subtype(dtype, broadcastable)()],
         )
 
     def infer_shape(self, fgraph, node, input_shape):
@@ -989,7 +993,7 @@ class CorrMM_gradInputs(BaseCorrMM):
             self.unshared,
         )(bottom, weights)
         d_height_width = (
-            (aesara.gradient.DisconnectedType()(),) * 2 if len(inp) == 4 else ()
+            (aesara.gradient.DisconnectedType.subtype()(),) * 2 if len(inp) == 4 else ()
         )
         return (d_weights, d_top) + d_height_width
 

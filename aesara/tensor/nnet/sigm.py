@@ -147,7 +147,7 @@ def hard_sigmoid(x):
     """
     # Use the same dtype as determined by "upgrade_to_float",
     # and perform computation in that dtype.
-    out_dtype = aes.upgrade_to_float(aes.ScalarType(dtype=x.dtype))[0].dtype
+    out_dtype = aes.upgrade_to_float(aes.ScalarType.subtype(dtype=x.dtype))[0].dtype
     slope = constant(0.2, dtype=out_dtype)
     shift = constant(0.5, dtype=out_dtype)
     x = (x * slope) + shift

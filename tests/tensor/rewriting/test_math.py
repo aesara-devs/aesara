@@ -161,9 +161,9 @@ def rewrite(g, level="fast_run"):
 
 
 def inputs(xbc=(0, 0), ybc=(0, 0), zbc=(0, 0)):
-    x = TensorType(shape=xbc, dtype="float64")("x")
-    y = TensorType(shape=ybc, dtype="float64")("y")
-    z = TensorType(shape=zbc, dtype="float64")("z")
+    x = TensorType.subtype(shape=xbc, dtype="float64")("x")
+    y = TensorType.subtype(shape=ybc, dtype="float64")("y")
+    z = TensorType.subtype(shape=zbc, dtype="float64")("z")
     return x, y, z
 
 
@@ -3558,7 +3558,7 @@ class TestLocalReduce:
             at_max,
             at_min,
         ]:
-            x = TensorType("int64", (True, True, True))()
+            x = TensorType.subtype("int64", (True, True, True))()
             f = function([x], [fct(x)], mode=self.mode)
             assert not any(
                 isinstance(node.op, CAReduce) for node in f.maker.fgraph.toposort()
@@ -3573,7 +3573,7 @@ class TestLocalReduce:
             at_max,
             at_min,
         ]:
-            x = TensorType("int64", (True, True))()
+            x = TensorType.subtype("int64", (True, True))()
             f = function([x], [fct(x, axis=[0, 1])], mode=self.mode)
             assert not any(
                 isinstance(node.op, CAReduce) for node in f.maker.fgraph.toposort()
@@ -3588,7 +3588,7 @@ class TestLocalReduce:
             at_max,
             at_min,
         ]:
-            x = TensorType("int64", (True, False, True))()
+            x = TensorType.subtype("int64", (True, False, True))()
             f = function([x], [fct(x, axis=[0, 1])], mode=self.mode)
 
             order = f.maker.fgraph.toposort()
@@ -3613,7 +3613,7 @@ class TestLocalReduce:
             at_max,
             at_min,
         ]:
-            x = TensorType("int64", (True, True, True))()
+            x = TensorType.subtype("int64", (True, True, True))()
             f = function([x], [fct(x, axis=[0, 2])], mode=self.mode)
             assert not any(
                 isinstance(node.op, CAReduce) for node in f.maker.fgraph.toposort()
@@ -4092,7 +4092,7 @@ def test_local_log_sum_exp_maximum():
     check_max_log_sum_exp(x, axis=2, dimshuffle_op=transpose_op)
 
     # If the sum is performed with keepdims=True
-    x = TensorType(dtype="floatX", shape=(False, True, False))("x")
+    x = TensorType.subtype(dtype="floatX", shape=(False, True, False))("x")
     sum_keepdims_op = x.sum(axis=(0, 1), keepdims=True).owner.op
     check_max_log_sum_exp(x, axis=(0, 1), dimshuffle_op=sum_keepdims_op)
 

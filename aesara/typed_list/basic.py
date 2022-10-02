@@ -75,7 +75,7 @@ class GetItem(COp):
         assert isinstance(x.type, TypedListType)
         if not isinstance(index, Variable):
             if isinstance(index, slice):
-                index = Constant(SliceType(), index)
+                index = Constant(SliceType.subtype(), index)
                 return Apply(self, [x, index], [x.type()])
             else:
                 index = at.constant(index, ndim=0, dtype="int64")
@@ -654,7 +654,7 @@ class MakeList(Op):
             a2.append(elem)
         if not all(a2[0].type.is_super(elem.type) for elem in a2):
             raise TypeError("MakeList need all input variable to be of the same type.")
-        tl = TypedListType(a2[0].type)()
+        tl = TypedListType.subtype(a2[0].type)()
 
         return Apply(self, a2, [tl])
 

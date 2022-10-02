@@ -16,8 +16,8 @@ class TestSignalConv2D:
 
         image_dim = len(image_shape)
         filter_dim = len(filter_shape)
-        input = TensorType("float64", [False] * image_dim)()
-        filters = TensorType("float64", [False] * filter_dim)()
+        input = TensorType.subtype("float64", [False] * image_dim)()
+        filters = TensorType.subtype("float64", [False] * filter_dim)()
 
         bsize = image_shape[0]
         if image_dim != 3:

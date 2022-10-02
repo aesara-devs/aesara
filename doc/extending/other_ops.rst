@@ -54,7 +54,7 @@ you can create output variables like this:
 .. code-block:: python
 
     out_format = inputs[0].format  # or 'csr' or 'csc' if the output format is fixed
-    SparseTensorType(dtype=inputs[0].dtype, format=out_format).make_variable()
+    SparseTensorType.subtype(dtype=inputs[0].dtype, format=out_format).make_variable()
 
 See the sparse :class:`Aesara.sparse.basic.Cast` `Op` code for a good example of
 a sparse `Op` with Python code.

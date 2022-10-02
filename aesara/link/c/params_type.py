@@ -343,7 +343,9 @@ class ParamsType(CType):
 
     """
 
-    def __init__(self, **kwargs):
+    @classmethod
+    def type_parameters(cls, **kwargs):
+        params = dict()
         if len(kwargs) == 0:
             raise ValueError("Cannot create ParamsType from empty data.")
 
@@ -366,14 +368,14 @@ class ParamsType(CType):
                     % (attribute_name, type_name)
                 )
 
-        self.length = len(kwargs)
-        self.fields = tuple(sorted(kwargs.keys()))
-        self.types = tuple(kwargs[field] for field in self.fields)
-        self.name = self.generate_struct_name()
+        params["length"] = len(kwargs)
+        params["fields"] = tuple(sorted(kwargs.keys()))
+        params["types"] = tuple(kwargs[field] for field in params["fields"])
+        params["name"] = cls.generate_struct_name(params)
 
-        self.__const_to_enum = {}
-        self.__alias_to_enum = {}
-        enum_types = [t for t in self.types if isinstance(t, EnumType)]
+        params["_const_to_enum"] = {}
+        params["_alias_to_enum"] = {}
+        enum_types = [t for t in params["types"] if isinstance(t, EnumType)]
         if enum_types:
             # We don't want same enum names in different enum types.
             if sum(len(t) for t in enum_types) != len(
@@ -398,25 +400,27 @@ class ParamsType(CType):
                 )
             # We map each enum name to the enum type in which it is defined.
             # We will then use this dict to find enum value when looking for enum name in ParamsType object directly.
-            self.__const_to_enum = {
+            params["_const_to_enum"] = {
                 enum_name: enum_type
                 for enum_type in enum_types
                 for enum_name in enum_type
             }
-            self.__alias_to_enum = {
+            params["_alias_to_enum"] = {
                 alias: enum_type
                 for enum_type in enum_types
                 for alias in enum_type.aliases
             }
 
+        return params
+
     def __setstate__(self, state):
         # NB:
         # I have overridden __getattr__ to make enum constants available through
         # the ParamsType when it contains enum types. To do that, I use some internal
-        # attributes: self.__const_to_enum and self.__alias_to_enum. These attributes
+        # attributes: self._const_to_enum and self._alias_to_enum. These attributes
         # are normally found by Python without need to call getattr(), but when the
         # ParamsType is unpickled, it seems gettatr() may be called at a point before
-        # __const_to_enum or __alias_to_enum are unpickled, so that gettatr() can't find
+        # _const_to_enum or _alias_to_enum are unpickled, so that gettatr() can't find
         # those attributes, and then loop infinitely.
         # For this reason, I must add this trivial implementation of __setstate__()
         # to avoid errors when unpickling.
@@ -424,9 +428,12 @@ class ParamsType(CType):
 
     def __getattr__(self, key):
         # Now we can access value of each enum defined inside enum types wrapped into the current ParamsType.
-        if key in self.__const_to_enum:
-            return self.__const_to_enum[key][key]
-        return super().__getattr__(self, key)
+        # const_to_enum = super().__getattribute__("_const_to_enum")
+        if not key.startswith("__"):
+            const_to_enum = self._const_to_enum
+            if key in const_to_enum:
+                return const_to_enum[key][key]
+        raise AttributeError(f"'{self}' object has no attribute '{key}'")
 
     def __repr__(self):
         return "ParamsType<%s>" % ", ".join(
@@ -446,13 +453,14 @@ class ParamsType(CType):
     def __hash__(self):
         return hash((type(self),) + self.fields + self.types)
 
-    def generate_struct_name(self):
-        # This method tries to generate an unique name for the current instance.
+    @staticmethod
+    def generate_struct_name(params):
+        # This method tries to generate a unique name for the current instance.
         # This name is intended to be used as struct name in C code and as constant
         # definition to check if a similar ParamsType has already been created
         # (see c_support_code() below).
-        fields_string = ",".join(self.fields).encode("utf-8")
-        types_string = ",".join(str(t) for t in self.types).encode("utf-8")
+        fields_string = ",".join(params["fields"]).encode("utf-8")
+        types_string = ",".join(str(t) for t in params["types"]).encode("utf-8")
         fields_hex = hashlib.sha256(fields_string).hexdigest()
         types_hex = hashlib.sha256(types_string).hexdigest()
         return f"_Params_{fields_hex}_{types_hex}"
@@ -510,7 +518,7 @@ class ParamsType(CType):
             print(wrapper.TWO)
 
         """
-        return self.__const_to_enum[key][key]
+        return self._const_to_enum[key][key]
 
     def enum_from_alias(self, alias):
         """
@@ -547,10 +555,11 @@ class ParamsType(CType):
             method to do that.
 
         """
+        alias_to_enum = self._alias_to_enum
         return (
-            self.__alias_to_enum[alias].fromalias(alias)
-            if alias in self.__alias_to_enum
-            else self.__const_to_enum[alias][alias]
+            alias_to_enum[alias].fromalias(alias)
+            if alias in alias_to_enum
+            else self._const_to_enum[alias][alias]
         )
 
     def get_params(self, *objects, **kwargs) -> Params:
@@ -626,7 +635,7 @@ class ParamsType(CType):
         """
         self_to_dict = {self.fields[i]: self.types[i] for i in range(self.length)}
         self_to_dict.update(kwargs)
-        return ParamsType(**self_to_dict)
+        return ParamsType.subtype(**self_to_dict)
 
     # Returns a Params object with expected attributes or (in strict mode) checks that data has expected attributes.
     def filter(self, data, strict=False, allow_downcast=None):

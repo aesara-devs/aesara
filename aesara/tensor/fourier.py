@@ -99,7 +99,7 @@ class Fourier(Op):
         return Apply(
             self,
             [a, n, axis],
-            [TensorType("complex128", a.type.broadcastable)()],
+            [TensorType.subtype("complex128", a.type.broadcastable)()],
         )
 
     def infer_shape(self, fgraph, node, in_shapes):

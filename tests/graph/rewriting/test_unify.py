@@ -72,7 +72,7 @@ def test_cons():
     assert car(op1) == CustomOp
     assert cdr(op1) == (1,)
 
-    tt1 = TensorType("float32", [True, False])
+    tt1 = TensorType.subtype("float32", [True, False])
 
     assert car(tt1) == TensorType
     assert cdr(tt1) == ("float32", (1, None))
@@ -130,7 +130,7 @@ def test_etuples():
 
     class MyMultiOutOp(Op):
         def make_node(self, *inputs):
-            outputs = [MyType()(), MyType()()]
+            outputs = [MyType.subtype()(), MyType.subtype()()]
             return Apply(self, list(inputs), outputs)
 
         def perform(self, node, inputs, outputs):
@@ -156,8 +156,8 @@ def test_unify_Variable():
     assert s == {}
 
     # These `Variable`s have no owners
-    v1 = MyType()()
-    v2 = MyType()()
+    v1 = MyType.subtype()()
+    v2 = MyType.subtype()()
 
     assert v1 != v2
 
@@ -247,8 +247,8 @@ def test_unify_Constant():
 
 
 def test_unify_Type():
-    t1 = TensorType(np.float64, (True, False))
-    t2 = TensorType(np.float64, (True, False))
+    t1 = TensorType.subtype(np.float64, (True, False))
+    t2 = TensorType.subtype(np.float64, (True, False))
 
     # `Type`, `Type`
     s = unify(t1, t2)
@@ -260,8 +260,8 @@ def test_unify_Type():
 
     from aesara.scalar.basic import ScalarType
 
-    st1 = ScalarType(np.float64)
-    st2 = ScalarType(np.float64)
+    st1 = ScalarType.subtype(np.float64)
+    st2 = ScalarType.subtype(np.float64)
 
     s = unify(st1, st2)
     assert s == {}

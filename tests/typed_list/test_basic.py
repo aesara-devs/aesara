@@ -56,11 +56,11 @@ def random_lil(shape, dtype, nnz):
 class TestGetItem:
     def test_sanity_check_slice(self):
 
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
 
-        mySymbolicSlice = SliceType()()
+        mySymbolicSlice = SliceType.subtype()()
 
         z = GetItem()(mySymbolicMatricesList, mySymbolicSlice)
 
@@ -74,8 +74,8 @@ class TestGetItem:
 
     def test_sanity_check_single(self):
 
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
 
         mySymbolicScalar = scalar(dtype="int64")
@@ -89,8 +89,8 @@ class TestGetItem:
         assert np.array_equal(f([x], np.asarray(0, dtype="int64")), x)
 
     def test_interface(self):
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
         mySymbolicScalar = scalar(dtype="int64")
 
@@ -109,8 +109,8 @@ class TestGetItem:
         assert np.array_equal(f([x]), x)
 
     def test_wrong_input(self):
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
         mySymbolicMatrix = matrix()
 
@@ -118,8 +118,8 @@ class TestGetItem:
             GetItem()(mySymbolicMatricesList, mySymbolicMatrix)
 
     def test_constant_input(self):
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
 
         z = GetItem()(mySymbolicMatricesList, 0)
@@ -139,8 +139,8 @@ class TestGetItem:
 
 class TestAppend:
     def test_inplace(self):
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
         myMatrix = matrix()
 
@@ -155,8 +155,8 @@ class TestAppend:
         assert np.array_equal(f([x], y), [x, y])
 
     def test_sanity_check(self):
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
         myMatrix = matrix()
 
@@ -171,8 +171,8 @@ class TestAppend:
         assert np.array_equal(f([x], y), [x, y])
 
     def test_interfaces(self):
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
         myMatrix = matrix()
 
@@ -189,11 +189,11 @@ class TestAppend:
 
 class TestExtend:
     def test_inplace(self):
-        mySymbolicMatricesList1 = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList1 = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
-        mySymbolicMatricesList2 = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList2 = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
 
         z = Extend(True)(mySymbolicMatricesList1, mySymbolicMatricesList2)
@@ -209,11 +209,11 @@ class TestExtend:
         assert np.array_equal(f([x], [y]), [x, y])
 
     def test_sanity_check(self):
-        mySymbolicMatricesList1 = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList1 = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
-        mySymbolicMatricesList2 = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList2 = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
 
         z = Extend()(mySymbolicMatricesList1, mySymbolicMatricesList2)
@@ -227,11 +227,11 @@ class TestExtend:
         assert np.array_equal(f([x], [y]), [x, y])
 
     def test_interface(self):
-        mySymbolicMatricesList1 = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList1 = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
-        mySymbolicMatricesList2 = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList2 = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
 
         z = mySymbolicMatricesList1.extend(mySymbolicMatricesList2)
@@ -247,8 +247,8 @@ class TestExtend:
 
 class TestInsert:
     def test_inplace(self):
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
         myMatrix = matrix()
         myScalar = scalar(dtype="int64")
@@ -266,8 +266,8 @@ class TestInsert:
         assert np.array_equal(f([x], np.asarray(1, dtype="int64"), y), [x, y])
 
     def test_sanity_check(self):
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
         myMatrix = matrix()
         myScalar = scalar(dtype="int64")
@@ -283,8 +283,8 @@ class TestInsert:
         assert np.array_equal(f([x], np.asarray(1, dtype="int64"), y), [x, y])
 
     def test_interface(self):
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
         myMatrix = matrix()
         myScalar = scalar(dtype="int64")
@@ -302,8 +302,8 @@ class TestInsert:
 
 class TestRemove:
     def test_inplace(self):
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
         myMatrix = matrix()
 
@@ -318,8 +318,8 @@ class TestRemove:
         assert np.array_equal(f([x, y], y), [x])
 
     def test_sanity_check(self):
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
         myMatrix = matrix()
 
@@ -334,8 +334,8 @@ class TestRemove:
         assert np.array_equal(f([x, y], y), [x])
 
     def test_interface(self):
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
         myMatrix = matrix()
 
@@ -352,8 +352,8 @@ class TestRemove:
 
 class TestReverse:
     def test_inplace(self):
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
 
         z = Reverse(True)(mySymbolicMatricesList)
@@ -367,8 +367,8 @@ class TestReverse:
         assert np.array_equal(f([x, y]), [y, x])
 
     def test_sanity_check(self):
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
 
         z = Reverse()(mySymbolicMatricesList)
@@ -382,8 +382,8 @@ class TestReverse:
         assert np.array_equal(f([x, y]), [y, x])
 
     def test_interface(self):
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
 
         z = mySymbolicMatricesList.reverse()
@@ -399,8 +399,8 @@ class TestReverse:
 
 class TestIndex:
     def test_sanity_check(self):
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
         myMatrix = matrix()
 
@@ -415,8 +415,8 @@ class TestIndex:
         assert f([x, y], y) == 1
 
     def test_interface(self):
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
         myMatrix = matrix()
 
@@ -431,11 +431,11 @@ class TestIndex:
         assert f([x, y], y) == 1
 
     def test_non_tensor_type(self):
-        mySymbolicNestedMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False)), 1
+        mySymbolicNestedMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False)), 1
         )()
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
 
         z = Index()(mySymbolicNestedMatricesList, mySymbolicMatricesList)
@@ -450,8 +450,8 @@ class TestIndex:
 
     def test_sparse(self):
         sp = pytest.importorskip("scipy")
-        mySymbolicSparseList = TypedListType(
-            sparse.SparseTensorType("csr", aesara.config.floatX)
+        mySymbolicSparseList = TypedListType.subtype(
+            sparse.SparseTensorType.subtype("csr", aesara.config.floatX)
         )()
         mySymbolicSparse = sparse.csr_matrix()
 
@@ -467,8 +467,8 @@ class TestIndex:
 
 class TestCount:
     def test_sanity_check(self):
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
         myMatrix = matrix()
 
@@ -483,8 +483,8 @@ class TestCount:
         assert f([y, y, x, y], y) == 3
 
     def test_interface(self):
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
         myMatrix = matrix()
 
@@ -499,11 +499,11 @@ class TestCount:
         assert f([x, y], y) == 1
 
     def test_non_tensor_type(self):
-        mySymbolicNestedMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False)), 1
+        mySymbolicNestedMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False)), 1
         )()
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
 
         z = Count()(mySymbolicNestedMatricesList, mySymbolicMatricesList)
@@ -518,8 +518,8 @@ class TestCount:
 
     def test_sparse(self):
         sp = pytest.importorskip("scipy")
-        mySymbolicSparseList = TypedListType(
-            sparse.SparseTensorType("csr", aesara.config.floatX)
+        mySymbolicSparseList = TypedListType.subtype(
+            sparse.SparseTensorType.subtype("csr", aesara.config.floatX)
         )()
         mySymbolicSparse = sparse.csr_matrix()
 
@@ -535,8 +535,8 @@ class TestCount:
 
 class TestLength:
     def test_sanity_check(self):
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
 
         z = Length()(mySymbolicMatricesList)
@@ -548,8 +548,8 @@ class TestLength:
         assert f([x, x, x, x]) == 4
 
     def test_interface(self):
-        mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+        mySymbolicMatricesList = TypedListType.subtype(
+            TensorType.subtype(aesara.config.floatX, (False, False))
         )()
         z = mySymbolicMatricesList.__len__()
 

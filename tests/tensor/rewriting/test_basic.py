@@ -689,7 +689,7 @@ class TestCastCast:
 
     def test_consecutive(self):
         x = fmatrix()
-        o = Elemwise(aes.Cast(aes.ScalarType("float64")))(x.astype("float64"))
+        o = Elemwise(aes.Cast(aes.ScalarType.subtype("float64")))(x.astype("float64"))
         f = function([x], o, mode=self.mode)
         dx = np.random.random((5, 4)).astype("float32")
         f(dx)
@@ -698,7 +698,7 @@ class TestCastCast:
         assert isinstance(topo[0].op.scalar_op, aes.basic.Cast)
 
         x = dmatrix()
-        o = Elemwise(aes.Cast(aes.ScalarType("float32")))(x.astype("float32"))
+        o = Elemwise(aes.Cast(aes.ScalarType.subtype("float32")))(x.astype("float32"))
         f = function([x], o, mode=self.mode)
         dx = np.random.random((5, 4))
         f(dx)
@@ -709,7 +709,9 @@ class TestCastCast:
     def test_upcast(self):
         # Upcast followed by any other cast
         x = fmatrix()
-        o = Elemwise(aes.Cast(aes.ScalarType("complex128")))(x.astype("complex64"))
+        o = Elemwise(aes.Cast(aes.ScalarType.subtype("complex128")))(
+            x.astype("complex64")
+        )
         f = function([x], o, mode=self.mode)
         dx = np.random.random((5, 4)).astype("float32")
         f(dx)
@@ -719,7 +721,7 @@ class TestCastCast:
 
         # Upcast followed by a downcast back to the base type
         x = fmatrix()
-        o = Elemwise(aes.Cast(aes.ScalarType("float32")))(x.astype("float64"))
+        o = Elemwise(aes.Cast(aes.ScalarType.subtype("float32")))(x.astype("float64"))
         f = function([x], o, mode=self.mode)
         dx = np.random.random((5, 4)).astype("float32")
         f(dx)
@@ -730,7 +732,7 @@ class TestCastCast:
         # Downcast followed by an upcast back to the base type
         # The rewrite shouldn't be applied
         x = dmatrix()
-        o = Elemwise(aes.Cast(aes.ScalarType("float64")))(x.astype("float32"))
+        o = Elemwise(aes.Cast(aes.ScalarType.subtype("float64")))(x.astype("float32"))
         f = function([x], o, mode=self.mode)
         dx = np.random.random((5, 4))
         f(dx)
@@ -1316,7 +1318,7 @@ def test_local_join_make_vector():
     ],
 )
 def test_local_tensor_scalar_tensor(dtype):
-    t_type = TensorType(dtype=dtype, shape=())
+    t_type = TensorType.subtype(dtype=dtype, shape=())
     t = t_type()
     s = at.scalar_from_tensor(t)
     t2 = at.tensor_from_scalar(s)
@@ -1346,7 +1348,7 @@ def test_local_tensor_scalar_tensor(dtype):
     ],
 )
 def test_local_scalar_tensor_scalar(dtype):
-    s_type = aes.ScalarType(dtype=dtype)
+    s_type = aes.ScalarType.subtype(dtype=dtype)
     s = s_type()
     t = at.tensor_from_scalar(s)
     s2 = at.scalar_from_tensor(t)

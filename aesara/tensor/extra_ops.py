@@ -109,7 +109,7 @@ class SearchsortedOp(COp):
 
     """
 
-    params_type = Generic()
+    params_type = Generic.subtype()
     __props__ = ("side",)
     check_input = False
 
@@ -284,8 +284,8 @@ class CumOp(COp):
 
     __props__ = ("axis", "mode")
     check_input = False
-    params_type = ParamsType(
-        c_axis=int_t, mode=EnumList(("MODE_ADD", "add"), ("MODE_MUL", "mul"))
+    params_type = ParamsType.subtype(
+        c_axis=int_t, mode=EnumList.subtype(("MODE_ADD", "add"), ("MODE_MUL", "mul"))
     )
 
     def __init__(self, axis=None, mode="add"):
@@ -679,7 +679,7 @@ class Repeat(Op):
                 broadcastable = list(x.broadcastable)
                 broadcastable[self.axis] = False
 
-        out_type = TensorType(x.dtype, broadcastable)
+        out_type = TensorType.subtype(x.dtype, broadcastable)
 
         return Apply(self, [x, repeats], [out_type()])
 
@@ -708,7 +708,10 @@ class Repeat(Op):
             shape = [x.shape[k] for k in range(x.ndim)]
             shape.insert(axis, repeats)
 
-            return [gz.reshape(shape, x.ndim + 1).sum(axis=axis), DisconnectedType()()]
+            return [
+                gz.reshape(shape, x.ndim + 1).sum(axis=axis),
+                DisconnectedType.subtype()(),
+            ]
         elif repeats.ndim == 1:
             # For this implementation, we would need to specify the length
             # of repeats in order to split gz in the right way to sum
@@ -1202,8 +1205,8 @@ class Unique(Op):
                 b if axis != self_axis else False
                 for axis, b in enumerate(x.broadcastable)
             ]
-        outputs = [TensorType(shape=broadcastable, dtype=x.dtype)()]
-        typ = TensorType(shape=[False], dtype="int64")
+        outputs = [TensorType.subtype(shape=broadcastable, dtype=x.dtype)()]
+        typ = TensorType.subtype(shape=[False], dtype="int64")
         if self.return_index:
             outputs.append(typ())
         if self.return_inverse:
@@ -1309,7 +1312,7 @@ class UnravelIndex(Op):
             self,
             [indices, dims],
             [
-                TensorType(dtype="int64", shape=(False,) * indices.ndim)()
+                TensorType.subtype(dtype="int64", shape=(False,) * indices.ndim)()
                 for i in range(at.get_vector_length(dims))
             ],
         )
@@ -1388,7 +1391,7 @@ class RavelMultiIndex(Op):
         return Apply(
             self,
             multi_index + [dims],
-            [TensorType(dtype="int64", shape=(False,) * multi_index[0].ndim)()],
+            [TensorType.subtype(dtype="int64", shape=(False,) * multi_index[0].ndim)()],
         )
 
     def infer_shape(self, fgraph, node, input_shapes):
@@ -1615,7 +1618,7 @@ class BroadcastTo(COp):
 
         shape, bcast = at.infer_broadcastable(shape)
 
-        out = TensorType(dtype=a.type.dtype, shape=bcast)()
+        out = TensorType.subtype(dtype=a.type.dtype, shape=bcast)()
 
         # Attempt to prevent in-place operations on this view-based output
         out.tag.indestructible = True

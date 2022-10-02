@@ -15,7 +15,7 @@ class RFFTOp(Op):
 
     def output_type(self, inp):
         # add extra dim for real/imag
-        return TensorType(inp.dtype, shape=[False] * (inp.type.ndim + 1))
+        return TensorType.subtype(inp.dtype, shape=[False] * (inp.type.ndim + 1))
 
     def make_node(self, a, s=None):
         a = as_tensor_variable(a)
@@ -60,7 +60,7 @@ class RFFTOp(Op):
             + [slice(None)]
         )
         gout = set_subtensor(gout[idx], gout[idx] * 0.5)
-        return [irfft_op(gout, s), DisconnectedType()()]
+        return [irfft_op(gout, s), DisconnectedType.subtype()()]
 
     def connection_pattern(self, node):
         # Specify that shape input parameter has no connection to graph and gradients.
@@ -76,7 +76,7 @@ class IRFFTOp(Op):
 
     def output_type(self, inp):
         # remove extra dim for real/imag
-        return TensorType(inp.dtype, shape=[False] * (inp.type.ndim - 1))
+        return TensorType.subtype(inp.dtype, shape=[False] * (inp.type.ndim - 1))
 
     def make_node(self, a, s=None):
         a = as_tensor_variable(a)
@@ -123,7 +123,7 @@ class IRFFTOp(Op):
             + [slice(None)]
         )
         gf = set_subtensor(gf[idx], gf[idx] * 2)
-        return [gf, DisconnectedType()()]
+        return [gf, DisconnectedType.subtype()()]
 
     def connection_pattern(self, node):
         # Specify that shape input parameter has no connection to graph and gradients.

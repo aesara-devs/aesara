@@ -337,10 +337,10 @@ class TestDiff(utt.InferShapeTester):
     @pytest.mark.parametrize(
         "x_type",
         (
-            at.TensorType("float64", (None, None)),
-            at.TensorType("float64", (None, 30)),
-            at.TensorType("float64", (10, None)),
-            at.TensorType("float64", (10, 30)),
+            at.TensorType.subtype("float64", (None, None)),
+            at.TensorType.subtype("float64", (None, 30)),
+            at.TensorType.subtype("float64", (10, None)),
+            at.TensorType.subtype("float64", (10, 30)),
         ),
     )
     @pytest.mark.parametrize("axis", (-2, -1, 0, 1))
@@ -375,7 +375,7 @@ class TestSqueeze(utt.InferShapeTester):
     )
     def test_op(self, shape, broadcast):
         data = np.random.random(size=shape).astype(config.floatX)
-        variable = TensorType(config.floatX, broadcast)()
+        variable = TensorType.subtype(config.floatX, broadcast)()
 
         f = aesara.function([variable], self.op(variable))
 
@@ -398,7 +398,7 @@ class TestSqueeze(utt.InferShapeTester):
     )
     def test_infer_shape(self, shape, broadcast):
         data = np.random.random(size=shape).astype(config.floatX)
-        variable = TensorType(config.floatX, broadcast)()
+        variable = TensorType.subtype(config.floatX, broadcast)()
 
         self._compile_and_check(
             [variable], [self.op(variable)], [data], DimShuffle, warn=False
@@ -433,7 +433,7 @@ class TestSqueeze(utt.InferShapeTester):
     def test_var_interface(self, shape, broadcast):
         # same as test_op, but use a_aesara_var.squeeze.
         data = np.random.random(size=shape).astype(config.floatX)
-        variable = TensorType(config.floatX, broadcast)()
+        variable = TensorType.subtype(config.floatX, broadcast)()
 
         f = aesara.function([variable], variable.squeeze())
 
@@ -444,29 +444,29 @@ class TestSqueeze(utt.InferShapeTester):
         assert np.allclose(tested, expected)
 
     def test_axis(self):
-        variable = TensorType(config.floatX, [False, True, False])()
+        variable = TensorType.subtype(config.floatX, [False, True, False])()
         res = squeeze(variable, axis=1)
 
         assert res.broadcastable == (False, False)
 
-        variable = TensorType(config.floatX, [False, True, False])()
+        variable = TensorType.subtype(config.floatX, [False, True, False])()
         res = squeeze(variable, axis=(1,))
 
         assert res.broadcastable == (False, False)
 
-        variable = TensorType(config.floatX, [False, True, False, True])()
+        variable = TensorType.subtype(config.floatX, [False, True, False, True])()
         res = squeeze(variable, axis=(1, 3))
 
         assert res.broadcastable == (False, False)
 
-        variable = TensorType(config.floatX, [True, False, True, False, True])()
+        variable = TensorType.subtype(config.floatX, [True, False, True, False, True])()
         res = squeeze(variable, axis=(0, -1))
 
         assert res.broadcastable == (False, True, False)
 
     def test_invalid_axis(self):
         # Test that trying to squeeze a non broadcastable dimension raises error
-        variable = TensorType(config.floatX, [True, False])()
+        variable = TensorType.subtype(config.floatX, [True, False])()
         with pytest.raises(
             ValueError, match="Cannot drop a non-broadcastable dimension"
         ):
@@ -540,7 +540,7 @@ class TestRepeat(utt.InferShapeTester):
     def test_basic(self, ndim, dtype):
         rng = np.random.default_rng(4282)
 
-        x = TensorType(config.floatX, [False] * ndim)()
+        x = TensorType.subtype(config.floatX, [False] * ndim)()
         a = rng.random((10,) * ndim).astype(config.floatX)
 
         for axis in self._possible_axis(ndim):
@@ -579,7 +579,7 @@ class TestRepeat(utt.InferShapeTester):
                 )
 
                 # check when r is  aesara tensortype that broadcastable is (True,)
-                r_var = TensorType(shape=(True,), dtype=dtype)()
+                r_var = TensorType.subtype(shape=(True,), dtype=dtype)()
                 r = rng.integers(1, 6, size=(1,)).astype(dtype)
                 f = aesara.function([x, r_var], repeat(x, r_var, axis=axis))
                 assert np.allclose(np.repeat(a, r[0], axis=axis), f(a, r))
@@ -593,7 +593,7 @@ class TestRepeat(utt.InferShapeTester):
     def test_infer_shape(self, ndim, dtype):
         rng = np.random.default_rng(4282)
 
-        x = TensorType(config.floatX, [False] * ndim)()
+        x = TensorType.subtype(config.floatX, [False] * ndim)()
         shp = (np.arange(ndim) + 1) * 3
         a = rng.random(shp).astype(config.floatX)
 
@@ -635,7 +635,7 @@ class TestRepeat(utt.InferShapeTester):
             utt.verify_grad(lambda x: Repeat(axis=axis)(x, 3), [a])
 
     def test_broadcastable(self):
-        x = TensorType(config.floatX, [False, True, False])()
+        x = TensorType.subtype(config.floatX, [False, True, False])()
         r = Repeat(axis=1)(x, 2)
         assert r.broadcastable == (False, False, False)
         r = Repeat(axis=1)(x, 1)

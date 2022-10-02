@@ -220,7 +220,7 @@ def constant(x, name=None, ndim=None, dtype=None) -> TensorConstant:
 
         assert x_.ndim == ndim
 
-    ttype = TensorType(dtype=x_.dtype, shape=x_.shape)
+    ttype = TensorType.subtype(dtype=x_.dtype, shape=x_.shape)
 
     return TensorConstant(ttype, x_, name=name)
 
@@ -858,7 +858,9 @@ class Nonzero(Op):
         a = as_tensor_variable(a)
         if a.ndim == 0:
             raise ValueError("Nonzero only supports non-scalar arrays.")
-        output = [TensorType(dtype="int64", shape=(False,))() for i in range(a.ndim)]
+        output = [
+            TensorType.subtype(dtype="int64", shape=(False,))() for i in range(a.ndim)
+        ]
         return Apply(self, [a], output)
 
     def perform(self, node, inp, out_):
@@ -989,7 +991,7 @@ class Tri(Op):
         return Apply(
             self,
             [N, M, k],
-            [TensorType(dtype=self.dtype, shape=(False, False))()],
+            [TensorType.subtype(dtype=self.dtype, shape=(False, False))()],
         )
 
     def perform(self, node, inp, out_):
@@ -1268,7 +1270,7 @@ class Eye(Op):
         return Apply(
             self,
             [n, m, k],
-            [TensorType(dtype=self.dtype, shape=(False, False))()],
+            [TensorType.subtype(dtype=self.dtype, shape=(False, False))()],
         )
 
     def perform(self, node, inp, out_):
@@ -1402,7 +1404,7 @@ class Alloc(COp):
                 v.ndim,
                 len(sh),
             )
-        otype = TensorType(dtype=v.dtype, shape=bcast)
+        otype = TensorType.subtype(dtype=v.dtype, shape=bcast)
         return Apply(self, [v] + sh, [otype()])
 
     def perform(self, node, inputs, out_):
@@ -1510,7 +1512,7 @@ class Alloc(COp):
         # the inputs that specify the shape. If you grow the
         # shape by epsilon, the existing elements do not
         # change.
-        return [gx] + [DisconnectedType()() for i in inputs[1:]]
+        return [gx] + [DisconnectedType.subtype()() for i in inputs[1:]]
 
     def R_op(self, inputs, eval_points):
         if eval_points[0] is None:
@@ -1644,7 +1646,7 @@ class MakeVector(COp):
         else:
             dtype = self.dtype
 
-        otype = TensorType(dtype, (len(inputs),))
+        otype = TensorType.subtype(dtype, (len(inputs),))
         return Apply(self, inputs, [otype()])
 
     def perform(self, node, inputs, out_):
@@ -1899,7 +1901,7 @@ class Split(COp):
             raise TypeError("`axis` parameter must be an integer scalar")
 
         inputs = [x, axis, splits]
-        out_type = TensorType(dtype=x.dtype, shape=[None] * x.type.ndim)
+        out_type = TensorType.subtype(dtype=x.dtype, shape=[None] * x.type.ndim)
         outputs = [out_type() for i in range(self.len_splits)]
 
         return Apply(self, inputs, outputs)
@@ -1951,7 +1953,7 @@ class Split(COp):
         # If all the output gradients are disconnected, then so are the inputs
         if builtins.all(isinstance(g.type, DisconnectedType) for g in g_outputs):
             return [
-                DisconnectedType()(),
+                DisconnectedType.subtype()(),
                 grad_undefined(self, 1, axis),
                 grad_undefined(self, 2, n),
             ]
@@ -2940,14 +2942,14 @@ class ARange(Op):
         if self.dtype in discrete_dtypes:
             return [
                 start.zeros_like(dtype=config.floatX),
-                DisconnectedType()(),
+                DisconnectedType.subtype()(),
                 step.zeros_like(dtype=config.floatX),
             ]
         else:
             num_steps_taken = outputs[0].shape[0]
             return [
                 gz.sum(),
-                DisconnectedType()(),
+                DisconnectedType.subtype()(),
                 (gz * arange(num_steps_taken, dtype=self.dtype)).sum(),
             ]
 
@@ -3375,7 +3377,7 @@ class ExtractDiag(Op):
         return Apply(
             self,
             [x],
-            [x.type.__class__(dtype=x.dtype, shape=[False] * (x.ndim - 1))()],
+            [x.type.__class__.subtype(dtype=x.dtype, shape=[False] * (x.ndim - 1))()],
         )
 
     def perform(self, node, inputs, outputs):
@@ -3796,7 +3798,7 @@ class Choose(Op):
             else:
                 bcast.append(False)
 
-        o = TensorType(choice.dtype, bcast)
+        o = TensorType.subtype(choice.dtype, bcast)
         return Apply(self, [a, choice], [o()])
 
     def perform(self, node, inputs, outputs):
@@ -3811,7 +3813,7 @@ class AllocEmpty(COp):
     """Implement Alloc on the cpu, but without initializing memory."""
 
     __props__ = ("dtype",)
-    params_type = ParamsType(typecode=int32)
+    params_type = ParamsType.subtype(typecode=int32)
 
     # specify the type of the data
     def __init__(self, dtype):
@@ -3824,7 +3826,7 @@ class AllocEmpty(COp):
 
     def make_node(self, *_shape):
         _shape, bcast = infer_broadcastable(_shape)
-        otype = TensorType(dtype=self.dtype, shape=bcast)
+        otype = TensorType.subtype(dtype=self.dtype, shape=bcast)
         output = otype()
 
         output.tag.values_eq_approx = values_eq_approx_always_true
@@ -3903,7 +3905,7 @@ class AllocEmpty(COp):
         return [[False] for i in node.inputs]
 
     def grad(self, inputs, grads):
-        return [DisconnectedType()() for i in inputs]
+        return [DisconnectedType.subtype()() for i in inputs]
 
     def R_op(self, inputs, eval_points):
         return [zeros(inputs, self.dtype)]

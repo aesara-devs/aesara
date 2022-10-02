@@ -354,7 +354,7 @@ MyInnerGraphOp [id A]
     """
 
     for exp_line, res_line in zip(exp_res.split("\n"), lines):
-        assert exp_line.strip() == res_line.strip()
+        assert res_line.strip() == exp_line.strip()
 
     # Test nested inner-graph `Op`s
     igo_2 = MyInnerGraphOp([r3, r4], [out])

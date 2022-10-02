@@ -201,7 +201,9 @@ def constant(x, name=None):
         raise TypeError("sparse.constant must be called on a " "scipy.sparse.spmatrix")
     try:
         return SparseConstant(
-            SparseTensorType(format=x.format, dtype=x.dtype), x.copy(), name=name
+            SparseTensorType.subtype(format=x.format, dtype=x.dtype),
+            x.copy(),
+            name=name,
         )
     except TypeError:
         raise TypeError(f"Could not convert {x} to SparseTensorType", type(x))
@@ -501,11 +503,11 @@ SparseTensorType.variable_type = SparseVariable
 SparseTensorType.constant_type = SparseConstant
 
 
-# for more dtypes, call SparseTensorType(format, dtype)
+# for more dtypes, call SparseTensorType.subtype(format, dtype)
 def matrix(format, name=None, dtype=None):
     if dtype is None:
         dtype = config.floatX
-    type = SparseTensorType(format=format, dtype=dtype)
+    type = SparseTensorType.subtype(format=format, dtype=dtype)
     return type(name)
 
 
@@ -521,12 +523,12 @@ def bsr_matrix(name=None, dtype=None):
     return matrix("bsr", name, dtype)
 
 
-csc_dmatrix = SparseTensorType(format="csc", dtype="float64")
-csr_dmatrix = SparseTensorType(format="csr", dtype="float64")
-bsr_dmatrix = SparseTensorType(format="bsr", dtype="float64")
-csc_fmatrix = SparseTensorType(format="csc", dtype="float32")
-csr_fmatrix = SparseTensorType(format="csr", dtype="float32")
-bsr_fmatrix = SparseTensorType(format="bsr", dtype="float32")
+csc_dmatrix = SparseTensorType.subtype(format="csc", dtype="float64")
+csr_dmatrix = SparseTensorType.subtype(format="csr", dtype="float64")
+bsr_dmatrix = SparseTensorType.subtype(format="bsr", dtype="float64")
+csc_fmatrix = SparseTensorType.subtype(format="csc", dtype="float32")
+csr_fmatrix = SparseTensorType.subtype(format="csr", dtype="float32")
+bsr_fmatrix = SparseTensorType.subtype(format="bsr", dtype="float32")
 
 all_dtypes = list(SparseTensorType.dtype_specs_map.keys())
 complex_dtypes = [t for t in all_dtypes if t[:7] == "complex"]
@@ -592,7 +594,7 @@ class CSMProperties(Op):
 
         csm = as_sparse_variable(csm)
         assert csm.format in ("csr", "csc")
-        data = TensorType(dtype=csm.type.dtype, shape=(False,))()
+        data = TensorType.subtype(dtype=csm.type.dtype, shape=(False,))()
         return Apply(self, [csm], [data, ivector(), ivector(), ivector()])
 
     def perform(self, node, inputs, out):
@@ -733,7 +735,7 @@ class CSM(Op):
         return Apply(
             self,
             [data, indices, indptr, shape],
-            [SparseTensorType(dtype=data.type.dtype, format=self.format)()],
+            [SparseTensorType.subtype(dtype=data.type.dtype, format=self.format)()],
         )
 
     def perform(self, node, inputs, outputs):
@@ -776,9 +778,9 @@ class CSM(Op):
         )
         return [
             g_data,
-            DisconnectedType()(),
-            DisconnectedType()(),
-            DisconnectedType()(),
+            DisconnectedType.subtype()(),
+            DisconnectedType.subtype()(),
+            DisconnectedType.subtype()(),
         ]
 
     def infer_shape(self, fgraph, node, shapes):
@@ -888,7 +890,9 @@ class Cast(Op):
         x = as_sparse_variable(x)
         assert x.format in ("csr", "csc")
         return Apply(
-            self, [x], [SparseTensorType(dtype=self.out_type, format=x.format)()]
+            self,
+            [x],
+            [SparseTensorType.subtype(dtype=self.out_type, format=x.format)()],
         )
 
     def perform(self, node, inputs, outputs):
@@ -994,7 +998,7 @@ class DenseFromSparse(Op):
         return Apply(
             self,
             [x],
-            [TensorType(dtype=x.type.dtype, shape=(False, False))()],
+            [TensorType.subtype(dtype=x.type.dtype, shape=(False, False))()],
         )
 
     def perform(self, node, inputs, outputs):
@@ -1076,7 +1080,9 @@ class SparseFromDense(Op):
             assert x.ndim == 2
 
         return Apply(
-            self, [x], [SparseTensorType(dtype=x.type.dtype, format=self.format)()]
+            self,
+            [x],
+            [SparseTensorType.subtype(dtype=x.type.dtype, format=self.format)()],
         )
 
     def perform(self, node, inputs, outputs):
@@ -1510,7 +1516,7 @@ class Transpose(Op):
             self,
             [x],
             [
-                SparseTensorType(
+                SparseTensorType.subtype(
                     dtype=x.type.dtype, format=self.format_map[x.type.format]
                 )()
             ],
@@ -1757,7 +1763,7 @@ class SpSum(Op):
         if self.axis is not None:
             b = (False,)
 
-        z = TensorType(shape=b, dtype=x.dtype)()
+        z = TensorType.subtype(shape=b, dtype=x.dtype)()
         return Apply(self, [x], [z])
 
     def perform(self, node, inputs, outputs):
@@ -1918,7 +1924,9 @@ class SquareDiagonal(Op):
         if diag.type.ndim != 1:
             raise TypeError("data argument must be a vector", diag.type)
 
-        return Apply(self, [diag], [SparseTensorType(dtype=diag.dtype, format="csc")()])
+        return Apply(
+            self, [diag], [SparseTensorType.subtype(dtype=diag.dtype, format="csc")()]
+        )
 
     def perform(self, node, inputs, outputs):
         (z,) = outputs
@@ -2039,7 +2047,9 @@ class AddSS(Op):
         assert y.format in ("csr", "csc")
         out_dtype = aes.upcast(x.type.dtype, y.type.dtype)
         return Apply(
-            self, [x, y], [SparseTensorType(dtype=out_dtype, format=x.type.format)()]
+            self,
+            [x, y],
+            [SparseTensorType.subtype(dtype=out_dtype, format=x.type.format)()],
         )
 
     def perform(self, node, inputs, outputs):
@@ -2097,7 +2107,9 @@ class AddSSData(Op):
         if x.type.format != y.type.format:
             raise NotImplementedError()
         return Apply(
-            self, [x, y], [SparseTensorType(dtype=x.type.dtype, format=x.type.format)()]
+            self,
+            [x, y],
+            [SparseTensorType.subtype(dtype=x.type.dtype, format=x.type.format)()],
         )
 
     def perform(self, node, inputs, outputs):
@@ -2138,7 +2150,7 @@ class AddSD(Op):
         return Apply(
             self,
             [x, y],
-            [TensorType(dtype=out_dtype, shape=y.type.broadcastable)()],
+            [TensorType.subtype(dtype=out_dtype, shape=y.type.broadcastable)()],
         )
 
     def perform(self, node, inputs, outputs):
@@ -2198,7 +2210,9 @@ class StructuredAddSV(Op):
         if x.type.dtype != y.type.dtype:
             raise NotImplementedError()
         return Apply(
-            self, [x, y], [SparseTensorType(dtype=x.type.dtype, format=x.type.format)()]
+            self,
+            [x, y],
+            [SparseTensorType.subtype(dtype=x.type.dtype, format=x.type.format)()],
         )
 
     def perform(self, node, inputs, outputs):
@@ -2314,7 +2328,9 @@ class MulSS(Op):
         assert y.format in ("csr", "csc")
         out_dtype = aes.upcast(x.type.dtype, y.type.dtype)
         return Apply(
-            self, [x, y], [SparseTensorType(dtype=out_dtype, format=x.type.format)()]
+            self,
+            [x, y],
+            [SparseTensorType.subtype(dtype=out_dtype, format=x.type.format)()],
         )
 
     def perform(self, node, inputs, outputs):
@@ -2357,7 +2373,7 @@ class MulSD(Op):
         # Broadcasting of the sparse matrix is not supported.
         # We support nd == 0 used by grad of SpSum()
         assert y.type.ndim in (0, 2)
-        out = SparseTensorType(dtype=dtype, format=x.type.format)()
+        out = SparseTensorType.subtype(dtype=dtype, format=x.type.format)()
         return Apply(self, [x, y], [out])
 
     def perform(self, node, inputs, outputs):
@@ -2463,7 +2479,9 @@ class MulSV(Op):
                 f"Got {x.type.dtype} and {y.type.dtype}."
             )
         return Apply(
-            self, [x, y], [SparseTensorType(dtype=x.type.dtype, format=x.type.format)()]
+            self,
+            [x, y],
+            [SparseTensorType.subtype(dtype=x.type.dtype, format=x.type.format)()],
         )
 
     def perform(self, node, inputs, outputs):
@@ -2579,7 +2597,9 @@ class __ComparisonOpSS(Op):
         if x.type.format != y.type.format:
             raise NotImplementedError()
         return Apply(
-            self, [x, y], [SparseTensorType(dtype="uint8", format=x.type.format)()]
+            self,
+            [x, y],
+            [SparseTensorType.subtype(dtype="uint8", format=x.type.format)()],
         )
 
     def perform(self, node, inputs, outputs):
@@ -2621,7 +2641,7 @@ class __ComparisonOpSD(Op):
         x, y = as_sparse_variable(x), at.as_tensor_variable(y)
 
         assert y.type.ndim == 2
-        out = TensorType(dtype="uint8", shape=(False, False))()
+        out = TensorType.subtype(dtype="uint8", shape=(False, False))()
         return Apply(self, [x, y], [out])
 
     def perform(self, node, inputs, outputs):
@@ -2829,7 +2849,9 @@ class HStack(Op):
             assert x.format in ("csr", "csc")
 
         return Apply(
-            self, var, [SparseTensorType(dtype=self.dtype, format=self.format)()]
+            self,
+            var,
+            [SparseTensorType.subtype(dtype=self.dtype, format=self.format)()],
         )
 
     def perform(self, node, block, outputs):
@@ -3335,7 +3357,7 @@ class TrueDot(Op):
             raise NotImplementedError()
 
         inputs = [x, y]  # Need to convert? e.g. assparse
-        outputs = [SparseTensorType(dtype=x.type.dtype, format=myformat)()]
+        outputs = [SparseTensorType.subtype(dtype=x.type.dtype, format=myformat)()]
         return Apply(self, inputs, outputs)
 
     def perform(self, node, inp, out_):
@@ -3457,7 +3479,9 @@ class StructuredDot(Op):
             raise NotImplementedError("non-matrix b")
 
         if _is_sparse_variable(b):
-            return Apply(self, [a, b], [SparseTensorType(a.type.format, dtype_out)()])
+            return Apply(
+                self, [a, b], [SparseTensorType.subtype(a.type.format, dtype_out)()]
+            )
         else:
             return Apply(
                 self,
@@ -4265,7 +4289,7 @@ class ConstructSparseFromList(Op):
         gx = g_output
         gy = aesara.tensor.subtensor.advanced_subtensor1(g_output, *idx_list)
 
-        return [gx, gy] + [DisconnectedType()()] * len(idx_list)
+        return [gx, gy] + [DisconnectedType.subtype()()] * len(idx_list)
 
 
 construct_sparse_from_list = ConstructSparseFromList()

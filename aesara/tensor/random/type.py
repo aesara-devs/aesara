@@ -119,7 +119,7 @@ aesara.compile.register_view_op_c_code(
     1,
 )
 
-random_state_type = RandomStateType()
+random_state_type = RandomStateType.subtype()
 
 
 class RandomGeneratorType(RandomType[np.random.Generator]):
@@ -215,4 +215,4 @@ aesara.compile.register_view_op_c_code(
     1,
 )
 
-random_generator_type = RandomGeneratorType()
+random_generator_type = RandomGeneratorType.subtype()

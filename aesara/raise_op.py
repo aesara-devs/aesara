@@ -22,7 +22,7 @@ class ExceptionType(Generic):
         return hash(type(self))
 
 
-exception_type = ExceptionType()
+exception_type = ExceptionType.subtype()
 
 
 class CheckAndRaise(COp):
@@ -38,7 +38,7 @@ class CheckAndRaise(COp):
     view_map = {0: [0]}
 
     check_input = False
-    params_type = ParamsType(exc_type=exception_type)
+    params_type = ParamsType.subtype(exc_type=exception_type)
 
     def __init__(self, exc_type, msg=""):
 
@@ -100,7 +100,7 @@ class CheckAndRaise(COp):
             raise self.exc_type(self.msg)
 
     def grad(self, input, output_gradients):
-        return output_gradients + [DisconnectedType()()] * (len(input) - 1)
+        return output_gradients + [DisconnectedType.subtype()()] * (len(input) - 1)
 
     def connection_pattern(self, node):
         return [[1]] + [[0]] * (len(node.inputs) - 1)

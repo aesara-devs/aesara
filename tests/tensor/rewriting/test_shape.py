@@ -516,7 +516,7 @@ def test_local_Shape_i_of_broadcastable():
     class MyVariable(Variable):
         pass
 
-    x = MyVariable(MyType(), None, None)
+    x = MyVariable(MyType.subtype(), None, None)
     s = Shape_i(0)(x)
     fgraph = FunctionGraph(outputs=[s], clone=False)
     _ = rewrite_graph(fgraph, clone=False)

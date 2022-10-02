@@ -7,7 +7,6 @@ from typing_extensions import Literal
 import aesara
 from aesara import scalar as aes
 from aesara.graph.basic import Variable
-from aesara.graph.type import HasDataType
 from aesara.tensor.type import DenseTensorType, TensorType
 
 
@@ -33,7 +32,7 @@ def _is_sparse(x):
     return isinstance(x, scipy.sparse.spmatrix)
 
 
-class SparseTensorType(TensorType, HasDataType):
+class SparseTensorType(TensorType):
     """A `Type` for sparse tensors.
 
     Notes
@@ -42,7 +41,7 @@ class SparseTensorType(TensorType, HasDataType):
 
     """
 
-    __props__ = ("dtype", "format", "shape")
+    __props__ = ("format", "dtype", "shape")
     format_cls = {
         "csr": scipy.sparse.csr_matrix,
         "csc": scipy.sparse.csc_matrix,
@@ -64,8 +63,9 @@ class SparseTensorType(TensorType, HasDataType):
     }
     ndim = 2
 
-    def __init__(
-        self,
+    @classmethod
+    def type_parameters(
+        cls,
         format: SparsityTypes,
         dtype: Union[str, np.dtype],
         shape: Optional[Iterable[Optional[Union[bool, int]]]] = None,
@@ -75,14 +75,17 @@ class SparseTensorType(TensorType, HasDataType):
         if shape is None and broadcastable is None:
             shape = (None, None)
 
-        if format not in self.format_cls:
+        if format not in cls.format_cls:
             raise ValueError(
                 f'unsupported format "{format}" not in list',
             )
 
-        self.format = format
+        params = super().type_parameters(
+            dtype, shape=shape, name=name, broadcastable=broadcastable
+        )
 
-        super().__init__(dtype, shape=shape, name=name, broadcastable=broadcastable)
+        params["format"] = format
+        return params
 
     def clone(
         self,
@@ -96,7 +99,7 @@ class SparseTensorType(TensorType, HasDataType):
             dtype = self.dtype
         if shape is None:
             shape = self.shape
-        return type(self)(format, dtype, shape=shape, **kwargs)
+        return type(self).subtype(format, dtype, shape=shape, **kwargs)
 
     def filter(self, value, strict=False, allow_downcast=None):
         if isinstance(value, Variable):

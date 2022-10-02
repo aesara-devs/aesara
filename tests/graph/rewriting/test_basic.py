@@ -162,9 +162,9 @@ class TestPatternNodeRewriter:
         assert str(g) == "FunctionGraph(Op1(x))"
 
     def test_constant(self):
-        x = Constant(MyType(), 2, name="x")
+        x = Constant(MyType.subtype(), 2, name="x")
         y = MyVariable("y")
-        z = Constant(MyType(), 2, name="z")
+        z = Constant(MyType.subtype(), 2, name="z")
         e = op1(op1(x, y), y)
         g = FunctionGraph([y], [e])
         OpKeyPatternNodeRewriter((op1, z, "1"), (op2, "1", z)).rewrite(g)
@@ -256,7 +256,7 @@ class NoInputOp(Op):
         self.param = param
 
     def make_node(self):
-        return Apply(self, [], [MyType()()])
+        return Apply(self, [], [MyType.subtype()()])
 
     def perform(self, node, inputs, output_storage):
         output_storage[0][0] = self.param
@@ -275,8 +275,8 @@ class TestMergeOptimizer:
 
     def test_constant_merging(self):
         x = MyVariable("x")
-        y = Constant(MyType(), 2, name="y")
-        z = Constant(MyType(), 2, name="z")
+        y = Constant(MyType.subtype(), 2, name="y")
+        z = Constant(MyType.subtype(), 2, name="z")
         e = op1(op2(x, y), op2(x, y), op2(x, z))
         g = FunctionGraph([x, y, z], [e], clone=False)
         MergeOptimizer().rewrite(g)
@@ -311,8 +311,8 @@ class TestMergeOptimizer:
 
     def test_identical_constant_args(self):
         x = MyVariable("x")
-        y = Constant(MyType(), 2, name="y")
-        z = Constant(MyType(), 2, name="z")
+        y = Constant(MyType.subtype(), 2, name="y")
+        z = Constant(MyType.subtype(), 2, name="z")
         e1 = op1(y, z)
         g = FunctionGraph([x, y, z], [e1], clone=False)
         MergeOptimizer().rewrite(g)
@@ -515,8 +515,8 @@ def test_pre_constant_merge():
 
     x = MyVariable("x")
     y = MyVariable("y")
-    c1 = Constant(MyType(), 1, "c1")
-    c2 = Constant(MyType(), 1, "c1")
+    c1 = Constant(MyType.subtype(), 1, "c1")
+    c2 = Constant(MyType.subtype(), 1, "c1")
     o1 = op2(c1, x)
     o2 = op1(o1, y, c2)
 
@@ -559,8 +559,8 @@ def test_pre_greedy_node_rewriter():
 
     x = MyVariable("x")
     y = MyVariable("y")
-    c1 = Constant(MyType(), 1, "c1")
-    c2 = Constant(MyType(), 2, "c2")
+    c1 = Constant(MyType.subtype(), 1, "c1")
+    c2 = Constant(MyType.subtype(), 2, "c2")
     o1 = op2(c1, c2)
     o3 = op1(c1, y)
     o2 = op1(o1, c2, x, o3, o1)

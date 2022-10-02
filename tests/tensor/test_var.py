@@ -155,18 +155,18 @@ def test__getitem__Subtensor():
 
 def test__getitem__AdvancedSubtensor_bool():
     x = matrix("x")
-    i = TensorType("bool", (False, False))("i")
+    i = TensorType.subtype("bool", (False, False))("i")
 
     z = x[i]
     op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
     assert op_types[-1] == AdvancedSubtensor
 
-    i = TensorType("bool", (False,))("i")
+    i = TensorType.subtype("bool", (False,))("i")
     z = x[:, i]
     op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
     assert op_types[-1] == AdvancedSubtensor
 
-    i = TensorType("bool", (False,))("i")
+    i = TensorType.subtype("bool", (False,))("i")
     z = x[..., i]
     op_types = [type(node.op) for node in aesara.graph.basic.io_toposort([x, i], [z])]
     assert op_types[-1] == AdvancedSubtensor
@@ -244,23 +244,27 @@ def test__getitem__newaxis(x, indices, new_order):
 
 
 def test_fixed_shape_variable_basic():
-    x = TensorVariable(TensorType("int64", (4,)), None)
+    x = TensorVariable(TensorType.subtype("int64", (4,)), None)
     assert isinstance(x.shape, Constant)
     assert np.array_equal(x.shape.data, (4,))
 
-    x = TensorConstant(TensorType("int64", (False, False)), np.array([[1, 2], [2, 3]]))
+    x = TensorConstant(
+        TensorType.subtype("int64", (False, False)), np.array([[1, 2], [2, 3]])
+    )
     assert x.type.shape == (2, 2)
 
     with pytest.raises(ValueError):
-        TensorConstant(TensorType("int64", (True, False)), np.array([[1, 2], [2, 3]]))
+        TensorConstant(
+            TensorType.subtype("int64", (True, False)), np.array([[1, 2], [2, 3]])
+        )
 
 
 def test_get_vector_length():
-    x = TensorVariable(TensorType("int64", (4,)), None)
+    x = TensorVariable(TensorType.subtype("int64", (4,)), None)
     res = get_vector_length(x)
     assert res == 4
 
-    x = TensorVariable(TensorType("int64", (None,)), None)
+    x = TensorVariable(TensorType.subtype("int64", (None,)), None)
     with pytest.raises(ValueError):
         get_vector_length(x)
 

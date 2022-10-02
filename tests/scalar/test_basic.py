@@ -347,8 +347,8 @@ class TestUpgradeToFloat:
 
         xi = int8("xi")
         yi = int8("yi")
-        xf = ScalarType(aesara.config.floatX)("xf")
-        yf = ScalarType(aesara.config.floatX)("yf")
+        xf = ScalarType.subtype(aesara.config.floatX)("xf")
+        yf = ScalarType.subtype(aesara.config.floatX)("yf")
 
         ei = true_div(xi, yi)
         fi = aesara.function([xi, yi], ei)

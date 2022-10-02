@@ -28,7 +28,7 @@ from aesara.gradient import DisconnectedType, grad_undefined
 from aesara.graph.basic import Apply, Constant, Variable, clone, list_of_nodes
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.rewriting.basic import MergeOptimizer
-from aesara.graph.type import HasDataType, HasShape
+from aesara.graph.type import DataType
 from aesara.graph.utils import MetaObject, MethodNotDefined
 from aesara.link.c.op import COp
 from aesara.link.c.type import CType
@@ -268,7 +268,7 @@ def convert(x, dtype=None):
     return x_
 
 
-class ScalarType(CType, HasDataType, HasShape):
+class ScalarType(CType):
 
     """
     Internal class, should not be used by clients.
@@ -284,20 +284,21 @@ class ScalarType(CType, HasDataType, HasShape):
     __props__ = ("dtype",)
     ndim = 0
     shape = ()
+    dtype: DataType
 
-    def __init__(self, dtype):
+    @classmethod
+    def type_parameters(cls, dtype):
         if isinstance(dtype, str) and dtype == "floatX":
             dtype = config.floatX
         else:
             dtype = np.dtype(dtype).name
 
-        self.dtype = dtype
-        self.dtype_specs()  # error checking
+        return {"dtype": dtype}
 
     def clone(self, dtype=None, **kwargs):
         if dtype is None:
             dtype = self.dtype
-        return type(self)(dtype)
+        return type(self).subtype(dtype)
 
     @staticmethod
     def may_share_memory(a, b):
@@ -678,7 +679,7 @@ def get_scalar_type(dtype, cache: Dict[str, ScalarType] = {}) -> ScalarType:
 
     """
     if dtype not in cache:
-        cache[dtype] = ScalarType(dtype=dtype)
+        cache[dtype] = ScalarType.subtype(dtype=dtype)
     return cache[dtype]
 
 
@@ -2404,13 +2405,13 @@ class Second(BinaryScalarOp):
         (gz,) = gout
         if y.type in continuous_types:
             # x is disconnected because the elements of x are not used
-            return DisconnectedType()(), gz
+            return DisconnectedType.subtype()(), gz
         else:
             # when y is discrete, we assume the function can be extended
             # to deal with real-valued inputs by rounding them to the
             # nearest integer. f(x+eps) thus equals f(x) so the gradient
             # is zero, not disconnected or undefined
-            return DisconnectedType()(), y.zeros_like()
+            return DisconnectedType.subtype()(), y.zeros_like()
 
 
 second = Second(transfer_type(1), name="second")

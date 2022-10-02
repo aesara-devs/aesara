@@ -35,7 +35,7 @@ class LoadFromDisk(Op):
 
     def make_node(self, path):
         if isinstance(path, str):
-            path = Constant(Generic(), path)
+            path = Constant(Generic.subtype(), path)
         return Apply(self, [path], [tensor(self.dtype, shape=self.broadcastable)])
 
     def perform(self, node, inp, out):
@@ -136,7 +136,7 @@ class MPIRecv(Op):
             self,
             [],
             [
-                Variable(Generic(), None),
+                Variable(Generic.subtype(), None),
                 tensor(self.dtype, shape=self.broadcastable),
             ],
         )
@@ -222,7 +222,7 @@ class MPISend(Op):
         self.tag = tag
 
     def make_node(self, data):
-        return Apply(self, [data], [Variable(Generic(), None), data.type()])
+        return Apply(self, [data], [Variable(Generic.subtype(), None), data.type()])
 
     view_map = {1: [0]}
 
@@ -259,7 +259,7 @@ class MPISendWait(Op):
         self.tag = tag
 
     def make_node(self, request, data):
-        return Apply(self, [request, data], [Variable(Generic(), None)])
+        return Apply(self, [request, data], [Variable(Generic.subtype(), None)])
 
     def perform(self, node, inp, out):
         request = inp[0]

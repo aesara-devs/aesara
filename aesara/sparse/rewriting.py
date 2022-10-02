@@ -126,7 +126,7 @@ class AddSD_ccode(_NoPythonCOp):
         # The magic number two here arises because L{scipy.sparse}
         # objects must be matrices (have dimension 2)
         assert y.type.ndim == 2
-        out = TensorType(dtype=out_dtype, shape=y.type.broadcastable)()
+        out = TensorType.subtype(dtype=out_dtype, shape=y.type.broadcastable)()
         return Apply(self, [data, indices, indptr, y], [out])
 
     def c_code(self, node, name, inputs, outputs, sub):
@@ -504,7 +504,7 @@ class StructuredDotCSR(COp):
         """
         (a_val, a_ind, a_ptr, b) = inputs
         (z,) = outputs
-        typenum_z = TensorType(self.dtype_out, []).dtype_specs()[2]
+        typenum_z = TensorType.subtype(self.dtype_out, []).dtype_specs()[2]
         if node.inputs[0].type.dtype in ("complex64", "complex128"):
             raise NotImplementedError("Complex types are not supported for a_val")
         if node.inputs[3].type.dtype in ("complex64", "complex128"):
@@ -1898,9 +1898,9 @@ class SamplingDotCSR(_NoPythonCOp):
         typenum_x = node.inputs[0].type.dtype_specs()[2]
         typenum_y = node.inputs[1].type.dtype_specs()[2]
         typenum_p = node.inputs[2].type.dtype_specs()[2]
-        typenum_zd = TensorType(node.outputs[0].dtype, []).dtype_specs()[2]
-        typenum_zi = TensorType(node.outputs[1].dtype, []).dtype_specs()[2]
-        typenum_zp = TensorType(node.outputs[2].dtype, []).dtype_specs()[2]
+        typenum_zd = TensorType.subtype(node.outputs[0].dtype, []).dtype_specs()[2]
+        typenum_zi = TensorType.subtype(node.outputs[1].dtype, []).dtype_specs()[2]
+        typenum_zp = TensorType.subtype(node.outputs[2].dtype, []).dtype_specs()[2]
 
         rval = """
         if (PyArray_NDIM(%(x)s) != 2) {

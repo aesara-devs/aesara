@@ -1,17 +1,41 @@
-from abc import abstractmethod
-from typing import Any, Generic, Optional, Text, Tuple, TypeVar, Union
+import inspect
+from abc import ABCMeta, abstractmethod
+from typing import Any, Generic, Optional, Text, Tuple, TypeVar, Union, final
 
-from typing_extensions import TypeAlias
+from typing_extensions import Protocol, TypeAlias, runtime_checkable
 
 from aesara.graph import utils
 from aesara.graph.basic import Constant, Variable
-from aesara.graph.utils import MetaObject
+from aesara.graph.utils import MetaType
 
 
 D = TypeVar("D")
 
 
-class Type(MetaObject, Generic[D]):
+class NewTypeMeta(ABCMeta):
+    __props__: tuple[str, ...]
+
+    def __call__(cls, *args, **kwargs):
+        raise RuntimeError("Use subtype")
+        # return super().__call__(*args, **kwargs)
+
+    def subtype(cls, *args, **kwargs):
+        kwargs = cls.type_parameters(*args, **kwargs)
+        return super().__call__(**kwargs)
+
+    def type_parameters(cls, *args, **kwargs):
+        if args:
+            init_args = tuple(inspect.signature(cls.__init__).parameters.keys())[1:]
+            if cls.__props__[: len(args)] != init_args[: len(args)]:
+                raise RuntimeError(
+                    f"{cls.__props__=} doesn't match {init_args=} for {args=}"
+                )
+
+            kwargs |= zip(cls.__props__, args)
+        return kwargs
+
+
+class Type(Generic[D], metaclass=NewTypeMeta):
     """
     Interface specification for variable type instances.
 
@@ -34,6 +58,12 @@ class Type(MetaObject, Generic[D]):
     """
     The `Type` that will be created by a call to `Type.make_constant`.
     """
+
+    __props__: tuple[str, ...] = ()
+
+    @classmethod
+    def create(cls, **kwargs):
+        MetaType(f"{cls.__name__}[{kwargs}]", (cls,), kwargs)
 
     def in_same_class(self, otype: "Type") -> Optional[bool]:
         """Determine if another `Type` represents a subset from the same "class" of types represented by `self`.
@@ -214,7 +244,7 @@ class Type(MetaObject, Generic[D]):
 
     def clone(self, *args, **kwargs) -> "Type":
         """Clone a copy of this type with the given arguments/keyword values, if any."""
-        return type(self)(*args, **kwargs)
+        return type(self).subtype(*args, **kwargs)
 
     def __call__(self, name: Optional[Text] = None) -> variable_type:
         """Return a new `Variable` instance of Type `self`.
@@ -261,15 +291,63 @@ class Type(MetaObject, Generic[D]):
         """
         return cls.values_eq(a, b)
 
+    def _props(self):
+        """
+        Tuple of properties of all attributes
+        """
+        return tuple(getattr(self, a) for a in self.__props__)
 
-class HasDataType:
-    """A mixin for a type that has a :attr:`dtype` attribute."""
+    def _props_dict(self):
+        """This return a dict of all ``__props__`` key-> value.
 
-    dtype: str
+        This is useful in optimization to swap op that should have the
+        same props. This help detect error that the new op have at
+        least all the original props.
+
+        """
+        return {a: getattr(self, a) for a in self.__props__}
+
+    @final
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+    def __hash__(self):
+        return hash((type(self), tuple(getattr(self, a) for a in self.__props__)))
+
+    def __eq__(self, other):
+        return type(self) == type(other) and tuple(
+            getattr(self, a) for a in self.__props__
+        ) == tuple(getattr(other, a) for a in self.__props__)
+
+    def __str__(self):
+        if self.__props__ is None or len(self.__props__) == 0:
+            return f"{self.__class__.__name__}()"
+        else:
+            return "{}{{{}}}".format(
+                self.__class__.__name__,
+                ", ".join(
+                    "{}={!r}".format(p, getattr(self, p)) for p in self.__props__
+                ),
+            )
 
 
-class HasShape:
-    """A mixin for a type that has :attr:`shape` and :attr:`ndim` attributes."""
+DataType = str
+
+
+@runtime_checkable
+class HasDataType(Protocol):
+    """A protocol matching any class with :attr:`dtype` attribute."""
+
+    dtype: DataType
+
+
+ShapeType = Tuple[Optional[int], ...]
+
+
+@runtime_checkable
+class HasShape(Protocol):
+    """A protocol matching any class that has :attr:`shape` and :attr:`ndim` attributes."""
 
     ndim: int
-    shape: Tuple[Optional[int], ...]
+    shape: ShapeType

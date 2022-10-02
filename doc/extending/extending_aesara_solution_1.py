@@ -17,7 +17,7 @@ class ProdOp(Op):
         x = at.as_tensor_variable(x)
         y = at.as_tensor_variable(y)
         outdim = x.ndim
-        output = TensorType(
+        output = TensorType.subtype(
             dtype=aesara.scalar.upcast(x.dtype, y.dtype), shape=[False] * outdim
         )()
         return Apply(self, inputs=[x, y], outputs=[output])
@@ -42,10 +42,10 @@ class SumDiffOp(Op):
         x = at.as_tensor_variable(x)
         y = at.as_tensor_variable(y)
         outdim = x.ndim
-        output1 = TensorType(
+        output1 = TensorType.subtype(
             dtype=aesara.scalar.upcast(x.dtype, y.dtype), shape=[False] * outdim
         )()
-        output2 = TensorType(
+        output2 = TensorType.subtype(
             dtype=aesara.scalar.upcast(x.dtype, y.dtype), shape=[False] * outdim
         )()
         return Apply(self, inputs=[x, y], outputs=[output1, output2])

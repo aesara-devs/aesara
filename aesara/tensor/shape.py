@@ -65,7 +65,7 @@ class Shape(COp):
             x = at.as_tensor_variable(x)
 
         if isinstance(x.type, TensorType):
-            out_var = TensorType("int64", (x.type.ndim,))()
+            out_var = TensorType.subtype("int64", (x.type.ndim,))()
         else:
             out_var = aesara.tensor.type.lvector()
 
@@ -93,7 +93,7 @@ class Shape(COp):
         # the elements of the tensor variable do not participate
         # in the computation of the shape, so they are not really
         # part of the graph
-        return [aesara.gradient.DisconnectedType()()]
+        return [aesara.gradient.DisconnectedType.subtype()()]
 
     def R_op(self, inputs, eval_points):
         return [None]
@@ -212,7 +212,7 @@ class Shape_i(COp):
     #    using params.
     @property
     def params_type(self):
-        return ParamsType(i=aesara.scalar.basic.int64)
+        return ParamsType.subtype(i=aesara.scalar.basic.int64)
 
     def __str__(self):
         return "%s{%i}" % (self.__class__.__name__, self.i)
@@ -463,7 +463,7 @@ class SpecifyShape(COp):
         x, *shape = inp
         (gz,) = grads
         return [specify_shape(gz, shape)] + [
-            aesara.gradient.DisconnectedType()() for _ in range(len(shape))
+            aesara.gradient.DisconnectedType.subtype()() for _ in range(len(shape))
         ]
 
     def R_op(self, inputs, eval_points):
@@ -584,7 +584,7 @@ class Reshape(COp):
 
     check_input = False
     __props__ = ("ndim",)
-    params_type = ParamsType(ndim=int32)
+    params_type = ParamsType.subtype(ndim=int32)
     # name does not participate because it doesn't affect computations
 
     def __init__(self, ndim, name=None):
@@ -649,7 +649,7 @@ class Reshape(COp):
     def grad(self, inp, grads):
         x, shp = inp
         (g_out,) = grads
-        return [reshape(g_out, shape(x), ndim=x.ndim), DisconnectedType()()]
+        return [reshape(g_out, shape(x), ndim=x.ndim), DisconnectedType.subtype()()]
 
     def R_op(self, inputs, eval_points):
         if eval_points[0] is None:

@@ -67,7 +67,7 @@ class TDouble(Type):
         return float(data)
 
 
-tdouble = TDouble()
+tdouble = TDouble.subtype()
 
 
 def double(name):

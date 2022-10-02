@@ -110,7 +110,7 @@ class Binomial(Op):
         return Apply(
             self,
             [n, p, shape],
-            [SparseTensorType(dtype=self.dtype, format=self.format)()],
+            [SparseTensorType.subtype(dtype=self.dtype, format=self.format)()],
         )
 
     def perform(self, node, inputs, outputs):
