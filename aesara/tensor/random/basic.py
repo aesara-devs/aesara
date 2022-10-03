@@ -5,6 +5,7 @@ import numpy as np
 import scipy.stats as stats
 
 import aesara
+from aesara import issubtype
 from aesara.tensor.basic import as_tensor_variable
 from aesara.tensor.random.op import RandomVariable, default_supp_shape_from_params
 from aesara.tensor.random.type import RandomGeneratorType, RandomStateType
@@ -1686,7 +1687,7 @@ class RandIntRV(RandomVariable):
         return super().__call__(low, high, size=size, **kwargs)
 
     def make_node(self, rng, *args, **kwargs):
-        if not isinstance(
+        if not issubtype(
             getattr(rng, "type", None), (RandomStateType, RandomStateSharedVariable)
         ):
             raise TypeError("`randint` is only available for `RandomStateType`s")
@@ -1731,7 +1732,7 @@ class IntegersRV(RandomVariable):
         return super().__call__(low, high, size=size, **kwargs)
 
     def make_node(self, rng, *args, **kwargs):
-        if not isinstance(
+        if not issubtype(
             getattr(rng, "type", None),
             (RandomGeneratorType, RandomGeneratorSharedVariable),
         ):
@@ -1761,7 +1762,7 @@ class ChoiceRV(RandomVariable):
     def _infer_shape(self, size, dist_params, param_shapes=None):
         (a, p, _) = dist_params
 
-        if isinstance(p.type, aesara.tensor.type_other.NoneTypeT):
+        if issubtype(p.type, aesara.tensor.type_other.NoneTypeT):
             shape = super()._infer_shape(size, (a,), param_shapes)
         else:
             shape = super()._infer_shape(size, (a, p), param_shapes)

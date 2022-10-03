@@ -1,6 +1,17 @@
-import inspect
+import copyreg
 from abc import ABCMeta, abstractmethod
-from typing import Any, Generic, Optional, Text, Tuple, TypeVar, Union, final
+from itertools import chain
+from typing import (
+    Annotated,
+    Any,
+    Optional,
+    Text,
+    Tuple,
+    TypeVar,
+    Union,
+    get_args,
+    get_type_hints,
+)
 
 from typing_extensions import Protocol, TypeAlias, runtime_checkable
 
@@ -10,32 +21,11 @@ from aesara.graph.utils import MetaType
 
 
 D = TypeVar("D")
+PropsV = TypeVar("PropsV")
+Props = Annotated[Optional[PropsV], "props"]
 
 
 class NewTypeMeta(ABCMeta):
-    __props__: tuple[str, ...]
-
-    def __call__(cls, *args, **kwargs):
-        raise RuntimeError("Use subtype")
-        # return super().__call__(*args, **kwargs)
-
-    def subtype(cls, *args, **kwargs):
-        kwargs = cls.type_parameters(*args, **kwargs)
-        return super().__call__(**kwargs)
-
-    def type_parameters(cls, *args, **kwargs):
-        if args:
-            init_args = tuple(inspect.signature(cls.__init__).parameters.keys())[1:]
-            if cls.__props__[: len(args)] != init_args[: len(args)]:
-                raise RuntimeError(
-                    f"{cls.__props__=} doesn't match {init_args=} for {args=}"
-                )
-
-            kwargs |= zip(cls.__props__, args)
-        return kwargs
-
-
-class Type(Generic[D], metaclass=NewTypeMeta):
     """
     Interface specification for variable type instances.
 
@@ -59,7 +49,84 @@ class Type(Generic[D], metaclass=NewTypeMeta):
     The `Type` that will be created by a call to `Type.make_constant`.
     """
 
-    __props__: tuple[str, ...] = ()
+    _prop_names: tuple[str, ...] = tuple()
+    _subclass_cache = dict()
+
+    _base_type: Optional["NewTypeMeta"] = None
+    _type_parameters: dict[str, Any] = dict()
+
+    @staticmethod
+    def make_key(params):
+        res = []
+        for k, v in sorted(params.items()):
+            if isinstance(v, dict):
+                v = NewTypeMeta.make_key(v)
+            res.append((k, v))
+
+        return tuple(res)
+
+    @classmethod
+    def __new__(cls, *args, **kwargs):
+        res = super().__new__(*args, **kwargs)
+        props = tuple(
+            k
+            for k, v in chain(
+                get_type_hints(type(res), include_extras=True).items(),
+                get_type_hints(res, include_extras=True).items(),
+            )
+            if "props" in get_args(v)
+        )
+        res._prop_names = props
+        copyreg.pickle(type(res), _pickle_NewTypeMeta)
+        return res
+
+    def subtype(cls, *args, **kwargs):
+        # For dynamically created types the attribute base_type exists and points to the base type it was derived from
+        base_type = cls.base_type
+        kwargs = base_type.type_parameters(*args, **kwargs)
+
+        return base_type.subtype_params(kwargs)
+
+    @property
+    def base_type(cls):
+        if cls._base_type is None:
+            return cls
+        else:
+            return cls._base_type
+
+    def subtype_params(cls, params):
+        if not params:
+            return cls
+
+        key = (cls, *NewTypeMeta.make_key(params))
+        try:
+            return NewTypeMeta._subclass_cache[key]
+        except KeyError:
+            pass
+        cls_name = f"{cls.__name__}{params}"
+
+        res = type(cls)(cls_name, (cls,), params)
+        res._base_type = cls
+        res._type_parameters = params
+
+        NewTypeMeta._subclass_cache[key] = res
+        return res
+
+    def __call__(self, name: Optional[Text] = None) -> Any:
+        """Return a new `Variable` instance of Type `self`.
+
+        Parameters
+        ----------
+        name : None or str
+            A pretty string for printing and debugging.
+
+        """
+        return utils.add_tag_trace(self.make_variable(name))
+
+    def type_parameters(cls, *args, **kwargs):
+        if args:
+            kwargs |= zip(cls._prop_names, args)
+        return kwargs
 
     @classmethod
     def create(cls, **kwargs):
@@ -161,7 +228,7 @@ class Type(Generic[D], metaclass=NewTypeMeta):
 
     def filter_variable(
         self, other: Union[Variable, D], allow_convert: bool = True
-    ) -> variable_type:
+    ) -> Any:
         r"""Convert a `other` into a `Variable` with a `Type` that's compatible with `self`.
 
         If the involved `Type`\s are not compatible, a `TypeError` will be raised.
@@ -244,18 +311,7 @@ class Type(Generic[D], metaclass=NewTypeMeta):
 
     def clone(self, *args, **kwargs) -> "Type":
         """Clone a copy of this type with the given arguments/keyword values, if any."""
-        return type(self).subtype(*args, **kwargs)
-
-    def __call__(self, name: Optional[Text] = None) -> variable_type:
-        """Return a new `Variable` instance of Type `self`.
-
-        Parameters
-        ----------
-        name : None or str
-            A pretty string for printing and debugging.
-
-        """
-        return utils.add_tag_trace(self.make_variable(name))
+        return self.subtype(*args, **kwargs)
 
     @classmethod
     def values_eq(cls, a: D, b: D) -> bool:
@@ -295,7 +351,7 @@ class Type(Generic[D], metaclass=NewTypeMeta):
         """
         Tuple of properties of all attributes
         """
-        return tuple(getattr(self, a) for a in self.__props__)
+        return tuple(getattr(self, a) for a in self._prop_names)
 
     def _props_dict(self):
         """This return a dict of all ``__props__`` key-> value.
@@ -305,31 +361,40 @@ class Type(Generic[D], metaclass=NewTypeMeta):
         least all the original props.
 
         """
-        return {a: getattr(self, a) for a in self.__props__}
+        return {a: getattr(self, a) for a in self._prop_names}
 
-    @final
-    def __init__(self, **kwargs):
-        for k, v in kwargs.items():
-            setattr(self, k, v)
+    # def __hash__(self):
+    #     return hash((type(self), tuple(getattr(self, a, None) for a in self._prop_names)))
 
-    def __hash__(self):
-        return hash((type(self), tuple(getattr(self, a) for a in self.__props__)))
-
-    def __eq__(self, other):
-        return type(self) == type(other) and tuple(
-            getattr(self, a) for a in self.__props__
-        ) == tuple(getattr(other, a) for a in self.__props__)
+    # def __eq__(self, other):
+    #     return type(self) == type(other) and tuple(
+    #         getattr(self, a) for a in self._prop_names
+    #     ) == tuple(getattr(other, a) for a in self._prop_names)
 
     def __str__(self):
-        if self.__props__ is None or len(self.__props__) == 0:
+        if self._prop_names is None or len(self._prop_names) == 0:
             return f"{self.__class__.__name__}()"
         else:
             return "{}{{{}}}".format(
                 self.__class__.__name__,
                 ", ".join(
-                    "{}={!r}".format(p, getattr(self, p)) for p in self.__props__
+                    "{}={!r}".format(p, getattr(self, p)) for p in self._prop_names
                 ),
             )
+
+
+def _pickle_NewTypeMeta(type_: NewTypeMeta):
+    base_type = type_.base_type
+    if base_type is type_:
+        return type_.__name__
+    return base_type.subtype_params, (type_._type_parameters,)
+
+
+copyreg.pickle(NewTypeMeta, _pickle_NewTypeMeta)
+
+
+class Type(metaclass=NewTypeMeta):
+    pass
 
 
 DataType = str

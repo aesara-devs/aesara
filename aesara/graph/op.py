@@ -29,6 +29,7 @@ from aesara.graph.utils import (
     add_tag_trace,
     get_variable_trace_string,
 )
+from aesara.issubtype import issubtype
 from aesara.link.c.params_type import Params, ParamsType
 
 
@@ -477,7 +478,7 @@ class Op(MetaObject):
 
     def get_params(self, node: Apply) -> Params:
         """Try to get parameters for the `Op` when :attr:`Op.params_type` is set to a `ParamsType`."""
-        if isinstance(self.params_type, ParamsType):
+        if issubtype(self.params_type, ParamsType):
             wrapper = self.params_type
             if not all(hasattr(self, field) for field in wrapper.fields):
                 # Let's print missing attributes for debugging.

@@ -5,6 +5,7 @@ from io import StringIO
 import numpy as np
 
 import aesara
+from aesara import issubtype
 from aesara.compile.mode import Mode
 from aesara.configdefaults import config
 from aesara.tensor.type import discrete_dtypes
@@ -36,7 +37,7 @@ def _is_numeric_value(arr, var):
         return False
     elif isinstance(arr, (np.random.mtrand.RandomState, np.random.Generator)):
         return False
-    elif var and isinstance(var.type, RandomType):
+    elif var and issubtype(var.type, RandomType):
         return False
     elif isinstance(arr, slice):
         return False

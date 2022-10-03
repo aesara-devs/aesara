@@ -1,7 +1,11 @@
-from aesara.link.c.type import CType, Type
+from typing import Any
+
+from aesara import issubtype
+from aesara.graph.type import Props
+from aesara.link.c.type import CType, CTypeMeta, Type
 
 
-class TypedListType(CType):
+class TypedListTypeMeta(CTypeMeta):
     """
 
     Parameters
@@ -14,14 +18,14 @@ class TypedListType(CType):
 
     """
 
-    __props__ = ("ttype",)
+    ttype: Props[Any] = None
 
     @classmethod
     def type_parameters(cls, ttype, depth=0):
 
         if depth < 0:
             raise ValueError("Please specify a depth superior or" "equal to 0")
-        if not isinstance(ttype, Type):
+        if not issubtype(ttype, Type):
             raise TypeError("Expected an Aesara Type")
 
         if depth > 0:
@@ -62,7 +66,7 @@ class TypedListType(CType):
         Utilitary function to get the 0 based level of the list.
 
         """
-        if isinstance(self.ttype, TypedListType):
+        if issubtype(self.ttype, TypedListType):
             return self.ttype.get_depth() + 1
         else:
             return 0
@@ -139,3 +143,7 @@ class TypedListType(CType):
 
     dtype = property(lambda self: self.ttype)
     ndim = property(lambda self: self.ttype.ndim + 1)
+
+
+class TypedListType(CType, metaclass=TypedListTypeMeta):
+    pass

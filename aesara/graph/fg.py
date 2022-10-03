@@ -24,6 +24,7 @@ from aesara.graph.basic import as_string as graph_as_string
 from aesara.graph.basic import clone_get_equiv, graph_inputs, io_toposort, vars_between
 from aesara.graph.features import AlreadyThere, Feature, ReplaceValidate
 from aesara.graph.utils import MetaObject, MissingInputError, TestValueError
+from aesara.issubtype import issubtype
 from aesara.misc.ordered_set import OrderedSet
 
 
@@ -309,7 +310,7 @@ class FunctionGraph(MetaObject):
         ):
             from aesara.graph.null_type import NullType
 
-            if isinstance(var.type, NullType):
+            if issubtype(var.type, NullType):
                 raise TypeError(
                     f"Computation graph contains a NaN. {var.type.why_null}"
                 )

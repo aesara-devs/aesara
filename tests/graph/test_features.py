@@ -4,17 +4,15 @@ from aesara.graph.basic import Apply, Variable
 from aesara.graph.features import Feature, NodeFinder, ReplaceValidate
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
-from aesara.graph.type import Type
+from aesara.graph.type import NewTypeMeta, Props, Type
+from aesara.issubtype import issubtype
 from tests.graph.utils import MyVariable, op1
 
 
 class TestNodeFinder:
     def test_straightforward(self):
-        class MyType(Type):
-            __props__ = ("name",)
-
-            def __init__(self, name):
-                self.name = name
+        class MyTypeMeta(NewTypeMeta):
+            name: Props[str] = None
 
             def filter(self, *args, **kwargs):
                 raise NotImplementedError()
@@ -26,7 +24,13 @@ class TestNodeFinder:
                 return self.name
 
             def __eq__(self, other):
-                return isinstance(other, MyType)
+                return isinstance(other, MyTypeMeta)
+
+            def __hash__(self):
+                return hash(MyTypeMeta)
+
+        class MyType(Type, metaclass=MyTypeMeta):
+            pass
 
         class MyOp(Op):
 
@@ -44,7 +48,7 @@ class TestNodeFinder:
                 assert len(inputs) == self.nin
                 inputs = list(map(as_variable, inputs))
                 for input in inputs:
-                    if not isinstance(input.type, MyType):
+                    if not issubtype(input.type, MyType):
                         raise Exception("Error 1")
                 outputs = [MyType.subtype(self.name + "_R")()]
                 return Apply(self, inputs, outputs)

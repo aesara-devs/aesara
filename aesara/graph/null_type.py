@@ -1,7 +1,7 @@
-from aesara.graph.type import Type
+from aesara.graph.type import NewTypeMeta, Props, Type
 
 
-class NullType(Type):
+class NullTypeMeta(NewTypeMeta):
     """
     A type that allows no values.
 
@@ -17,10 +17,7 @@ class NullType(Type):
 
     """
 
-    __props__ = ("why_null",)
-
-    def __init__(self, why_null="(no explanation given)"):
-        self.why_null = why_null
+    why_null: Props[str] = None
 
     def filter(self, data, strict=False, allow_downcast=None):
         raise ValueError("No values may be assigned to a NullType")
@@ -34,14 +31,12 @@ class NullType(Type):
     def values_eq(self, a, b, force_same_dtype=True):
         raise ValueError("NullType has no values to compare")
 
-    def __eq__(self, other):
-        return type(self) == type(other)
-
-    def __hash__(self):
-        return hash(type(self))
-
     def __str__(self):
         return "NullType"
+
+
+class NullType(Type, metaclass=NullTypeMeta):
+    pass
 
 
 null_type = NullType.subtype()

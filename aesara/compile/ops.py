@@ -12,6 +12,7 @@ from typing import Dict, Tuple
 
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
+from aesara.issubtype import issubtype
 from aesara.link.c.op import COp
 from aesara.link.c.type import CType
 
@@ -64,7 +65,7 @@ class ViewOp(COp):
         (oname,) = out
         fail = sub["fail"]
 
-        itype = node.inputs[0].type.__class__
+        itype = node.inputs[0].type.base_type
         if itype in self.c_code_and_version:
             code, version = self.c_code_and_version[itype]
             return code % locals()
@@ -199,7 +200,7 @@ class DeepCopyOp(COp):
         (oname,) = onames
         fail = sub["fail"]
 
-        itype = node.inputs[0].type.__class__
+        itype = node.inputs[0].type.base_type
         if itype in self.c_code_and_version:
             code, version = self.c_code_and_version[itype]
             return code % locals()
@@ -311,11 +312,11 @@ def as_op(itypes, otypes, infer_shape=None):
     """
     if not isinstance(itypes, (list, tuple)):
         itypes = [itypes]
-    if not all(isinstance(t, CType) for t in itypes):
+    if not all(issubtype(t, CType) for t in itypes):
         raise TypeError("itypes has to be a list of Aesara types")
     if not isinstance(otypes, (list, tuple)):
         otypes = [otypes]
-    if not all(isinstance(t, CType) for t in otypes):
+    if not all(issubtype(t, CType) for t in otypes):
         raise TypeError("otypes has to be a list of Aesara types")
 
     # make sure they are lists and not tuples

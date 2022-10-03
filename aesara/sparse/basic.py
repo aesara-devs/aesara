@@ -19,6 +19,7 @@ from aesara.configdefaults import config
 from aesara.gradient import DisconnectedType, grad_not_implemented, grad_undefined
 from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.op import Op
+from aesara.issubtype import issubtype
 from aesara.link.c.op import COp
 from aesara.link.c.type import generic
 from aesara.misc.safe_asarray import _asarray
@@ -85,7 +86,7 @@ def _is_sparse_variable(x):
             "or TensorType, for instance), not ",
             x,
         )
-    return isinstance(x.type, SparseTensorType)
+    return issubtype(x.type, SparseTensorType)
 
 
 def _is_dense_variable(x):
@@ -105,7 +106,7 @@ def _is_dense_variable(x):
             "TensorType, for instance), not ",
             x,
         )
-    return isinstance(x.type, TensorType)
+    return issubtype(x.type, TensorType)
 
 
 def _is_dense(x):
@@ -160,7 +161,7 @@ def as_sparse_variable(x, name=None, ndim=None, **kwargs):
         else:
             x = x.outputs[0]
     if isinstance(x, Variable):
-        if not isinstance(x.type, SparseTensorType):
+        if not issubtype(x.type, SparseTensorType):
             raise TypeError(
                 "Variable type field must be a SparseTensorType.", x, x.type
             )
@@ -264,7 +265,7 @@ def override_dense(*methods):
                 self = self.toarray()
                 new_args = [
                     arg.toarray()
-                    if hasattr(arg, "type") and isinstance(arg.type, SparseTensorType)
+                    if hasattr(arg, "type") and issubtype(arg.type, SparseTensorType)
                     else arg
                     for arg in args
                 ]
@@ -618,7 +619,7 @@ class CSMProperties(Op):
         # g[1:] is connected, or this grad method wouldn't have been
         # called, so we should report zeros
         (csm,) = inputs
-        if isinstance(g[0].type, DisconnectedType):
+        if issubtype(g[0].type, DisconnectedType):
             return [csm.zeros_like()]
 
         data, indices, indptr, _shape = csm_properties(csm)
@@ -980,7 +981,7 @@ class DenseFromSparse(Op):
         return f"{self.__class__.__name__}{{structured_grad={self.sparse_grad}}}"
 
     def __call__(self, x):
-        if not isinstance(x.type, SparseTensorType):
+        if not issubtype(x.type, SparseTensorType):
             return x
 
         return super().__call__(x)
@@ -1052,7 +1053,7 @@ class SparseFromDense(Op):
         return f"{self.__class__.__name__}{{{self.format}}}"
 
     def __call__(self, x):
-        if isinstance(x.type, SparseTensorType):
+        if issubtype(x.type, SparseTensorType):
             return x
 
         return super().__call__(x)
@@ -3498,7 +3499,7 @@ class StructuredDot(Op):
             )
 
         variable = a * b
-        if isinstance(node.outputs[0].type, SparseTensorType):
+        if issubtype(node.outputs[0].type, SparseTensorType):
             assert _is_sparse(variable)
             out[0] = variable
             return

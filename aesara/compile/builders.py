@@ -26,6 +26,7 @@ from aesara.graph.null_type import NullType
 from aesara.graph.op import HasInnerGraph, Op
 from aesara.graph.rewriting.basic import in2out, node_rewriter
 from aesara.graph.utils import MissingInputError
+from aesara.issubtype import issubtype
 from aesara.tensor.rewriting.shape import ShapeFeature
 
 
@@ -210,7 +211,7 @@ class OpFromGraph(Op, HasInnerGraph):
         #
         # For now, this converts NullType or DisconnectedType into zeros_like.
         # other types are unmodified: overrider_var -> None
-        if isinstance(grad.type, (NullType, DisconnectedType)):
+        if issubtype(grad.type, (NullType, DisconnectedType)):
             if hasattr(inp, "zeros_like"):
                 return inp.zeros_like(), grad
             else:
@@ -221,9 +222,9 @@ class OpFromGraph(Op, HasInnerGraph):
     @staticmethod
     def _filter_rop_var(inpJ, out):
         # mostly similar to _filter_grad_var
-        if isinstance(inpJ.type, NullType):
+        if issubtype(inpJ.type, NullType):
             return out.zeros_like(), inpJ
-        if isinstance(inpJ.type, DisconnectedType):
+        if issubtype(inpJ.type, DisconnectedType):
             # since R_op does not have DisconnectedType yet, we will just
             # make them zeros.
             return out.zeros_like(), None
@@ -502,7 +503,7 @@ class OpFromGraph(Op, HasInnerGraph):
             all_grads_l = list(all_grads_l)
             all_grads_ov_l = list(all_grads_ov_l)
         elif isinstance(lop_op, Variable):
-            if isinstance(lop_op.type, (DisconnectedType, NullType)):
+            if issubtype(lop_op.type, (DisconnectedType, NullType)):
                 all_grads_l = [inp.zeros_like() for inp in local_inputs]
                 all_grads_ov_l = [lop_op.type() for _ in range(inp_len)]
             else:
@@ -529,7 +530,7 @@ class OpFromGraph(Op, HasInnerGraph):
                     all_grads_l.append(gnext)
                     all_grads_ov_l.append(gnext_ov)
                 elif isinstance(fn_gov, Variable):
-                    if isinstance(fn_gov.type, (DisconnectedType, NullType)):
+                    if issubtype(fn_gov.type, (DisconnectedType, NullType)):
                         all_grads_l.append(inp.zeros_like())
                         all_grads_ov_l.append(fn_gov.type())
                     else:
@@ -614,10 +615,10 @@ class OpFromGraph(Op, HasInnerGraph):
             all_rops_l = list(all_rops_l)
             all_rops_ov_l = list(all_rops_ov_l)
         elif isinstance(rop_op, Variable):
-            if isinstance(rop_op.type, NullType):
+            if issubtype(rop_op.type, NullType):
                 all_rops_l = [inp.zeros_like() for inp in local_inputs]
                 all_rops_ov_l = [rop_op.type() for _ in range(out_len)]
-            elif isinstance(rop_op.type, DisconnectedType):
+            elif issubtype(rop_op.type, DisconnectedType):
                 all_rops_l = [inp.zeros_like() for inp in local_inputs]
                 all_rops_ov_l = [None] * out_len
             else:
@@ -644,10 +645,10 @@ class OpFromGraph(Op, HasInnerGraph):
                     all_rops_l.append(rnext)
                     all_rops_ov_l.append(rnext_ov)
                 elif isinstance(fn_rov, Variable):
-                    if isinstance(fn_rov.type, NullType):
+                    if issubtype(fn_rov.type, NullType):
                         all_rops_l.append(out.zeros_like())
                         all_rops_ov_l.append(fn_rov.type())
-                    if isinstance(fn_rov.type, DisconnectedType):
+                    if issubtype(fn_rov.type, DisconnectedType):
                         all_rops_l.append(out.zeros_like())
                         all_rops_ov_l.append(None)
                     else:
@@ -857,7 +858,7 @@ class OpFromGraph(Op, HasInnerGraph):
         # cpmat_self &= out_is_disconnected
         for i, t in enumerate(self._lop_op_stypes_l):
             if t is not None:
-                if isinstance(t.type, DisconnectedType):
+                if issubtype(t.type, DisconnectedType):
                     for o in range(out_len):
                         cpmat_self[i][o] = False
             for o in range(out_len):

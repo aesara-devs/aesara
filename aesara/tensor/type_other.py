@@ -9,7 +9,8 @@ from aesara import _as_symbolic
 from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.op import Op
-from aesara.link.c.type import Generic, Type
+from aesara.graph.type import NewTypeMeta
+from aesara.link.c.type import Generic, GenericMeta, Type
 from aesara.tensor.type import integer_dtypes
 
 
@@ -51,9 +52,9 @@ class MakeSlice(Op):
 make_slice = MakeSlice()
 
 
-class SliceType(Type[slice]):
+class SliceTypeMeta(NewTypeMeta):
     def clone(self, **kwargs):
-        return type(self).subtype()
+        return self.subtype()
 
     def filter(self, x, strict=False, allow_downcast=None):
         if isinstance(x, slice):
@@ -64,16 +65,14 @@ class SliceType(Type[slice]):
     def __str__(self):
         return "slice"
 
-    def __eq__(self, other):
-        return type(self) == type(other)
-
-    def __hash__(self):
-        return hash(type(self))
-
     @staticmethod
     def may_share_memory(a, b):
         # Slices never shared memory between object
         return isinstance(a, slice) and a is b
+
+
+class SliceType(Type, metaclass=SliceTypeMeta):
+    pass
 
 
 slicetype = SliceType.subtype()
@@ -121,7 +120,7 @@ def as_symbolic_slice(x, **kwargs):
     return SliceConstant(slicetype, x)
 
 
-class NoneTypeT(Generic):
+class NoneTypeTMeta(GenericMeta):
     """
     Inherit from Generic to have c code working.
 
@@ -138,6 +137,10 @@ class NoneTypeT(Generic):
         # None never share memory between object, in the sense of DebugMode.
         # Python None are singleton
         return False
+
+
+class NoneTypeT(Generic, metaclass=NoneTypeTMeta):
+    pass
 
 
 none_type_t = NoneTypeT.subtype()

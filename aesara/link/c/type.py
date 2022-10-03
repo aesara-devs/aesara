@@ -1,11 +1,10 @@
 import ctypes
 import platform
 import re
-from collections.abc import Mapping
-from typing import TypeVar
+from typing import Any, ItemsView, KeysView, TypeVar, ValuesView
 
 from aesara.graph.basic import Constant
-from aesara.graph.type import Type
+from aesara.graph.type import NewTypeMeta, Props, Type
 from aesara.link.c.interface import CLinkerType
 from aesara.utils import Singleton
 
@@ -14,7 +13,7 @@ D = TypeVar("D")
 T = TypeVar("T", bound=Type)
 
 
-class CType(Type[D], CLinkerType):
+class CTypeMeta(NewTypeMeta, CLinkerType):
     """Convenience wrapper combining `Type` and `CLinkerType`.
 
     Aesara comes with several subclasses of such as:
@@ -57,7 +56,11 @@ class CType(Type[D], CLinkerType):
     """
 
 
-class Generic(CType, Singleton):
+class CType(Type, metaclass=CTypeMeta):
+    pass
+
+
+class GenericMeta(CTypeMeta, Singleton):
     r"""A type for a generic Python object exposed directly in C.
 
     This class implements the `CType` and `CLinkerType` interfaces
@@ -116,6 +119,10 @@ class Generic(CType, Singleton):
         return self.__class__.__name__
 
 
+class Generic(CType, metaclass=GenericMeta):
+    pass
+
+
 generic = Generic.subtype()
 
 _cdata_type = None
@@ -126,7 +133,7 @@ if platform.python_implementation() != "PyPy":
     ).value
 
 
-class CDataType(CType[D]):
+class CDataTypeMeta(CTypeMeta):
     """
     Represents opaque C data to be passed around. The intent is to
     ease passing arbitrary data between ops C code.
@@ -146,19 +153,17 @@ class CDataType(CType[D]):
         The version to use in Aesara cache system.
     """
 
-    __props__ = (
-        "ctype",
-        "freefunc",
-        "headers",
-        "header_dirs",
-        "libraries",
-        "lib_dirs",
-        "extra_support_code",
-        "compile_args",
-        "version",
-    )
+    ctype: Props[Any] = None
+    freefunc: Props[Any] = None
+    headers: Props[Any] = None
+    header_dirs: Props[Any] = None
+    libraries: Props[Any] = None
+    lib_dirs: Props[Any] = None
+    extra_support_code: Props[Any] = None
+    compile_args: Props[Any] = None
+    version: Props[Any] = None
 
-    def __init__(
+    def type_parameters(
         self,
         ctype,
         freefunc=None,
@@ -170,19 +175,22 @@ class CDataType(CType[D]):
         extra_support_code="",
         version=None,
     ):
+        params = dict()
         assert isinstance(ctype, str)
-        self.ctype = ctype
+        params["ctype"] = ctype
         if freefunc is not None:
             assert isinstance(freefunc, str)
-        self.freefunc = freefunc
-        self.headers = tuple(headers)
-        self.header_dirs = tuple(header_dirs)
-        self.libraries = tuple(libraries)
-        self.lib_dirs = tuple(lib_dirs)
-        self.compile_args = tuple(compile_args)
-        self.extra_support_code = extra_support_code
-        self._fn = None
-        self.version = version
+        params["freefunc"] = freefunc
+        params["headers"] = tuple(headers)
+        params["header_dirs"] = tuple(header_dirs)
+        params["libraries"] = tuple(libraries)
+        params["lib_dirs"] = tuple(lib_dirs)
+        params["compile_args"] = tuple(compile_args)
+        params["extra_support_code"] = extra_support_code
+        params["_fn"] = None
+        params["version"] = version
+
+        return params
 
     def filter(self, data, strict=False, allow_downcast=None):
         # We ignore this type-check (_cdata_type is None) in PyPy
@@ -292,6 +300,10 @@ void _capsule_destructor(PyObject *o) {
             self.version = None
 
 
+class CDataType(CType, metaclass=CDataTypeMeta):
+    pass
+
+
 class CDataTypeConstant(Constant[T]):
     def merge_signature(self):
         # We don't want to merge constants that don't point to the
@@ -329,7 +341,7 @@ class FrozenMap(dict):
         return not self == other
 
 
-class EnumType(Mapping, CType):
+class EnumTypeMeta(CTypeMeta):
     """
     Main subclasses:
      - :class:`EnumList`
@@ -426,7 +438,10 @@ class EnumType(Mapping, CType):
 
     """
 
-    __props__ = ("constants", "aliases", "ctype", "cname")
+    constants: Props[FrozenMap] = FrozenMap()
+    aliases: Props[FrozenMap] = FrozenMap()
+    ctype: Props[Any] = None
+    cname: Props[Any] = None
 
     @classmethod
     def __init_ctype(cls, ctype):
@@ -516,21 +531,21 @@ class EnumType(Mapping, CType):
         """
         return tuple(sorted(self.aliases.keys()))
 
-    def __repr__(self):
-        names_to_aliases = {constant_name: "" for constant_name in self}
-        for alias in self.aliases:
-            names_to_aliases[self.aliases[alias]] = f"({alias})"
-        return "{}<{}>({})".format(
-            type(self).__name__,
-            self.ctype,
-            ", ".join(
-                "{}{}:{}".format(k, names_to_aliases[k], self[k])
-                for k in sorted(self.keys())
-            ),
-        )
+    # def __repr__(self):
+    #     names_to_aliases = {constant_name: "" for constant_name in self}
+    #     for alias in self.aliases:
+    #         names_to_aliases[self.aliases[alias]] = f"({alias})"
+    #     return "{}<{}>({})".format(
+    #         type(self).__name__,
+    #         self.ctype,
+    #         ", ".join(
+    #             "{}{}:{}".format(k, names_to_aliases[k], self[k])
+    #             for k in sorted(self.keys())
+    #         ),
+    #     )
 
     def __getattr__(self, key):
-        if key in self.constants:
+        if key != "constants" and key in self.constants:
             return self[key]
         else:
             raise AttributeError(
@@ -538,10 +553,10 @@ class EnumType(Mapping, CType):
             )
 
     def __setattr__(self, key, value):
-        if key in self.__props__:
-            CType.__setattr__(self, key, value)
-        else:
+        if hasattr(self, "constants") and key in self.constants:
             raise TypeError("constant values are immutable.")
+        else:
+            super().__setattr__(key, value)
 
     def __iter__(self):
         return self.constants.__iter__()
@@ -558,28 +573,34 @@ class EnumType(Mapping, CType):
     def __delitem__(self, key):
         raise TypeError("constant values are immutable.")
 
-    def __hash__(self):
-        # All values are Python basic types, then easy to hash.
-        return hash(
-            (type(self), self.ctype)
-            + tuple((k, self[k]) for k in sorted(self.keys()))
-            + tuple((a, self.aliases[a]) for a in sorted(self.aliases.keys()))
-        )
+    # Copied from abc.collections.Mapping without `__eq__` since mixin would make this class
+    # unhashable
+    def get(self, key, default=None):
+        "D.get(k[,d]) -> D[k] if k in D, else d.  d defaults to None."
+        try:
+            return self[key]
+        except KeyError:
+            return default
 
-    def __eq__(self, other):
-        return (
-            type(self) == type(other)
-            and self.ctype == other.ctype
-            and len(self) == len(other)
-            and len(self.aliases) == len(other.aliases)
-            and all(k in other for k in self)
-            and all(a in other.aliases for a in self.aliases)
-            and all(self[k] == other[k] for k in self)
-            and all(self.aliases[a] == other.aliases[a] for a in self.aliases)
-        )
+    def __contains__(self, key):
+        try:
+            self[key]
+        except KeyError:
+            return False
+        else:
+            return True
 
-    def __ne__(self, other):
-        return not self == other
+    def keys(self):
+        "D.keys() -> a set-like object providing a view on D's keys"
+        return KeysView(self)
+
+    def items(self):
+        "D.items() -> a set-like object providing a view on D's items"
+        return ItemsView(self)
+
+    def values(self):
+        "D.values() -> an object providing a view on D's values"
+        return ValuesView(self)
 
     # EnumType should be used to create constants available in both Python and C code.
     # However, for convenience, we make sure EnumType can have a value, like other common types,
@@ -703,7 +724,11 @@ class EnumType(Mapping, CType):
         raise NotImplementedError("Variables of this type cannot be graph outputs")
 
 
-class EnumList(EnumType):
+class EnumType(CType, metaclass=EnumTypeMeta):
+    pass
+
+
+class EnumListMeta(EnumTypeMeta):
     """
     **Inherit from**:
      - :class:`EnumType`
@@ -776,7 +801,14 @@ class EnumList(EnumType):
         return super().type_parameters(**kwargs)
 
 
-class CEnumType(EnumList):
+class EnumList(EnumType, metaclass=EnumListMeta):
+    pass
+
+
+print({EnumList: 1})
+
+
+class CEnumTypeMeta(EnumListMeta):
     """
     **Inherit from**:
      - :class:`EnumList`
@@ -836,3 +868,7 @@ class CEnumType(EnumList):
 
     def c_code_cache_version(self):
         return (1, super().c_code_cache_version())
+
+
+class CEnumType(EnumList, metaclass=CEnumTypeMeta):
+    pass

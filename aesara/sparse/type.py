@@ -7,7 +7,9 @@ from typing_extensions import Literal
 import aesara
 from aesara import scalar as aes
 from aesara.graph.basic import Variable
-from aesara.tensor.type import DenseTensorType, TensorType
+from aesara.graph.type import Props
+from aesara.issubtype import issubtype
+from aesara.tensor.type import DenseTensorType, TensorType, TensorTypeMeta
 
 
 SparsityTypes = Literal["csr", "csc", "bsr"]
@@ -32,7 +34,7 @@ def _is_sparse(x):
     return isinstance(x, scipy.sparse.spmatrix)
 
 
-class SparseTensorType(TensorType):
+class SparseTensorTypeMeta(TensorTypeMeta):
     """A `Type` for sparse tensors.
 
     Notes
@@ -41,7 +43,8 @@ class SparseTensorType(TensorType):
 
     """
 
-    __props__ = ("format", "dtype", "shape")
+    format: Props[SparsityTypes] = None
+
     format_cls = {
         "csr": scipy.sparse.csr_matrix,
         "csc": scipy.sparse.csc_matrix,
@@ -99,7 +102,7 @@ class SparseTensorType(TensorType):
             dtype = self.dtype
         if shape is None:
             shape = self.shape
-        return type(self).subtype(format, dtype, shape=shape, **kwargs)
+        return self.subtype(format, dtype, shape=shape, **kwargs)
 
     def filter(self, value, strict=False, allow_downcast=None):
         if isinstance(value, Variable):
@@ -162,7 +165,7 @@ class SparseTensorType(TensorType):
             return res
 
         if not isinstance(res.type, type(self)):
-            if isinstance(res.type, DenseTensorType):
+            if issubtype(res.type, DenseTensorType):
                 if self.format == "csr":
                     from aesara.sparse.basic import csr_from_dense
 
@@ -179,9 +182,6 @@ class SparseTensorType(TensorType):
             return None
 
         return res
-
-    def __hash__(self):
-        return super().__hash__() ^ hash(self.format)
 
     def __repr__(self):
         return f"Sparse({self.dtype}, {self.shape}, {self.format})"
@@ -235,14 +235,6 @@ class SparseTensorType(TensorType):
 
         return matrix_constructor(shape, dtype=self.dtype)
 
-    def __eq__(self, other):
-        res = super().__eq__(other)
-
-        if isinstance(res, bool):
-            return res and other.format == self.format
-
-        return res
-
     def is_super(self, otype):
         if not super().is_super(otype):
             return False
@@ -251,6 +243,10 @@ class SparseTensorType(TensorType):
             return True
 
         return False
+
+
+class SparseTensorType(TensorType, metaclass=SparseTensorTypeMeta):
+    pass
 
 
 aesara.compile.register_view_op_c_code(

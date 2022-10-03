@@ -14,7 +14,7 @@ from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.rewriting.basic import check_stack_trace, node_rewriter, out2in
 from aesara.graph.rewriting.utils import rewrite_graph
-from aesara.graph.type import Type
+from aesara.graph.type import NewTypeMeta, Type
 from aesara.tensor.basic import as_tensor_variable
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.math import add, exp, maximum
@@ -504,14 +504,14 @@ def test_local_Shape_i_of_broadcastable():
     assert fgraph.outputs[0].data == 1
 
     # A test for a non-`TensorType`
-    class MyType(Type):
+    class MyTypeMeta(NewTypeMeta):
         ndim = 1
 
         def filter(self, *args, **kwargs):
             raise NotImplementedError()
 
-        def __eq__(self, other):
-            return isinstance(other, MyType) and other.thingy == self.thingy
+    class MyType(Type, metaclass=MyTypeMeta):
+        pass
 
     class MyVariable(Variable):
         pass

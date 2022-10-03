@@ -13,7 +13,7 @@ from aesara.graph.basic import Constant, Variable, ancestors
 from aesara.graph.rewriting.basic import check_stack_trace
 from aesara.graph.rewriting.db import RewriteDatabaseQuery
 from aesara.graph.rewriting.utils import rewrite_graph
-from aesara.graph.type import Type
+from aesara.graph.type import NewTypeMeta, Type
 from aesara.raise_op import Assert
 from aesara.tensor import inplace
 from aesara.tensor.basic import Alloc, MakeVector, _convert_to_int8, make_vector
@@ -1932,12 +1932,12 @@ def test_local_subtensor_shape_constant():
     assert np.array_equal(res.data, [1, 1])
 
     # A test for a non-`TensorType`
-    class MyType(Type):
+    class MyTypeMeta(NewTypeMeta):
         def filter(self, *args, **kwargs):
             raise NotImplementedError()
 
-        def __eq__(self, other):
-            return isinstance(other, MyType) and other.thingy == self.thingy
+    class MyType(Type, metaclass=MyTypeMeta):
+        pass
 
     x = shape(Variable(MyType.subtype(), None, None))[0]
 

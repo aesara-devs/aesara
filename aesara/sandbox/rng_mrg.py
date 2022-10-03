@@ -17,7 +17,7 @@ import warnings
 
 import numpy as np
 
-from aesara import function, gradient
+from aesara import function, gradient, issubtype
 from aesara import scalar as aes
 from aesara import shared
 from aesara import tensor as at
@@ -536,7 +536,7 @@ class mrg_uniform(COp, mrg_uniform_base):
     def c_code(self, node, name, inp, out, sub):
         # If we try to use the C code here with something else than a
         # TensorType, something is wrong.
-        assert isinstance(node.inputs[0].type, TensorType)
+        assert issubtype(node.inputs[0].type, TensorType)
         if self.output_type.dtype == "float16":
             # C code is not tested, fall back to Python
             raise NotImplementedError()

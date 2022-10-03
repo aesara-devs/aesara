@@ -15,8 +15,9 @@ from aesara.graph.rewriting.basic import (
     SubstitutionNodeRewriter,
     WalkingGraphRewriter,
 )
-from aesara.graph.type import Type
+from aesara.graph.type import NewTypeMeta, Type
 from aesara.graph.utils import InconsistencyError
+from aesara.issubtype import issubtype
 from tests.unittest_tools import assertFailure_fast
 
 
@@ -37,12 +38,19 @@ def as_variable(x):
     return x
 
 
-class MyType(Type):
+class MyTypeMeta(NewTypeMeta):
     def filter(self, data):
         return data
 
     def __eq__(self, other):
-        return isinstance(other, MyType)
+        return isinstance(other, MyTypeMeta)
+
+    def __hash__(self):
+        return hash(MyTypeMeta)
+
+
+class MyType(Type, metaclass=MyTypeMeta):
+    pass
 
 
 def MyVariable(name):
@@ -85,7 +93,7 @@ class MyOp(Op):
         assert len(inputs) == self.nin
         inputs = list(map(as_variable, inputs))
         for input in inputs:
-            if not isinstance(input.type, MyType):
+            if not issubtype(input.type, MyType):
                 raise Exception("Error 1")
         outputs = [MyVariable(self.name + "_R") for i in range(self.nout)]
         return Apply(self, inputs, outputs)

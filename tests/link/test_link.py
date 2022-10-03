@@ -8,7 +8,7 @@ from aesara.compile.mode import Mode
 from aesara.graph import fg
 from aesara.graph.basic import Apply, Constant, Variable, clone
 from aesara.graph.op import Op
-from aesara.graph.type import Type
+from aesara.graph.type import NewTypeMeta, Type
 from aesara.link.basic import Container, Linker, PerformLinker, WrapLinker
 from aesara.link.c.basic import OpWiseCLinker
 from aesara.tensor.type import matrix, scalar
@@ -62,9 +62,13 @@ def as_variable(x):
     return x
 
 
-class TDouble(Type):
+class TDoubleMeta(NewTypeMeta):
     def filter(self, data):
         return float(data)
+
+
+class TDouble(Type, metaclass=TDoubleMeta):
+    pass
 
 
 tdouble = TDouble.subtype()

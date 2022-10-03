@@ -28,10 +28,11 @@ from aesara.gradient import DisconnectedType, grad_undefined
 from aesara.graph.basic import Apply, Constant, Variable, clone, list_of_nodes
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.rewriting.basic import MergeOptimizer
-from aesara.graph.type import DataType
+from aesara.graph.type import DataType, Props
 from aesara.graph.utils import MetaObject, MethodNotDefined
+from aesara.issubtype import issubtype
 from aesara.link.c.op import COp
-from aesara.link.c.type import CType
+from aesara.link.c.type import CType, CTypeMeta
 from aesara.misc.safe_asarray import _asarray
 from aesara.printing import pprint
 from aesara.utils import (
@@ -268,7 +269,7 @@ def convert(x, dtype=None):
     return x_
 
 
-class ScalarType(CType):
+class ScalarTypeMeta(CTypeMeta):
 
     """
     Internal class, should not be used by clients.
@@ -281,7 +282,7 @@ class ScalarType(CType):
 
     """
 
-    __props__ = ("dtype",)
+    dtype: Props[Any] = None
     ndim = 0
     shape = ()
     dtype: DataType
@@ -298,7 +299,7 @@ class ScalarType(CType):
     def clone(self, dtype=None, **kwargs):
         if dtype is None:
             dtype = self.dtype
-        return type(self).subtype(dtype)
+        return self.subtype(dtype)
 
     @staticmethod
     def may_share_memory(a, b):
@@ -413,7 +414,11 @@ class ScalarType(CType):
             )
 
     def upcast(self, *others):
-        return upcast(*[x.dtype for x in [self] + list(others)])
+        types = list(others)
+        if self.dtype is not None:
+            # this is None, if this method has been called for ScalarType
+            types = [self] + types
+        return upcast(*[x.dtype for x in types])
 
     def make_variable(self, name=None):
         return ScalarVariable(self, None, name=name)
@@ -671,6 +676,10 @@ class ScalarType(CType):
         return shape_info
 
 
+class ScalarType(CType, metaclass=ScalarTypeMeta):
+    pass
+
+
 def get_scalar_type(dtype, cache: Dict[str, ScalarType] = {}) -> ScalarType:
     """
     Return a ScalarType(dtype) object.
@@ -875,7 +884,7 @@ def as_scalar(x: Any, name: Optional[str] = None) -> ScalarVariable:
     if isinstance(x, Variable):
         if isinstance(x, ScalarVariable):
             return x
-        elif isinstance(x.type, TensorType) and x.type.ndim == 0:
+        elif issubtype(x.type, TensorType) and x.type.ndim == 0:
             return scalar_from_tensor(x)
         else:
             raise TypeError(f"Cannot convert {x} to a scalar type")
@@ -890,8 +899,8 @@ complexs64 = apply_across_args(complex64)
 complexs128 = apply_across_args(complex128)
 
 
-def upcast_out(*types):
-    dtype = ScalarType.upcast(*types)
+def upcast_out(typ, *types):
+    dtype = typ.upcast(*types)
     return (get_scalar_type(dtype),)
 
 
@@ -1116,7 +1125,7 @@ class ScalarOp(COp):
         if hasattr(self, "output_types_preference"):
             variables = self.output_types_preference(*types)
             if not isinstance(variables, (list, tuple)) or any(
-                not isinstance(x, CType) for x in variables
+                not issubtype(x, CType) for x in variables
             ):
                 raise TypeError(
                     "output_types_preference should return a list or a tuple of types",
@@ -2441,7 +2450,7 @@ identity = Identity(same_out, name="identity")
 # CASTING OPERATIONS
 class Cast(UnaryScalarOp):
     def __init__(self, o_type, name=None):
-        if not isinstance(o_type, ScalarType):
+        if not issubtype(o_type, ScalarType):
             raise TypeError(o_type)
         super().__init__(specific_out(o_type), name=name)
         self.o_type = o_type

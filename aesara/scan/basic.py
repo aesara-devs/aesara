@@ -9,6 +9,7 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable, clone_replace, graph_inputs
 from aesara.graph.op import get_test_value
 from aesara.graph.utils import MissingInputError, TestValueError
+from aesara.issubtype import issubtype
 from aesara.scan.op import Scan, ScanInfo
 from aesara.scan.utils import expand_empty, safe_new, until
 from aesara.tensor.basic import get_scalar_constant_value
@@ -880,7 +881,7 @@ def scan(
             # then, if we return the output as given by the innner function
             # this will represent only a slice and it will have one
             # dimension less.
-            if isinstance(inner_out.type, TensorType) and return_steps.get(pos, 0) != 1:
+            if issubtype(inner_out.type, TensorType) and return_steps.get(pos, 0) != 1:
                 outputs[pos] = unbroadcast(shape_padleft(inner_out), 0)
 
         if not return_list and len(outputs) == 1:
@@ -1006,7 +1007,7 @@ def scan(
 
             inner_replacements[input.variable] = new_var
 
-            if isinstance(new_var.type, TensorType):
+            if issubtype(new_var.type, TensorType):
                 sit_sot_inner_inputs.append(new_var)
                 sit_sot_scan_inputs.append(
                     expand_empty(

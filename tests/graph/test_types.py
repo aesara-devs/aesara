@@ -1,20 +1,23 @@
+from typing import Any
+
 import pytest
 
 from aesara.graph.basic import Variable
-from aesara.graph.type import Type
+from aesara.graph.type import NewTypeMeta, Props, Type
+from aesara.issubtype import issubtype
 
 
-class MyType(Type):
-    __props__ = ("thingy",)
-
-    def __init__(self, thingy):
-        self.thingy = thingy
+class MyTypeMeta(NewTypeMeta):
+    thingy: Props[Any] = None
 
     def filter(self, *args, **kwargs):
         raise NotImplementedError()
 
     def __eq__(self, other):
-        return isinstance(other, MyType) and other.thingy == self.thingy
+        return isinstance(other, MyTypeMeta) and other.thingy == self.thingy
+
+    def __hash__(self):
+        return hash((MyTypeMeta, self.thingy))
 
     def __str__(self):
         return f"R{self.thingy}"
@@ -23,10 +26,18 @@ class MyType(Type):
         return f"R{self.thingy}"
 
 
-class MyType2(MyType):
+class MyType(Type, metaclass=MyTypeMeta):
+    pass
+
+
+class MyTypeMeta2(MyTypeMeta):
     def is_super(self, other):
         if self.thingy <= other.thingy:
             return True
+
+
+class MyType2(Type, metaclass=MyTypeMeta2):
+    pass
 
 
 def test_is_super():
@@ -64,4 +75,4 @@ def test_convert_variable():
 
 def test_default_clone():
     mt = MyType.subtype(1)
-    assert isinstance(mt.clone(1), MyType)
+    assert issubtype(mt.clone(1), MyType)

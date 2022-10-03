@@ -1,5 +1,6 @@
 import pickle
 from itertools import count
+from typing import Any
 
 import numpy as np
 import pytest
@@ -28,7 +29,8 @@ from aesara.graph.basic import (
     walk,
 )
 from aesara.graph.op import Op
-from aesara.graph.type import Type
+from aesara.graph.type import NewTypeMeta, Props, Type
+from aesara.issubtype import issubtype
 from aesara.tensor.math import max_and_argmax
 from aesara.tensor.type import (
     TensorType,
@@ -45,17 +47,14 @@ from tests import unittest_tools as utt
 from tests.graph.utils import MyInnerGraphOp
 
 
-class MyType(Type):
-    __props__ = ("thingy",)
-
-    def __init__(self, thingy):
-        self.thingy = thingy
+class MyTypeMeta(NewTypeMeta):
+    thingy: Props[Any] = None
 
     def filter(self, *args, **kwargs):
         raise NotImplementedError()
 
     def __eq__(self, other):
-        return isinstance(other, MyType) and other.thingy == self.thingy
+        return isinstance(other, MyTypeMeta) and other.thingy == self.thingy
 
     def __hash__(self):
         return hash((type(self), self.thingy))
@@ -65,6 +64,10 @@ class MyType(Type):
 
     def __repr__(self):
         return f"R{self.thingy}"
+
+
+class MyType(Type, metaclass=MyTypeMeta):
+    pass
 
 
 def MyVariable(thingy):
@@ -78,7 +81,7 @@ class MyOp(Op):
     def make_node(self, *inputs):
         for input in inputs:
             assert isinstance(input, Variable)
-            assert isinstance(input.type, MyType)
+            assert issubtype(input.type, MyType)
         outputs = [MyVariable(sum(input.type.thingy for input in inputs))]
         return Apply(self, list(inputs), outputs)
 

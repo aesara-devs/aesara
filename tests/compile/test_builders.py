@@ -14,6 +14,7 @@ from aesara.graph.fg import FunctionGraph
 from aesara.graph.null_type import NullType
 from aesara.graph.rewriting.utils import rewrite_graph
 from aesara.graph.utils import MissingInputError
+from aesara.issubtype import issubtype
 from aesara.printing import debugprint
 from aesara.tensor.basic import as_tensor
 from aesara.tensor.math import dot, exp
@@ -244,10 +245,10 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
             disconnected_inputs="ignore",
             null_gradients="return",
         )
-        assert isinstance(dx2.type, TensorType)
+        assert issubtype(dx2.type, TensorType)
         assert dx2.ndim == 1
-        assert isinstance(dw2.type, NullType)
-        assert isinstance(db2.type, DisconnectedType)
+        assert issubtype(dw2.type, NullType)
+        assert issubtype(db2.type, DisconnectedType)
 
     @pytest.mark.parametrize(
         "cls_ofg", [OpFromGraph, partial(OpFromGraph, inline=True)]

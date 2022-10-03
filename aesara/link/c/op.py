@@ -25,6 +25,7 @@ from aesara.graph.basic import Apply, Variable
 from aesara.graph.op import ComputeMapType, Op, StorageMapType, ThunkType
 from aesara.graph.type import HasDataType
 from aesara.graph.utils import MethodNotDefined
+from aesara.issubtype import issubtype
 from aesara.link.c.interface import CLinkerOp
 from aesara.link.c.params_type import ParamsType
 from aesara.utils import hash_from_code
@@ -432,7 +433,7 @@ class ExternalCOp(COp):
 
         """
         params: List[Tuple[str, Any]] = []
-        if isinstance(self.params_type, ParamsType):
+        if issubtype(self.params_type, ParamsType):
             wrapper = self.params_type
             params.append(("PARAMS_TYPE", wrapper.name))
             for i in range(wrapper.length):

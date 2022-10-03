@@ -29,6 +29,8 @@ import sys
 from functools import singledispatch
 from typing import Any, NoReturn, Optional
 
+from aesara.issubtype import issubtype
+
 
 aesara_logger = logging.getLogger("aesara")
 logging_default_handler = logging.StreamHandler()
@@ -151,7 +153,7 @@ def get_scalar_constant_value(v):
     """
     # Is it necessary to test for presence of aesara.sparse at runtime?
     sparse = globals().get("sparse")
-    if sparse and isinstance(v.type, sparse.SparseTensorType):
+    if sparse and issubtype(v.type, sparse.SparseTensorType):
         if v.owner is not None and isinstance(v.owner.op, sparse.CSM):
             data = v.owner.inputs[0]
             return tensor.get_scalar_constant_value(data)

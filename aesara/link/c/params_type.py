@@ -116,15 +116,19 @@ for more info about enumeration aliases).
 
 import hashlib
 import re
+from typing import Any
 
+from aesara.graph.type import Props
 from aesara.graph.utils import MethodNotDefined
-from aesara.link.c.type import CType, EnumType
+from aesara.issubtype import issubtype
+from aesara.link.c.type import CType, CTypeMeta, EnumType
 
 
 # Set of C and C++ keywords as defined (at March 2nd, 2017) in the pages below:
 # - http://fr.cppreference.com/w/c/keyword
 # - http://fr.cppreference.com/w/cpp/keyword
 # Added `NULL` and `_Pragma` keywords.
+
 c_cpp_keywords = {
     "_Alignas",
     "_Alignof",
@@ -252,7 +256,7 @@ class Params(dict):
     """
 
     def __init__(self, params_type, **kwargs):
-        if not isinstance(params_type, ParamsType):
+        if not issubtype(params_type, ParamsType):
             raise TypeError("Params: 1st constructor argument should be a ParamsType.")
         for field in params_type.fields:
             if field not in kwargs:
@@ -316,7 +320,7 @@ class Params(dict):
         return not self.__eq__(other)
 
 
-class ParamsType(CType):
+class ParamsTypeMeta(CTypeMeta):
     """
     This class can create a struct of Aesara types (like `TensorType`, etc.)
     to be used as a convenience `Op` parameter wrapping many data.
@@ -343,6 +347,9 @@ class ParamsType(CType):
 
     """
 
+    fields: Props[tuple[Any, ...]] = tuple()
+    types: Props[tuple[Any, ...]] = tuple()
+
     @classmethod
     def type_parameters(cls, **kwargs):
         params = dict()
@@ -362,7 +369,7 @@ class ParamsType(CType):
                 )
             type_instance = kwargs[attribute_name]
             type_name = type_instance.__class__.__name__
-            if not isinstance(type_instance, CType):
+            if not issubtype(type_instance, CType):
                 raise TypeError(
                     'ParamsType: attribute "%s" should inherit from Aesara CType, got "%s".'
                     % (attribute_name, type_name)
@@ -375,7 +382,7 @@ class ParamsType(CType):
 
         params["_const_to_enum"] = {}
         params["_alias_to_enum"] = {}
-        enum_types = [t for t in params["types"] if isinstance(t, EnumType)]
+        enum_types = [t for t in params["types"] if issubtype(t, EnumType)]
         if enum_types:
             # We don't want same enum names in different enum types.
             if sum(len(t) for t in enum_types) != len(
@@ -410,7 +417,6 @@ class ParamsType(CType):
                 for enum_type in enum_types
                 for alias in enum_type.aliases
             }
-
         return params
 
     def __setstate__(self, state):
@@ -429,10 +435,9 @@ class ParamsType(CType):
     def __getattr__(self, key):
         # Now we can access value of each enum defined inside enum types wrapped into the current ParamsType.
         # const_to_enum = super().__getattribute__("_const_to_enum")
-        if not key.startswith("__"):
-            const_to_enum = self._const_to_enum
-            if key in const_to_enum:
-                return const_to_enum[key][key]
+        if key != "_const_to_enum" and hasattr(self, "_const_to_enum"):
+            if key in self._const_to_enum:
+                return self._const_to_enum[key][key]
         raise AttributeError(f"'{self}' object has no attribute '{key}'")
 
     def __repr__(self):
@@ -442,16 +447,6 @@ class ParamsType(CType):
                 for i in range(self.length)
             ]
         )
-
-    def __eq__(self, other):
-        return (
-            type(self) == type(other)
-            and self.fields == other.fields
-            and self.types == other.types
-        )
-
-    def __hash__(self):
-        return hash((type(self),) + self.fields + self.types)
 
     @staticmethod
     def generate_struct_name(params):
@@ -897,3 +892,7 @@ class ParamsType(CType):
         # `Type` cannot be (compiled) graph _outputs_, because that's when
         # `CType.c_sync` is used.
         raise NotImplementedError("Variables of this type cannot be graph outputs")
+
+
+class ParamsType(CType, metaclass=ParamsTypeMeta):
+    pass

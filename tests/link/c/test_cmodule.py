@@ -38,7 +38,7 @@ class MyOp(DeepCopyOp):
         (iname,) = inames
         (oname,) = onames
         fail = sub["fail"]
-        itype = node.inputs[0].type.__class__
+        itype = node.inputs[0].type.base_type
         if itype in self.c_code_and_version:
             code, version = self.c_code_and_version[itype]
             rand = np.random.random()

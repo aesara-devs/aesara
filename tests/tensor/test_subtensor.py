@@ -9,6 +9,7 @@ from numpy.testing import assert_array_equal
 import aesara
 import aesara.scalar as scal
 import aesara.tensor.basic as at
+from aesara import issubtype
 from aesara.compile import DeepCopyOp, shared
 from aesara.compile.io import In
 from aesara.configdefaults import config
@@ -2606,9 +2607,9 @@ def test_index_vars_to_types():
         index_vars_to_types(1)
 
     res = index_vars_to_types(iscalar)
-    assert isinstance(res, scal.ScalarType)
+    assert issubtype(res, scal.ScalarType)
 
     x = scal.constant(1, dtype=np.uint8)
-    assert isinstance(x.type, scal.ScalarType)
+    assert issubtype(x.type, scal.ScalarType)
     res = index_vars_to_types(x)
     assert res == x.type

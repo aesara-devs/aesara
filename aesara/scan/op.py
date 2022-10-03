@@ -78,6 +78,7 @@ from aesara.graph.features import NoOutputFromInplace
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import HasInnerGraph, Op
 from aesara.graph.utils import InconsistencyError, MissingInputError
+from aesara.issubtype import issubtype
 from aesara.link.c.basic import CLinker
 from aesara.link.c.exceptions import MissingGXX
 from aesara.link.utils import raise_with_op
@@ -1234,7 +1235,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         # strange NumPy behavior: vector_ndarray[int] return a NumPy
         # scalar and not a NumPy ndarray of 0 dimensions.
         def is_cpu_vector(s):
-            return isinstance(s.type, TensorType) and s.ndim == 1
+            return issubtype(s.type, TensorType) and s.ndim == 1
 
         self.vector_seqs = [
             is_cpu_vector(seq) for seq in new_inputs[1 : 1 + self.info.n_seqs]
@@ -1246,7 +1247,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             ]
         ]
         self.vector_outs += [
-            isinstance(t.type, TensorType) and t.ndim == 0
+            issubtype(t.type, TensorType) and t.ndim == 0
             for t in self.outer_nitsot_outs(self.inner_outputs)
         ]
 
@@ -2574,7 +2575,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                             info.n_seqs + pos
                         ]
 
-                        if not isinstance(dC_douts[outer_oidx].type, DisconnectedType):
+                        if not issubtype(dC_douts[outer_oidx].type, DisconnectedType):
                             dtypes.append(dC_douts[outer_oidx].dtype)
                 if dtypes:
                     new_dtype = aesara.scalar.upcast(*dtypes)
@@ -2582,7 +2583,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                     new_dtype = config.floatX
                 dC_dXt = safe_new(Xt, dtype=new_dtype)
             else:
-                if isinstance(dC_douts[idx].type, DisconnectedType):
+                if issubtype(dC_douts[idx].type, DisconnectedType):
                     continue
                 dC_dXt = safe_new(dC_douts[idx][0])
             dC_dXts.append(dC_dXt)
@@ -2597,7 +2598,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                     known_grads[diff_outputs[i]] = dC_dXts[dc_dxts_idx]
                 dc_dxts_idx += 1
             else:
-                if isinstance(dC_douts[i].type, DisconnectedType):
+                if issubtype(dC_douts[i].type, DisconnectedType):
                     continue
                 else:
                     if diff_outputs[i] in known_grads:
@@ -2645,10 +2646,10 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 dC_dXtm1s.append(safe_new(x))
 
         for dx, dC_dXtm1 in enumerate(dC_dXtm1s):
-            if isinstance(dC_dinps_t[dx + info.n_seqs].type, NullType):
+            if issubtype(dC_dinps_t[dx + info.n_seqs].type, NullType):
                 # The accumulated gradient is undefined
                 pass
-            elif isinstance(dC_dXtm1.type, NullType):
+            elif issubtype(dC_dXtm1.type, NullType):
                 # The new gradient is undefined, this makes the accumulated
                 # gradient undefined as weell
                 dC_dinps_t[dx + info.n_seqs] = dC_dXtm1
@@ -2677,7 +2678,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 outer_inp_seqs.append(nw_seq)
         outer_inp_seqs += [x[:-1][::-1] for x in self.outer_sitsot_outs(outs)]
         for x in self.outer_nitsot_outs(dC_douts):
-            if not isinstance(x.type, DisconnectedType):
+            if not issubtype(x.type, DisconnectedType):
                 if info.as_while:
                     # equivalent to x[:n_steps][::-1]
                     outer_inp_seqs.append(x[n_steps - 1 :: -1])
@@ -2737,7 +2738,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         n_mitmot_inps = 0
 
         for idx, taps in enumerate(info.mit_mot_in_slices):
-            if isinstance(dC_douts[idx].type, DisconnectedType):
+            if issubtype(dC_douts[idx].type, DisconnectedType):
                 out = outs[idx]
                 outer_inp_mitmot.append(at.zeros_like(out))
             else:
@@ -2762,7 +2763,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 if tap not in mitmot_inp_taps[idx]:
                     inner_inp_mitmot.append(dC_dXtm1s[ins_pos - info.n_seqs])
 
-                if isinstance(dC_dinps_t[ins_pos].type, NullType):
+                if issubtype(dC_dinps_t[ins_pos].type, NullType):
                     # We cannot use Null in the inner graph, so we
                     # use a zero tensor of the appropriate shape instead.
                     inner_out_mitmot.append(
@@ -2814,7 +2815,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
 
         offset = info.n_mit_mot
         for idx, taps in enumerate(info.mit_sot_in_slices):
-            if isinstance(dC_douts[idx + offset].type, DisconnectedType):
+            if issubtype(dC_douts[idx + offset].type, DisconnectedType):
                 outer_inp_mitmot.append(outs[idx + offset].zeros_like())
             else:
                 outer_inp_mitmot.append(dC_douts[idx + offset][::-1])
@@ -2831,7 +2832,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 tap = -tap
                 inner_inp_mitmot.append(dC_dXtm1s[ins_pos - info.n_seqs])
 
-                if isinstance(dC_dinps_t[ins_pos].type, NullType):
+                if issubtype(dC_dinps_t[ins_pos].type, NullType):
                     # We cannot use Null in the inner graph, so we
                     # use a zero tensor of the appropriate shape instead.
                     inner_out_mitmot.append(
@@ -2869,10 +2870,10 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             mitmot_inp_taps.append([0, 1])
             mitmot_out_taps.append([1])
             through_shared = False
-            if not isinstance(dC_douts[idx + offset].type, DisconnectedType):
+            if not issubtype(dC_douts[idx + offset].type, DisconnectedType):
                 outer_inp_mitmot.append(dC_douts[idx + offset][::-1])
             else:
-                if isinstance(dC_dinps_t[ins_pos].type, NullType):
+                if issubtype(dC_dinps_t[ins_pos].type, NullType):
                     # Cannot use dC_dinps_t[ins_pos].dtype, so we use
                     # floatX instead, as it is a dummy value that will not
                     # be used anyway.
@@ -2886,7 +2887,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         )
                     )
 
-            if isinstance(dC_dinps_t[ins_pos].type, NullType):
+            if issubtype(dC_dinps_t[ins_pos].type, NullType):
                 # We cannot use Null in the inner graph, so we
                 # use a zero tensor of the appropriate shape instead.
                 inner_out_mitmot.append(
@@ -2900,7 +2901,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 for _sh in self.inner_shared(self_inputs)
             )
 
-            if isinstance(dC_dinps_t[ins_pos].type, NullType):
+            if issubtype(dC_dinps_t[ins_pos].type, NullType):
                 type_outs.append(dC_dinps_t[ins_pos].type.why_null)
             elif through_shared:
                 type_outs.append("through_shared")
@@ -2926,7 +2927,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             for _sh in self.inner_shared(self_inputs):
                 if _sh in graph_inputs([vl]):
                     through_shared = True
-            if isinstance(vl.type, NullType):
+            if issubtype(vl.type, NullType):
                 type_outs.append(vl.type.why_null)
                 # Replace the inner output with a zero tensor of
                 # the right shape
@@ -2945,7 +2946,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             for _sh in self.inner_shared(self_inputs):
                 if _sh in graph_inputs([vl]):
                     through_shared = True
-            if isinstance(vl.type, NullType):
+            if issubtype(vl.type, NullType):
                 type_outs.append(vl.type.why_null)
                 # Replace the inner output with a zero tensor of
                 # the right shape
@@ -2964,7 +2965,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         outer_inp_sitsot = []
         for _idx, y in enumerate(inner_inp_sitsot):
             x = self.outer_non_seqs(inputs)[_idx]
-            if isinstance(y.type, NullType):
+            if issubtype(y.type, NullType):
                 # Cannot use dC_dXtm1s.dtype, so we use floatX instead.
                 outer_inp_sitsot.append(
                     at.zeros(
@@ -3105,7 +3106,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             disconnected = True
             connected_flags = self.connection_pattern(node)[idx + start]
             for dC_dout, connected in zip(dC_douts, connected_flags):
-                if not isinstance(dC_dout.type, DisconnectedType) and connected:
+                if not issubtype(dC_dout.type, DisconnectedType) and connected:
                     disconnected = False
             if disconnected:
                 gradients.append(DisconnectedType.subtype()())
@@ -3148,7 +3149,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         for idx in range(len(gradients)):
             disconnected = True
             for kdx in range(len(node.outputs)):
-                if connection_pattern[idx][kdx] and not isinstance(
+                if connection_pattern[idx][kdx] and not issubtype(
                     dC_douts[kdx].type, DisconnectedType
                 ):
                     disconnected = False

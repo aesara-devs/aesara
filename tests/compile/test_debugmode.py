@@ -715,9 +715,8 @@ class VecAsRowAndCol(Op):
         if not isinstance(v, Variable):
             v = at.as_tensor_variable(v)
         assert v.type.ndim == 1
-        type_class = type(v.type)
-        out_r_type = type_class.subtype(dtype=v.dtype, shape=(True, False))
-        out_c_type = type_class.subtype(dtype=v.dtype, shape=(False, True))
+        out_r_type = v.type.subtype(dtype=v.dtype, shape=(True, False))
+        out_c_type = v.type.subtype(dtype=v.dtype, shape=(False, True))
         return Apply(self, [v], [out_r_type(), out_c_type()])
 
     def perform(self, node, inp, out):

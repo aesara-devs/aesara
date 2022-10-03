@@ -21,6 +21,7 @@ from aesara.graph.basic import Apply, NoParams
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.type import Type
 from aesara.ifelse import IfElse
+from aesara.issubtype import issubtype
 from aesara.link.utils import (
     compile_function_src,
     fgraph_to_python,
@@ -79,7 +80,7 @@ def get_numba_type(
         Return Numba scalars for zero dimensional :class:`TensorType`\s.
     """
 
-    if isinstance(aesara_type, TensorType):
+    if issubtype(aesara_type, TensorType):
         dtype = aesara_type.numpy_dtype
         numba_dtype = numba.from_dtype(dtype)
         if force_scalar or (
@@ -87,7 +88,7 @@ def get_numba_type(
         ):
             return numba_dtype
         return numba.types.Array(numba_dtype, aesara_type.ndim, layout)
-    elif isinstance(aesara_type, ScalarType):
+    elif issubtype(aesara_type, ScalarType):
         dtype = np.dtype(aesara_type.dtype)
         numba_dtype = numba.from_dtype(dtype)
         return numba_dtype
@@ -391,7 +392,7 @@ def create_index_func(node, objmode=False):
     """Create a Python function that assembles and uses an index on an array."""
 
     def convert_indices(indices, entry):
-        if indices and isinstance(entry, Type):
+        if indices and issubtype(entry, Type):
             rval = indices.pop(0)
             return rval.auto_name
         elif isinstance(entry, slice):

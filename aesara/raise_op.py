@@ -7,19 +7,20 @@ import numpy as np
 
 from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply, Variable
+from aesara.issubtype import issubtype
 from aesara.link.c.op import COp
 from aesara.link.c.params_type import ParamsType
-from aesara.link.c.type import Generic
+from aesara.link.c.type import Generic, GenericMeta
 from aesara.scalar.basic import ScalarType
 from aesara.tensor.type import DenseTensorType
 
 
-class ExceptionType(Generic):
-    def __eq__(self, other):
-        return type(self) == type(other)
+class ExceptionTypeMeta(GenericMeta):
+    pass
 
-    def __hash__(self):
-        return hash(type(self))
+
+class ExceptionType(Generic, metaclass=ExceptionTypeMeta):
+    pass
 
 
 exception_type = ExceptionType.subtype()
@@ -106,7 +107,7 @@ class CheckAndRaise(COp):
         return [[1]] + [[0]] * (len(node.inputs) - 1)
 
     def c_code(self, node, name, inames, onames, props):
-        if not isinstance(node.inputs[0].type, (DenseTensorType, ScalarType)):
+        if not issubtype(node.inputs[0].type, (DenseTensorType, ScalarType)):
             raise NotImplementedError(
                 f"CheckAndRaise c_code not implemented for input type {node.inputs[0].type}"
             )
@@ -118,7 +119,7 @@ class CheckAndRaise(COp):
         msg = self.msg.replace('"', '\\"').replace("\n", "\\n")
 
         for idx, cond_name in enumerate(cond_names):
-            if isinstance(node.inputs[0].type, DenseTensorType):
+            if issubtype(node.inputs[0].type, DenseTensorType):
                 check.append(
                     f"""
             if(PyObject_IsTrue((PyObject *){cond_name}) == 0) {{
@@ -145,7 +146,7 @@ class CheckAndRaise(COp):
 
         check = "\n".join(check)
 
-        if isinstance(node.inputs[0].type, DenseTensorType):
+        if issubtype(node.inputs[0].type, DenseTensorType):
             res = f"""
             {check}
             Py_XDECREF({out_name});

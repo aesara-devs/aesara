@@ -10,11 +10,10 @@ import numpy as np
 from aesara import tensor as at
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant, OptionalApplyType, Variable
-from aesara.graph.type import NewTypeMeta
 from aesara.scalar import ComplexError, IntegerDivisionError
 from aesara.tensor import _get_vector_length, as_tensor_variable
 from aesara.tensor.exceptions import AdvancedIndexingError
-from aesara.tensor.type import TensorType
+from aesara.tensor.type import TensorType, TensorTypeMeta
 from aesara.tensor.type_other import NoneConst
 from aesara.tensor.utils import hash_from_ndarray
 
@@ -1068,7 +1067,7 @@ class TensorConstant(TensorVariable, Constant[_TensorTypeType]):
 TensorType.constant_type = TensorConstant
 
 
-class DenseVariableMeta(NewTypeMeta):
+class DenseVariableMeta(TensorTypeMeta):
     def __instancecheck__(self, o):
         if type(o) == TensorVariable or isinstance(o, DenseVariableMeta):
             return True
@@ -1083,7 +1082,7 @@ class DenseTensorVariable(TensorType, metaclass=DenseVariableMeta):
     """
 
 
-class DenseConstantMeta(NewTypeMeta):
+class DenseConstantMeta(TensorTypeMeta):
     def __instancecheck__(self, o):
         if type(o) == TensorConstant or isinstance(o, DenseConstantMeta):
             return True

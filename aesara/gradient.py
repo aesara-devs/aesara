@@ -27,7 +27,8 @@ from aesara.graph import utils
 from aesara.graph.basic import Apply, NominalVariable, Variable
 from aesara.graph.null_type import NullType, null_type
 from aesara.graph.op import get_test_values
-from aesara.graph.type import Type
+from aesara.graph.type import NewTypeMeta, Type
+from aesara.issubtype import issubtype
 
 
 if TYPE_CHECKING:
@@ -122,7 +123,7 @@ def grad_undefined(op, x_pos, x, comment=""):
     )()
 
 
-class DisconnectedType(Type):
+class DisconnectedTypeMeta(NewTypeMeta):
     """A type indicating that a variable is the result of taking the gradient of
     ``c`` with respect to ``x`` when ``c`` is not a function of ``x``.
 
@@ -156,6 +157,10 @@ class DisconnectedType(Type):
 
     def __str__(self):
         return "DisconnectedType"
+
+
+class DisconnectedType(Type, metaclass=DisconnectedTypeMeta):
+    pass
 
 
 disconnected_type = DisconnectedType.subtype()
@@ -498,7 +503,7 @@ def grad(
         if known_grads is None:
             raise ValueError("cost and known_grads can't both be None.")
 
-    if cost is not None and isinstance(cost.type, NullType):
+    if cost is not None and issubtype(cost.type, NullType):
         raise ValueError(
             "Can't differentiate a NaN cost. "
             f"Cost is NaN because {cost.type.why_null}"
@@ -562,7 +567,7 @@ def grad(
                 " or sparse aesara variable"
             )
 
-        if not isinstance(
+        if not issubtype(
             g_var.type, (NullType, DisconnectedType)
         ) and "float" not in str(g_var.type.dtype):
             raise TypeError(
@@ -627,14 +632,14 @@ def grad(
     rval: MutableSequence[Optional[Variable]] = list(_rval)
 
     for i in range(len(_rval)):
-        if isinstance(_rval[i].type, NullType):
+        if issubtype(_rval[i].type, NullType):
             if null_gradients == "raise":
                 raise NullTypeGradError(
                     f"`grad` encountered a NaN. {_rval[i].type.why_null}"
                 )
             else:
                 assert null_gradients == "return"
-        if isinstance(_rval[i].type, DisconnectedType):
+        if issubtype(_rval[i].type, DisconnectedType):
             handle_disconnected(_rval[i])
             if return_disconnected == "zero":
                 rval[i] = _float_zeros_like(_wrt[i])
@@ -1059,7 +1064,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
 
             # list of bools indicating if each output is connected to the cost
             outputs_connected = [
-                not isinstance(g.type, DisconnectedType) for g in output_grads
+                not issubtype(g.type, DisconnectedType) for g in output_grads
             ]
 
             connection_pattern = _node_to_pattern(node)
@@ -1086,9 +1091,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
             ]
 
             # List of bools indicating if each output is NullType
-            ograd_is_nan = [
-                isinstance(output.type, NullType) for output in output_grads
-            ]
+            ograd_is_nan = [issubtype(output.type, NullType) for output in output_grads]
 
             # List of bools indicating if each input only has NullType outputs
             only_connected_to_nan = [
@@ -1197,7 +1200,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                     orig_output, new_output_grad = packed
                     if not hasattr(orig_output, "shape"):
                         continue
-                    if isinstance(new_output_grad.type, DisconnectedType):
+                    if issubtype(new_output_grad.type, DisconnectedType):
                         continue
                     for orig_output_v, new_output_grad_v in get_test_values(*packed):
                         o_shape = orig_output_v.shape
@@ -1225,7 +1228,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
             # return the sparse grad for optimization reason.
 
             #            for ig, i in zip(input_grads, inputs):
-            #                if (not isinstance(ig.type, (DisconnectedType, NullType)) and
+            #                if (not issubtype(ig.type, (DisconnectedType, NullType)) and
             #                    type(ig.type) != type(i.type)):
             #                    raise ValueError(
             #                        "%s returned the wrong type for gradient terms."
@@ -1246,7 +1249,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                     if (
                         ograd_is_nan[out_idx]
                         and connection_pattern[inp_idx][out_idx]
-                        and not isinstance(input_grads[inp_idx].type, DisconnectedType)
+                        and not issubtype(input_grads[inp_idx].type, DisconnectedType)
                     ):
                         input_grads[inp_idx] = output_grads[out_idx]
 
@@ -1300,7 +1303,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                                     f"of shape {i_shape}"
                                 )
 
-                if not isinstance(term.type, (NullType, DisconnectedType)):
+                if not issubtype(term.type, (NullType, DisconnectedType)):
                     if term.type.dtype not in aesara.tensor.type.float_dtypes:
                         raise TypeError(
                             str(node.op) + ".grad illegally "
@@ -1309,7 +1312,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                         )
 
                     if only_connected_to_nan[i]:
-                        assert isinstance(term.type, NullType)
+                        assert issubtype(term.type, NullType)
 
                     if only_connected_to_int[i]:
                         # This term has only integer outputs and we know
@@ -1345,7 +1348,7 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
             for i, (ipt, ig, connected) in enumerate(
                 zip(inputs, input_grads, inputs_connected)
             ):
-                actually_connected = not isinstance(ig.type, DisconnectedType)
+                actually_connected = not issubtype(ig.type, DisconnectedType)
 
                 if actually_connected and not connected:
                     msg = (
@@ -1392,12 +1395,12 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                                 " Variable instance."
                             )
 
-                        if isinstance(term.type, NullType):
+                        if issubtype(term.type, NullType):
                             null_terms.append(term)
                             continue
 
                         # Don't try to sum up DisconnectedType placeholders
-                        if isinstance(term.type, DisconnectedType):
+                        if issubtype(term.type, DisconnectedType):
                             continue
 
                         if hasattr(var, "ndim") and term.ndim != var.ndim:
@@ -2099,9 +2102,9 @@ def _is_zero(x):
     """
     if not hasattr(x, "type"):
         return np.all(x == 0.0)
-    if isinstance(x.type, NullType):
+    if issubtype(x.type, NullType):
         return "no"
-    if isinstance(x.type, DisconnectedType):
+    if issubtype(x.type, DisconnectedType):
         return "yes"
 
     no_constant_value = True

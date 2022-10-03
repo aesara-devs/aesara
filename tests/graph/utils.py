@@ -3,7 +3,8 @@ import numpy as np
 from aesara.graph.basic import Apply, Constant, NominalVariable, Variable, clone_replace
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import HasInnerGraph, Op
-from aesara.graph.type import Type
+from aesara.graph.type import NewTypeMeta, Type
+from aesara.issubtype import issubtype
 
 
 def is_variable(x):
@@ -12,32 +13,40 @@ def is_variable(x):
     return x
 
 
-class MyType(Type):
+class MyTypeMeta(NewTypeMeta):
     def filter(self, data):
         return data
 
     def __eq__(self, other):
-        return isinstance(other, MyType)
+        return isinstance(other, MyTypeMeta)
 
     def __hash__(self):
-        return hash(MyType)
+        return hash(MyTypeMeta)
 
     def __repr__(self):
         return "MyType()"
 
 
-class MyType2(Type):
+class MyType(Type, metaclass=MyTypeMeta):
+    pass
+
+
+class MyTypeMeta2(NewTypeMeta):
     def filter(self, data):
         return data
 
     def __eq__(self, other):
-        return isinstance(other, MyType2)
+        return isinstance(other, MyTypeMeta2)
 
     def __hash__(self):
-        return hash(MyType)
+        return hash(MyTypeMeta)
 
     def __repr__(self):
         return "MyType2()"
+
+
+class MyType2(Type, metaclass=MyTypeMeta2):
+    pass
 
 
 def MyVariable(name):
@@ -64,7 +73,7 @@ class MyOp(Op):
     def make_node(self, *inputs):
         inputs = list(map(is_variable, inputs))
         for input in inputs:
-            if not isinstance(input.type, MyType):
+            if not issubtype(input.type, MyType):
                 raise Exception("Error 1")
         outputs = [MyType.subtype()() for i in range(self.n_outs)]
         return Apply(self, inputs, outputs)
@@ -98,7 +107,7 @@ class MyOpCastType2(MyOp):
     def make_node(self, *inputs):
         inputs = list(map(is_variable, inputs))
         for input in inputs:
-            if not isinstance(input.type, MyType):
+            if not issubtype(input.type, MyType):
                 raise Exception("Error 1")
 
         outputs = [MyType2.subtype()()]

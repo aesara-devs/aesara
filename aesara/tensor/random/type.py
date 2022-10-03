@@ -3,7 +3,7 @@ from typing import TypeVar
 import numpy as np
 
 import aesara
-from aesara.graph.type import Type
+from aesara.graph.type import NewTypeMeta, Type
 
 
 T = TypeVar("T", np.random.RandomState, np.random.Generator)
@@ -23,15 +23,19 @@ gen_states_keys = {
 numpy_bit_gens = {0: "MT19937", 1: "PCG64", 2: "Philox", 3: "SFC64"}
 
 
-class RandomType(Type[T]):
+class RandomTypeMeta(NewTypeMeta):
     r"""A Type wrapper for `numpy.random.Generator` and `numpy.random.RandomState`."""
 
     @staticmethod
-    def may_share_memory(a: T, b: T):
+    def may_share_memory(a, b):
         return a._bit_generator is b._bit_generator  # type: ignore[attr-defined]
 
 
-class RandomStateType(RandomType[np.random.RandomState]):
+class RandomType(Type, metaclass=RandomTypeMeta):
+    pass
+
+
+class RandomStateTypeMeta(RandomTypeMeta):
     r"""A Type wrapper for `numpy.random.RandomState`.
 
     The reason this exists (and `Generic` doesn't suffice) is that
@@ -101,11 +105,9 @@ class RandomStateType(RandomType[np.random.RandomState]):
 
         return _eq(sa, sb)
 
-    def __eq__(self, other):
-        return type(self) == type(other)
 
-    def __hash__(self):
-        return hash(type(self))
+class RandomStateType(RandomType, metaclass=RandomStateTypeMeta):
+    pass
 
 
 # Register `RandomStateType`'s C code for `ViewOp`.
@@ -122,7 +124,7 @@ aesara.compile.register_view_op_c_code(
 random_state_type = RandomStateType.subtype()
 
 
-class RandomGeneratorType(RandomType[np.random.Generator]):
+class RandomGeneratorTypeMeta(RandomTypeMeta):
     r"""A Type wrapper for `numpy.random.Generator`.
 
     The reason this exists (and `Generic` doesn't suffice) is that
@@ -197,11 +199,9 @@ class RandomGeneratorType(RandomType[np.random.Generator]):
 
         return _eq(sa, sb)
 
-    def __eq__(self, other):
-        return type(self) == type(other)
 
-    def __hash__(self):
-        return hash(type(self))
+class RandomGeneratorType(RandomType, metaclass=RandomGeneratorTypeMeta):
+    pass
 
 
 # Register `RandomGeneratorType`'s C code for `ViewOp`.

@@ -20,6 +20,7 @@ from aesara.tensor.math import dot
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tanh
 from aesara.tensor.type import (
+    TensorType,
     dmatrix,
     dscalar,
     dscalars,
@@ -984,6 +985,15 @@ class TestPicklefunction:
         assert f[a] == 1
         assert fc[ac] == 2
 
+    def test_pickle_simple(self):
+        tt = pickle.loads(pickle.dumps(TensorType))
+        assert tt == TensorType
+
+        subt = TensorType.subtype(shape=(1, 2), dtype="floatX")
+        dumps = pickle.dumps(subt)
+        pst = pickle.loads(dumps)
+        assert pst == subt
+
     def test_pickle(self):
         a = scalar()  # the a is for 'anonymous' (un-named).
         x, s = scalars("xs")
@@ -1000,7 +1010,8 @@ class TestPicklefunction:
         try:
             # Note that here we also test protocol 0 on purpose, since it
             # should work (even though one should not use it).
-            g = pickle.loads(pickle.dumps(f, protocol=0))
+            dump = pickle.dumps(f, protocol=0)
+            g = pickle.loads(dump)
             g = pickle.loads(pickle.dumps(f, protocol=-1))
         except NotImplementedError as e:
             if e[0].startswith("DebugMode is not picklable"):
@@ -1138,7 +1149,8 @@ class TestPicklefunction:
         for i in range(4):
             assert nl[i] != ol[i]
             assert nl[i].type == ol[i].type
-            assert nl[i].type is not ol[i].type
+            # TODO: is this a strict requirement? It doesn't make sense in the context of the new type system
+            # assert nl[i].type is not ol[i].type
 
         # see if the implicit input got stored
         assert ol[3].owner.inputs[1] is s

@@ -74,6 +74,8 @@ def test_cons():
 
     tt1 = TensorType.subtype("float32", [True, False])
 
+    # TODO new types: This doesn't fit with types being classes, since `TensorType(...)` should construct an object of
+    #  type `TensorType` rather than a subtype like `t1`
     assert car(tt1) == TensorType
     assert cdr(tt1) == ("float32", (1, None))
 
@@ -255,7 +257,10 @@ def test_unify_Type():
     assert s == {}
 
     # `Type`, `ExpressionTuple`
-    s = unify(t1, etuple(TensorType, "float64", (1, None)))
+    # TODO new types: This doesn't fit with types being classes, since `TensorType(...)` should construct an object of
+    #  type `TensorType` rather than a subtype like `t1`
+    et = etuple(TensorType, "float64", (1, None))
+    s = unify(t1, et)
     assert s == {}
 
     from aesara.scalar.basic import ScalarType

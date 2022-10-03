@@ -8,6 +8,7 @@ import numpy as np
 import aesara
 from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply, Variable
+from aesara.issubtype import issubtype
 from aesara.link.c.op import COp
 from aesara.link.c.params_type import ParamsType
 from aesara.misc.safe_asarray import _asarray
@@ -64,7 +65,7 @@ class Shape(COp):
         if not isinstance(x, Variable):
             x = at.as_tensor_variable(x)
 
-        if isinstance(x.type, TensorType):
+        if issubtype(x.type, TensorType):
             out_var = TensorType.subtype("int64", (x.type.ndim,))()
         else:
             out_var = aesara.tensor.type.lvector()
@@ -103,7 +104,7 @@ class Shape(COp):
         (oname,) = onames
         fail = sub["fail"]
 
-        itype = node.inputs[0].type.__class__
+        itype = node.inputs[0].type.base_type
         if itype in self.c_code_and_version:
             code, version = self.c_code_and_version[itype]
             return code % locals()
@@ -144,7 +145,7 @@ def shape(x: Union[np.ndarray, Number, Variable]) -> Variable:
 
     x_type = x.type
 
-    if isinstance(x_type, TensorType) and all(s is not None for s in x_type.shape):
+    if issubtype(x_type, TensorType) and all(s is not None for s in x_type.shape):
         res = at.as_tensor_variable(x_type.shape, ndim=1, dtype=np.int64)
     else:
         res = _shape(x)
@@ -263,7 +264,7 @@ class Shape_i(COp):
         # i is then 'params->i', not just 'params'.
         i = sub["params"] + "->i"
 
-        itype = node.inputs[0].type.__class__
+        itype = node.inputs[0].type.base_type
         if itype in self.c_code_and_version:
             code, check_input, version = self.c_code_and_version[itype]
             return (check_input + code) % locals()
@@ -473,7 +474,7 @@ class SpecifyShape(COp):
         return self.make_node(eval_points[0], *inputs[1:]).outputs
 
     def c_code(self, node, name, i_names, o_names, sub):
-        if not isinstance(node.inputs[0].type, DenseTensorType):
+        if not issubtype(node.inputs[0].type, DenseTensorType):
             raise NotImplementedError(
                 f"Specify_shape c_code not implemented for input type {node.inputs[0].type}"
             )

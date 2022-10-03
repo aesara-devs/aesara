@@ -19,6 +19,7 @@ from aesara.gradient import DisconnectedType, grad_not_implemented
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
 from aesara.graph.rewriting.basic import copy_stack_trace, graph_rewriter, node_rewriter
+from aesara.issubtype import issubtype
 from aesara.link.c.op import COp
 from aesara.raise_op import Assert
 from aesara.scalar import UnaryScalarOp
@@ -126,7 +127,7 @@ class SoftmaxWithBias(COp):
         x, b = inp
         (g_sm,) = grads
 
-        if isinstance(g_sm.type, DisconnectedType):
+        if issubtype(g_sm.type, DisconnectedType):
             return [DisconnectedType.subtype()(), DisconnectedType.subtype()()]
 
         dx = softmax_grad_legacy(g_sm, outputs[0])
@@ -1421,19 +1422,19 @@ class CrossentropySoftmaxArgmax1HotWithBias(COp):
         db_terms = []
         d_idx_terms = []
 
-        if not isinstance(g_nll.type, DisconnectedType):
+        if not issubtype(g_nll.type, DisconnectedType):
             nll, sm = crossentropy_softmax_1hot_with_bias(x, b, y_idx)
             dx = crossentropy_softmax_1hot_with_bias_dx(g_nll, sm, y_idx)
             db = at_sum(dx, axis=[0])
             dx_terms.append(dx)
             db_terms.append(db)
 
-        if not isinstance(g_sm.type, DisconnectedType):
+        if not issubtype(g_sm.type, DisconnectedType):
             dx, db = softmax_with_bias.L_op((x, b), [softmax_with_bias(x, b)], (g_sm,))
             dx_terms.append(dx)
             db_terms.append(db)
 
-        if not isinstance(g_am.type, DisconnectedType):
+        if not issubtype(g_am.type, DisconnectedType):
             dx_terms.append(x.zeros_like())
             db_terms.append(b.zeros_like())
             d_idx_terms.append(y_idx.zeros_like())

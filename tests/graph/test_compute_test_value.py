@@ -8,7 +8,7 @@ from aesara.configdefaults import config
 from aesara.graph import utils
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
-from aesara.graph.type import Type
+from aesara.graph.type import NewTypeMeta, Type
 from aesara.link.c.op import COp
 from aesara.tensor.math import _allclose, dot
 from aesara.tensor.type import fmatrix, iscalar, matrix, vector
@@ -46,9 +46,12 @@ class IncOneC(COp):
 
 class TestComputeTestValue:
     def test_destroy_map(self):
-        class SomeType(Type):
+        class SomeTypeMeta(NewTypeMeta):
             def filter(self, data, strict=False, allow_downcast=None):
                 return data
+
+        class SomeType(Type, metaclass=SomeTypeMeta):
+            pass
 
         class InplaceOp(Op):
             __props__ = ()

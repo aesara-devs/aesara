@@ -19,7 +19,7 @@ from aesara.graph.basic import Apply, Constant
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op, get_test_value
 from aesara.graph.rewriting.db import RewriteDatabaseQuery
-from aesara.graph.type import Type
+from aesara.graph.type import NewTypeMeta, Type
 from aesara.ifelse import ifelse
 from aesara.link.numba.dispatch import basic as numba_basic
 from aesara.link.numba.dispatch import numba_typify
@@ -31,15 +31,19 @@ from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape
 
 
-class MyType(Type):
+class MyTypeMeta(NewTypeMeta):
     def filter(self, data):
         return data
 
     def __eq__(self, other):
-        return isinstance(other, MyType)
+        return isinstance(other, MyTypeMeta)
 
     def __hash__(self):
-        return hash(MyType)
+        return hash(MyTypeMeta)
+
+
+class MyType(Type, metaclass=MyTypeMeta):
+    pass
 
 
 class MyOp(Op):

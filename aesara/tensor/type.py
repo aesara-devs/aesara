@@ -1,6 +1,6 @@
 import logging
 import warnings
-from typing import Iterable, Optional, Tuple, Union
+from typing import Iterable, Optional, Union
 
 import numpy as np
 
@@ -8,8 +8,9 @@ import aesara
 from aesara import scalar as aes
 from aesara.configdefaults import config
 from aesara.graph.basic import Variable
-from aesara.graph.type import DataType, NewTypeMeta, ShapeType
-from aesara.link.c.type import CType
+from aesara.graph.type import DataType, Props, ShapeType
+from aesara.issubtype import issubtype
+from aesara.link.c.type import CType, CTypeMeta
 from aesara.misc.safe_asarray import _asarray
 from aesara.utils import apply_across_args
 
@@ -47,18 +48,18 @@ dtype_specs_map = {
 }
 
 
-class TensorType(CType[np.ndarray]):
+class TensorTypeMeta(CTypeMeta):
     r"""Symbolic `Type` representing `numpy.ndarray`\s."""
 
-    __props__: Tuple[str, ...] = ("dtype", "shape")
+    shape: Props[DataType] = None
+    dtype: Props[ShapeType] = None
 
     ndim: int
-    shape: ShapeType
-    dtype: DataType
 
     dtype_specs_map = dtype_specs_map
     context_name = "cpu"
     filter_checks_isfinite = False
+    name = None
     """
     When this is ``True``, strict filtering rejects data containing
     ``numpy.nan`` or ``numpy.inf`` entries. (Used in `DebugMode`)
@@ -131,7 +132,7 @@ class TensorType(CType[np.ndarray]):
             dtype = self.dtype
         if shape is None:
             shape = self.shape
-        return type(self).subtype(dtype, shape, name=self.name)
+        return TensorType.subtype(dtype, shape, name=self.name)
 
     def filter(self, data, strict=False, allow_downcast=None):
         """Convert `data` to something which can be associated to a `TensorVariable`.
@@ -313,7 +314,7 @@ class TensorType(CType[np.ndarray]):
 
         """
         if (
-            isinstance(otype, TensorType)
+            issubtype(otype, TensorType)
             and otype.dtype == self.dtype
             and otype.broadcastable == self.broadcastable
         ):
@@ -376,15 +377,6 @@ class TensorType(CType[np.ndarray]):
         a, b, allow_remove_inf=False, allow_remove_nan=False, rtol=None, atol=None
     ):
         return values_eq_approx(a, b, allow_remove_inf, allow_remove_nan, rtol, atol)
-
-    def __eq__(self, other):
-        if type(self) != type(other):
-            return NotImplemented
-
-        return other.dtype == self.dtype and other.shape == self.shape
-
-    def __hash__(self):
-        return hash((type(self), self.dtype, self.shape))
 
     @property
     def broadcastable(self):
@@ -628,18 +620,26 @@ class TensorType(CType[np.ndarray]):
             return ()
 
 
-class DenseTypeMeta(NewTypeMeta):
-    def __instancecheck__(self, o):
-        if type(o) == TensorType or isinstance(o, DenseTypeMeta):
+class TensorType(CType, metaclass=TensorTypeMeta):
+    pass
+
+
+class DenseTypeMeta(TensorTypeMeta):
+    r"""A `Type` for dense tensors.
+
+    Instances of this class and `TensorType`\s are considered dense `Type`\s.
+    """
+
+    def __subclasscheck__(self, subclass):
+        if getattr(subclass, "base_type", None) == TensorType or issubclass(
+            subclass, DenseTypeMeta
+        ):
             return True
         return False
 
 
 class DenseTensorType(TensorType, metaclass=DenseTypeMeta):
-    r"""A `Type` for dense tensors.
-
-    Instances of this class and `TensorType`\s are considered dense `Type`\s.
-    """
+    pass
 
 
 def values_eq_approx(

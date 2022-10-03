@@ -5,7 +5,8 @@ from aesara.graph.basic import Apply, Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.rewriting.basic import MergeOptimizer
-from aesara.graph.type import Type
+from aesara.graph.type import NewTypeMeta, Type
+from aesara.issubtype import issubtype
 
 
 def is_variable(x):
@@ -14,12 +15,16 @@ def is_variable(x):
     return x
 
 
-class MyType(Type):
+class MyTypeMeta(NewTypeMeta):
     def filter(self, data):
         return data
 
     def __eq__(self, other):
-        return isinstance(other, MyType)
+        return isinstance(other, MyTypeMeta)
+
+
+class MyType(Type, metaclass=MyTypeMeta):
+    pass
 
 
 class MyOp(Op):
@@ -33,7 +38,7 @@ class MyOp(Op):
     def make_node(self, *inputs):
         inputs = list(map(is_variable, inputs))
         for input in inputs:
-            if not isinstance(input.type, MyType):
+            if not issubtype(input.type, MyType):
                 raise Exception("Error 1")
         outputs = [MyType.subtype()()]
         return Apply(self, inputs, outputs)

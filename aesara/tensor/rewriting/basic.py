@@ -18,6 +18,7 @@ from aesara.graph.rewriting.basic import (
     node_rewriter,
 )
 from aesara.graph.rewriting.db import RewriteDatabase
+from aesara.issubtype import issubtype
 from aesara.raise_op import Assert, CheckAndRaise, assert_op
 from aesara.tensor.basic import (
     Alloc,
@@ -1152,7 +1153,7 @@ def constant_folding(fgraph, node):
         # TODO: `Type` itself should provide an interface for constructing
         # instances appropriate for a given constant.
         # TODO: Add handling for sparse types.
-        if isinstance(output.type, DenseTensorType):
+        if issubtype(output.type, DenseTensorType):
             output_type = TensorType.subtype(
                 output.type.dtype,
                 tuple(s == 1 for s in data.shape),

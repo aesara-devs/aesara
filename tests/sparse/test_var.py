@@ -7,6 +7,7 @@ from scipy.sparse.csr import csr_matrix
 import aesara
 import aesara.sparse as sparse
 import aesara.tensor as at
+from aesara.issubtype import issubtype
 from aesara.sparse.type import SparseTensorType
 from aesara.tensor.type import DenseTensorType
 
@@ -99,7 +100,7 @@ class TestSparseVariable:
         else:
             z_outs = z
 
-        assert all(isinstance(out.type, exp_type) for out in z_outs)
+        assert all(issubtype(out.type, exp_type) for out in z_outs)
 
         f = aesara.function([x], z, on_unused_input="ignore", allow_input_downcast=True)
 
@@ -155,7 +156,7 @@ class TestSparseVariable:
         else:
             z_outs = z
 
-        assert all(isinstance(out.type, exp_type) for out in z_outs)
+        assert all(issubtype(out.type, exp_type) for out in z_outs)
 
         f = aesara.function([x, y], z)
         res = f(
@@ -177,7 +178,7 @@ class TestSparseVariable:
         with pytest.warns(UserWarning, match=".*converted to dense.*"):
             z = x.reshape((3, 2))
 
-        assert isinstance(z.type, DenseTensorType)
+        assert issubtype(z.type, DenseTensorType)
 
         f = aesara.function([x], z)
         exp_res = f([[1.1, 0.0, 2.0], [-1.0, 0.0, 0.0]])
@@ -190,7 +191,7 @@ class TestSparseVariable:
         with pytest.warns(UserWarning, match=".*converted to dense.*"):
             z = x.dimshuffle((1, 0))
 
-        assert isinstance(z.type, DenseTensorType)
+        assert issubtype(z.type, DenseTensorType)
 
         f = aesara.function([x], z)
         exp_res = f([[1.1, 0.0, 2.0], [-1.0, 0.0, 0.0]])
@@ -201,7 +202,7 @@ class TestSparseVariable:
         x = sparse.csr_from_dense(x)
 
         z = x[:, :2]
-        assert isinstance(z.type, SparseTensorType)
+        assert issubtype(z.type, SparseTensorType)
 
         f = aesara.function([x], z)
         exp_res = f([[1.1, 0.0, 2.0], [-1.0, 0.0, 0.0]])
@@ -214,7 +215,7 @@ class TestSparseVariable:
         y = sparse.csr_from_dense(y)
 
         z = x.__dot__(y)
-        assert isinstance(z.type, SparseTensorType)
+        assert issubtype(z.type, SparseTensorType)
 
         f = aesara.function([x, y], z)
         exp_res = f(
@@ -230,7 +231,7 @@ class TestSparseVariable:
         with pytest.warns(UserWarning, match=".*converted to dense.*"):
             z = x.repeat(2, axis=1)
 
-        assert isinstance(z.type, DenseTensorType)
+        assert issubtype(z.type, DenseTensorType)
 
         f = aesara.function([x], z)
         exp_res = f([[1.1, 0.0, 2.0], [-1.0, 0.0, 0.0]])

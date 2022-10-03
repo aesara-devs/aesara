@@ -2,12 +2,12 @@ import numpy as np
 import pytest
 
 import aesara
-from aesara import Mode, function, grad
+from aesara import Mode, function, grad, issubtype
 from aesara.compile.ops import DeepCopyOp
 from aesara.configdefaults import config
 from aesara.graph.basic import Variable
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.type import Type
+from aesara.graph.type import NewTypeMeta, Type
 from aesara.misc.safe_asarray import _asarray
 from aesara.tensor import as_tensor_variable, get_vector_length, row
 from aesara.tensor.basic import MakeVector, constant
@@ -60,12 +60,12 @@ def test_shape_basic():
     s = shape(lscalar())
     assert s.type.broadcastable == (False,)
 
-    class MyType(Type):
+    class MyTypeMeta(NewTypeMeta):
         def filter(self, *args, **kwargs):
             raise NotImplementedError()
 
-        def __eq__(self, other):
-            return isinstance(other, MyType) and other.thingy == self.thingy
+    class MyType(Type, metaclass=MyTypeMeta):
+        pass
 
     s = shape(Variable(MyType.subtype(), None))
     assert s.type.broadcastable == (False,)
@@ -445,7 +445,7 @@ class TestSpecifyShape(utt.InferShapeTester):
         with pytest.raises(AssertionError, match="SpecifyShape:.*"):
             f(xval)
 
-        assert isinstance(
+        assert issubtype(
             [n for n in f.maker.fgraph.toposort() if isinstance(n.op, SpecifyShape)][0]
             .inputs[0]
             .type,
@@ -455,7 +455,7 @@ class TestSpecifyShape(utt.InferShapeTester):
         x = matrix()
         xval = np.random.random((2, 3)).astype(config.floatX)
         f = aesara.function([x], specify_shape(x, 2, 3), mode=self.mode)
-        assert isinstance(
+        assert issubtype(
             [n for n in f.maker.fgraph.toposort() if isinstance(n.op, SpecifyShape)][0]
             .inputs[0]
             .type,
