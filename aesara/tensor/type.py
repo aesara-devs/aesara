@@ -322,16 +322,13 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
 
     def convert_variable(self, var):
         if self.is_super(var.type):
-            # `var.type` is at least as specific as `self`, so we return
-            # `var` as-is
+            # `var.type` is as specific as `self`, so we return `var` as-is
             return var
-        elif var.type.is_super(self):
-            # `var.type` is less specific than `self`, so we convert
-            # `var` to `self`'s `Type`.
-            # Note that, in this case, `var.type != self`, because that's
-            # covered by the branch above.
 
-            # Use the more specific static shape information of the two
+        if (self.ndim == var.type.ndim) and (self.dtype == var.type.dtype):
+            # `var.type` only differs from `self` in that its shape is (at least partially)
+            # less specific than `self`, so we convert `var` to `self`'s `Type`.
+            # `specify_shape` will combine the more precise shapes of the two types
             return aesara.tensor.specify_shape(var, self.shape)
 
     def value_zeros(self, shape):

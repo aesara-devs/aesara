@@ -54,6 +54,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
     - uses: pre-commit/action@v2.0.0
 
   test:
@@ -143,7 +145,7 @@ jobs:
         run: |
           mamba install --yes -q "python~=${PYTHON_VERSION}=*_cpython" mkl numpy scipy pip mkl-service graphviz cython pytest coverage pytest-cov sympy
           if [[ $INSTALL_NUMBA == "1" ]]; then mamba install --yes -q -c conda-forge "python~=${PYTHON_VERSION}=*_cpython" "numba>=0.55" numba-scipy; fi
-          mamba install --yes -q -c conda-forge "python~=${PYTHON_VERSION}=*_cpython" jax "jaxlib!=0.3.15"
+          mamba install --yes -q -c conda-forge "python~=${PYTHON_VERSION}=*_cpython" jax jaxlib
           pip install -e ./
           mamba list && pip freeze
           python -c 'import aesara; print(aesara.config.__str__(print_doc=False))'

@@ -60,6 +60,7 @@ from aesara.tensor.basic import (
     join,
     make_vector,
     mgrid,
+    moveaxis,
     nonzero,
     nonzero_values,
     ogrid,
@@ -1214,6 +1215,9 @@ class TestJoinAndSplit:
             Split(2)(matrix(), dscalar(), [1, 1])
 
         with pytest.raises(TypeError, match=".*integer.*"):
+            Split(2)(matrix(), ivector(), [1, 1])
+
+        with pytest.raises(TypeError, match=".*integer.*"):
             join(dscalar(), matrix(), matrix())
 
     def test_join_scalar(self):
@@ -1933,6 +1937,12 @@ class TestJoinAndSplit:
         )
         with pytest.raises(ValueError):
             f()
+
+    def test_split_static_shape(self):
+        x = TensorType("floatX", shape=(5,))("x")
+        s = iscalar("s")
+        y = Split(2)(x, 0, [s, 5 - s])[0]
+        assert y.type.shape == (None,)
 
 
 def test_join_inplace():
@@ -3973,6 +3983,23 @@ class TestSwapaxes:
         n_s = np.swapaxes(a, 0, 1)
         t_s = fn(a)
         assert np.allclose(n_s, t_s)
+
+
+def test_moveaxis():
+    x = at.zeros((3, 4, 5))
+    tuple(moveaxis(x, 0, -1).shape.eval()) == (4, 5, 3)
+    tuple(moveaxis(x, -1, 0).shape.eval()) == (5, 3, 4)
+    tuple(moveaxis(x, [0, 1], [-1, -2]).shape.eval()) == (5, 4, 3)
+    tuple(moveaxis(x, [0, 1, 2], [-1, -2, -3]).shape.eval()) == (5, 4, 3)
+
+
+def test_moveaxis_error():
+    x = at.zeros((3, 4, 5))
+    with pytest.raises(
+        ValueError,
+        match="`source` and `destination` arguments must have the same number of elements",
+    ):
+        moveaxis(x, [0, 1], 0)
 
 
 class TestChoose(utt.InferShapeTester):

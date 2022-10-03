@@ -253,40 +253,35 @@ Another useful feature of scan, is that it can handle shared variables.
 For example, if we want to implement a Gibbs chain of length 10 we would do
 the following:
 
-.. testsetup:: scan1
-
-   import aesara
-   import numpy
-   W_values = numpy.random.random((2, 2))
-   bvis_values = numpy.random.random((2,))
-   bhid_values = numpy.random.random((2,))
-
 .. testcode:: scan1
 
-   import aesara
-   from aesara import tensor as at
+    import aesara
+    import aesara.tensor as at
+    import numpy as np
 
-   W = aesara.shared(W_values) # we assume that ``W_values`` contains the
-                               # initial values of your weight matrix
+    rng = np.random.default_rng(203940)
+    W_values = rng.uniform(size=(2, 2))
+    bvis_values = rng.uniform(size=(2,))
+    bhid_values = rng.uniform(size=(2,))
 
-   bvis = aesara.shared(bvis_values)
-   bhid = aesara.shared(bhid_values)
+    W = aesara.shared(W_values)
+    bvis = aesara.shared(bvis_values)
+    bhid = aesara.shared(bhid_values)
 
-   trng = aesara.tensor.random.utils.RandomStream(1234)
+    srng = at.random.RandomStream(1234)
 
-   def OneStep(vsample) :
-       hmean = at.sigmoid(aesara.dot(vsample, W) + bhid)
-       hsample = trng.binomial(size=hmean.shape, n=1, p=hmean)
-       vmean = at.sigmoid(aesara.dot(hsample, W.T) + bvis)
-       return trng.binomial(size=vsample.shape, n=1, p=vmean,
-                            dtype=aesara.config.floatX)
+    def one_step(vsample):
+        hmean = at.sigmoid(at.dot(vsample, W) + bhid)
+        hsample = srng.binomial(1, hmean, size=hmean.shape)
+        vmean = at.sigmoid(at.dot(hsample, W.T) + bvis)
 
-   sample = aesara.tensor.vector()
+        return srng.binomial(1, vmean, size=vsample.shape)
 
-   values, updates = aesara.scan(OneStep, outputs_info=sample, n_steps=10)
+    sample = at.lvector()
 
-   gibbs10 = aesara.function([sample], values[-1], updates=updates)
+    values, updates = aesara.scan(one_step, outputs_info=sample, n_steps=10)
 
+    gibbs10 = aesara.function([sample], values[-1], updates=updates)
 
 The first, and probably most crucial observation is that the updates
 dictionary becomes important in this case. It links a shared variable

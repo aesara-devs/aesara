@@ -243,7 +243,7 @@ def gc_helper(node_list: List[Apply]):
     -------
     2-tuple
         FIRST, the set of Variable instances which are computed by node_list,
-        and SECOND a dictionary that maps each Variable instance to a the last
+        and SECOND a dictionary that maps each Variable instance to the last
         node to use Variable as an input.
 
     Extended Summary

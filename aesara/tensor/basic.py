@@ -10,11 +10,14 @@ import warnings
 from collections.abc import Sequence
 from functools import partial
 from numbers import Number
-from typing import Optional, Tuple, Union
+from typing import Optional
+from typing import Sequence as TypeSequence
+from typing import Tuple, Union
 from typing import cast as type_cast
 
 import numpy as np
 from numpy.core.multiarray import normalize_axis_index
+from numpy.core.numeric import normalize_axis_tuple
 
 import aesara
 import aesara.scalar.sharedvar
@@ -1892,11 +1895,12 @@ class Split(COp):
         if splits.type.ndim == 1 and splits.type.dtype not in integer_dtypes:
             raise TypeError("`splits` parameter must be tensors of integer type")
 
-        if axis.type.dtype not in integer_dtypes:
+        if axis.type.dtype not in integer_dtypes or axis.ndim != 0:
             raise TypeError("`axis` parameter must be an integer scalar")
 
         inputs = [x, axis, splits]
-        outputs = [x.type() for i in range(self.len_splits)]
+        out_type = TensorType(dtype=x.dtype, shape=[None] * x.type.ndim)
+        outputs = [out_type() for i in range(self.len_splits)]
 
         return Apply(self, inputs, outputs)
 
@@ -3634,6 +3638,51 @@ def swapaxes(y, axis1, axis2):
     return y.dimshuffle(li)
 
 
+def moveaxis(
+    a: Union[np.ndarray, TensorVariable],
+    source: Union[int, TypeSequence[int]],
+    destination: Union[int, TypeSequence[int]],
+) -> TensorVariable:
+    """Move axes of a TensorVariable to new positions.
+
+    Other axes remain in their original order.
+
+    Parameters
+    ----------
+    a
+        The TensorVariable whose axes should be reordered.
+    source
+        Original positions of the axes to move. These must be unique.
+    destination
+        Destination positions for each of the original axes. These must also be
+        unique.
+
+    Returns
+    -------
+    result
+        TensorVariable with moved axes.
+
+    """
+
+    a = as_tensor_variable(a)
+
+    source = normalize_axis_tuple(source, a.ndim, "source")
+    destination = normalize_axis_tuple(destination, a.ndim, "destination")
+
+    if len(source) != len(destination):
+        raise ValueError(
+            "`source` and `destination` arguments must have the same number of elements"
+        )
+
+    order = [n for n in range(a.ndim) if n not in source]
+
+    for dest, src in sorted(zip(destination, source)):
+        order.insert(dest, src)
+
+    result = a.dimshuffle(order)
+    return result
+
+
 def choose(a, choices, mode="raise"):
     """
     Construct an array from an index array and a set of arrays to choose from.
@@ -4013,6 +4062,7 @@ __all__ = [
     "atleast_3d",
     "choose",
     "swapaxes",
+    "moveaxis",
     "stacklists",
     "diag",
     "diagonal",

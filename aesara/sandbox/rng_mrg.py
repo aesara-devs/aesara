@@ -37,6 +37,14 @@ from aesara.tensor.shape import reshape
 from aesara.tensor.type import TensorType, iscalar, ivector, lmatrix
 
 
+warnings.warn(
+    "The module `aesara.sandbox.rng_mrg` is deprecated. "
+    "Use the module `aesara.tensor.random` for random variables instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+
 def matVecModM(A, s, m):
     # TODO : need description for method, parameter and return
     assert A.dtype == "int64"

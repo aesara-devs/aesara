@@ -182,6 +182,22 @@ def test_shared():
     np.testing.assert_allclose(jax_res, new_a_value * 2)
 
 
+def test_shared_updates():
+    a = shared(0)
+
+    aesara_jax_fn = function([], a, updates={a: a + 1}, mode="JAX")
+    res1, res2 = aesara_jax_fn(), aesara_jax_fn()
+    assert res1 == 0
+    assert res2 == 1
+    assert a.get_value() == 2
+
+    a.set_value(5)
+    res1, res2 = aesara_jax_fn(), aesara_jax_fn()
+    assert res1 == 5
+    assert res2 == 6
+    assert a.get_value() == 7
+
+
 def test_jax_ifelse():
 
     true_vals = np.r_[1, 2, 3]
