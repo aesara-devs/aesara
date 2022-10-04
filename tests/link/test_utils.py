@@ -13,6 +13,7 @@ from aesara.link.utils import (
     unique_name_generator,
 )
 from aesara.scalar.basic import Add, float64
+from aesara.tensor import constant
 from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.type import scalar, vector
 from aesara.tensor.type_other import NoneConst
@@ -161,6 +162,18 @@ def test_fgraph_to_python_multiline_str():
     """
         in out_py_src
     )
+
+
+def test_fgraph_to_python_constant_outputs():
+    """Make sure that constant outputs are handled properly."""
+
+    y = constant(1)
+
+    out_fg = FunctionGraph([], [y], clone=False)
+
+    out_py = fgraph_to_python(out_fg, to_python)
+
+    assert out_py()[0] is y.data
 
 
 def test_unique_name_generator():
