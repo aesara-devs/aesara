@@ -276,6 +276,33 @@ def test_unify_Variable():
     assert s[b_lv] == y_at
 
 
+def test_unify_default_output_Variable():
+    """Make sure that we can unify with the default output of an Apply node."""
+
+    class MyDefaultOutputOp(Op):
+        default_output = 1
+
+        def make_node(self, *inputs):
+            outputs = [MyType()(), MyType()()]
+            return Apply(self, list(inputs), outputs)
+
+        def perform(self, node, inputs, outputs):
+            outputs[0] = np.array(np.array(inputs[0]))
+            outputs[1] = np.array(np.array(inputs[1]))
+
+    x_at = at.vector("x")
+    y_at = at.vector("y")
+    op1_np = MyDefaultOutputOp()
+    q_at = op1_np(x_at, y_at)
+
+    x_lv, y_lv = var("x"), var("y")
+    q_et = etuple(op1_np, x_lv, y_lv)
+
+    s = unify(q_et, q_at)
+    assert s[x_lv] == x_at
+    assert s[y_lv] == y_at
+
+
 def test_unify_Op():
     # These `Op`s expand into `ExpressionTuple`s
     op1 = CustomOp(1)

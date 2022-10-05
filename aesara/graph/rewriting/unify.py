@@ -298,12 +298,27 @@ _unify.add((Constant, Constant, Mapping), _unify_Constant_Constant)
 
 
 def _unify_Variable_ExpressionTuple(u, v, s):
-    # `Constant`s are "atomic"
+    """Unify a `Variable` with an `ExpressionTuple`.
+
+    If the `Variable`'s owner only has one output we can etuplize the `Variable`
+    and unify both expression tuple.
+
+    If the owner has multiple outputs, but the `Op`'s `default_output` is not
+    `None` we unify the etuplized version of the `Variable` with an expanded
+    expression tuple that account for the variable selection. We only do this
+    for nodes with a default output (we otherwise expect the caller to use
+    the `nth` operator in the expression tuple).
+
+    """
     if not u.owner:
         yield False
         return
-
-    yield _unify(etuplize(u, shallow=True), v, s)
+    if u.owner.nout == 1:
+        yield _unify(etuplize(u, shallow=True), v, s)
+    elif u.owner.nout == 2 and u.owner.op.default_output is not None:
+        u_et = etuplize(u)
+        v_et = etuple(nth, u_et[1], v)
+        yield _unify(u_et, v_et, s)
 
 
 _unify.add(
