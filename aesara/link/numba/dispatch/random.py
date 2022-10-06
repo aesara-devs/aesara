@@ -20,7 +20,6 @@ from aesara.link.utils import (
 )
 from aesara.tensor.basic import get_vector_length
 from aesara.tensor.random.type import RandomStateType
-from aesara.tensor.random.var import RandomStateSharedVariable
 
 
 class RandomStateNumbaType(types.Type):
@@ -96,7 +95,7 @@ def make_numba_random_fn(node, np_random_func):
     The functions generated here add parameter broadcasting and the ``size``
     argument to the Numba-supported scalar ``np.random`` functions.
     """
-    if not isinstance(node.inputs[0], (RandomStateType, RandomStateSharedVariable)):
+    if not isinstance(node.inputs[0].type, RandomStateType):
         raise TypeError("Numba does not support NumPy `Generator`s")
 
     tuple_size = int(get_vector_length(node.inputs[1]))
