@@ -1,5 +1,3 @@
-import contextlib
-
 import numpy as np
 import pytest
 
@@ -16,11 +14,14 @@ from aesara.graph.rewriting.basic import check_stack_trace, out2in
 from aesara.graph.rewriting.db import RewriteDatabaseQuery
 from aesara.graph.rewriting.utils import rewrite_graph
 from aesara.misc.safe_asarray import _asarray
+from aesara.raise_op import assert_op
 from aesara.scalar.basic import Composite
 from aesara.tensor.basic import MakeVector
 from aesara.tensor.elemwise import DimShuffle, Elemwise
+from aesara.tensor.math import abs as at_abs
+from aesara.tensor.math import add
+from aesara.tensor.math import all as at_all
 from aesara.tensor.math import (
-    add,
     bitwise_and,
     bitwise_or,
     cos,
@@ -28,6 +29,7 @@ from aesara.tensor.math import (
     dot,
     eq,
     exp,
+    ge,
     int_div,
     invert,
     iround,
@@ -892,6 +894,77 @@ class TestFusion:
                 fxv * np.sin(fsv),
                 "float32",
             ),
+            # Multiple output cases  # 72
+            (
+                (
+                    # sum(logp)
+                    at_sum(-((fx - fy) ** 2) / 2),
+                    # grad(logp)
+                    at.grad(at_sum(-((fx - fy) ** 2) / 2), wrt=fx),
+                ),
+                (fx, fy),
+                (fxv, fyv),
+                3,
+                (
+                    np.sum(-((fxv - fyv) ** 2) / 2),
+                    -(fxv - fyv),
+                ),
+                ("float32", "float32"),
+            ),
+            # Two Composite graphs that share the same input, but are split by
+            # a non-elemwise operation (Assert)
+            (
+                (
+                    log(
+                        ge(
+                            assert_op(
+                                at_abs(fx),
+                                at_all(
+                                    ge(
+                                        at_abs(fx),
+                                        0,  # Shared input
+                                    )
+                                ),
+                            ),
+                            0,
+                        )
+                    ),
+                ),
+                (fx,),
+                (fxv,),
+                4,
+                (np.zeros_like(fxv),),
+                ("float32",),
+            ),
+            # Two subgraphs that share the same non-fuseable input, but are otherwise
+            # completely independent
+            (
+                (
+                    true_div(
+                        mul(
+                            at_sum(fx + 5),  # breaks fusion
+                            exp(fx),
+                        ),
+                        (fx + 5),
+                    ),
+                ),
+                (fx,),
+                (fxv,),
+                4,
+                (np.sum(fxv + 5) * np.exp(fxv) / (fxv + 5)),
+                ("float32",),
+            ),
+            pytest.param(
+                (
+                    (sin(exp(fx)), exp(sin(fx))),
+                    (fx,),
+                    (fxv,),
+                    1,
+                    (np.sin(np.exp(fxv)), np.exp(np.sin(fxv))),
+                    ("float32", "float32"),
+                ),
+                marks=pytest.mark.xfail,  # Not implemented yet
+            ),
         ],
     )
     def test_elemwise_fusion(self, case, nb_repeat=1, assert_len_topo=True):
@@ -902,23 +975,34 @@ class TestFusion:
         if isinstance(out_dtype, dict):
             out_dtype = out_dtype[config.cast_policy]
 
+        if not isinstance(g, (tuple, list)):
+            g = (g,)
+            answer = (answer,)
+            out_dtype = (out_dtype,)
+
         if self._shared is None:
             f = function(list(sym_inputs), g, mode=self.mode)
             for x in range(nb_repeat):
                 out = f(*val_inputs)
+            if not isinstance(out, list):
+                out = (out,)
         else:
-            out = self._shared(np.zeros((5, 5), dtype=out_dtype), "out")
-            assert out.dtype == g.dtype
-            f = function(sym_inputs, [], updates=[(out, g)], mode=self.mode)
+            out = [
+                self._shared(np.zeros((5,) * g_.ndim, dtype=od), "out")
+                for g_, od in zip(g, out_dtype)
+            ]
+            assert all(o.dtype == g_.dtype for o, g_ in zip(out, g))
+            f = function(sym_inputs, [], updates=list(zip(out, g)), mode=self.mode)
             for x in range(nb_repeat):
                 f(*val_inputs)
-            out = out.get_value()
+            out = [o.get_value() for o in out]
 
         atol = 1e-8
         if out_dtype == "float32":
             atol = 1e-6
 
-        assert np.allclose(out, answer * nb_repeat, atol=atol)
+        for o, a in zip(out, answer):
+            assert np.allclose(o, a * nb_repeat, atol=atol)
 
         topo = f.maker.fgraph.toposort()
         topo_ = [n for n in topo if not isinstance(n.op, self.topo_exclude)]
@@ -931,13 +1015,15 @@ class TestFusion:
                 # input of g,
                 # check that the number of input to the Composite
                 # Elemwise is ok
-                if len(set(g.owner.inputs)) == len(g.owner.inputs):
-                    expected_len_sym_inputs = sum(
-                        not isinstance(x, Constant) for x in topo_[0].inputs
-                    )
-                    assert expected_len_sym_inputs == len(sym_inputs)
+                for g_ in g:
+                    if len(set(g_.owner.inputs)) == len(g_.owner.inputs):
+                        expected_len_sym_inputs = sum(
+                            not isinstance(x, Constant) for x in topo_[0].inputs
+                        )
+                        assert expected_len_sym_inputs == len(sym_inputs)
 
-        assert out_dtype == out.dtype
+        for od, o in zip(out_dtype, out):
+            assert od == o.dtype
 
     def test_fusion_35_inputs(self):
         r"""Make sure we don't fuse too many `Op`\s and go past the 31 function arguments limit."""
@@ -998,6 +1084,7 @@ class TestFusion:
             for node in dlogp.maker.fgraph.toposort()
         )
 
+    @pytest.mark.xfail(reason="Fails due to #1244")
     def test_add_mul_fusion_precedence(self):
         """Test that additions and multiplications are "fused together" before
         a `Composite` `Op` is introduced. This fusion is done by canonicalization
@@ -1073,11 +1160,8 @@ class TestFusion:
 
     @pytest.mark.parametrize("test_value", [np.c_[[1.0]], np.c_[[]]])
     def test_test_values(self, test_value):
-        """Make sure that `local_elemwise_fusion_op` uses test values correctly when they have zero dimensions.
-
-        The test values we're talking about are the ones used when C implementations
-        are checked.
-
+        """Make sure that `local_elemwise_fusion_op` uses test values correctly
+        when they have zero dimensions.
         """
 
         rewrites = RewriteDatabaseQuery(
@@ -1097,27 +1181,20 @@ class TestFusion:
         y.tag.test_value = test_value
         z.tag.test_value = test_value
 
-        if test_value.size == 0:
-            cm = pytest.raises(ValueError)
-        else:
-            cm = contextlib.suppress()
-
         with config.change_flags(
             compute_test_value="raise", compute_test_value_opt="raise"
         ):
             out = x * y + z
-            with cm:
-                f = function([x, y, z], out, mode=mode)
+            f = function([x, y, z], out, mode=mode)
 
-        if test_value.size != 0:
-            # Confirm that the fusion happened
-            assert isinstance(f.maker.fgraph.outputs[0].owner.op.scalar_op, Composite)
-            assert len(f.maker.fgraph.toposort()) == 1
+        # Confirm that the fusion happened
+        assert isinstance(f.maker.fgraph.outputs[0].owner.op.scalar_op, Composite)
+        assert len(f.maker.fgraph.toposort()) == 1
 
-            x_c, y_c, z_c = f.maker.fgraph.outputs[0].owner.inputs
-            assert np.array_equal(
-                f.maker.fgraph.outputs[0].tag.test_value, np.c_[[2.0]]
-            )
+        assert np.array_equal(
+            f.maker.fgraph.outputs[0].tag.test_value,
+            np.full_like(test_value, 2.0),
+        )
 
     def test_not_fusing_broadcasted_subgraphs(self):
         # There are some cases in self.test_elemwise_fusion, but this test
@@ -1146,6 +1223,26 @@ class TestFusion:
             aes.exp,
             aes.mul,
         }
+
+    def test_multiple_outputs_fused_root_elemwise(self):
+        """Test that a root elemwise output (single layer) is reused when
+        there is another fused output"""
+
+        # By default, we do not introduce Composite for single layers of Elemwise
+        x = at.vector("x")
+        out1 = at.cos(x)
+        f = aesara.function([x], out1)
+        nodes = tuple(f.maker.fgraph.apply_nodes)
+        assert len(nodes) == 1
+        assert isinstance(nodes[0].op.scalar_op, aes.Cos)
+
+        # However, when it can be composed with another output, we should not
+        # compute that root Elemwise twice
+        out2 = at.log(out1)
+        f = aesara.function([x], [out1, out2])
+        nodes = tuple(f.maker.fgraph.apply_nodes)
+        assert len(nodes) == 1
+        assert isinstance(nodes[0].op.scalar_op, Composite)
 
 
 class TimesN(aes.basic.UnaryScalarOp):
