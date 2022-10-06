@@ -554,7 +554,7 @@ def test_DirichletRV(a, size, cm):
         a_val = a.tag.test_value
 
         # For coverage purposes only...
-        eval_python_only([a], FunctionGraph(outputs=[g], clone=False), [a_val])
+        eval_python_only([a], [g], [a_val])
 
         all_samples = []
         for i in range(1000):
