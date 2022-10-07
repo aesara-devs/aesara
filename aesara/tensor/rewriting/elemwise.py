@@ -896,9 +896,8 @@ class FusionOptimizer(GraphRewriter):
         print(blanc, " time_toposort", prof[7], file=stream)
 
 
+fuse_seqopt = SequenceDB()
 if config.tensor__local_elemwise_fusion:
-    # Must be after gpu(48.5) and before AddDestroyHandler(49.5)
-    fuse_seqopt = SequenceDB()
     fuse_seqopt.register(
         "composite_elemwise_fusion",
         FusionOptimizer(local_elemwise_fusion),
@@ -906,6 +905,7 @@ if config.tensor__local_elemwise_fusion:
         "fusion",
         position=1,
     )
+    # Position before AddDestroyHandler(49.5)
     compile.optdb.register(  # type: ignore
         "elemwise_fusion",
         fuse_seqopt,
