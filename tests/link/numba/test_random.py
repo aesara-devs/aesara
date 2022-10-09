@@ -48,6 +48,20 @@ rng = np.random.default_rng(42849)
                 ),
                 set_test_value(
                     at.dscalar(),
+                    np.array(3.0, dtype=np.float64),
+                ),
+            ],
+            at.as_tensor([3, 2]),
+        ),
+        (
+            aer.gamma,
+            [
+                set_test_value(
+                    at.dvector(),
+                    np.array([1.0, 2.0], dtype=np.float64),
+                ),
+                set_test_value(
+                    at.dscalar(),
                     np.array(1.0, dtype=np.float64),
                 ),
             ],
@@ -84,17 +98,6 @@ rng = np.random.default_rng(42849)
                 ),
             ],
             at.as_tensor([3, 2]),
-        ),
-        pytest.param(
-            aer.pareto,
-            [
-                set_test_value(
-                    at.dvector(),
-                    np.array([1.0, 2.0], dtype=np.float64),
-                ),
-            ],
-            at.as_tensor([3, 2]),
-            marks=pytest.mark.xfail(reason="Not implemented"),
         ),
         (
             aer.exponential,
@@ -141,6 +144,7 @@ rng = np.random.default_rng(42849)
             at.as_tensor([3, 2]),
         ),
         (
+            # TODO FIXME: This works, but uses object-mode.
             aer.hypergeometric,
             [
                 set_test_value(
@@ -187,6 +191,7 @@ rng = np.random.default_rng(42849)
             at.as_tensor([3, 2]),
         ),
         (
+            # TODO FIXME: This works, but uses object-mode.
             aer.binomial,
             [
                 set_test_value(
@@ -225,20 +230,6 @@ rng = np.random.default_rng(42849)
             None,
         ),
         (
-            aer.halfnormal,
-            [
-                set_test_value(
-                    at.lvector(),
-                    np.array([1, 2], dtype=np.int64),
-                ),
-                set_test_value(
-                    at.dscalar(),
-                    np.array(1.0, dtype=np.float64),
-                ),
-            ],
-            None,
-        ),
-        (
             aer.bernoulli,
             [
                 set_test_value(
@@ -249,7 +240,7 @@ rng = np.random.default_rng(42849)
             None,
         ),
         (
-            aer.randint,
+            aer.integers,
             [
                 set_test_value(
                     at.lscalar(),
@@ -262,7 +253,8 @@ rng = np.random.default_rng(42849)
             ],
             at.as_tensor([3, 2]),
         ),
-        pytest.param(
+        (
+            # TODO FIXME: This works, but uses object-mode.
             aer.multivariate_normal,
             [
                 set_test_value(
@@ -275,14 +267,13 @@ rng = np.random.default_rng(42849)
                 ),
             ],
             at.as_tensor(tuple(set_test_value(at.lscalar(), v) for v in [4, 3, 2])),
-            marks=pytest.mark.xfail(reason="Not implemented"),
         ),
     ],
     ids=str,
 )
 def test_aligned_RandomVariable(rv_op, dist_args, size):
     """Tests for Numba samplers that are one-to-one with Aesara's/NumPy's samplers."""
-    rng = shared(np.random.RandomState(29402))
+    rng = shared(np.random.default_rng(29402))
     g = rv_op(*dist_args, size=size, rng=rng)
     g_fg = FunctionGraph(outputs=[g])
 
@@ -300,15 +291,43 @@ def test_aligned_RandomVariable(rv_op, dist_args, size):
     "rv_op, dist_args, base_size, cdf_name, params_conv",
     [
         (
-            aer.beta,
+            aer.pareto,
             [
                 set_test_value(
                     at.dvector(),
-                    np.array([1.0, 2.0], dtype=np.float64),
+                    np.array([2.0, 3.0], dtype=np.float64),
+                ),
+            ],
+            (2,),
+            "lomax",
+            lambda b, scale=1.0: (b, 0.0, scale),
+        ),
+        (
+            aer.halfnormal,
+            [
+                set_test_value(
+                    at.lvector(),
+                    np.array([0, 1], dtype=np.int64),
                 ),
                 set_test_value(
                     at.dscalar(),
                     np.array(1.0, dtype=np.float64),
+                ),
+            ],
+            (2,),
+            "halfnorm",
+            lambda *args: args,
+        ),
+        (
+            aer.beta,
+            [
+                set_test_value(
+                    at.dvector(),
+                    np.array([0.5, 2.0], dtype=np.float64),
+                ),
+                set_test_value(
+                    at.dscalar(),
+                    np.array(0.5, dtype=np.float64),
                 ),
             ],
             (2,),
@@ -316,27 +335,11 @@ def test_aligned_RandomVariable(rv_op, dist_args, size):
             lambda *args: args,
         ),
         (
-            aer.gamma,
-            [
-                set_test_value(
-                    at.dvector(),
-                    np.array([1.0, 2.0], dtype=np.float64),
-                ),
-                set_test_value(
-                    at.dscalar(),
-                    np.array(1.0, dtype=np.float64),
-                ),
-            ],
-            (2,),
-            "gamma",
-            lambda a, b: (a, 0.0, b),
-        ),
-        (
             aer.cauchy,
             [
                 set_test_value(
                     at.dvector(),
-                    np.array([1.0, 2.0], dtype=np.float64),
+                    np.array([0.0, 10.0], dtype=np.float64),
                 ),
                 set_test_value(
                     at.dscalar(),
@@ -359,7 +362,7 @@ def test_aligned_RandomVariable(rv_op, dist_args, size):
             "chi2",
             lambda *args: args,
         ),
-        (
+        pytest.param(
             aer.gumbel,
             [
                 set_test_value(
@@ -374,13 +377,16 @@ def test_aligned_RandomVariable(rv_op, dist_args, size):
             (2,),
             "gumbel_r",
             lambda *args: args,
+            marks=pytest.mark.skip(
+                reason="Not yet supported in Numba via `Generator`s"
+            ),
         ),
         (
             aer.negative_binomial,
             [
                 set_test_value(
                     at.lvector(),
-                    np.array([100, 200], dtype=np.int64),
+                    np.array([10, 20], dtype=np.int64),
                 ),
                 set_test_value(
                     at.dscalar(),
@@ -416,17 +422,21 @@ def test_aligned_RandomVariable(rv_op, dist_args, size):
     ],
 )
 def test_unaligned_RandomVariable(rv_op, dist_args, base_size, cdf_name, params_conv):
-    """Tests for Numba samplers that are not one-to-one with Aesara's/NumPy's samplers."""
-    rng = shared(np.random.RandomState(29402))
+    """Tests for Numba samplers that are not one-to-one with Aesara's/NumPy's samplers.
+
+    TODO FIXME: The reason why we can't directly compare the Aesara samples
+    with Numba's is that Aesara actually uses SciPy instead of NumPy to sample
+    them.
+    """
+    rng = shared(np.random.default_rng(29402))
     g = rv_op(*dist_args, size=(2000,) + base_size, rng=rng)
     g_fn = function(dist_args, g, mode=numba_mode)
-    samples = g_fn(
-        *[
-            i.tag.test_value
-            for i in g_fn.maker.fgraph.inputs
-            if not isinstance(i, (SharedVariable, Constant))
-        ]
-    )
+    arg_vals = [
+        i.tag.test_value
+        for i in g_fn.maker.fgraph.inputs
+        if not isinstance(i, (SharedVariable, Constant))
+    ]
+    samples = g_fn(*arg_vals)
 
     bcast_dist_args = np.broadcast_arrays(*[i.tag.test_value for i in dist_args])
 
@@ -495,7 +505,7 @@ def test_unaligned_RandomVariable(rv_op, dist_args, base_size, cdf_name, params_
     ],
 )
 def test_CategoricalRV(dist_args, size, cm):
-    rng = shared(np.random.RandomState(29402))
+    rng = shared(np.random.default_rng(29402))
     g = aer.categorical(*dist_args, size=size, rng=rng)
     g_fg = FunctionGraph(outputs=[g])
 
@@ -510,6 +520,7 @@ def test_CategoricalRV(dist_args, size, cm):
         )
 
 
+@pytest.mark.skip(reason="Not yet supported in Numba via `Generator`s")
 @pytest.mark.parametrize(
     "a, size, cm",
     [
@@ -546,7 +557,7 @@ def test_CategoricalRV(dist_args, size, cm):
     ],
 )
 def test_DirichletRV(a, size, cm):
-    rng = shared(np.random.RandomState(29402))
+    rng = shared(np.random.default_rng(29402))
     g = aer.dirichlet(a, size=size, rng=rng)
     g_fn = function([a], g, mode=numba_mode)
 
@@ -566,19 +577,22 @@ def test_DirichletRV(a, size, cm):
         assert np.allclose(res, exp_res, atol=1e-4)
 
 
-def test_RandomState_updates():
-    rng = shared(np.random.RandomState(1))
-    rng_new = shared(np.random.RandomState(2))
+def test_updates():
+    rng = shared(np.random.default_rng(1))
+    rng_new = shared(np.random.default_rng(2))
 
     x = at.random.normal(size=10, rng=rng)
-    res = function([], x, updates={rng: rng_new}, mode=numba_mode)()
+    x_fn = function([], x, updates={rng: rng_new}, mode=numba_mode)
 
-    ref = np.random.RandomState(2).normal(size=10)
-    assert np.allclose(res, ref)
+    ref = np.random.default_rng(1).normal(size=10)
+    assert np.allclose(x_fn(), ref)
+
+    ref = np.random.default_rng(2).normal(size=10)
+    assert np.allclose(x_fn(), ref)
 
 
-def test_random_Generator():
-    rng = shared(np.random.default_rng(29402))
+def test_RandomState_error():
+    rng = shared(np.random.RandomState(29402))
     g = aer.normal(rng=rng)
     g_fg = FunctionGraph(outputs=[g])
 
