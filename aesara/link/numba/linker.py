@@ -33,22 +33,8 @@ class NumbaLinker(JITLinker):
         return jitted_fn
 
     def create_thunk_inputs(self, storage_map):
-        from numpy.random import RandomState
-
-        from aesara.link.numba.dispatch import numba_const_convert
-
         thunk_inputs = []
         for n in self.fgraph.inputs:
-            sinput = storage_map[n]
-            if isinstance(sinput[0], RandomState):
-                new_value = numba_const_convert(
-                    sinput[0], dtype=getattr(sinput[0], "dtype", None)
-                )
-                # We need to remove the reference-based connection to the
-                # original `RandomState`/shared variable's storage, because
-                # subsequent attempts to use the same shared variable within
-                # other non-Numba-fied graphs will have problems.
-                sinput = [new_value]
-            thunk_inputs.append(sinput)
+            thunk_inputs.append(storage_map[n])
 
         return thunk_inputs
