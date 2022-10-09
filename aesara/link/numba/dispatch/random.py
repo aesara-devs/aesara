@@ -1,202 +1,144 @@
+from copy import copy
 from textwrap import dedent, indent
-from typing import Any, Callable, Dict, Optional
+from typing import Callable, Optional
 
+import numba
 import numba.np.unsafe.ndarray as numba_ndarray
 import numpy as np
-from numba import _helperlib, types
-from numba.core import cgutils
-from numba.extending import NativeValue, box, models, register_model, typeof_impl, unbox
-from numpy.random import RandomState
+from numba.core import types
+from numba.core.extending import overload
 
 import aesara.tensor.random.basic as aer
 from aesara.graph.basic import Apply
-from aesara.graph.op import Op
 from aesara.link.numba.dispatch import basic as numba_basic
-from aesara.link.numba.dispatch.basic import numba_funcify, numba_typify
-from aesara.link.utils import (
-    compile_function_src,
-    get_name_for_object,
-    unique_name_generator,
-)
+from aesara.link.numba.dispatch.basic import create_arg_string, numba_funcify
+from aesara.link.utils import compile_function_src, unique_name_generator
 from aesara.tensor.basic import get_vector_length
-from aesara.tensor.random.type import RandomStateType
+from aesara.tensor.random.type import RandomGeneratorType
 
 
-class RandomStateNumbaType(types.Type):
-    def __init__(self):
-        super(RandomStateNumbaType, self).__init__(name="RandomState")
+@overload(copy)
+def copy_NumPyRandomGeneratorType(rng):
+
+    if not isinstance(rng, types.NumPyRandomGeneratorType):
+        raise TypeError("`copy` only supports Generators right now")
+
+    def impl(rng):
+
+        # TODO: This seems rather inefficient, but also necessary at this
+        # point.  Let's keep an eye out for a better approach.
+        with numba.objmode(new_rng=types.npy_rng):
+            new_rng = copy(rng)
+
+        return new_rng
+
+    return impl
 
 
-random_state_numba_type = RandomStateNumbaType()
-
-
-@typeof_impl.register(RandomState)
-def typeof_index(val, c):
-    return random_state_numba_type
-
-
-@register_model(RandomStateNumbaType)
-class RandomStateNumbaModel(models.StructModel):
-    def __init__(self, dmm, fe_type):
-        members = [
-            # TODO: We can add support for boxing and unboxing
-            # the attributes that describe a RandomState so that
-            # they can be accessed inside njit functions, if required.
-            ("state_key", types.Array(types.uint32, 1, "C")),
-        ]
-        models.StructModel.__init__(self, dmm, fe_type, members)
-
-
-@unbox(RandomStateNumbaType)
-def unbox_random_state(typ, obj, c):
-    """Convert a `RandomState` object to a native `RandomStateNumbaModel` structure.
-
-    Note that this will create a 'fake' structure which will just get the
-    `RandomState` objects accepted in Numba functions but the actual information
-    of the Numba's random state is stored internally and can be accessed
-    anytime using ``numba._helperlib.rnd_get_np_state_ptr()``.
-    """
-    interval = cgutils.create_struct_proxy(typ)(c.context, c.builder)
-    is_error = cgutils.is_not_null(c.builder, c.pyapi.err_occurred())
-    return NativeValue(interval._getvalue(), is_error=is_error)
-
-
-@box(RandomStateNumbaType)
-def box_random_state(typ, val, c):
-    """Convert a native `RandomStateNumbaModel` structure to an `RandomState` object
-    using Numba's internal state array.
-
-    Note that `RandomStateNumbaModel` is just a placeholder structure with no
-    inherent information about Numba internal random state, all that information
-    is instead retrieved from Numba using ``_helperlib.rnd_get_state()`` and a new
-    `RandomState` is constructed using the Numba's current internal state.
-    """
-    pos, state_list = _helperlib.rnd_get_state(_helperlib.rnd_get_np_state_ptr())
-    rng = RandomState()
-    rng.set_state(("MT19937", state_list, pos))
-    class_obj = c.pyapi.unserialize(c.pyapi.serialize_object(rng))
-    return class_obj
-
-
-@numba_typify.register(RandomState)
-def numba_typify_RandomState(state, **kwargs):
-    # The numba_typify in this case is just an passthrough function
-    # that synchronizes Numba's internal random state with the current
-    # RandomState object
-    ints, index = state.get_state()[1:3]
-    ptr = _helperlib.rnd_get_np_state_ptr()
-    _helperlib.rnd_set_state(ptr, (index, [int(x) for x in ints]))
-    return state
-
-
-def make_numba_random_fn(node, np_random_func):
-    """Create Numba implementations for existing Numba-supported ``np.random`` functions.
-
-    The functions generated here add parameter broadcasting and the ``size``
-    argument to the Numba-supported scalar ``np.random`` functions.
-    """
-    if not isinstance(node.inputs[0].type, RandomStateType):
-        raise TypeError("Numba does not support NumPy `Generator`s")
+def make_numba_random_fn(
+    node: Apply, sampler_name: str, sampler_fn: Optional[Callable] = None
+):
+    """Create Numba implementations for Numba-supported `np.random` functions."""
+    if not isinstance(node.inputs[0].type, RandomGeneratorType):
+        raise TypeError("Numba does not support NumPy `RandomState`s")
 
     tuple_size = int(get_vector_length(node.inputs[1]))
     size_dims = tuple_size - max(i.ndim for i in node.inputs[3:])
 
-    # Make a broadcast-capable version of the Numba supported scalar sampling
-    # function
-    bcast_fn_name = f"aesara_random_{get_name_for_object(np_random_func)}"
+    out_dtype = node.outputs[1].type.numpy_dtype
 
-    sized_fn_name = "sized_random_variable"
+    if not node.op.inplace:
+        copy_rng_stmts = "rng = copy(rng)\n"
+    else:
+        copy_rng_stmts = ""
 
     unique_names = unique_name_generator(
         [
-            bcast_fn_name,
-            sized_fn_name,
             "np",
             "np_random_func",
-            "numba_vectorize",
             "to_fixed_tuple",
+            "out_shape",
             "tuple_size",
             "size_dims",
             "rng",
             "size",
             "dtype",
+            "i",
+            "copy",
         ],
         suffix_sep="_",
     )
 
-    bcast_fn_input_names = ", ".join(
-        [unique_names(i, force_unique=True) for i in node.inputs[3:]]
+    dist_arg_names = [unique_names(i) for i in node.inputs[3:]]
+    bcasted_input_stmts = "\n".join(
+        [
+            f"{name}_bcast = np.broadcast_to({name}, out_shape)"
+            if v.type.ndim > 0
+            else f"{name}_bcast = {name}"
+            for name, v in zip(dist_arg_names, node.inputs[3:])
+        ]
     )
-    bcast_fn_global_env = {
-        "np_random_func": np_random_func,
-        "numba_vectorize": numba_basic.numba_vectorize,
-    }
-
-    bcast_fn_src = f"""
-@numba_vectorize
-def {bcast_fn_name}({bcast_fn_input_names}):
-    return np_random_func({bcast_fn_input_names})
-    """
-    bcast_fn = compile_function_src(
-        bcast_fn_src, bcast_fn_name, {**globals(), **bcast_fn_global_env}
+    indexed_inputs = create_arg_string(
+        [
+            f"{name}_bcast[i]" if v.type.ndim > 0 else f"to_scalar({name}_bcast)"
+            for name, v in zip(dist_arg_names, node.inputs[3:])
+        ]
+    )
+    random_fn_input_names = ", ".join(["rng", "size", "dtype"] + dist_arg_names)
+    input_shape_exprs = create_arg_string(
+        [f"np.shape({name})" for name in dist_arg_names]
     )
 
-    random_fn_input_names = ", ".join(
-        ["rng", "size", "dtype"] + [unique_names(i) for i in node.inputs[3:]]
-    )
-
-    # Now, create a Numba JITable function that implements the `size` parameter
     out_dtype = node.outputs[1].type.numpy_dtype
     random_fn_global_env = {
-        bcast_fn_name: bcast_fn,
         "out_dtype": out_dtype,
+        "np": np,
+        "to_fixed_tuple": numba_ndarray.to_fixed_tuple,
+        "tuple_size": tuple_size,
+        "size_dims": size_dims,
+        "to_scalar": numba_basic.to_scalar,
+        "copy": copy,
     }
 
-    if tuple_size > 0:
-        random_fn_body = dedent(
-            f"""
-        size = to_fixed_tuple(size, tuple_size)
-
-        data = np.empty(size, dtype=out_dtype)
-        for i in np.ndindex(size[:size_dims]):
-            data[i] = {bcast_fn_name}({bcast_fn_input_names})
-
-        """
-        )
-        random_fn_global_env.update(
-            {
-                "np": np,
-                "to_fixed_tuple": numba_ndarray.to_fixed_tuple,
-                "tuple_size": tuple_size,
-                "size_dims": size_dims,
-            }
-        )
+    if sampler_fn is not None:
+        random_fn_global_env[sampler_name] = sampler_fn
+        sampler_fn_expr = f"{sampler_name}(rng, "
+        nb_sampler_fn_name = f"{sampler_name}_sampler"
     else:
-        random_fn_body = f"""data = {bcast_fn_name}({bcast_fn_input_names})"""
+        sampler_fn_expr = f"rng.{sampler_name}("
+        nb_sampler_fn_name = f"{sampler_name}_sampler"
 
-    sized_fn_src = dedent(
+    sampler_fn_src = dedent(
         f"""
-def {sized_fn_name}({random_fn_input_names}):
-{indent(random_fn_body, " " * 4)}
-    return (rng, data)
+    def {nb_sampler_fn_name}({random_fn_input_names}):
+        size_tpl = to_fixed_tuple(size, tuple_size)
+        out_shape = np.broadcast_shapes(size_tpl, {input_shape_exprs})
+{indent(bcasted_input_stmts, " " * 8)}
+{indent(copy_rng_stmts, " " * 8)}
+        samples = np.empty(out_shape, dtype=out_dtype)
+        for i in np.ndindex(out_shape):
+            samples[i] = {sampler_fn_expr}{indexed_inputs})
+
+        return (rng, samples)
     """
-    )
+    ).strip()
+
     random_fn = compile_function_src(
-        sized_fn_src, sized_fn_name, {**globals(), **random_fn_global_env}
+        sampler_fn_src, nb_sampler_fn_name, {**globals(), **random_fn_global_env}
     )
     random_fn = numba_basic.numba_njit(random_fn)
 
     return random_fn
 
 
+# @numba_funcify.register(aer.HyperGeometricRV)
+# @numba_funcify.register(aer.BinomialRV)
 @numba_funcify.register(aer.UniformRV)
 @numba_funcify.register(aer.TriangularRV)
 @numba_funcify.register(aer.BetaRV)
 @numba_funcify.register(aer.NormalRV)
 @numba_funcify.register(aer.LogNormalRV)
-@numba_funcify.register(aer.GammaRV)
 @numba_funcify.register(aer.ChiSquareRV)
-@numba_funcify.register(aer.ParetoRV)
 @numba_funcify.register(aer.GumbelRV)
 @numba_funcify.register(aer.ExponentialRV)
 @numba_funcify.register(aer.WeibullRV)
@@ -204,124 +146,89 @@ def {sized_fn_name}({random_fn_input_names}):
 @numba_funcify.register(aer.VonMisesRV)
 @numba_funcify.register(aer.PoissonRV)
 @numba_funcify.register(aer.GeometricRV)
-@numba_funcify.register(aer.HyperGeometricRV)
 @numba_funcify.register(aer.WaldRV)
 @numba_funcify.register(aer.LaplaceRV)
-@numba_funcify.register(aer.BinomialRV)
 @numba_funcify.register(aer.MultinomialRV)
-@numba_funcify.register(aer.RandIntRV)  # only the first two arguments are supported
+@numba_funcify.register(aer.IntegersRV)
 @numba_funcify.register(aer.ChoiceRV)  # the `p` argument is not supported
 @numba_funcify.register(aer.PermutationRV)
 def numba_funcify_RandomVariable(op, node, **kwargs):
-    name = op.name
-    np_random_func = getattr(np.random, name)
-
-    return make_numba_random_fn(node, np_random_func)
-
-
-def create_numba_random_fn(
-    op: Op,
-    node: Apply,
-    scalar_fn: Callable[[str], str],
-    global_env: Optional[Dict[str, Any]] = None,
-) -> Callable:
-    """Create a vectorized function from a callable that generates the ``str`` function body.
-
-    TODO: This could/should be generalized for other simple function
-    construction cases that need unique-ified symbol names.
-    """
-    np_random_fn_name = f"aesara_random_{get_name_for_object(op.name)}"
-
-    if global_env:
-        np_global_env = global_env.copy()
-    else:
-        np_global_env = {}
-
-    np_global_env["np"] = np
-    np_global_env["numba_vectorize"] = numba_basic.numba_vectorize
-
-    unique_names = unique_name_generator(
-        [
-            np_random_fn_name,
-        ]
-        + list(np_global_env.keys())
-        + [
-            "rng",
-            "size",
-            "dtype",
-        ],
-        suffix_sep="_",
-    )
-
-    np_names = [unique_names(i, force_unique=True) for i in node.inputs[3:]]
-    np_input_names = ", ".join(np_names)
-    np_random_fn_src = f"""
-@numba_vectorize
-def {np_random_fn_name}({np_input_names}):
-{scalar_fn(*np_names)}
-    """
-    np_random_fn = compile_function_src(
-        np_random_fn_src, np_random_fn_name, {**globals(), **np_global_env}
-    )
-
-    return make_numba_random_fn(node, np_random_fn)
+    return make_numba_random_fn(node, op.name)
 
 
 @numba_funcify.register(aer.NegBinomialRV)
 def numba_funcify_NegBinomialRV(op, node, **kwargs):
-    return make_numba_random_fn(node, np.random.negative_binomial)
+    return make_numba_random_fn(node, "negative_binomial")
+
+
+@numba_funcify.register(aer.GammaRV)
+def numba_funcify_GammaRV(op, node, **kwargs):
+    @numba_basic.numba_njit
+    def scalar_fn(rng, shape, scale):
+        return rng.gamma(shape, scale)
+
+    return make_numba_random_fn(node, "gamma", scalar_fn)
 
 
 @numba_funcify.register(aer.CauchyRV)
 def numba_funcify_CauchyRV(op, node, **kwargs):
-    def body_fn(loc, scale):
-        return f"    return ({loc} + np.random.standard_cauchy()) / {scale}"
+    @numba_basic.numba_njit
+    def scalar_fn(rng, loc, scale):
+        return loc + rng.standard_cauchy() * scale
 
-    return create_numba_random_fn(op, node, body_fn)
+    return make_numba_random_fn(node, "cauchy", scalar_fn)
+
+
+@numba_funcify.register(aer.ParetoRV)
+def numba_funcify_ParetoRV(op, node, **kwargs):
+    @numba_basic.numba_njit
+    def scalar_fn(rng, b, scale):
+        return rng.pareto(b) / scale
+
+    return make_numba_random_fn(node, "pareto", scalar_fn)
 
 
 @numba_funcify.register(aer.HalfNormalRV)
 def numba_funcify_HalfNormalRV(op, node, **kwargs):
-    def body_fn(a, b):
-        return f"    return {a} + {b} * abs(np.random.normal(0, 1))"
+    @numba_basic.numba_njit
+    def scalar_fn(rng, loc, scale):
+        return loc + abs(rng.standard_normal()) * scale
 
-    return create_numba_random_fn(op, node, body_fn)
+    return make_numba_random_fn(node, "halfnormal", scalar_fn)
 
 
 @numba_funcify.register(aer.BernoulliRV)
 def numba_funcify_BernoulliRV(op, node, **kwargs):
     out_dtype = node.outputs[1].type.numpy_dtype
 
-    def body_fn(a):
-        return f"""
-    if {a} < np.random.uniform(0, 1):
-        return direct_cast(0, out_dtype)
-    else:
-        return direct_cast(1, out_dtype)
-        """
+    @numba_basic.numba_njit
+    def scalar_fn(rng, a):
+        if a < rng.uniform(0, 1):
+            return numba_basic.direct_cast(0, out_dtype)
+        else:
+            return numba_basic.direct_cast(1, out_dtype)
 
-    return create_numba_random_fn(
-        op,
-        node,
-        body_fn,
-        {"out_dtype": out_dtype, "direct_cast": numba_basic.direct_cast},
-    )
+    return make_numba_random_fn(node, "bernoulli", scalar_fn)
 
 
 @numba_funcify.register(aer.CategoricalRV)
 def numba_funcify_CategoricalRV(op, node, **kwargs):
     out_dtype = node.outputs[1].type.numpy_dtype
     size_len = int(get_vector_length(node.inputs[1]))
+    inplace = op.inplace
 
     @numba_basic.numba_njit
     def categorical_rv(rng, size, dtype, p):
+        if not inplace:
+            rng = copy(rng)
+
         if not size_len:
             size_tpl = p.shape[:-1]
         else:
             size_tpl = numba_ndarray.to_fixed_tuple(size, size_len)
             p = np.broadcast_to(p, size_tpl + p.shape[-1:])
 
-        unif_samples = np.random.uniform(0, 1, size_tpl)
+        unif_samples = rng.uniform(0, 1, size_tpl)
 
         res = np.empty(size_tpl, dtype=out_dtype)
         for idx in np.ndindex(*size_tpl):
@@ -339,11 +246,15 @@ def numba_funcify_DirichletRV(op, node, **kwargs):
     alphas_ndim = node.inputs[3].type.ndim
     neg_ind_shape_len = -alphas_ndim + 1
     size_len = int(get_vector_length(node.inputs[1]))
+    inplace = op.inplace
 
     if alphas_ndim > 1:
 
         @numba_basic.numba_njit
         def dirichlet_rv(rng, size, dtype, alphas):
+
+            if not inplace:
+                rng = copy(rng)
 
             if size_len > 0:
                 size_tpl = numba_ndarray.to_fixed_tuple(size, size_len)
@@ -360,7 +271,7 @@ def numba_funcify_DirichletRV(op, node, **kwargs):
             alphas_bcast = np.broadcast_to(alphas, samples_shape)
 
             for index in np.ndindex(*samples_shape[:-1]):
-                res[index] = np.random.dirichlet(alphas_bcast[index])
+                res[index] = rng.dirichlet(alphas_bcast[index])
 
             return (rng, res)
 
@@ -368,7 +279,11 @@ def numba_funcify_DirichletRV(op, node, **kwargs):
 
         @numba_basic.numba_njit
         def dirichlet_rv(rng, size, dtype, alphas):
+
+            if not inplace:
+                rng = copy(rng)
+
             size = numba_ndarray.to_fixed_tuple(size, size_len)
-            return (rng, np.random.dirichlet(alphas, size))
+            return (rng, rng.dirichlet(alphas, size))
 
     return dirichlet_rv

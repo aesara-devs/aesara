@@ -25,7 +25,6 @@ from aesara.graph.rewriting.db import RewriteDatabaseQuery
 from aesara.graph.type import Type
 from aesara.ifelse import ifelse
 from aesara.link.numba.dispatch import basic as numba_basic
-from aesara.link.numba.dispatch import numba_typify
 from aesara.link.numba.linker import NumbaLinker
 from aesara.raise_op import assert_op
 from aesara.tensor import blas
@@ -320,26 +319,6 @@ def test_get_numba_type(v, expected, force_scalar, not_implemented):
 def test_create_numba_signature(v, expected, force_scalar):
     res = numba_basic.create_numba_signature(v, force_scalar=force_scalar)
     assert res == expected
-
-
-@pytest.mark.parametrize(
-    "input, wrapper_fn, check_fn",
-    [
-        (
-            np.random.RandomState(1),
-            numba_typify,
-            lambda x, y: np.all(x.get_state()[1] == y.get_state()[1]),
-        )
-    ],
-)
-def test_box_unbox(input, wrapper_fn, check_fn):
-    input = wrapper_fn(input)
-
-    pass_through = numba.njit(lambda x: x)
-    res = pass_through(input)
-
-    assert isinstance(res, type(input))
-    assert check_fn(res, input)
 
 
 @pytest.mark.parametrize(
