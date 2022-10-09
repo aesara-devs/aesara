@@ -1,5 +1,6 @@
 import contextlib
 import inspect
+from copy import copy
 from typing import TYPE_CHECKING, Callable, Optional, Sequence, Tuple, Union
 from unittest import mock
 
@@ -17,7 +18,7 @@ from aesara.compile.function import function
 from aesara.compile.mode import Mode
 from aesara.compile.ops import ViewOp
 from aesara.compile.sharedvalue import SharedVariable
-from aesara.graph.basic import Apply, Constant
+from aesara.graph.basic import Apply, Constant, vars_between
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op, get_test_value
 from aesara.graph.rewriting.db import RewriteDatabaseQuery
@@ -219,6 +220,11 @@ def compare_numba_and_py(
 
     fn_inputs = [i for i in fn_inputs if not isinstance(i, SharedVariable)]
 
+    shared_vars_to_init_vals = {}
+    for v in vars_between(fn_inputs, fn_outputs):
+        if isinstance(v, SharedVariable):
+            shared_vars_to_init_vals[v] = copy(v.get_value(borrow=True))
+
     aesara_py_fn = function(
         fn_inputs, fn_outputs, mode=py_mode, accept_inplace=True, updates=updates
     )
@@ -231,6 +237,12 @@ def compare_numba_and_py(
         accept_inplace=True,
         updates=updates,
     )
+
+    # Reset shared variables so that the results will match between the two
+    # runs
+    for v, val in shared_vars_to_init_vals.items():
+        v.set_value(val)
+
     numba_res = aesara_numba_fn(*inputs)
 
     # Get some coverage
