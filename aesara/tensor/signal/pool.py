@@ -600,7 +600,7 @@ class Pool(OpenMPOp):
             yk = y[k]
             # iterate over pooling regions
             for r in np.ndindex(*pool_out_shp):
-                zzk[r] = func(yk[[region_slices[i][r[i]] for i in range(nd)]])
+                zzk[r] = func(yk[tuple(region_slices[i][r[i]] for i in range(nd))])
 
     def infer_shape(self, fgraph, node, in_shapes):
         ws, stride, pad = [node.inputs[1], node.inputs[2], node.inputs[3]]
@@ -1578,7 +1578,7 @@ class AveragePoolGrad(PoolGrad):
                 else:
                     # divide by region size
                     val = gzk[r] / region_size
-                gxk[region_slice] += val
+                gxk[tuple(region_slice)] += val
 
         # unpad the image
         gx = gx[
