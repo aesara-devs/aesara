@@ -520,7 +520,6 @@ def test_CategoricalRV(dist_args, size, cm):
         )
 
 
-@pytest.mark.skip(reason="Not yet supported in Numba via `Generator`s")
 @pytest.mark.parametrize(
     "a, size, cm",
     [
