@@ -362,7 +362,7 @@ def test_aligned_RandomVariable(rv_op, dist_args, size):
             "chi2",
             lambda *args: args,
         ),
-        pytest.param(
+        (
             aer.gumbel,
             [
                 set_test_value(
@@ -377,9 +377,6 @@ def test_aligned_RandomVariable(rv_op, dist_args, size):
             (2,),
             "gumbel_r",
             lambda *args: args,
-            marks=pytest.mark.skip(
-                reason="Not yet supported in Numba via `Generator`s"
-            ),
         ),
         (
             aer.negative_binomial,
