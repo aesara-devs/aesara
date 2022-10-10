@@ -17,7 +17,7 @@ import warnings
 
 import numpy as np
 
-from aesara import function, gradient, issubtype
+from aesara import function, gradient
 from aesara import scalar as aes
 from aesara import shared
 from aesara import tensor as at
@@ -34,7 +34,7 @@ from aesara.scalar import int32 as int_t
 from aesara.tensor import as_tensor_variable, cast, get_vector_length
 from aesara.tensor.math import cos, log, prod, sin, sqrt
 from aesara.tensor.shape import reshape
-from aesara.tensor.type import TensorType, iscalar, ivector, lmatrix
+from aesara.tensor.type import TensorType, TensorTypeMeta, iscalar, ivector, lmatrix
 
 
 warnings.warn(
@@ -536,7 +536,7 @@ class mrg_uniform(COp, mrg_uniform_base):
     def c_code(self, node, name, inp, out, sub):
         # If we try to use the C code here with something else than a
         # TensorType, something is wrong.
-        assert issubtype(node.inputs[0].type, TensorType)
+        assert isinstance(node.inputs[0].type, TensorTypeMeta)
         if self.output_type.dtype == "float16":
             # C code is not tested, fall back to Python
             raise NotImplementedError()

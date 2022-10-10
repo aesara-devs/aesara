@@ -4,7 +4,6 @@ from aesara.graph.basic import Apply, Constant, NominalVariable, Variable, clone
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import HasInnerGraph, Op
 from aesara.graph.type import NewTypeMeta, Type
-from aesara.issubtype import issubtype
 
 
 def is_variable(x):
@@ -73,7 +72,7 @@ class MyOp(Op):
     def make_node(self, *inputs):
         inputs = list(map(is_variable, inputs))
         for input in inputs:
-            if not issubtype(input.type, MyType):
+            if not issubclass(input.type, MyType):
                 raise Exception("Error 1")
         outputs = [MyType.subtype()() for i in range(self.n_outs)]
         return Apply(self, inputs, outputs)
@@ -107,7 +106,7 @@ class MyOpCastType2(MyOp):
     def make_node(self, *inputs):
         inputs = list(map(is_variable, inputs))
         for input in inputs:
-            if not issubtype(input.type, MyType):
+            if not issubclass(input.type, MyType):
                 raise Exception("Error 1")
 
         outputs = [MyType2.subtype()()]

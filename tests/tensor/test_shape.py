@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import aesara
-from aesara import Mode, function, grad, issubtype
+from aesara import Mode, function, grad
 from aesara.compile.ops import DeepCopyOp
 from aesara.configdefaults import config
 from aesara.graph.basic import Variable
@@ -29,6 +29,7 @@ from aesara.tensor.shape import (
 from aesara.tensor.subtensor import Subtensor
 from aesara.tensor.type import (
     TensorType,
+    TensorTypeMeta,
     dmatrix,
     dtensor4,
     dvector,
@@ -341,7 +342,7 @@ def test_shape_i_hash():
 
 class TestSpecifyShape(utt.InferShapeTester):
     mode = None
-    input_type = TensorType
+    input_type = TensorTypeMeta
 
     def test_check_inputs(self):
         with pytest.raises(TypeError, match="must be integer types"):
@@ -445,7 +446,7 @@ class TestSpecifyShape(utt.InferShapeTester):
         with pytest.raises(AssertionError, match="SpecifyShape:.*"):
             f(xval)
 
-        assert issubtype(
+        assert isinstance(
             [n for n in f.maker.fgraph.toposort() if isinstance(n.op, SpecifyShape)][0]
             .inputs[0]
             .type,
@@ -455,7 +456,7 @@ class TestSpecifyShape(utt.InferShapeTester):
         x = matrix()
         xval = np.random.random((2, 3)).astype(config.floatX)
         f = aesara.function([x], specify_shape(x, 2, 3), mode=self.mode)
-        assert issubtype(
+        assert isinstance(
             [n for n in f.maker.fgraph.toposort() if isinstance(n.op, SpecifyShape)][0]
             .inputs[0]
             .type,

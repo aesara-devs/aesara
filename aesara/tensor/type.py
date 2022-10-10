@@ -9,7 +9,6 @@ from aesara import scalar as aes
 from aesara.configdefaults import config
 from aesara.graph.basic import Variable
 from aesara.graph.type import DataType, Props, ShapeType
-from aesara.issubtype import issubtype
 from aesara.link.c.type import CType, CTypeMeta
 from aesara.misc.safe_asarray import _asarray
 from aesara.utils import apply_across_args
@@ -51,8 +50,9 @@ dtype_specs_map = {
 class TensorTypeMeta(CTypeMeta):
     r"""Symbolic `Type` representing `numpy.ndarray`\s."""
 
-    shape: Props[DataType] = None
-    dtype: Props[ShapeType] = None
+    shape: Props[ShapeType] = None
+    dtype: Props[DataType] = None
+    numpy_dtype: Props[DataType] = None
 
     ndim: int
 
@@ -314,7 +314,7 @@ class TensorTypeMeta(CTypeMeta):
 
         """
         if (
-            issubtype(otype, TensorType)
+            isinstance(otype, TensorTypeMeta)
             and otype.dtype == self.dtype
             and otype.broadcastable == self.broadcastable
         ):
@@ -624,7 +624,16 @@ class TensorType(CType, metaclass=TensorTypeMeta):
     pass
 
 
-class DenseTypeMeta(TensorTypeMeta):
+class DenseTensorTypeMetaMeta(type):
+    def __instancecheck__(self, instance):
+        if type(instance) == TensorTypeMeta or isinstance(
+            instance, DenseTensorTypeMetaMeta
+        ):
+            return True
+        return False
+
+
+class DenseTensorTypeMeta(TensorTypeMeta, metaclass=DenseTensorTypeMetaMeta):
     r"""A `Type` for dense tensors.
 
     Instances of this class and `TensorType`\s are considered dense `Type`\s.
@@ -632,13 +641,13 @@ class DenseTypeMeta(TensorTypeMeta):
 
     def __subclasscheck__(self, subclass):
         if getattr(subclass, "base_type", None) == TensorType or issubclass(
-            subclass, DenseTypeMeta
+            subclass, DenseTensorTypeMeta
         ):
             return True
         return False
 
 
-class DenseTensorType(TensorType, metaclass=DenseTypeMeta):
+class DenseTensorType(TensorType, metaclass=DenseTensorTypeMeta):
     pass
 
 
@@ -1111,6 +1120,7 @@ tensor7s, ftensor7s, dtensor7s, itensor7s, ltensor7s = apply_across_args(
 
 __all__ = [
     "TensorType",
+    "TensorTypeMeta",
     "bcol",
     "bmatrix",
     "brow",

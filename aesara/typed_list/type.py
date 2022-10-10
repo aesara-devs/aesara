@@ -1,8 +1,7 @@
 from typing import Any
 
-from aesara import issubtype
-from aesara.graph.type import Props
-from aesara.link.c.type import CType, CTypeMeta, Type
+from aesara.graph.type import NewTypeMeta, Props
+from aesara.link.c.type import CType, CTypeMeta
 
 
 class TypedListTypeMeta(CTypeMeta):
@@ -25,7 +24,7 @@ class TypedListTypeMeta(CTypeMeta):
 
         if depth < 0:
             raise ValueError("Please specify a depth superior or" "equal to 0")
-        if not issubtype(ttype, Type):
+        if not isinstance(ttype, NewTypeMeta):
             raise TypeError("Expected an Aesara Type")
 
         if depth > 0:
@@ -66,7 +65,7 @@ class TypedListTypeMeta(CTypeMeta):
         Utilitary function to get the 0 based level of the list.
 
         """
-        if issubtype(self.ttype, TypedListType):
+        if isinstance(self.ttype, TypedListTypeMeta):
             return self.ttype.get_depth() + 1
         else:
             return 0

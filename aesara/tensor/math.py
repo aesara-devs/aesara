@@ -6,10 +6,9 @@ import numpy as np
 
 from aesara import config, printing
 from aesara import scalar as aes
-from aesara.gradient import DisconnectedType
+from aesara.gradient import DisconnectedType, DisconnectedTypeMeta
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.op import Op
-from aesara.issubtype import issubtype
 from aesara.link.c.op import COp
 from aesara.link.c.params_type import ParamsType
 from aesara.link.c.type import Generic
@@ -35,7 +34,7 @@ from aesara.tensor.elemwise import (
 )
 from aesara.tensor.shape import shape, specify_broadcastable
 from aesara.tensor.type import (
-    DenseTensorType,
+    DenseTensorTypeMeta,
     TensorType,
     complex_dtypes,
     continuous_dtypes,
@@ -303,8 +302,8 @@ class MaxAndArgmax(COp):
         axis = as_tensor_variable(self.axis)
         g_max, g_max_idx = grads
 
-        g_max_disconnected = issubtype(g_max.type, DisconnectedType)
-        g_max_idx_disconnected = issubtype(g_max_idx.type, DisconnectedType)
+        g_max_disconnected = isinstance(g_max.type, DisconnectedTypeMeta)
+        g_max_idx_disconnected = isinstance(g_max_idx.type, DisconnectedTypeMeta)
 
         # if the op is totally disconnected, so are its inputs
         if g_max_disconnected and g_max_idx_disconnected:
@@ -2090,7 +2089,9 @@ def dense_dot(a, b):
     """
     a, b = as_tensor_variable(a), as_tensor_variable(b)
 
-    if not issubtype(a.type, DenseTensorType) or not issubtype(b.type, DenseTensorType):
+    if not isinstance(a.type, DenseTensorTypeMeta) or not isinstance(
+        b.type, DenseTensorTypeMeta
+    ):
         raise TypeError("The dense dot product is only supported for dense types")
 
     if a.ndim == 0 or b.ndim == 0:

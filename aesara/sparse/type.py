@@ -8,8 +8,7 @@ import aesara
 from aesara import scalar as aes
 from aesara.graph.basic import Variable
 from aesara.graph.type import Props
-from aesara.issubtype import issubtype
-from aesara.tensor.type import DenseTensorType, TensorType, TensorTypeMeta
+from aesara.tensor.type import DenseTensorTypeMeta, TensorType, TensorTypeMeta
 
 
 SparsityTypes = Literal["csr", "csc", "bsr"]
@@ -74,7 +73,7 @@ class SparseTensorTypeMeta(TensorTypeMeta):
         shape: Optional[Iterable[Optional[Union[bool, int]]]] = None,
         name: Optional[str] = None,
         broadcastable: Optional[Iterable[bool]] = None,
-    ):
+    ):  #type: ignore[override]
         if shape is None and broadcastable is None:
             shape = (None, None)
 
@@ -165,7 +164,7 @@ class SparseTensorTypeMeta(TensorTypeMeta):
             return res
 
         if not isinstance(res.type, type(self)):
-            if issubtype(res.type, DenseTensorType):
+            if isinstance(res.type, DenseTensorTypeMeta):
                 if self.format == "csr":
                     from aesara.sparse.basic import csr_from_dense
 

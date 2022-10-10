@@ -8,7 +8,6 @@ import numpy as np
 import aesara
 from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply, Variable
-from aesara.issubtype import issubtype
 from aesara.link.c.op import COp
 from aesara.link.c.params_type import ParamsType
 from aesara.misc.safe_asarray import _asarray
@@ -17,7 +16,13 @@ from aesara.tensor import _get_vector_length, as_tensor_variable
 from aesara.tensor import basic as at
 from aesara.tensor import get_vector_length
 from aesara.tensor.exceptions import NotScalarConstantError
-from aesara.tensor.type import DenseTensorType, TensorType, int_dtypes, tensor
+from aesara.tensor.type import (
+    DenseTensorTypeMeta,
+    TensorType,
+    TensorTypeMeta,
+    int_dtypes,
+    tensor,
+)
 from aesara.tensor.type_other import NoneConst
 from aesara.tensor.var import TensorConstant, TensorVariable
 
@@ -65,7 +70,7 @@ class Shape(COp):
         if not isinstance(x, Variable):
             x = at.as_tensor_variable(x)
 
-        if issubtype(x.type, TensorType):
+        if isinstance(x.type, TensorTypeMeta):
             out_var = TensorType.subtype("int64", (x.type.ndim,))()
         else:
             out_var = aesara.tensor.type.lvector()
@@ -145,7 +150,7 @@ def shape(x: Union[np.ndarray, Number, Variable]) -> Variable:
 
     x_type = x.type
 
-    if issubtype(x_type, TensorType) and all(s is not None for s in x_type.shape):
+    if isinstance(x_type, TensorTypeMeta) and all(s is not None for s in x_type.shape):
         res = at.as_tensor_variable(x_type.shape, ndim=1, dtype=np.int64)
     else:
         res = _shape(x)
@@ -474,7 +479,7 @@ class SpecifyShape(COp):
         return self.make_node(eval_points[0], *inputs[1:]).outputs
 
     def c_code(self, node, name, i_names, o_names, sub):
-        if not issubtype(node.inputs[0].type, DenseTensorType):
+        if not isinstance(node.inputs[0].type, DenseTensorTypeMeta):
             raise NotImplementedError(
                 f"Specify_shape c_code not implemented for input type {node.inputs[0].type}"
             )

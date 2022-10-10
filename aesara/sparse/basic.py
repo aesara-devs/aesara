@@ -16,14 +16,18 @@ from numpy.lib.stride_tricks import as_strided
 import aesara
 from aesara import scalar as aes
 from aesara.configdefaults import config
-from aesara.gradient import DisconnectedType, grad_not_implemented, grad_undefined
+from aesara.gradient import (
+    DisconnectedType,
+    DisconnectedTypeMeta,
+    grad_not_implemented,
+    grad_undefined,
+)
 from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.op import Op
-from aesara.issubtype import issubtype
 from aesara.link.c.op import COp
 from aesara.link.c.type import generic
 from aesara.misc.safe_asarray import _asarray
-from aesara.sparse.type import SparseTensorType, _is_sparse
+from aesara.sparse.type import SparseTensorType, SparseTensorTypeMeta, _is_sparse
 from aesara.sparse.utils import hash_from_sparse
 from aesara.tensor import basic as at
 from aesara.tensor.basic import Split
@@ -47,7 +51,7 @@ from aesara.tensor.math import (
     trunc,
 )
 from aesara.tensor.shape import shape, specify_broadcastable
-from aesara.tensor.type import TensorType
+from aesara.tensor.type import TensorType, TensorTypeMeta
 from aesara.tensor.type import continuous_dtypes as tensor_continuous_dtypes
 from aesara.tensor.type import discrete_dtypes as tensor_discrete_dtypes
 from aesara.tensor.type import iscalar, ivector, scalar, tensor, vector
@@ -86,7 +90,7 @@ def _is_sparse_variable(x):
             "or TensorType, for instance), not ",
             x,
         )
-    return issubtype(x.type, SparseTensorType)
+    return isinstance(x.type, SparseTensorTypeMeta)
 
 
 def _is_dense_variable(x):
@@ -106,7 +110,7 @@ def _is_dense_variable(x):
             "TensorType, for instance), not ",
             x,
         )
-    return issubtype(x.type, TensorType)
+    return isinstance(x.type, TensorTypeMeta)
 
 
 def _is_dense(x):
@@ -161,7 +165,7 @@ def as_sparse_variable(x, name=None, ndim=None, **kwargs):
         else:
             x = x.outputs[0]
     if isinstance(x, Variable):
-        if not issubtype(x.type, SparseTensorType):
+        if not isinstance(x.type, SparseTensorTypeMeta):
             raise TypeError(
                 "Variable type field must be a SparseTensorType.", x, x.type
             )
@@ -265,7 +269,8 @@ def override_dense(*methods):
                 self = self.toarray()
                 new_args = [
                     arg.toarray()
-                    if hasattr(arg, "type") and issubtype(arg.type, SparseTensorType)
+                    if hasattr(arg, "type")
+                    and isinstance(arg.type, SparseTensorTypeMeta)
                     else arg
                     for arg in args
                 ]
@@ -619,7 +624,7 @@ class CSMProperties(Op):
         # g[1:] is connected, or this grad method wouldn't have been
         # called, so we should report zeros
         (csm,) = inputs
-        if issubtype(g[0].type, DisconnectedType):
+        if isinstance(g[0].type, DisconnectedTypeMeta):
             return [csm.zeros_like()]
 
         data, indices, indptr, _shape = csm_properties(csm)
@@ -981,7 +986,7 @@ class DenseFromSparse(Op):
         return f"{self.__class__.__name__}{{structured_grad={self.sparse_grad}}}"
 
     def __call__(self, x):
-        if not issubtype(x.type, SparseTensorType):
+        if not isinstance(x.type, SparseTensorTypeMeta):
             return x
 
         return super().__call__(x)
@@ -1053,7 +1058,7 @@ class SparseFromDense(Op):
         return f"{self.__class__.__name__}{{{self.format}}}"
 
     def __call__(self, x):
-        if issubtype(x.type, SparseTensorType):
+        if isinstance(x.type, SparseTensorTypeMeta):
             return x
 
         return super().__call__(x)
@@ -3499,7 +3504,7 @@ class StructuredDot(Op):
             )
 
         variable = a * b
-        if issubtype(node.outputs[0].type, SparseTensorType):
+        if isinstance(node.outputs[0].type, SparseTensorTypeMeta):
             assert _is_sparse(variable)
             out[0] = variable
             return

@@ -12,9 +12,8 @@ from aesara.configdefaults import config
 from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.op import Op
-from aesara.graph.type import Type
+from aesara.graph.type import NewTypeMeta, Type
 from aesara.graph.utils import MethodNotDefined
-from aesara.issubtype import issubtype
 from aesara.link.c.op import COp
 from aesara.link.c.params_type import ParamsType
 from aesara.misc.safe_asarray import _asarray
@@ -32,6 +31,7 @@ from aesara.tensor.math import clip
 from aesara.tensor.shape import Reshape, specify_broadcastable
 from aesara.tensor.type import (
     TensorType,
+    TensorTypeMeta,
     bscalar,
     complex_dtypes,
     cscalar,
@@ -49,7 +49,7 @@ from aesara.tensor.type import (
     wscalar,
     zscalar,
 )
-from aesara.tensor.type_other import NoneConst, NoneTypeT, SliceType, make_slice
+from aesara.tensor.type_other import NoneConst, NoneTypeTMeta, SliceTypeMeta, make_slice
 
 
 _logger = logging.getLogger("aesara.tensor.subtensor")
@@ -109,7 +109,7 @@ def indices_from_subtensor(
 
     def convert_indices(indices, entry):
         """Reconstruct ``*Subtensor*`` index input parameter entries."""
-        if indices and issubtype(entry, Type):
+        if indices and isinstance(entry, NewTypeMeta):
             rval = indices.pop(0)
             return rval
         elif isinstance(entry, slice):
@@ -164,13 +164,13 @@ def as_index_literal(
     ------
     NotScalarConstantError
     """
-    if idx == np.newaxis or issubtype(getattr(idx, "type", None), NoneTypeT):
+    if idx == np.newaxis or isinstance(getattr(idx, "type", None), NoneTypeTMeta):
         return np.newaxis
 
     if isinstance(idx, Constant):
         return idx.data.item() if isinstance(idx, np.ndarray) else idx.data
 
-    if issubtype(getattr(idx, "type", None), SliceType):
+    if isinstance(getattr(idx, "type", None), SliceTypeMeta):
         idx = slice(*idx.owner.inputs)
 
     if isinstance(idx, slice):
@@ -399,8 +399,8 @@ def is_basic_idx(idx):
     integer can indicate advanced indexing.
 
     """
-    return isinstance(idx, (slice, type(None))) or issubtype(
-        getattr(idx, "type", None), (SliceType, NoneTypeT)
+    return isinstance(idx, (slice, type(None))) or isinstance(
+        getattr(idx, "type", None), (SliceTypeMeta, NoneTypeTMeta)
     )
 
 
@@ -422,7 +422,7 @@ def basic_shape(shape, indices):
     for idx, n in zip(indices, shape):
         if isinstance(idx, slice):
             res_shape += (slice_len(idx, n),)
-        elif issubtype(getattr(idx, "type", None), SliceType):
+        elif isinstance(getattr(idx, "type", None), SliceTypeMeta):
             if idx.owner:
                 idx_inputs = idx.owner.inputs
             else:
@@ -430,7 +430,7 @@ def basic_shape(shape, indices):
             res_shape += (slice_len(slice(*idx_inputs), n),)
         elif idx is None:
             res_shape += (aes.ScalarConstant(aes.int64, 1),)
-        elif issubtype(getattr(idx, "type", None), NoneTypeT):
+        elif isinstance(getattr(idx, "type", None), NoneTypeTMeta):
             res_shape += (aes.ScalarConstant(aes.int64, 1),)
         else:
             raise ValueError(f"Invalid index type: {idx}")
@@ -454,8 +454,8 @@ def group_indices(indices):
         for idx in grp_indices:
             # We "zip" the dimension number to each index, which means we can't
             # count indices that add new axes
-            if (idx is not None) and not issubtype(
-                getattr(idx, "type", None), NoneTypeT
+            if (idx is not None) and not isinstance(
+                getattr(idx, "type", None), NoneTypeTMeta
             ):
                 dim_num += 1
 
@@ -573,7 +573,7 @@ def index_vars_to_types(entry, slice_ok=True):
 
     if isinstance(entry, Variable) and entry.type in scal_types:
         return entry.type
-    elif issubtype(entry, Type) and entry in scal_types:
+    elif isinstance(entry, NewTypeMeta) and entry in scal_types:
         return entry
 
     if (
@@ -582,7 +582,11 @@ def index_vars_to_types(entry, slice_ok=True):
         and all(entry.type.broadcastable)
     ):
         return aes.get_scalar_type(entry.type.dtype)
-    elif issubtype(entry, Type) and entry in tensor_types and all(entry.broadcastable):
+    elif (
+        isinstance(entry, NewTypeMeta)
+        and entry in tensor_types
+        and all(entry.broadcastable)
+    ):
         return aes.get_scalar_type(entry.dtype)
     elif slice_ok and isinstance(entry, slice):
         a = entry.start
@@ -674,7 +678,7 @@ def as_nontensor_scalar(a: Variable) -> aes.ScalarVariable:
     # Since aes.as_scalar does not know about tensor types (it would
     # create a circular import) , this method converts either a
     # TensorVariable or a ScalarVariable to a scalar.
-    if isinstance(a, Variable) and issubtype(a.type, TensorType):
+    if isinstance(a, Variable) and isinstance(a.type, TensorTypeMeta):
         return aesara.tensor.scalar_from_tensor(a)
     else:
         return aes.as_scalar(a)
@@ -709,7 +713,9 @@ class Subtensor(COp):
         if len(idx_list) > x.type.ndim:
             raise IndexError("too many indices for array")
 
-        input_types = get_slice_elements(idx_list, lambda entry: issubtype(entry, Type))
+        input_types = get_slice_elements(
+            idx_list, lambda entry: isinstance(entry, NewTypeMeta)
+        )
 
         assert len(inputs) == len(input_types)
 
@@ -923,7 +929,7 @@ class Subtensor(COp):
                 inc_spec_pos(1)
                 if depth == 0:
                     is_slice.append(0)
-            elif issubtype(entry, Type):
+            elif isinstance(entry, NewTypeMeta):
                 init_cmds.append(
                     "subtensor_spec[%i] = %s;" % (spec_pos(), inputs[input_pos()])
                 )
@@ -1122,7 +1128,7 @@ class Subtensor(COp):
         return (9,)
 
     def c_code(self, node, name, inputs, outputs, sub):  # DEBUG
-        if not issubtype(node.inputs[0].type, TensorType):
+        if not isinstance(node.inputs[0].type, TensorTypeMeta):
             raise NotImplementedError()
 
         x = inputs[0]
@@ -1208,7 +1214,7 @@ class SubtensorPrinter(Printer):
         sidxs = []
         getattr(pstate, "precedence", None)
         for entry in idxs:
-            if issubtype(entry, aes.ScalarType):
+            if isinstance(entry, aes.ScalarTypeMeta):
                 with set_precedence(pstate):
                     sidxs.append(pstate.pprinter.process(inputs.pop()))
             elif isinstance(entry, slice):
@@ -1534,7 +1540,9 @@ class IncSubtensor(COp):
         if len(idx_list) > x.type.ndim:
             raise IndexError("too many indices for array")
 
-        input_types = get_slice_elements(idx_list, lambda entry: issubtype(entry, Type))
+        input_types = get_slice_elements(
+            idx_list, lambda entry: isinstance(entry, NewTypeMeta)
+        )
         if len(inputs) != len(input_types):
             raise IndexError(
                 "Not enough inputs to fill in the Subtensor template.", inputs, idx_list
@@ -1556,7 +1564,7 @@ class IncSubtensor(COp):
         indices = list(reversed(inputs[2:]))
 
         def _convert(entry):
-            if issubtype(entry, Type):
+            if isinstance(entry, NewTypeMeta):
                 return indices.pop()
             elif isinstance(entry, slice):
                 return slice(
@@ -1706,7 +1714,7 @@ class IncSubtensor(COp):
 
         """
 
-        if not issubtype(node.inputs[0].type, TensorType):
+        if not isinstance(node.inputs[0].type, TensorTypeMeta):
             raise NotImplementedError()
 
     def c_code_cache_version(self):
@@ -2504,9 +2512,9 @@ def as_index_variable(idx):
         return NoneConst.clone()
     if isinstance(idx, slice):
         return make_slice(idx)
-    if isinstance(idx, Variable) and issubtype(idx.type, SliceType):
+    if isinstance(idx, Variable) and isinstance(idx.type, SliceTypeMeta):
         return idx
-    if isinstance(idx, Variable) and issubtype(idx.type, NoneTypeT):
+    if isinstance(idx, Variable) and isinstance(idx.type, NoneTypeTMeta):
         return idx
     idx = as_tensor_variable(idx)
     if idx.type.dtype not in discrete_dtypes:
@@ -2599,7 +2607,7 @@ class AdvancedSubtensor(Op):
                 )
             # The `ishapes` entries for `SliceType`s will be None, and
             # we need to give `indexed_result_shape` the actual slices.
-            if issubtype(getattr(idx, "type", None), SliceType):
+            if isinstance(getattr(idx, "type", None), SliceTypeMeta):
                 index_shapes[i] = idx
 
         res_shape = indexed_result_shape(
@@ -2616,7 +2624,7 @@ class AdvancedSubtensor(Op):
         # indexing, so __getitem__ will not return a copy.
         # Since no view_map is set, we need to copy the returned value
         if not any(
-            issubtype(v.type, TensorType) and v.ndim > 0 for v in node.inputs[1:]
+            isinstance(v.type, TensorTypeMeta) and v.ndim > 0 for v in node.inputs[1:]
         ):
             rval = rval.copy()
         out[0] = rval

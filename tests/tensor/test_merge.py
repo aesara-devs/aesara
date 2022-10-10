@@ -6,7 +6,6 @@ from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.rewriting.basic import MergeOptimizer
 from aesara.graph.type import NewTypeMeta, Type
-from aesara.issubtype import issubtype
 
 
 def is_variable(x):
@@ -38,7 +37,7 @@ class MyOp(Op):
     def make_node(self, *inputs):
         inputs = list(map(is_variable, inputs))
         for input in inputs:
-            if not issubtype(input.type, MyType):
+            if not issubclass(input.type, MyType):
                 raise Exception("Error 1")
         outputs = [MyType.subtype()()]
         return Apply(self, inputs, outputs)

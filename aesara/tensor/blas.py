@@ -131,8 +131,6 @@ import time
 
 import numpy as np
 
-from aesara.issubtype import issubtype
-
 
 try:
     import numpy.__config__  # noqa
@@ -168,7 +166,7 @@ from aesara.tensor.math import Dot, add, mul, neg, sub
 from aesara.tensor.rewriting.elemwise import local_dimshuffle_lift
 from aesara.tensor.shape import specify_broadcastable
 from aesara.tensor.type import (
-    DenseTensorType,
+    DenseTensorTypeMeta,
     integer_dtypes,
     tensor,
     values_eq_approx_remove_inf_nan,
@@ -272,7 +270,7 @@ class Gemv(Op):
 
         inputs = [y, alpha, A, x, beta]
 
-        if any(not issubtype(i.type, DenseTensorType) for i in inputs):
+        if any(not isinstance(i.type, DenseTensorTypeMeta) for i in inputs):
             raise NotImplementedError("Only dense tensor types are supported")
 
         return Apply(self, inputs, [y.type()])
@@ -374,7 +372,7 @@ class Ger(Op):
             raise TypeError("only float and complex types supported", x.dtype)
 
         inputs = [A, alpha, x, y]
-        if any(not issubtype(i.type, DenseTensorType) for i in inputs):
+        if any(not isinstance(i.type, DenseTensorTypeMeta) for i in inputs):
             raise NotImplementedError("Only dense tensor types are supported")
 
         return Apply(self, inputs, [A.type()])
@@ -935,7 +933,7 @@ class Gemm(GemmRelated):
     def make_node(self, *inputs):
         inputs = list(map(at.as_tensor_variable, inputs))
 
-        if any(not issubtype(i.type, DenseTensorType) for i in inputs):
+        if any(not isinstance(i.type, DenseTensorTypeMeta) for i in inputs):
             raise NotImplementedError("Only dense tensor types are supported")
 
         if len(inputs) != 5:
@@ -1673,7 +1671,7 @@ class Dot22(GemmRelated):
         x = at.as_tensor_variable(x)
         y = at.as_tensor_variable(y)
 
-        if any(not issubtype(i.type, DenseTensorType) for i in (x, y)):
+        if any(not isinstance(i.type, DenseTensorTypeMeta) for i in (x, y)):
             raise NotImplementedError("Only dense tensor types are supported")
 
         dtypes = ("float16", "float32", "float64", "complex64", "complex128")
@@ -1762,7 +1760,7 @@ def local_dot_to_dot22(fgraph, node):
     if not isinstance(node.op, Dot):
         return
 
-    if any(not issubtype(i.type, DenseTensorType) for i in node.inputs):
+    if any(not isinstance(i.type, DenseTensorTypeMeta) for i in node.inputs):
         return False
 
     x, y = node.inputs
@@ -1970,7 +1968,7 @@ class Dot22Scalar(GemmRelated):
 
     def make_node(self, x, y, a):
 
-        if any(not issubtype(i.type, DenseTensorType) for i in (x, y, a)):
+        if any(not isinstance(i.type, DenseTensorTypeMeta) for i in (x, y, a)):
             raise NotImplementedError("Only dense tensor types are supported")
 
         if a.ndim != 0:
@@ -2194,7 +2192,7 @@ class BatchedDot(COp):
     def make_node(self, *inputs):
         inputs = list(map(at.as_tensor_variable, inputs))
 
-        if any(not issubtype(i.type, DenseTensorType) for i in inputs):
+        if any(not isinstance(i.type, DenseTensorTypeMeta) for i in inputs):
             raise NotImplementedError("Only dense tensor types are supported")
 
         if len(inputs) != 2:

@@ -44,12 +44,12 @@ from aesara.misc.ordered_set import OrderedSet
 
 if TYPE_CHECKING:
     from aesara.graph.op import Op
-    from aesara.graph.type import Type
+    from aesara.graph.type import Type, NewTypeMeta
 
 
 OpType = TypeVar("OpType", bound="Op")
 OptionalApplyType = TypeVar("OptionalApplyType", None, "Apply", covariant=True)
-_TypeType = TypeVar("_TypeType", bound="Type")
+_TypeMeta = TypeVar("_TypeMeta", bound="NewTypeMeta")
 _IdType = TypeVar("_IdType", bound=Hashable)
 
 T = TypeVar("T", bound="Node")
@@ -315,7 +315,7 @@ class Apply(Node, Generic[OpType]):
         return self.op.params_type
 
 
-class Variable(Node, Generic[_TypeType, OptionalApplyType]):
+class Variable(Node, Generic[_TypeMeta, OptionalApplyType]):
     r"""
     A :term:`Variable` is a node in an expression graph that represents a
     variable.
@@ -433,7 +433,7 @@ class Variable(Node, Generic[_TypeType, OptionalApplyType]):
 
     def __init__(
         self,
-        type: _TypeType,
+        type: _TypeMeta,
         owner: OptionalApplyType,
         index: Optional[int] = None,
         name: Optional[str] = None,
@@ -618,10 +618,10 @@ class Variable(Node, Generic[_TypeType, OptionalApplyType]):
         return d
 
 
-class AtomicVariable(Variable[_TypeType, None]):
+class AtomicVariable(Variable[_TypeMeta, None]):
     """A node type that has no ancestors and should never be considered an input to a graph."""
 
-    def __init__(self, type: _TypeType, **kwargs):
+    def __init__(self, type: _TypeMeta, **kwargs):
         super().__init__(type, None, None, **kwargs)
 
     @abc.abstractmethod
@@ -657,12 +657,12 @@ class AtomicVariable(Variable[_TypeType, None]):
             raise ValueError("AtomicVariable instances cannot have an index.")
 
 
-class NominalVariable(AtomicVariable[_TypeType]):
+class NominalVariable(AtomicVariable[_TypeMeta]):
     """A variable that enables alpha-equivalent comparisons."""
 
-    __instances__: Dict[Tuple["Type", Hashable], "NominalVariable"] = {}
+    __instances__: Dict[Tuple["NewTypeMeta", Hashable], "NominalVariable"] = {}
 
-    def __new__(cls, id: _IdType, typ: _TypeType, **kwargs):
+    def __new__(cls, id: _IdType, typ: _TypeMeta, **kwargs):
         if (typ, id) not in cls.__instances__:
             var_type = typ.variable_type
             type_name = f"Nominal{var_type.__name__}"
@@ -682,7 +682,7 @@ class NominalVariable(AtomicVariable[_TypeType]):
 
         return cls.__instances__[(typ, id)]
 
-    def __init__(self, id: _IdType, typ: _TypeType, **kwargs):
+    def __init__(self, id: _IdType, typ: _TypeMeta, **kwargs):
         self.id = id
         super().__init__(typ, **kwargs)
 
@@ -705,11 +705,11 @@ class NominalVariable(AtomicVariable[_TypeType]):
     def __repr__(self):
         return f"{type(self).__name__}({repr(self.id)}, {repr(self.type)})"
 
-    def signature(self) -> Tuple[_TypeType, _IdType]:
+    def signature(self) -> Tuple[_TypeMeta, _IdType]:
         return (self.type, self.id)
 
 
-class Constant(AtomicVariable[_TypeType]):
+class Constant(AtomicVariable[_TypeMeta]):
     """A `Variable` with a fixed `data` field.
 
     `Constant` nodes make numerous optimizations possible (e.g. constant
@@ -724,7 +724,7 @@ class Constant(AtomicVariable[_TypeType]):
 
     # __slots__ = ['data']
 
-    def __init__(self, type: _TypeType, data: Any, name: Optional[str] = None):
+    def __init__(self, type: _TypeMeta, data: Any, name: Optional[str] = None):
         super().__init__(type, name=name)
         self.data = type.filter(data)
         add_tag_trace(self)

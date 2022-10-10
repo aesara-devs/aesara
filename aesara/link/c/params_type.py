@@ -120,8 +120,7 @@ from typing import Any
 
 from aesara.graph.type import Props
 from aesara.graph.utils import MethodNotDefined
-from aesara.issubtype import issubtype
-from aesara.link.c.type import CType, CTypeMeta, EnumType
+from aesara.link.c.type import CType, CTypeMeta, EnumTypeMeta
 
 
 # Set of C and C++ keywords as defined (at March 2nd, 2017) in the pages below:
@@ -256,7 +255,7 @@ class Params(dict):
     """
 
     def __init__(self, params_type, **kwargs):
-        if not issubtype(params_type, ParamsType):
+        if not isinstance(params_type, ParamsTypeMeta):
             raise TypeError("Params: 1st constructor argument should be a ParamsType.")
         for field in params_type.fields:
             if field not in kwargs:
@@ -369,7 +368,7 @@ class ParamsTypeMeta(CTypeMeta):
                 )
             type_instance = kwargs[attribute_name]
             type_name = type_instance.__class__.__name__
-            if not issubtype(type_instance, CType):
+            if not isinstance(type_instance, CTypeMeta):
                 raise TypeError(
                     'ParamsType: attribute "%s" should inherit from Aesara CType, got "%s".'
                     % (attribute_name, type_name)
@@ -382,7 +381,7 @@ class ParamsTypeMeta(CTypeMeta):
 
         params["_const_to_enum"] = {}
         params["_alias_to_enum"] = {}
-        enum_types = [t for t in params["types"] if issubtype(t, EnumType)]
+        enum_types = [t for t in params["types"] if isinstance(t, EnumTypeMeta)]
         if enum_types:
             # We don't want same enum names in different enum types.
             if sum(len(t) for t in enum_types) != len(

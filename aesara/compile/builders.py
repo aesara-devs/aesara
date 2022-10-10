@@ -10,7 +10,7 @@ from aesara.compile.function.pfunc import rebuild_collect_shared
 from aesara.compile.mode import optdb
 from aesara.compile.sharedvalue import SharedVariable
 from aesara.configdefaults import config
-from aesara.gradient import DisconnectedType, Rop, grad
+from aesara.gradient import DisconnectedTypeMeta, Rop, grad
 from aesara.graph.basic import (
     Apply,
     Constant,
@@ -22,11 +22,10 @@ from aesara.graph.basic import (
     replace_nominals_with_dummies,
 )
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.null_type import NullType
+from aesara.graph.null_type import NullTypeMeta
 from aesara.graph.op import HasInnerGraph, Op
 from aesara.graph.rewriting.basic import in2out, node_rewriter
 from aesara.graph.utils import MissingInputError
-from aesara.issubtype import issubtype
 from aesara.tensor.rewriting.shape import ShapeFeature
 
 
@@ -211,7 +210,7 @@ class OpFromGraph(Op, HasInnerGraph):
         #
         # For now, this converts NullType or DisconnectedType into zeros_like.
         # other types are unmodified: overrider_var -> None
-        if issubtype(grad.type, (NullType, DisconnectedType)):
+        if isinstance(grad.type, (NullTypeMeta, DisconnectedTypeMeta)):
             if hasattr(inp, "zeros_like"):
                 return inp.zeros_like(), grad
             else:
@@ -222,9 +221,9 @@ class OpFromGraph(Op, HasInnerGraph):
     @staticmethod
     def _filter_rop_var(inpJ, out):
         # mostly similar to _filter_grad_var
-        if issubtype(inpJ.type, NullType):
+        if isinstance(inpJ.type, NullTypeMeta):
             return out.zeros_like(), inpJ
-        if issubtype(inpJ.type, DisconnectedType):
+        if isinstance(inpJ.type, DisconnectedTypeMeta):
             # since R_op does not have DisconnectedType yet, we will just
             # make them zeros.
             return out.zeros_like(), None
@@ -503,7 +502,7 @@ class OpFromGraph(Op, HasInnerGraph):
             all_grads_l = list(all_grads_l)
             all_grads_ov_l = list(all_grads_ov_l)
         elif isinstance(lop_op, Variable):
-            if issubtype(lop_op.type, (DisconnectedType, NullType)):
+            if isinstance(lop_op.type, (NullTypeMeta, DisconnectedTypeMeta)):
                 all_grads_l = [inp.zeros_like() for inp in local_inputs]
                 all_grads_ov_l = [lop_op.type() for _ in range(inp_len)]
             else:
@@ -530,7 +529,7 @@ class OpFromGraph(Op, HasInnerGraph):
                     all_grads_l.append(gnext)
                     all_grads_ov_l.append(gnext_ov)
                 elif isinstance(fn_gov, Variable):
-                    if issubtype(fn_gov.type, (DisconnectedType, NullType)):
+                    if isinstance(fn_gov.type, (NullTypeMeta, DisconnectedTypeMeta)):
                         all_grads_l.append(inp.zeros_like())
                         all_grads_ov_l.append(fn_gov.type())
                     else:
@@ -615,10 +614,10 @@ class OpFromGraph(Op, HasInnerGraph):
             all_rops_l = list(all_rops_l)
             all_rops_ov_l = list(all_rops_ov_l)
         elif isinstance(rop_op, Variable):
-            if issubtype(rop_op.type, NullType):
+            if isinstance(rop_op.type, NullTypeMeta):
                 all_rops_l = [inp.zeros_like() for inp in local_inputs]
                 all_rops_ov_l = [rop_op.type() for _ in range(out_len)]
-            elif issubtype(rop_op.type, DisconnectedType):
+            elif isinstance(rop_op.type, DisconnectedTypeMeta):
                 all_rops_l = [inp.zeros_like() for inp in local_inputs]
                 all_rops_ov_l = [None] * out_len
             else:
@@ -645,10 +644,10 @@ class OpFromGraph(Op, HasInnerGraph):
                     all_rops_l.append(rnext)
                     all_rops_ov_l.append(rnext_ov)
                 elif isinstance(fn_rov, Variable):
-                    if issubtype(fn_rov.type, NullType):
+                    if isinstance(fn_rov.type, NullTypeMeta):
                         all_rops_l.append(out.zeros_like())
                         all_rops_ov_l.append(fn_rov.type())
-                    if issubtype(fn_rov.type, DisconnectedType):
+                    if isinstance(fn_rov.type, DisconnectedTypeMeta):
                         all_rops_l.append(out.zeros_like())
                         all_rops_ov_l.append(None)
                     else:
@@ -858,7 +857,7 @@ class OpFromGraph(Op, HasInnerGraph):
         # cpmat_self &= out_is_disconnected
         for i, t in enumerate(self._lop_op_stypes_l):
             if t is not None:
-                if issubtype(t.type, DisconnectedType):
+                if isinstance(t.type, DisconnectedTypeMeta):
                     for o in range(out_len):
                         cpmat_self[i][o] = False
             for o in range(out_len):

@@ -20,15 +20,14 @@ from aesara import config
 from aesara.compile.ops import DeepCopyOp
 from aesara.graph.basic import Apply, NoParams
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.type import Type
+from aesara.graph.type import NewTypeMeta, Type
 from aesara.ifelse import IfElse
-from aesara.issubtype import issubtype
 from aesara.link.utils import (
     compile_function_src,
     fgraph_to_python,
     unique_name_generator,
 )
-from aesara.scalar.basic import ScalarType
+from aesara.scalar.basic import ScalarTypeMeta
 from aesara.scalar.math import Softplus
 from aesara.tensor.blas import BatchedDot
 from aesara.tensor.math import Dot
@@ -42,7 +41,7 @@ from aesara.tensor.subtensor import (
     IncSubtensor,
     Subtensor,
 )
-from aesara.tensor.type import TensorType
+from aesara.tensor.type import TensorTypeMeta
 from aesara.tensor.type_other import MakeSlice, NoneConst
 
 
@@ -81,7 +80,7 @@ def get_numba_type(
         Return Numba scalars for zero dimensional :class:`TensorType`\s.
     """
 
-    if issubtype(aesara_type, TensorType):
+    if isinstance(aesara_type, TensorTypeMeta):
         dtype = aesara_type.numpy_dtype
         numba_dtype = numba.from_dtype(dtype)
         if force_scalar or (
@@ -89,7 +88,7 @@ def get_numba_type(
         ):
             return numba_dtype
         return numba.types.Array(numba_dtype, aesara_type.ndim, layout)
-    elif issubtype(aesara_type, ScalarType):
+    elif isinstance(aesara_type, ScalarTypeMeta):
         dtype = np.dtype(aesara_type.dtype)
         numba_dtype = numba.from_dtype(dtype)
         return numba_dtype
@@ -399,7 +398,7 @@ def create_index_func(node, objmode=False):
     )
 
     def convert_indices(indices, entry):
-        if indices and issubtype(entry, Type):
+        if indices and isinstance(entry, NewTypeMeta):
             rval = indices.pop(0)
             return unique_names(rval)
         elif isinstance(entry, slice):

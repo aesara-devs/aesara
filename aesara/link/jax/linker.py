@@ -2,7 +2,6 @@ import warnings
 
 from numpy.random import Generator, RandomState
 
-from aesara import issubtype
 from aesara.compile.sharedvalue import SharedVariable, shared
 from aesara.graph.basic import Constant
 from aesara.link.basic import JITLinker
@@ -13,12 +12,14 @@ class JAXLinker(JITLinker):
 
     def fgraph_convert(self, fgraph, input_storage, storage_map, **kwargs):
         from aesara.link.jax.dispatch import jax_funcify
-        from aesara.tensor.random.type import RandomType
+        from aesara.tensor.random.type import RandomTypeMeta
 
         shared_rng_inputs = [
             inp
             for inp in fgraph.inputs
-            if (isinstance(inp, SharedVariable) and issubtype(inp.type, RandomType))
+            if (
+                isinstance(inp, SharedVariable) and isinstance(inp.type, RandomTypeMeta)
+            )
         ]
 
         # Replace any shared RNG inputs so that their values can be updated in place

@@ -23,13 +23,17 @@ import aesara
 import aesara.scalar.sharedvar
 from aesara import compile, config, printing
 from aesara import scalar as aes
-from aesara.gradient import DisconnectedType, grad_not_implemented, grad_undefined
+from aesara.gradient import (
+    DisconnectedType,
+    DisconnectedTypeMeta,
+    grad_not_implemented,
+    grad_undefined,
+)
 from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.rewriting.utils import rewrite_graph
-from aesara.graph.type import Type
-from aesara.issubtype import issubtype
+from aesara.graph.type import NewTypeMeta
 from aesara.link.c.op import COp
 from aesara.link.c.params_type import ParamsType
 from aesara.misc.safe_asarray import _asarray
@@ -58,6 +62,7 @@ from aesara.tensor.shape import (
 )
 from aesara.tensor.type import (
     TensorType,
+    TensorTypeMeta,
     discrete_dtypes,
     float_dtypes,
     int_dtypes,
@@ -97,7 +102,7 @@ def _as_tensor_Scalar(x, name, ndim, **kwargs):
 
 @_as_tensor_variable.register(Variable)
 def _as_tensor_Variable(x, name, ndim, **kwargs):
-    if not issubtype(x.type, TensorType):
+    if not isinstance(x.type, TensorTypeMeta):
         raise TypeError(
             f"Tensor type field must be a TensorType; found {type(x.type)}."
         )
@@ -314,9 +319,9 @@ def get_scalar_constant_value(
                 except ValueError:
                     raise NotScalarConstantError()
 
-            from aesara.sparse.type import SparseTensorType
+            from aesara.sparse.type import SparseTensorTypeMeta
 
-            if issubtype(v.type, SparseTensorType):
+            if isinstance(v.type, SparseTensorTypeMeta):
                 raise NotScalarConstantError()
 
             return data
@@ -435,7 +440,7 @@ def get_scalar_constant_value(
                         var.ndim == 1 for var in v.owner.inputs[0].owner.inputs[1:]
                     ):
                         idx = v.owner.op.idx_list[0]
-                        if issubtype(idx, Type):
+                        if isinstance(idx, NewTypeMeta):
                             idx = get_scalar_constant_value(
                                 v.owner.inputs[1], max_recur=max_recur
                             )
@@ -470,7 +475,7 @@ def get_scalar_constant_value(
                 ):
 
                     idx = v.owner.op.idx_list[0]
-                    if issubtype(idx, Type):
+                    if isinstance(idx, NewTypeMeta):
                         idx = get_scalar_constant_value(
                             v.owner.inputs[1], max_recur=max_recur
                         )
@@ -492,7 +497,7 @@ def get_scalar_constant_value(
                     op = owner.op
                     idx_list = op.idx_list
                     idx = idx_list[0]
-                    if issubtype(idx, Type):
+                    if isinstance(idx, NewTypeMeta):
                         idx = get_scalar_constant_value(
                             owner.inputs[1], max_recur=max_recur
                         )
@@ -537,7 +542,7 @@ class TensorFromScalar(COp):
     __props__ = ()
 
     def make_node(self, s):
-        if not issubtype(s.type, aes.ScalarType):
+        if not isinstance(s.type, aes.ScalarTypeMeta):
             raise TypeError("Input must be a `ScalarType` `Type`")
 
         return Apply(self, [s], [tensor(dtype=s.type.dtype, shape=())])
@@ -597,7 +602,7 @@ class ScalarFromTensor(COp):
         return type_cast(ScalarVariable, super().__call__(*args, **kwargs))
 
     def make_node(self, t):
-        if not issubtype(t.type, TensorType) or t.type.ndim > 0:
+        if not isinstance(t.type, TensorTypeMeta) or t.type.ndim > 0:
             raise TypeError("Input must be a scalar `TensorType`")
 
         return Apply(
@@ -1952,7 +1957,7 @@ class Split(COp):
         x, axis, n = inputs
         outputs = self(*inputs, return_list=True)
         # If all the output gradients are disconnected, then so are the inputs
-        if builtins.all(issubtype(g.type, DisconnectedType) for g in g_outputs):
+        if builtins.all(isinstance(g.type, DisconnectedTypeMeta) for g in g_outputs):
             return [
                 DisconnectedType.subtype()(),
                 grad_undefined(self, 1, axis),
@@ -1961,7 +1966,7 @@ class Split(COp):
         # Else, we have to make them zeros before joining them
         new_g_outputs = []
         for o, g in zip(outputs, g_outputs):
-            if issubtype(g.type, DisconnectedType):
+            if isinstance(g.type, DisconnectedTypeMeta):
                 new_g_outputs.append(o.zeros_like())
             else:
                 new_g_outputs.append(g)
@@ -2612,7 +2617,11 @@ def stack(*tensors, **kwargs):
     if all(
         # In case there are explicit ints in tensors
         isinstance(t, (np.number, float, int, builtins.complex))
-        or (isinstance(t, Variable) and issubtype(t.type, TensorType) and t.ndim == 0)
+        or (
+            isinstance(t, Variable)
+            and isinstance(t.type, TensorTypeMeta)
+            and t.ndim == 0
+        )
         for t in tensors
     ):
         # in case there is direct int

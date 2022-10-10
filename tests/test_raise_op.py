@@ -6,9 +6,8 @@ import aesara
 import aesara.tensor as at
 from aesara.compile.mode import OPT_FAST_RUN, Mode
 from aesara.graph.basic import Constant, equal_computations
-from aesara.issubtype import issubtype
 from aesara.raise_op import Assert, CheckAndRaise, assert_op
-from aesara.scalar.basic import ScalarType, float64
+from aesara.scalar.basic import ScalarTypeMeta, float64
 from aesara.sparse import as_sparse_variable
 from tests import unittest_tools as utt
 
@@ -117,8 +116,8 @@ def test_perform_CheckAndRaise_scalar(linker):
     conds = (val > 0, val > 3)
     y = check_and_raise(val, *conds)
 
-    assert all(issubtype(i.type, ScalarType) for i in y.owner.inputs)
-    assert issubtype(y.type, ScalarType)
+    assert all(isinstance(i.type, ScalarTypeMeta) for i in y.owner.inputs)
+    assert isinstance(y.type, ScalarTypeMeta)
 
     mode = Mode(linker=linker)
     y_fn = aesara.function([val], y, mode=mode)

@@ -50,7 +50,7 @@ class NewTypeMeta(ABCMeta):
     """
 
     _prop_names: tuple[str, ...] = tuple()
-    _subclass_cache = dict()
+    _subclass_cache: dict[Any, "NewTypeMeta"] = dict()
 
     _base_type: Optional["NewTypeMeta"] = None
     _type_parameters: dict[str, Any] = dict()
@@ -112,7 +112,7 @@ class NewTypeMeta(ABCMeta):
         NewTypeMeta._subclass_cache[key] = res
         return res
 
-    def __call__(self, name: Optional[Text] = None) -> Any:
+    def __call__(self, name: Optional[Text] = None) -> Any:  # type: ignore
         """Return a new `Variable` instance of Type `self`.
 
         Parameters
@@ -132,7 +132,7 @@ class NewTypeMeta(ABCMeta):
     def create(cls, **kwargs):
         MetaType(f"{cls.__name__}[{kwargs}]", (cls,), kwargs)
 
-    def in_same_class(self, otype: "Type") -> Optional[bool]:
+    def in_same_class(self, otype: "NewTypeMeta") -> Optional[bool]:
         """Determine if another `Type` represents a subset from the same "class" of types represented by `self`.
 
         A "class" of types could be something like "float64 tensors with four
@@ -152,7 +152,7 @@ class NewTypeMeta(ABCMeta):
 
         return False
 
-    def is_super(self, otype: "Type") -> Optional[bool]:
+    def is_super(self, otype: "NewTypeMeta") -> Optional[bool]:
         """Determine if `self` is a supertype of `otype`.
 
         This method effectively implements the type relation ``>``.
@@ -309,7 +309,7 @@ class NewTypeMeta(ABCMeta):
         """
         return self.constant_type(type=self, data=value, name=name)
 
-    def clone(self, *args, **kwargs) -> "Type":
+    def clone(self, *args, **kwargs) -> "NewTypeMeta":
         """Clone a copy of this type with the given arguments/keyword values, if any."""
         return self.subtype(*args, **kwargs)
 

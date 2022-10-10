@@ -12,7 +12,6 @@ from aesara.graph.basic import Apply, Variable
 from aesara.graph.op import Op
 from aesara.graph.type import NewTypeMeta, Props, Type
 from aesara.graph.utils import TestValueError
-from aesara.issubtype import issubtype
 from aesara.link.c.type import Generic
 from aesara.tensor.math import log
 from aesara.tensor.type import dmatrix, dscalar, dvector, vector
@@ -67,7 +66,7 @@ class MyOp(Op):
     def make_node(self, *inputs):
         inputs = list(map(as_variable, inputs))
         for input in inputs:
-            if not issubtype(input.type, MyType):
+            if not issubclass(input.type, MyType):
                 raise Exception("Error 1")
             outputs = [MyType.subtype(sum(input.type.thingy for input in inputs))()]
             return Apply(self, inputs, outputs)

@@ -1,16 +1,15 @@
 import numpy as np
 
 import aesara.tensor as at
-from aesara import issubtype
 from aesara.compile.debugmode import _lessbroken_deepcopy
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.op import Op
 from aesara.link.c.op import COp
 from aesara.tensor.type import scalar
-from aesara.tensor.type_other import SliceType
+from aesara.tensor.type_other import SliceType, SliceTypeMeta
 from aesara.tensor.var import TensorVariable
-from aesara.typed_list.type import TypedListType
+from aesara.typed_list.type import TypedListType, TypedListTypeMeta
 
 
 class _typed_list_py_operators:
@@ -73,7 +72,7 @@ class GetItem(COp):
     __props__ = ()
 
     def make_node(self, x, index):
-        assert issubtype(x.type, TypedListType)
+        assert isinstance(x.type, TypedListTypeMeta)
         if not isinstance(index, Variable):
             if isinstance(index, slice):
                 index = Constant(SliceType.subtype(), index)
@@ -81,7 +80,7 @@ class GetItem(COp):
             else:
                 index = at.constant(index, ndim=0, dtype="int64")
                 return Apply(self, [x, index], [x.ttype()])
-        if issubtype(index.type, SliceType):
+        if isinstance(index.type, SliceTypeMeta):
             return Apply(self, [x, index], [x.type()])
         elif isinstance(index, TensorVariable) and index.ndim == 0:
             assert index.dtype == "int64"
@@ -149,7 +148,7 @@ class Append(COp):
             self.view_map = {0: [0]}
 
     def make_node(self, x, toAppend):
-        assert issubtype(x.type, TypedListType)
+        assert isinstance(x.type, TypedListTypeMeta)
         assert x.ttype == toAppend.type, (x.ttype, toAppend.type)
         return Apply(self, [x, toAppend], [x.type()])
 
@@ -232,7 +231,7 @@ class Extend(COp):
             self.view_map = {0: [0]}
 
     def make_node(self, x, toAppend):
-        assert issubtype(x.type, TypedListType)
+        assert isinstance(x.type, TypedListTypeMeta)
         assert toAppend.type.is_super(x.type)
         return Apply(self, [x, toAppend], [x.type()])
 
@@ -321,7 +320,7 @@ class Insert(COp):
             self.view_map = {0: [0]}
 
     def make_node(self, x, index, toInsert):
-        assert issubtype(x.type, TypedListType)
+        assert isinstance(x.type, TypedListTypeMeta)
         assert x.ttype == toInsert.type
         if not isinstance(index, Variable):
             index = at.constant(index, ndim=0, dtype="int64")
@@ -406,7 +405,7 @@ class Remove(Op):
             self.view_map = {0: [0]}
 
     def make_node(self, x, toRemove):
-        assert issubtype(x.type, TypedListType)
+        assert isinstance(x.type, TypedListTypeMeta)
         assert x.ttype == toRemove.type
         return Apply(self, [x, toRemove], [x.type()])
 
@@ -463,7 +462,7 @@ class Reverse(COp):
             self.view_map = {0: [0]}
 
     def make_node(self, x):
-        assert issubtype(x.type, TypedListType)
+        assert isinstance(x.type, TypedListTypeMeta)
         return Apply(self, [x], [x.type()])
 
     def perform(self, node, inp, outputs):
@@ -527,7 +526,7 @@ class Index(Op):
     __props__ = ()
 
     def make_node(self, x, elem):
-        assert issubtype(x.type, TypedListType)
+        assert isinstance(x.type, TypedListTypeMeta)
         assert x.ttype == elem.type
         return Apply(self, [x, elem], [scalar()])
 
@@ -556,7 +555,7 @@ class Count(Op):
     __props__ = ()
 
     def make_node(self, x, elem):
-        assert issubtype(x.type, TypedListType)
+        assert isinstance(x.type, TypedListTypeMeta)
         assert x.ttype == elem.type
         return Apply(self, [x, elem], [scalar()])
 
@@ -603,7 +602,7 @@ class Length(COp):
     __props__ = ()
 
     def make_node(self, x):
-        assert issubtype(x.type, TypedListType)
+        assert isinstance(x.type, TypedListTypeMeta)
         return Apply(self, [x], [scalar(dtype="int64")])
 
     def perform(self, node, x, outputs):

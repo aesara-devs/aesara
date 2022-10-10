@@ -13,7 +13,6 @@ from aesara.graph.rewriting.basic import (
     in2out,
     node_rewriter,
 )
-from aesara.issubtype import issubtype
 from aesara.tensor.nnet.abstract_conv import (
     AbstractConv2d,
     AbstractConv2d_gradInputs,
@@ -35,7 +34,7 @@ from aesara.tensor.nnet.conv import ConvOp, conv2d
 from aesara.tensor.nnet.corr import CorrMM, CorrMM_gradInputs, CorrMM_gradWeights
 from aesara.tensor.nnet.corr3d import Corr3dMM, Corr3dMMGradInputs, Corr3dMMGradWeights
 from aesara.tensor.rewriting.basic import register_specialize_device
-from aesara.tensor.type import TensorType
+from aesara.tensor.type import TensorTypeMeta
 
 
 @node_rewriter([SparseBlockGemv], inplace=True)
@@ -96,7 +95,9 @@ def local_abstractconv_gemm(fgraph, node):
     if not isinstance(node.op, AbstractConv2d):
         return None
     img, kern = node.inputs
-    if not issubtype(img.type, TensorType) or not issubtype(kern.type, TensorType):
+    if not isinstance(img.type, TensorTypeMeta) or not isinstance(
+        kern.type, TensorTypeMeta
+    ):
         return None
 
     # need to flip the kernel if necessary
@@ -124,7 +125,9 @@ def local_abstractconv3d_gemm(fgraph, node):
     if not isinstance(node.op, AbstractConv3d):
         return None
     img, kern = node.inputs
-    if not issubtype(img.type, TensorType) or not issubtype(kern.type, TensorType):
+    if not isinstance(img.type, TensorTypeMeta) or not isinstance(
+        kern.type, TensorTypeMeta
+    ):
         return None
 
     # need to flip the kernel if necessary
@@ -150,7 +153,9 @@ def local_abstractconv_gradweight_gemm(fgraph, node):
     if not isinstance(node.op, AbstractConv2d_gradWeights):
         return None
     img, topgrad, shape = node.inputs
-    if not issubtype(img.type, TensorType) or not issubtype(topgrad.type, TensorType):
+    if not isinstance(img.type, TensorTypeMeta) or not isinstance(
+        topgrad.type, TensorTypeMeta
+    ):
         return None
 
     rval = CorrMM_gradWeights(
@@ -180,7 +185,9 @@ def local_abstractconv3d_gradweight_gemm(fgraph, node):
     if not isinstance(node.op, AbstractConv3d_gradWeights):
         return None
     img, topgrad, shape = node.inputs
-    if not issubtype(img.type, TensorType) or not issubtype(topgrad.type, TensorType):
+    if not isinstance(img.type, TensorTypeMeta) or not isinstance(
+        topgrad.type, TensorTypeMeta
+    ):
         return None
 
     rval = Corr3dMMGradWeights(
@@ -208,7 +215,9 @@ def local_abstractconv_gradinputs_gemm(fgraph, node):
     if not isinstance(node.op, AbstractConv2d_gradInputs):
         return None
     kern, topgrad, shape = node.inputs
-    if not issubtype(kern.type, TensorType) or not issubtype(topgrad.type, TensorType):
+    if not isinstance(kern.type, TensorTypeMeta) or not isinstance(
+        topgrad.type, TensorTypeMeta
+    ):
         return None
 
     # need to flip the kernel if necessary
@@ -236,7 +245,9 @@ def local_abstractconv3d_gradinputs_gemm(fgraph, node):
     if not isinstance(node.op, AbstractConv3d_gradInputs):
         return None
     kern, topgrad, shape = node.inputs
-    if not issubtype(kern.type, TensorType) or not issubtype(topgrad.type, TensorType):
+    if not isinstance(kern.type, TensorTypeMeta) or not isinstance(
+        topgrad.type, TensorTypeMeta
+    ):
         return None
 
     # need to flip the kernel if necessary
@@ -260,7 +271,9 @@ def local_conv2d_cpu(fgraph, node):
         return None
 
     img, kern = node.inputs
-    if not issubtype(img.type, TensorType) or not issubtype(kern.type, TensorType):
+    if not isinstance(img.type, TensorTypeMeta) or not isinstance(
+        kern.type, TensorTypeMeta
+    ):
         return None
     if node.op.border_mode not in ("full", "valid"):
         return None
@@ -295,7 +308,9 @@ def local_conv2d_gradweight_cpu(fgraph, node):
 
     img, topgrad, shape = node.inputs
 
-    if not issubtype(img.type, TensorType) or not issubtype(topgrad.type, TensorType):
+    if not isinstance(img.type, TensorTypeMeta) or not isinstance(
+        topgrad.type, TensorTypeMeta
+    ):
         return None
     if node.op.border_mode not in ("full", "valid"):
         return None
@@ -404,7 +419,9 @@ def local_conv2d_gradinputs_cpu(fgraph, node):
 
     kern, topgrad, shape = node.inputs
 
-    if not issubtype(kern.type, TensorType) or not issubtype(topgrad.type, TensorType):
+    if not isinstance(kern.type, TensorTypeMeta) or not isinstance(
+        topgrad.type, TensorTypeMeta
+    ):
         return None
     if node.op.border_mode not in ("full", "valid"):
         return None

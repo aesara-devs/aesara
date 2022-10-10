@@ -18,7 +18,6 @@ from aesara.graph.rewriting.basic import (
     node_rewriter,
 )
 from aesara.graph.utils import InconsistencyError, get_variable_trace_string
-from aesara.issubtype import issubtype
 from aesara.tensor.basic import (
     MakeVector,
     as_tensor_variable,
@@ -48,7 +47,7 @@ from aesara.tensor.shape import (
     unbroadcast,
 )
 from aesara.tensor.subtensor import Subtensor, get_idx_list
-from aesara.tensor.type import TensorType, discrete_dtypes, integer_dtypes
+from aesara.tensor.type import TensorTypeMeta, discrete_dtypes, integer_dtypes
 from aesara.tensor.type_other import NoneConst
 
 
@@ -1032,7 +1031,7 @@ def local_Shape_i_of_broadcastable(fgraph, node):
 
     shape_arg = node.inputs[0]
 
-    if not issubtype(shape_arg.type, TensorType):
+    if not isinstance(shape_arg.type, TensorTypeMeta):
         return False
 
     if shape_arg.broadcastable[node.op.i]:

@@ -1,6 +1,3 @@
-from aesara import issubtype
-
-
 """
 This module contains housekeeping functions for cleaning/purging the "compiledir".
 It is used by the "aesara-cache" CLI tool, located in the /bin folder of the repository.
@@ -14,7 +11,7 @@ import numpy as np
 
 from aesara.configdefaults import config
 from aesara.graph.op import Op
-from aesara.link.c.type import CType
+from aesara.link.c.type import CType, CTypeMeta
 from aesara.utils import flatten
 
 
@@ -134,7 +131,7 @@ def print_compiledir_content():
                     zeros_op += 1
                 else:
                     types = list(
-                        {x for x in flatten(keydata.keys) if issubtype(x, CType)}
+                        {x for x in flatten(keydata.keys) if isinstance(x, CTypeMeta)}
                     )
                     compile_start = compile_end = float("nan")
                     for fn in os.listdir(os.path.join(compiledir, dir)):

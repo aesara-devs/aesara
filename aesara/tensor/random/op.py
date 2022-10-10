@@ -7,7 +7,6 @@ import aesara
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.op import Op
-from aesara.issubtype import issubtype
 from aesara.misc.safe_asarray import _asarray
 from aesara.scalar import ScalarVariable
 from aesara.tensor.basic import (
@@ -17,7 +16,11 @@ from aesara.tensor.basic import (
     get_vector_length,
     infer_broadcastable,
 )
-from aesara.tensor.random.type import RandomGeneratorType, RandomStateType, RandomType
+from aesara.tensor.random.type import (
+    RandomGeneratorType,
+    RandomStateType,
+    RandomTypeMeta,
+)
 from aesara.tensor.random.utils import normalize_size_param, params_broadcast_shapes
 from aesara.tensor.shape import shape_tuple
 from aesara.tensor.type import TensorType, all_dtypes
@@ -317,7 +320,7 @@ class RandomVariable(Op):
 
         if rng is None:
             rng = aesara.shared(np.random.default_rng())
-        elif not issubtype(rng.type, RandomType):
+        elif not isinstance(rng.type, RandomTypeMeta):
             raise TypeError(
                 "The type of rng should be an instance of either RandomGeneratorType or RandomStateType"
             )

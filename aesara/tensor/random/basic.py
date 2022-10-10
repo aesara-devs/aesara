@@ -5,10 +5,9 @@ import numpy as np
 import scipy.stats as stats
 
 import aesara
-from aesara import issubtype
 from aesara.tensor.basic import as_tensor_variable
 from aesara.tensor.random.op import RandomVariable, default_supp_shape_from_params
-from aesara.tensor.random.type import RandomGeneratorType, RandomStateType
+from aesara.tensor.random.type import RandomGeneratorTypeMeta, RandomStateTypeMeta
 from aesara.tensor.random.utils import broadcast_params
 from aesara.tensor.random.var import (
     RandomGeneratorSharedVariable,
@@ -1859,8 +1858,8 @@ class RandIntRV(RandomVariable):
         return super().__call__(low, high, size=size, **kwargs)
 
     def make_node(self, rng, *args, **kwargs):
-        if not issubtype(
-            getattr(rng, "type", None), (RandomStateType, RandomStateSharedVariable)
+        if not isinstance(
+            getattr(rng, "type", None), (RandomStateTypeMeta, RandomStateSharedVariable)
         ):
             raise TypeError("`randint` is only available for `RandomStateType`s")
         return super().make_node(rng, *args, **kwargs)
@@ -1909,9 +1908,9 @@ class IntegersRV(RandomVariable):
         return super().__call__(low, high, size=size, **kwargs)
 
     def make_node(self, rng, *args, **kwargs):
-        if not issubtype(
+        if not isinstance(
             getattr(rng, "type", None),
-            (RandomGeneratorType, RandomGeneratorSharedVariable),
+            (RandomGeneratorTypeMeta, RandomGeneratorSharedVariable),
         ):
             raise TypeError("`integers` is only available for `RandomGeneratorType`s")
         return super().make_node(rng, *args, **kwargs)
@@ -1939,7 +1938,7 @@ class ChoiceRV(RandomVariable):
     def _infer_shape(self, size, dist_params, param_shapes=None):
         (a, p, _) = dist_params
 
-        if issubtype(p.type, aesara.tensor.type_other.NoneTypeT):
+        if isinstance(p.type, aesara.tensor.type_other.NoneTypeTMeta):
             shape = super()._infer_shape(size, (a,), param_shapes)
         else:
             shape = super()._infer_shape(size, (a, p), param_shapes)

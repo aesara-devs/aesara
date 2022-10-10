@@ -4,10 +4,9 @@ from typing import Tuple, Union
 import numpy as np
 
 from aesara import scalar as aes
-from aesara.gradient import DisconnectedType
+from aesara.gradient import DisconnectedTypeMeta
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
-from aesara.issubtype import issubtype
 from aesara.tensor import basic as at
 from aesara.tensor import math as tm
 from aesara.tensor.basic import as_tensor_variable, extract_diag
@@ -326,7 +325,7 @@ class Eigh(Eig):
 def _zero_disconnected(outputs, grads):
     l = []
     for o, g in zip(outputs, grads):
-        if issubtype(g.type, DisconnectedType):
+        if isinstance(g.type, DisconnectedTypeMeta):
             l.append(o.zeros_like())
         else:
             l.append(g)

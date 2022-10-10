@@ -20,7 +20,6 @@ from warnings import warn
 import numpy as np
 
 import aesara
-from aesara import issubtype
 from aesara.compile.function.types import (
     Function,
     FunctionMaker,
@@ -40,6 +39,7 @@ from aesara.link.c.op import COp
 from aesara.link.utils import map_storage, raise_with_op
 from aesara.printing import _debugprint
 from aesara.tensor import TensorType
+from aesara.tensor.type import TensorTypeMeta
 from aesara.utils import NoDuplicateOptWarningFilter, difference, get_unbound_function
 
 
@@ -793,7 +793,7 @@ def _get_preallocated_maps(
         for r in considered_outputs:
             # There is no risk to overwrite inputs, since r does not work
             # inplace.
-            if issubtype(r.type, TensorType):
+            if isinstance(r.type, TensorTypeMeta):
                 reuse_outputs[r][...] = np.asarray(def_val).astype(r.type.dtype)
 
         if reuse_outputs:
@@ -806,7 +806,7 @@ def _get_preallocated_maps(
     if "c_contiguous" in prealloc_modes or "ALL" in prealloc_modes:
         c_cont_outputs = {}
         for r in considered_outputs:
-            if issubtype(r.type, TensorType):
+            if isinstance(r.type, TensorTypeMeta):
                 # Build a C-contiguous buffer
                 new_buf = r.type.value_zeros(r_vals[r].shape)
                 assert new_buf.flags["C_CONTIGUOUS"]
@@ -823,7 +823,7 @@ def _get_preallocated_maps(
     if "f_contiguous" in prealloc_modes or "ALL" in prealloc_modes:
         f_cont_outputs = {}
         for r in considered_outputs:
-            if issubtype(r.type, TensorType):
+            if isinstance(r.type, TensorTypeMeta):
                 new_buf = np.zeros(
                     shape=r_vals[r].shape, dtype=r_vals[r].dtype, order="F"
                 )
@@ -851,7 +851,7 @@ def _get_preallocated_maps(
         max_ndim = 0
         rev_out_broadcastable = []
         for r in considered_outputs:
-            if issubtype(r.type, TensorType):
+            if isinstance(r.type, TensorTypeMeta):
                 if max_ndim < r.ndim:
                     rev_out_broadcastable += [True] * (r.ndim - max_ndim)
                     max_ndim = r.ndim
@@ -866,7 +866,7 @@ def _get_preallocated_maps(
         # Initial allocation
         init_strided = {}
         for r in considered_outputs:
-            if issubtype(r.type, TensorType):
+            if isinstance(r.type, TensorTypeMeta):
                 # Create a buffer twice as large in every dimension,
                 # except if broadcastable, or for dimensions above
                 # config.DebugMode__check_preallocated_output_ndim
@@ -945,7 +945,7 @@ def _get_preallocated_maps(
                 name = f"wrong_size{tuple(shape_diff)}"
 
                 for r in considered_outputs:
-                    if issubtype(r.type, TensorType):
+                    if isinstance(r.type, TensorTypeMeta):
                         r_shape_diff = shape_diff[: r.ndim]
                         out_shape = [
                             max((s + sd), 0)

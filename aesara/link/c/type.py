@@ -10,7 +10,7 @@ from aesara.utils import Singleton
 
 
 D = TypeVar("D")
-T = TypeVar("T", bound=Type)
+T = TypeVar("T", bound=NewTypeMeta)
 
 
 class CTypeMeta(NewTypeMeta, CLinkerType):

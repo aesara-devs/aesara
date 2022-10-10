@@ -8,13 +8,18 @@ from aesara.compile import shared
 from aesara.compile.builders import OpFromGraph
 from aesara.compile.function import function
 from aesara.configdefaults import config
-from aesara.gradient import DisconnectedType, Rop, disconnected_type, grad
+from aesara.gradient import (
+    DisconnectedType,
+    DisconnectedTypeMeta,
+    Rop,
+    disconnected_type,
+    grad,
+)
 from aesara.graph.basic import equal_computations
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.null_type import NullType
+from aesara.graph.null_type import NullType, NullTypeMeta
 from aesara.graph.rewriting.utils import rewrite_graph
 from aesara.graph.utils import MissingInputError
-from aesara.issubtype import issubtype
 from aesara.printing import debugprint
 from aesara.tensor.basic import as_tensor
 from aesara.tensor.math import dot, exp
@@ -24,7 +29,7 @@ from aesara.tensor.math import sum as at_sum
 from aesara.tensor.random.utils import RandomStream
 from aesara.tensor.rewriting.shape import ShapeOptimizer
 from aesara.tensor.shape import specify_shape
-from aesara.tensor.type import TensorType, matrices, matrix, scalar, vector, vectors
+from aesara.tensor.type import TensorTypeMeta, matrices, matrix, scalar, vector, vectors
 from tests import unittest_tools
 from tests.graph.utils import MyVariable
 
@@ -245,10 +250,10 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
             disconnected_inputs="ignore",
             null_gradients="return",
         )
-        assert issubtype(dx2.type, TensorType)
+        assert isinstance(dx2.type, TensorTypeMeta)
         assert dx2.ndim == 1
-        assert issubtype(dw2.type, NullType)
-        assert issubtype(db2.type, DisconnectedType)
+        assert isinstance(dw2.type, NullTypeMeta)
+        assert isinstance(db2.type, DisconnectedTypeMeta)
 
     @pytest.mark.parametrize(
         "cls_ofg", [OpFromGraph, partial(OpFromGraph, inline=True)]

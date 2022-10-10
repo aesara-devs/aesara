@@ -13,7 +13,6 @@ from aesara.graph.rewriting.basic import (
     in2out,
     node_rewriter,
 )
-from aesara.issubtype import issubtype
 from aesara.raise_op import Assert
 from aesara.tensor.basic import (
     Alloc,
@@ -80,8 +79,8 @@ from aesara.tensor.subtensor import (
     inc_subtensor,
     indices_from_subtensor,
 )
-from aesara.tensor.type import TensorType
-from aesara.tensor.type_other import NoneTypeT, SliceConstant, SliceType
+from aesara.tensor.type import TensorTypeMeta
+from aesara.tensor.type_other import NoneTypeTMeta, SliceConstant, SliceTypeMeta
 from aesara.tensor.var import TensorConstant, TensorVariable
 
 
@@ -166,10 +165,11 @@ def is_full_slice(x):
         or (isinstance(x, SliceConstant) and x.value == slice(None))
         or (
             not isinstance(x, SliceConstant)
-            and issubtype(getattr(x, "type", None), SliceType)
+            and isinstance(getattr(x, "type", None), SliceTypeMeta)
             and x.owner is not None
             and all(
-                issubtype(getattr(i, "type", None), NoneTypeT) for i in x.owner.inputs
+                isinstance(getattr(i, "type", None), NoneTypeTMeta)
+                for i in x.owner.inputs
             )
         )
     ):
@@ -561,7 +561,7 @@ def local_subtensor_remove_broadcastable_index(fgraph, node):
     remove_dim = []
     node_inputs_idx = 1
     for dim, elem in enumerate(idx):
-        if issubtype(elem, aes.ScalarType):
+        if isinstance(elem, aes.ScalarTypeMeta):
             # The idx is a ScalarType, ie a Type. This means the actual index
             # is contained in node.inputs[1]
             dim_index = node.inputs[node_inputs_idx]
@@ -735,7 +735,7 @@ def local_subtensor_make_vector(fgraph, node):
     if isinstance(node.op, Subtensor):
         (idx,) = node.op.idx_list
 
-        if issubtype(idx, (aes.ScalarType, TensorType)):
+        if isinstance(idx, (aes.ScalarTypeMeta, TensorTypeMeta)):
             old_idx, idx = idx, node.inputs[1]
             assert idx.type.is_super(old_idx)
     elif isinstance(node.op, AdvancedSubtensor1):
@@ -1603,7 +1603,7 @@ def local_subtensor_shape_constant(fgraph, node):
 
     assert idx_val != np.newaxis
 
-    if not issubtype(shape_arg.type, TensorType):
+    if not isinstance(shape_arg.type, TensorTypeMeta):
         return False
 
     shape_parts = shape_arg.type.broadcastable[idx_val]
@@ -1637,7 +1637,8 @@ def local_subtensor_SpecifyShape_lift(fgraph, node):
     indices = get_idx_list(node.inputs, node.op.idx_list)
 
     if any(
-        isinstance(index, slice) or issubtype(getattr(index, "type", None), SliceType)
+        isinstance(index, slice)
+        or isinstance(getattr(index, "type", None), SliceTypeMeta)
         for index in indices
     ):
         return False

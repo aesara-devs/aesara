@@ -5,13 +5,13 @@ import aesara
 import tests.unittest_tools as utt
 from aesara.compile.mode import Mode
 from aesara.graph.fg import FunctionGraph
-from aesara.issubtype import issubtype
 from aesara.link.c.basic import DualLinker
 from aesara.scalar.basic import (
     ComplexError,
     Composite,
     InRange,
     ScalarType,
+    ScalarTypeMeta,
     add,
     and_,
     arccos,
@@ -493,13 +493,13 @@ def test_mean(mode):
 
 def test_shape():
     a = float32("a")
-    assert issubtype(a.type, ScalarType)
+    assert isinstance(a.type, ScalarTypeMeta)
     assert a.shape.type.ndim == 1
     assert a.shape.type.shape == (0,)
     assert a.shape.type.dtype == "int64"
 
     b = constant(2, name="b")
-    assert issubtype(b.type, ScalarType)
+    assert isinstance(b.type, ScalarTypeMeta)
     assert b.shape.type.ndim == 1
     assert b.shape.type.shape == (0,)
     assert b.shape.type.dtype == "int64"

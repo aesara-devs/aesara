@@ -30,7 +30,6 @@ from aesara.graph.basic import (
 )
 from aesara.graph.op import Op
 from aesara.graph.type import NewTypeMeta, Props, Type
-from aesara.issubtype import issubtype
 from aesara.tensor.math import max_and_argmax
 from aesara.tensor.type import (
     TensorType,
@@ -81,7 +80,7 @@ class MyOp(Op):
     def make_node(self, *inputs):
         for input in inputs:
             assert isinstance(input, Variable)
-            assert issubtype(input.type, MyType)
+            assert issubclass(input.type, MyType)
         outputs = [MyVariable(sum(input.type.thingy for input in inputs))]
         return Apply(self, list(inputs), outputs)
 

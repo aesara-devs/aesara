@@ -13,7 +13,6 @@ from aesara.compile.mode import Mode
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.fg import FunctionGraph
-from aesara.issubtype import issubtype
 from aesara.link.basic import PerformLinker
 from aesara.link.c.basic import CLinker, OpWiseCLinker
 from aesara.tensor import as_tensor_variable
@@ -25,6 +24,7 @@ from aesara.tensor.math import any as at_any
 from aesara.tensor.math import exp
 from aesara.tensor.type import (
     TensorType,
+    TensorTypeMeta,
     bmatrix,
     bscalar,
     discrete_dtypes,
@@ -862,7 +862,7 @@ class TestElemwise(unittest_tools.InferShapeTester):
 
         (out_shape,) = z.owner.op.infer_shape(None, z.owner, [(lscalar(), 1), (50, 10)])
 
-        assert all(issubtype(v.type, TensorType) for v in out_shape)
+        assert all(isinstance(v.type, TensorTypeMeta) for v in out_shape)
 
     def test_static_shape_unary(self):
         x = tensor("float64", shape=(None, 0, 1, 5))

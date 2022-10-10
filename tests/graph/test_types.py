@@ -4,7 +4,6 @@ import pytest
 
 from aesara.graph.basic import Variable
 from aesara.graph.type import NewTypeMeta, Props, Type
-from aesara.issubtype import issubtype
 
 
 class MyTypeMeta(NewTypeMeta):
@@ -75,4 +74,4 @@ def test_convert_variable():
 
 def test_default_clone():
     mt = MyType.subtype(1)
-    assert issubtype(mt.clone(1), MyType)
+    assert issubclass(mt.clone(1), MyType)

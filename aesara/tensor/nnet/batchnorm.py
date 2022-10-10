@@ -5,7 +5,6 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
 from aesara.graph.rewriting.basic import copy_stack_trace, node_rewriter
-from aesara.issubtype import issubtype
 from aesara.scalar import Composite, add, as_common_dtype, mul, sub, true_div
 from aesara.tensor import basic as at
 from aesara.tensor.basic import as_tensor_variable
@@ -14,7 +13,7 @@ from aesara.tensor.math import mean, prod, reciprocal, sqrt
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.rewriting.basic import register_specialize_device
 from aesara.tensor.shape import specify_broadcastable
-from aesara.tensor.type import TensorType
+from aesara.tensor.type import TensorTypeMeta
 
 
 class BNComposite(Composite):
@@ -691,7 +690,7 @@ class AbstractBatchNormTrainGrad(Op):
         g_wrt_x_mean = 0
         g_wrt_x_invstd = 0
 
-        if not issubtype(ddinputs.type, aesara.gradient.DisconnectedType):
+        if not isinstance(ddinputs.type, aesara.gradient.DisconnectedTypeMeta):
             ccc = scale * (ddinputs - mean(ddinputs, axis=self.axes, keepdims=True))
             ddd = (x_invstd**3) * (
                 ccc * mean(dy * x_diff, axis=self.axes, keepdims=True)
@@ -722,7 +721,7 @@ class AbstractBatchNormTrainGrad(Op):
                 keepdims=True,
             )
 
-        if not issubtype(ddscale.type, aesara.gradient.DisconnectedType):
+        if not isinstance(ddscale.type, aesara.gradient.DisconnectedTypeMeta):
             g_wrt_x = g_wrt_x + (x_invstd * ddscale * dy)
             g_wrt_dy = g_wrt_dy + (x_invstd * ddscale * x_diff)
             g_wrt_x_mean = g_wrt_x_mean - (
@@ -732,7 +731,7 @@ class AbstractBatchNormTrainGrad(Op):
                 ddscale * at_sum(dy * x_diff, axis=self.axes, keepdims=True)
             )
 
-        if not issubtype(ddbias.type, aesara.gradient.DisconnectedType):
+        if not isinstance(ddbias.type, aesara.gradient.DisconnectedTypeMeta):
             g_wrt_dy = g_wrt_dy + at.fill(dy, ddbias)
 
         # depending on which output gradients are given,
@@ -796,17 +795,17 @@ def local_abstract_batch_norm_train(fgraph, node):
     if min(axes) < 0 or max(axes) > x.ndim:
         return None
     if (
-        not issubtype(x.type, TensorType)
-        or not issubtype(scale.type, TensorType)
-        or not issubtype(bias.type, TensorType)
-        or not issubtype(epsilon.type, TensorType)
-        or not issubtype(running_average_factor.type, TensorType)
+        not isinstance(x.type, TensorTypeMeta)
+        or not isinstance(scale.type, TensorTypeMeta)
+        or not isinstance(bias.type, TensorTypeMeta)
+        or not isinstance(epsilon.type, TensorTypeMeta)
+        or not isinstance(running_average_factor.type, TensorTypeMeta)
     ):
         return None
     # optional running_mean and running_var
-    if len(node.inputs) > 5 and not issubtype(node.inputs[5].type, TensorType):
+    if len(node.inputs) > 5 and not isinstance(node.inputs[5].type, TensorTypeMeta):
         return None
-    if len(node.inputs) > 6 and not issubtype(node.inputs[6].type, TensorType):
+    if len(node.inputs) > 6 and not isinstance(node.inputs[6].type, TensorTypeMeta):
         return None
 
     mean = x.mean(axes, keepdims=True)
@@ -850,12 +849,12 @@ def local_abstract_batch_norm_train_grad(fgraph, node):
     if min(axes) < 0 or max(axes) > x.ndim:
         return None
     if (
-        not issubtype(x.type, TensorType)
-        or not issubtype(dy.type, TensorType)
-        or not issubtype(scale.type, TensorType)
-        or not issubtype(x_mean.type, TensorType)
-        or not issubtype(x_invstd.type, TensorType)
-        or not issubtype(epsilon.type, TensorType)
+        not isinstance(x.type, TensorTypeMeta)
+        or not isinstance(dy.type, TensorTypeMeta)
+        or not isinstance(scale.type, TensorTypeMeta)
+        or not isinstance(x_mean.type, TensorTypeMeta)
+        or not isinstance(x_invstd.type, TensorTypeMeta)
+        or not isinstance(epsilon.type, TensorTypeMeta)
     ):
         return None
 
@@ -882,12 +881,12 @@ def local_abstract_batch_norm_inference(fgraph, node):
     x, scale, bias, estimated_mean, estimated_variance, epsilon = node.inputs
 
     if (
-        not issubtype(x.type, TensorType)
-        or not issubtype(scale.type, TensorType)
-        or not issubtype(bias.type, TensorType)
-        or not issubtype(estimated_mean.type, TensorType)
-        or not issubtype(estimated_variance.type, TensorType)
-        or not issubtype(epsilon.type, TensorType)
+        not isinstance(x.type, TensorTypeMeta)
+        or not isinstance(scale.type, TensorTypeMeta)
+        or not isinstance(bias.type, TensorTypeMeta)
+        or not isinstance(estimated_mean.type, TensorTypeMeta)
+        or not isinstance(estimated_variance.type, TensorTypeMeta)
+        or not isinstance(epsilon.type, TensorTypeMeta)
     ):
         return None
 

@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 
 import aesara
-from aesara import issubtype
 from aesara.link.basic import JITLinker
 
 
@@ -15,8 +14,8 @@ class NumbaLinker(JITLinker):
     """A `Linker` that JIT-compiles NumPy-based operations using Numba."""
 
     def output_filter(self, var: "Variable", out: Any) -> Any:
-        if not isinstance(var, np.ndarray) and issubtype(
-            var.type, aesara.tensor.TensorType
+        if not isinstance(var, np.ndarray) and isinstance(
+            var.type, aesara.tensor.TensorTypeMeta
         ):
             return np.asarray(out, dtype=var.type.dtype)
 

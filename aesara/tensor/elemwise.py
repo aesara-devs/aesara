@@ -5,11 +5,10 @@ import numpy as np
 
 import aesara.tensor.basic
 from aesara.configdefaults import config
-from aesara.gradient import DisconnectedType
+from aesara.gradient import DisconnectedTypeMeta
 from aesara.graph.basic import Apply
-from aesara.graph.null_type import NullType
+from aesara.graph.null_type import NullTypeMeta
 from aesara.graph.utils import MethodNotDefined
-from aesara.issubtype import issubtype
 from aesara.link.c.basic import failure_code
 from aesara.link.c.op import COp, ExternalCOp, OpenMPOp
 from aesara.link.c.params_type import ParamsType
@@ -521,7 +520,9 @@ class Elemwise(OpenMPOp):
                 # the right thing to do .. have to talk to Ian and James
                 # about it
 
-                if bgrads[jdx] is None or issubtype(bgrads[jdx].type, DisconnectedType):
+                if bgrads[jdx] is None or isinstance(
+                    bgrads[jdx].type, DisconnectedTypeMeta
+                ):
                     pass
                 elif eval_point is not None:
                     if rop_out is None:
@@ -557,7 +558,7 @@ class Elemwise(OpenMPOp):
             # this op did the right thing.
             new_rval = []
             for elem, ipt in zip(rval, inputs):
-                if issubtype(elem.type, (NullType, DisconnectedType)):
+                if isinstance(elem.type, (NullTypeMeta, DisconnectedTypeMeta)):
                     new_rval.append(elem)
                 else:
                     elem = ipt.zeros_like()
@@ -569,7 +570,7 @@ class Elemwise(OpenMPOp):
 
         # sum out the broadcasted dimensions
         for i, ipt in enumerate(inputs):
-            if issubtype(rval[i].type, (NullType, DisconnectedType)):
+            if isinstance(rval[i].type, (NullTypeMeta, DisconnectedTypeMeta)):
                 continue
 
             # List of all the dimensions that are broadcastable for input[i] so
@@ -593,7 +594,7 @@ class Elemwise(OpenMPOp):
         with config.change_flags(compute_test_value="off"):
 
             def as_scalar(t):
-                if issubtype(t.type, (NullType, DisconnectedType)):
+                if isinstance(t.type, (NullTypeMeta, DisconnectedTypeMeta)):
                     return t
                 return get_scalar_type(t.type.dtype)()
 
@@ -617,7 +618,7 @@ class Elemwise(OpenMPOp):
 
         def transform(r):
             # From a graph of ScalarOps, make a graph of Broadcast ops.
-            if issubtype(r.type, (NullType, DisconnectedType)):
+            if isinstance(r.type, (NullTypeMeta, DisconnectedTypeMeta)):
                 return r
             if r in scalar_inputs:
                 return inputs[scalar_inputs.index(r)]

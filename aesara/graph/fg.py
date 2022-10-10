@@ -23,8 +23,8 @@ from aesara.graph.basic import Apply, AtomicVariable, Variable, applys_between
 from aesara.graph.basic import as_string as graph_as_string
 from aesara.graph.basic import clone_get_equiv, graph_inputs, io_toposort, vars_between
 from aesara.graph.features import AlreadyThere, Feature, ReplaceValidate
+from aesara.graph.null_type import NullTypeMeta
 from aesara.graph.utils import MetaObject, MissingInputError, TestValueError
-from aesara.issubtype import issubtype
 from aesara.misc.ordered_set import OrderedSet
 
 
@@ -308,9 +308,9 @@ class FunctionGraph(MetaObject):
             and not isinstance(var, AtomicVariable)
             and var not in self.inputs
         ):
-            from aesara.graph.null_type import NullType
+            pass
 
-            if issubtype(var.type, NullType):
+            if isinstance(var.type, NullTypeMeta):
                 raise TypeError(
                     f"Computation graph contains a NaN. {var.type.why_null}"
                 )

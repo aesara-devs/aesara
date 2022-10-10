@@ -30,7 +30,6 @@ from aesara.graph.fg import FunctionGraph
 from aesara.graph.rewriting.basic import MergeOptimizer
 from aesara.graph.type import DataType, Props
 from aesara.graph.utils import MetaObject, MethodNotDefined
-from aesara.issubtype import issubtype
 from aesara.link.c.op import COp
 from aesara.link.c.type import CType, CTypeMeta
 from aesara.misc.safe_asarray import _asarray
@@ -282,10 +281,9 @@ class ScalarTypeMeta(CTypeMeta):
 
     """
 
-    dtype: Props[Any] = None
+    dtype: Props[DataType] = None
     ndim = 0
     shape = ()
-    dtype: DataType
 
     @classmethod
     def type_parameters(cls, dtype):
@@ -870,7 +868,7 @@ def constant(x, name=None, dtype=None) -> ScalarConstant:
 
 def as_scalar(x: Any, name: Optional[str] = None) -> ScalarVariable:
     from aesara.tensor.basic import scalar_from_tensor
-    from aesara.tensor.type import TensorType
+    from aesara.tensor.type import TensorTypeMeta
 
     if isinstance(x, Apply):
         if len(x.outputs) != 1:
@@ -884,7 +882,7 @@ def as_scalar(x: Any, name: Optional[str] = None) -> ScalarVariable:
     if isinstance(x, Variable):
         if isinstance(x, ScalarVariable):
             return x
-        elif issubtype(x.type, TensorType) and x.type.ndim == 0:
+        elif isinstance(x.type, TensorTypeMeta) and x.type.ndim == 0:
             return scalar_from_tensor(x)
         else:
             raise TypeError(f"Cannot convert {x} to a scalar type")
@@ -1125,7 +1123,7 @@ class ScalarOp(COp):
         if hasattr(self, "output_types_preference"):
             variables = self.output_types_preference(*types)
             if not isinstance(variables, (list, tuple)) or any(
-                not issubtype(x, CType) for x in variables
+                not isinstance(x, CTypeMeta) for x in variables
             ):
                 raise TypeError(
                     "output_types_preference should return a list or a tuple of types",
@@ -2450,7 +2448,7 @@ identity = Identity(same_out, name="identity")
 # CASTING OPERATIONS
 class Cast(UnaryScalarOp):
     def __init__(self, o_type, name=None):
-        if not issubtype(o_type, ScalarType):
+        if not isinstance(o_type, ScalarTypeMeta):
             raise TypeError(o_type)
         super().__init__(specific_out(o_type), name=name)
         self.o_type = o_type

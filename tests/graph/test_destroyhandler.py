@@ -17,7 +17,6 @@ from aesara.graph.rewriting.basic import (
 )
 from aesara.graph.type import NewTypeMeta, Type
 from aesara.graph.utils import InconsistencyError
-from aesara.issubtype import issubtype
 from tests.unittest_tools import assertFailure_fast
 
 
@@ -93,7 +92,7 @@ class MyOp(Op):
         assert len(inputs) == self.nin
         inputs = list(map(as_variable, inputs))
         for input in inputs:
-            if not issubtype(input.type, MyType):
+            if not issubclass(input.type, MyType):
                 raise Exception("Error 1")
         outputs = [MyVariable(self.name + "_R") for i in range(self.nout)]
         return Apply(self, inputs, outputs)
