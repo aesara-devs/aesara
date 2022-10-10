@@ -208,7 +208,7 @@ class ConvolutionIndices(Op):
                                     # onto the sparse columns (idea of
                                     # kernel map)
                                     # n*... only for sparse
-                                    spmat[row + n * outsize, col] = tapi + 1
+                                    spmat[int(row + n * outsize), int(col)] = tapi + 1
 
                                     # total number of active taps
                                     # (used for kmap)
