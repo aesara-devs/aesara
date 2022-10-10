@@ -246,7 +246,7 @@ Running the code above returns the following output:
 .. testoutput:: printtestvalue
 
    x
-   array(42.0)
+   array(42.)
    x
 
 
@@ -275,7 +275,7 @@ Aesara provides a :class:`Print`\ :class:`Op` to do this.
 
 .. testoutput::
 
-    this is a very important value __str__ = [ 1.  2.  3.]
+    this is a very important value __str__ = [1. 2. 3.]
 
 Since Aesara runs your program in a topological order, you won't have precise
 control over the order in which multiple :class:`Print`\ `Op`\s are evaluated.  For a more
@@ -355,7 +355,7 @@ shows how to print all inputs and outputs:
 
 .. testoutput::
 
-    0 Elemwise{mul,no_inplace}(TensorConstant{5.0}, x) input(s) value(s): [array(5.0), array(3.0)] output(s) value(s): [array(15.0)]
+    0 Elemwise{mul,no_inplace}(TensorConstant{5.0}, x) input(s) value(s): [array(5.), array(3.)] output(s) value(s): [array(15.)]
 
 When using these ``inspect_inputs`` and ``inspect_outputs`` functions
 with `MonitorMode`, you should see (potentially a lot of) printed output.
@@ -371,9 +371,9 @@ computations, which can be achieved as follows:
 
 .. testcode:: compiled
 
-    import numpy
-
     import aesara
+    import aesara.tensor as at
+    import numpy as np
 
     # This is the current suggested detect_nan implementation to
     # show you how it work.  That way, you can modify it for your
@@ -391,9 +391,9 @@ computations, which can be achieved as follows:
                 print('Outputs: %s' % [output[0] for output in fn.outputs])
                 break
 
-    x = aesara.tensor.dscalar('x')
+    x = at.dscalar('x')
     f = aesara.function(
-        [x], [aesara.tensor.log(x) * x],
+        [x], [at.log(x) * x],
         mode=aesara.compile.MonitorMode(
         post_func=detect_nan)
     )

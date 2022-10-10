@@ -382,7 +382,7 @@ results as follows:
 >>> res.evaled_obj
 add.0
 >>> aesara.dprint(res.evaled_obj)
-add [id A] ''
+add [id A]
  |y [id B]
  |y [id B]
 
@@ -400,10 +400,10 @@ varying number of arguments:
 >>> args_lv = var()
 >>> s = unify(cons(op_lv, args_lv), add(x, y))
 >>> s
-{~_2: <aesara.scalar.basic.Add at 0x7f54dfa5a350>, ~_3: e(x, y)}
+{~_2: <aesara.scalar.basic.Add object at 0x7fc277b841c0>, ~_3: ExpressionTuple((x, y))}
 >>> s = unify(cons(op_lv, args_lv), add(x, y, z))
 >>> s
-{~_2: <aesara.scalar.basic.Add at 0x7f54dfa5a350>, ~_3: e(x, y, z)}
+{~_2: <aesara.scalar.basic.Add object at 0x7fc277b841c0>, ~_3: ExpressionTuple((x, y, z))}
 
 From here, we can check ``s[op_lv] == add`` to confirm that we have the correct :class:`Op` and
 proceed with our rewrite.
@@ -412,7 +412,7 @@ proceed with our rewrite.
 >>> res
 e(<aesara.scalar.basic.Mul at 0x7f54dfa5ae10>, x, y, z)
 >>> aesara.dprint(res.evaled_obj)
-mul [id A] ''
+mul [id A]
  |x [id B]
  |y [id C]
  |z [id D]
@@ -440,52 +440,49 @@ turning :mod:`kanren` relations into :class:`NodeRewriter`\s; however,
 
 The following is an example that distributes dot products across additions.
 
-.. code::
+.. testcode::
 
-    import aesara
-    import aesara.tensor as at
-    from aesara.graph.rewriting.kanren import KanrenRelationSub
-    from aesara.graph.rewriting.basic import EquilibriumGraphRewriter
-    from aesara.graph.rewriting.utils import rewrite_graph
-    from aesara.tensor.math import _dot
-    from etuples import etuple
-    from kanren import conso, eq, fact, heado, tailo
-    from kanren.assoccomm import assoc_flatten, associative
-    from kanren.core import lall
-    from kanren.graph import mapo
-    from unification import vars as lvars
+  import aesara
+  import aesara.tensor as at
+  from aesara.graph.rewriting.kanren import KanrenRelationSub
+  from aesara.graph.rewriting.basic import EquilibriumGraphRewriter
+  from aesara.graph.rewriting.utils import rewrite_graph
+  from aesara.tensor.math import _dot
+  from etuples import etuple
+  from kanren import conso, eq, fact, heado, tailo
+  from kanren.assoccomm import assoc_flatten, associative
+  from kanren.core import lall
+  from kanren.graph import mapo
+  from unification import vars as lvars
 
+  # Make the graph pretty printing results a little more readable
+  aesara.pprint.assign(
+      _dot, aesara.printing.OperatorPrinter("@", -1, "left")
+  )
 
-    # Make the graph pretty printing results a little more readable
-    aesara.pprint.assign(
-        _dot, aesara.printing.OperatorPrinter("@", -1, "left")
-    )
+  # Tell `kanren` that `add` is associative
+  fact(associative, at.add)
 
-    # Tell `kanren` that `add` is associative
-    fact(associative, at.add)
+  def dot_distributeo(in_lv, out_lv):
+      """A `kanren` goal constructor relation for the relation ``A.dot(a + b ...) == A.dot(a) + A.dot(b) ...``."""
+      A_lv, add_term_lv, add_cdr_lv, dot_cdr_lv, add_flat_lv = lvars(5)
 
+      return lall(
+          # Make sure the input is a `_dot`
+          eq(in_lv, etuple(_dot, A_lv, add_term_lv)),
+          # Make sure the term being `_dot`ed is an `add`
+          heado(at.add, add_term_lv),
+          # Flatten the associative pairings of `add` operations
+          assoc_flatten(add_term_lv, add_flat_lv),
+          # Get the flattened `add` arguments
+          tailo(add_cdr_lv, add_flat_lv),
+          # Add all the `_dot`ed arguments and set the output
+          conso(at.add, dot_cdr_lv, out_lv),
+          # Apply the `_dot` to all the flattened `add` arguments
+          mapo(lambda x, y: conso(_dot, etuple(A_lv, x), y), add_cdr_lv, dot_cdr_lv),
+      )
 
-    def dot_distributeo(in_lv, out_lv):
-        """A `kanren` goal constructor relation for the relation ``A.dot(a + b ...) == A.dot(a) + A.dot(b) ...``."""
-        A_lv, add_term_lv, add_cdr_lv, dot_cdr_lv, add_flat_lv = lvars(5)
-
-        return lall(
-            # Make sure the input is a `_dot`
-            eq(in_lv, etuple(_dot, A_lv, add_term_lv)),
-            # Make sure the term being `_dot`ed is an `add`
-            heado(at.add, add_term_lv),
-            # Flatten the associative pairings of `add` operations
-            assoc_flatten(add_term_lv, add_flat_lv),
-            # Get the flattened `add` arguments
-            tailo(add_cdr_lv, add_flat_lv),
-            # Add all the `_dot`ed arguments and set the output
-            conso(at.add, dot_cdr_lv, out_lv),
-            # Apply the `_dot` to all the flattened `add` arguments
-            mapo(lambda x, y: conso(_dot, etuple(A_lv, x), y), add_cdr_lv, dot_cdr_lv),
-        )
-
-
-    dot_distribute_rewrite = EquilibriumGraphRewriter([KanrenRelationSub(dot_distributeo)], max_use_ratio=10)
+  dot_distribute_rewrite = EquilibriumGraphRewriter([KanrenRelationSub(dot_distributeo)], max_use_ratio=10)
 
 
 Below, we apply `dot_distribute_rewrite` to a few example graphs.  First we create simple test graph:
@@ -506,9 +503,10 @@ Next we apply the rewrite to the graph:
 We see that the dot product has been distributed, as desired.  Now, let's try a
 few more test cases:
 
+>>> import aesara.tensor as at
 >>> z_at = at.vector("z")
 >>> w_at = at.vector("w")
->>> test_at = A_at.dot((x_at + y_at) + (z_at + w_at))
+>>> test_at = at.dot((x_at + y_at) + (z_at + w_at))
 >>> print(aesara.pprint(test_at))
 (A @ ((x + y) + (z + w)))
 >>> res = rewrite_graph(test_at, include=[], custom_rewrite=dot_distribute_rewrite, clone=False)
@@ -517,7 +515,7 @@ few more test cases:
 
 >>> B_at = at.matrix("B")
 >>> w_at = at.vector("w")
->>> test_at = A_at.dot(x_at + (y_at + B_at.dot(z_at + w_at)))
+>>> test_at = at.dot(x_at + (y_at + B_at.dot(z_at + w_at)))
 >>> print(aesara.pprint(test_at))
 (A @ (x + (y + ((B @ z) + (B @ w)))))
 >>> res = rewrite_graph(test_at, include=[], custom_rewrite=dot_distribute_rewrite, clone=False)

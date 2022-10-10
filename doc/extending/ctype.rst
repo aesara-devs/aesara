@@ -459,7 +459,7 @@ Final version
 
 .. testcode::
 
-   from aesara.graph.type import
+   from aesara.graph.type import Type
 
    class Double(Type):
 

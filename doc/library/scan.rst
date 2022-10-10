@@ -62,10 +62,9 @@ The equivalent Aesara code would be:
 
 .. testoutput::
 
-    [  0.   1.   4.   9.  16.  25.  36.  49.  64.  81.]
-    [  0.00000000e+00   1.00000000e+00   1.60000000e+01   8.10000000e+01
-       2.56000000e+02   6.25000000e+02   1.29600000e+03   2.40100000e+03
-       4.09600000e+03   6.56100000e+03]
+    [ 0.  1.  4.  9. 16. 25. 36. 49. 64. 81.]
+    [0.000e+00 1.000e+00 1.600e+01 8.100e+01 2.560e+02 6.250e+02 1.296e+03
+     2.401e+03 4.096e+03 6.561e+03]
 
 Let us go through the example line by line. What we did is first to
 construct a function (using a lambda expression) that given ``prior_result`` and
@@ -230,17 +229,17 @@ with all values set to zero except at the provided array indices.
 
 .. testoutput::
 
-    [[[  0.   0.   0.   0.   0.]
-      [  0.  42.   0.   0.   0.]
-      [  0.   0.   0.   0.   0.]
-      [  0.   0.   0.   0.   0.]
-      [  0.   0.   0.   0.   0.]]
+    [[[ 0.  0.  0.  0.  0.]
+      [ 0. 42.  0.  0.  0.]
+      [ 0.  0.  0.  0.  0.]
+      [ 0.  0.  0.  0.  0.]
+      [ 0.  0.  0.  0.  0.]]
 
-     [[  0.   0.   0.   0.   0.]
-      [  0.   0.   0.   0.   0.]
-      [  0.   0.   0.  50.   0.]
-      [  0.   0.   0.   0.   0.]
-      [  0.   0.   0.   0.   0.]]]
+     [[ 0.  0.  0.  0.  0.]
+      [ 0.  0.  0.  0.  0.]
+      [ 0.  0.  0. 50.  0.]
+      [ 0.  0.  0.  0.  0.]
+      [ 0.  0.  0.  0.  0.]]]
 
 This demonstrates that you can introduce new Aesara variables into a scan function.
 
@@ -457,20 +456,18 @@ In this case we have a sequence over which we need to iterate ``u``,
 and two outputs ``x`` and ``y``. To implement this with scan we first
 construct a function that computes one iteration step :
 
-.. testsetup:: scan3
-
-   import aesara
-   from aesara import tensor as at
-
 .. testcode:: scan3
+  
+  import aesara
+  import aesara.tensor as at
 
   def oneStep(u_tm4, u_t, x_tm3, x_tm1, y_tm1, W, W_in_1, W_in_2,  W_feedback, W_out):
 
-    x_t = at.tanh(aesara.dot(x_tm1, W) + \
-                 aesara.dot(u_t,   W_in_1) + \
-                 aesara.dot(u_tm4, W_in_2) + \
-                 aesara.dot(y_tm1, W_feedback))
-    y_t = aesara.dot(x_tm3, W_out)
+    x_t = at.tanh(at.dot(x_tm1, W) + \
+                 at.dot(u_t,   W_in_1) + \
+                 at.dot(u_tm4, W_in_2) + \
+                 at.dot(y_tm1, W_feedback))
+    y_t = at.dot(x_tm3, W_out)
 
     return [x_t, y_t]
 

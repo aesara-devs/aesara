@@ -46,8 +46,8 @@ Well, what you do is this:
 >>> s = 1 / (1 + at.exp(-x))
 >>> logistic = aesara.function([x], s)
 >>> logistic([[0, 1], [-1, -2]])
-array([[ 0.5       ,  0.73105858],
-       [ 0.26894142,  0.11920292]])
+array([[0.5       , 0.73105858],
+       [0.26894142, 0.11920292]])
 
 The reason the logistic is applied element-wise is because all of its
 operations--division, addition, exponentiation, and division--are
@@ -67,8 +67,8 @@ We can verify that this alternate form produces the same values:
 >>> s2 = (1 + at.tanh(x / 2)) / 2
 >>> logistic2 = aesara.function([x], s2)
 >>> logistic2([[0, 1], [-1, -2]])
-array([[ 0.5       ,  0.73105858],
-       [ 0.26894142,  0.11920292]])
+array([[0.5       , 0.73105858],
+       [0.26894142, 0.11920292]])
 
 
 Computing More than one Thing at the Same Time
@@ -97,9 +97,9 @@ was reformatted for readability):
 
 >>> f([[1, 1], [1, 1]], [[0, 1], [2, 3]])
 [array([[ 1.,  0.],
-       [-1., -2.]]), array([[ 1.,  0.],
-       [ 1.,  2.]]), array([[ 1.,  0.],
-       [ 1.,  4.]])]
+       [-1., -2.]]), array([[1., 0.],
+       [1., 2.]]), array([[1., 0.],
+       [1., 4.]])]
 
 
 Setting a Default Value for an Argument
@@ -118,9 +118,9 @@ one. You can do it like this:
 >>> z = x + y
 >>> f = function([x, In(y, value=1)], z)
 >>> f(33)
-array(34.0)
+array(34.)
 >>> f(33, 2)
-array(35.0)
+array(35.)
 
 This makes use of the :ref:`In <function_inputs>` class which allows
 you to specify properties of your function's parameters with greater detail. Here we
@@ -139,15 +139,15 @@ parameters can be set positionally or by name, as in standard Python:
 >>> z = (x + y) * w
 >>> f = function([x, In(y, value=1), In(w, value=2, name='w_by_name')], z)
 >>> f(33)
-array(68.0)
+array(68.)
 >>> f(33, 2)
-array(70.0)
+array(70.)
 >>> f(33, 0, 1)
-array(33.0)
+array(33.)
 >>> f(33, w_by_name=1)
-array(34.0)
+array(34.)
 >>> f(33, w_by_name=1, y=0)
-array(33.0)
+array(33.)
 
 .. note::
    `In` does not know the name of the local variables ``y`` and ``w``
@@ -316,7 +316,7 @@ using the ``swap`` parameter, which is a dictionary of shared variables to excha
 >>> new_state = aesara.shared(0)
 >>> new_accumulator = accumulator.copy(swap={state:new_state})
 >>> new_accumulator(100)
-[array(0)]
+array(0)
 >>> print(new_state.get_value())
 100
 
@@ -333,7 +333,7 @@ parameter, which is set to ``False`` by default:
 As expected, the shared state is no longer updated:
 
 >>> null_accumulator(9000)
-[array(10)]
+array(10)
 >>> print(state.get_value())
 10
 

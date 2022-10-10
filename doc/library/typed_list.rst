@@ -23,7 +23,7 @@ the same Aesara type. Here is an example:
 >>> o = aesara.typed_list.append(tl, v)
 >>> f = aesara.function([tl, v], o)
 >>> f([[1, 2, 3], [4, 5]], [2])
-[array([ 1.,  2.,  3.], dtype=float32), array([ 4.,  5.], dtype=float32), array([ 2.], dtype=float32)]
+[array([1., 2., 3.], dtype=float32), array([4., 5.], dtype=float32), array([2.], dtype=float32)]
 
 A second example with Scan. Scan doesn't yet have direct support of
 TypedList, so you can only use it as non_sequences (not in sequences or
@@ -37,7 +37,7 @@ as outputs):
 ...                    sequences=[aesara.tensor.arange(l, dtype='int64')])
 >>> f = aesara.function([a], s)
 >>> f([[1, 2, 3], [4, 5]])
-array([ 6.,  9.], dtype=float32)
+array([6., 9.], dtype=float32)
 
 .. automodule:: aesara.typed_list.basic
     :members:

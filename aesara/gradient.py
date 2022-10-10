@@ -2319,7 +2319,7 @@ def grad_clip(x, lower_bound, upper_bound):
     >>> z2 = aesara.gradient.grad(x**2, x)
     >>> f = aesara.function([x], outputs = [z, z2])
     >>> print(f(2.0))
-    [array(1.0), array(4.0)]
+    [array(1.), array(4.)]
 
     Notes
     -----

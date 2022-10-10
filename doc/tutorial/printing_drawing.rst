@@ -56,8 +56,7 @@ Pretty Printing
 ===============
 
 >>> aesara.printing.pprint(prediction) # doctest: +NORMALIZE_WHITESPACE
-'gt((TensorConstant{1} / (TensorConstant{1} + exp(((-(x \\dot w)) - b)))),
-TensorConstant{0.5})'
+'gt((1 / (1 + exp(((-(x \\dot w)) - b)))), 0.5)'
 
 
 Debug Print
@@ -65,38 +64,38 @@ Debug Print
 
 The pre-compilation graph:
 
->>> aesara.printing.debugprint(prediction) # doctest: +NORMALIZE_WHITESPACE, +ELLIPSIS
-Elemwise{gt,no_inplace} [id A] ''
- |Elemwise{true_div,no_inplace} [id B] ''
- | |InplaceDimShuffle{x} [id C] ''
+>>> aesara.printing.debugprint(prediction)
+Elemwise{gt,no_inplace} [id A]
+ |Elemwise{true_div,no_inplace} [id B]
+ | |InplaceDimShuffle{x} [id C]
  | | |TensorConstant{1} [id D]
- | |Elemwise{add,no_inplace} [id E] ''
- |   |InplaceDimShuffle{x} [id F] ''
- |   | |TensorConstant{1} [id D]
- |   |Elemwise{exp,no_inplace} [id G] ''
- |     |Elemwise{sub,no_inplace} [id H] ''
- |       |Elemwise{neg,no_inplace} [id I] ''
- |       | |dot [id J] ''
- |       |   |x [id K]
- |       |   |w [id L]
- |       |InplaceDimShuffle{x} [id M] ''
- |         |b [id N]
- |InplaceDimShuffle{x} [id O] ''
-   |TensorConstant{0.5} [id P]
+ | |Elemwise{add,no_inplace} [id E]
+ |   |InplaceDimShuffle{x} [id F]
+ |   | |TensorConstant{1} [id G]
+ |   |Elemwise{exp,no_inplace} [id H]
+ |     |Elemwise{sub,no_inplace} [id I]
+ |       |Elemwise{neg,no_inplace} [id J]
+ |       | |dot [id K]
+ |       |   |x [id L]
+ |       |   |w [id M]
+ |       |InplaceDimShuffle{x} [id N]
+ |         |b [id O]
+ |InplaceDimShuffle{x} [id P]
+   |TensorConstant{0.5} [id Q]
 
 The post-compilation graph:
 
 >>> aesara.printing.debugprint(predict)  # doctest: +NORMALIZE_WHITESPACE, +ELLIPSIS
-Elemwise{Composite{GT(scalar_sigmoid((-((-i0) - i1))), i2)}} [id A] ''   4
- |...Gemv{inplace} [id B] ''   3
- | |AllocEmpty{dtype='float64'} [id C] ''   2
- | | |Shape_i{0} [id D] ''   1
+Elemwise{Composite{GT(sigmoid((-((-i0) - i1))), i2)}} [id A] 4
+ |CGemv{inplace} [id B] 3
+ | |AllocEmpty{dtype='float64'} [id C] 2
+ | | |Shape_i{0} [id D] 1
  | |   |x [id E]
  | |TensorConstant{1.0} [id F]
  | |x [id E]
  | |w [id G]
  | |TensorConstant{0.0} [id H]
- |InplaceDimShuffle{x} [id I] ''   0
+ |InplaceDimShuffle{x} [id I] 0
  | |b [id J]
  |TensorConstant{(1,) of 0.5} [id K]
 

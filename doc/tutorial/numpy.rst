@@ -32,9 +32,9 @@ layer would represent a matrix of size (5, #hid).
 Consider this array:
 
 >>> numpy.asarray([[1., 2], [3, 4], [5, 6]])
-array([[ 1.,  2.],
-       [ 3.,  4.],
-       [ 5.,  6.]])
+array([[1., 2.],
+       [3., 4.],
+       [5., 6.]])
 >>> numpy.asarray([[1., 2], [3, 4], [5, 6]]).shape
 (3, 2)
 
@@ -62,7 +62,7 @@ compatible shapes. The example below shows an instance of
 >>> a = numpy.asarray([1.0, 2.0, 3.0])
 >>> b = 2.0
 >>> a * b
-array([ 2.,  4.,  6.])
+array([2., 4., 6.])
 
 The smaller array ``b`` (actually a scalar here, which works like a 0-d array) in this case is *broadcasted* to the same size
 as ``a`` during the multiplication. This trick is often useful in
