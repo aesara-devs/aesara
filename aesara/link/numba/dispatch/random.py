@@ -1,4 +1,5 @@
 from copy import copy
+from math import log
 from textwrap import dedent, indent
 from typing import Callable, Optional
 
@@ -8,6 +9,7 @@ import numpy as np
 from numba.core import types
 from numba.core.extending import overload, overload_method, register_jitable
 from numba.np.random.distributions import random_beta, random_standard_gamma
+from numba.np.random.generator_core import next_double
 from numba.np.random.generator_methods import check_size, check_types, is_nonelike
 
 import aesara.tensor.random.basic as aer
@@ -362,5 +364,41 @@ def NumPyRandomGeneratorType_dirichlet(inst, alphas, size=None):
 
         def impl(inst, alphas, size=None):
             return random_dirichlet(inst.bit_generator, alphas, size)
+
+    return impl
+
+
+@register_jitable
+def random_gumbel(bitgen, loc, scale):
+    """
+    This implementation is adapted from ``numpy/random/src/distributions/distributions.c``.
+    """
+    while True:
+        u = 1.0 - next_double(bitgen)
+        if u < 1.0:
+            return loc - scale * log(-log(u))
+
+
+@overload_method(types.NumPyRandomGeneratorType, "gumbel")
+def NumPyRandomGeneratorType_gumbel(inst, loc=0.0, scale=1.0, size=None):
+    check_types(loc, [types.Float, types.Integer, int, float], "loc")
+    check_types(scale, [types.Float, types.Integer, int, float], "scale")
+
+    if isinstance(size, types.Omitted):
+        size = size.value
+
+    if is_nonelike(size):
+
+        def impl(inst, loc=0.0, scale=1.0, size=None):
+            return random_gumbel(inst.bit_generator, loc, scale)
+
+    else:
+        check_size(size)
+
+        def impl(inst, loc=0.0, scale=1.0, size=None):
+            out = np.empty(size)
+            for i in np.ndindex(size):
+                out[i] = random_gumbel(inst.bit_generator, loc, scale)
+            return out
 
     return impl
