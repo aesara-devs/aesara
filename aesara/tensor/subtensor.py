@@ -724,8 +724,10 @@ class Subtensor(COp):
         padded = get_constant_idx(
             self.idx_list, (None,) + inputs, allow_partial=True
         ) + [slice(None, None, None)] * (x.type.ndim - len(idx_list))
-        broadcastable = []
-        for i, (p, bc) in enumerate(zip(padded, x.type.broadcastable)):
+        static_shape = []
+        for i, (p, bc, shp) in enumerate(
+            zip(padded, x.type.broadcastable, x.type.shape)
+        ):
             if isinstance(p, slice):
                 if bc:
                     start = p.start
@@ -741,15 +743,29 @@ class Subtensor(COp):
                             isinstance(p.stop, (int, np.integer, np.ndarray))
                             and p.stop > start
                         ):
-                            broadcastable.append(True)
+                            static_shape.append(1)
                             continue
-
-                broadcastable.append(False)
+                else:
+                    if shp is not None:
+                        cnf = get_canonical_form_slice(p, shp)[0]
+                        try:
+                            start = cnf.start.eval()
+                        except Exception:
+                            start = cnf.start
+                        stop = cnf.stop
+                        step = cnf.step
+                        if cnf.step == 1:
+                            length = stop - start
+                        else:
+                            length = (stop - start - 1) // step + 1
+                        static_shape.append(length)
+                    else:
+                        static_shape.append(None)
 
         return Apply(
             self,
             (x,) + inputs,
-            [tensor(dtype=x.type.dtype, shape=broadcastable)],
+            [tensor(dtype=x.type.dtype, shape=static_shape)],
         )
 
     def perform(self, node, inputs, out_):
