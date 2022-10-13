@@ -276,8 +276,9 @@ class TestLocalCanonicalizeAlloc:
 
         assert a.owner and isinstance(a.owner.op, Alloc)
 
-        # `local_useless_alloc` should replace the `Alloc` with an `Assert`
-        with pytest.raises(AssertionError):
+        # `local_useless_alloc` should attempt to replace the `Alloc` with an
+        # `Assert` and fail when the static shape information conflicts.
+        with pytest.raises(TypeError):
             f = function([], a, mode=rewrite_mode)
 
         x = at.as_tensor(self.rng.standard_normal((6, 7)))

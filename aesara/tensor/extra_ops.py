@@ -1646,9 +1646,9 @@ class BroadcastTo(COp):
     def make_node(self, a, *shape):
         a = at.as_tensor_variable(a)
 
-        shape, bcast = at.infer_broadcastable(shape)
+        shape, static_shape = at.infer_static_shape(shape)
 
-        out = TensorType(dtype=a.type.dtype, shape=bcast)()
+        out = TensorType(dtype=a.type.dtype, shape=static_shape)()
 
         # Attempt to prevent in-place operations on this view-based output
         out.tag.indestructible = True
@@ -1670,11 +1670,14 @@ class BroadcastTo(COp):
         d_wrt_a = broadcast_to(dout, shape).sum(axis=new_dims)
 
         # Determine the dimensions that were broadcast
-        _, shape_bcast = at.infer_broadcastable(shape)
+        _, static_shape = at.infer_static_shape(shape)
+
+        # TODO: This needs to be performed at run-time when static shape
+        # information isn't available.
         bcast_sums = [
             i
-            for i, (a_b, s_b) in enumerate(zip(a.broadcastable, shape_bcast[-a.ndim :]))
-            if a_b and not s_b
+            for i, (a_s, s_s) in enumerate(zip(a.type.shape, static_shape[-a.ndim :]))
+            if a_s == 1 and s_s != 1
         ]
 
         if bcast_sums:
