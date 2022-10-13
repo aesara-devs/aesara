@@ -8,15 +8,12 @@ ProfileStats object for runtime and memory profiling.
 # TODO: what to do about 'diff summary'? (ask Fred?)
 #
 
-import atexit
-import copy
-import logging
 import operator
 import sys
 import time
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional, Union
 
 import numpy as np
 
@@ -41,106 +38,10 @@ def extended_open(filename, mode="r"):
             yield f
 
 
-logger = logging.getLogger("aesara.compile.profiling")
-
 aesara_imported_time: float = time.time()
 total_fct_exec_time: float = 0.0
 total_graph_rewrite_time: float = 0.0
 total_time_linker: float = 0.0
-
-_atexit_print_list: List["ProfileStats"] = []
-_atexit_registered: bool = False
-
-
-def _atexit_print_fn():
-    """Print `ProfileStat` objects in `_atexit_print_list` to `_atexit_print_file`."""
-    if config.profile:
-        to_sum = []
-
-        if config.profiling__destination == "stderr":
-            destination_file = "<stderr>"
-        elif config.profiling__destination == "stdout":
-            destination_file = "<stdout>"
-        else:
-            destination_file = config.profiling__destination
-
-        with extended_open(destination_file, mode="w"):
-
-            # Reverse sort in the order of compile+exec time
-            for ps in sorted(
-                _atexit_print_list, key=lambda a: a.compile_time + a.fct_call_time
-            )[::-1]:
-                if (
-                    ps.fct_callcount >= 1
-                    or ps.compile_time > 1
-                    or getattr(ps, "callcount", 0) > 1
-                ):
-                    ps.summary(
-                        file=destination_file,
-                        n_ops_to_print=config.profiling__n_ops,
-                        n_apply_to_print=config.profiling__n_apply,
-                    )
-
-                    if ps.show_sum:
-                        to_sum.append(ps)
-                else:
-                    # TODO print the name if there is one!
-                    print("Skipping empty Profile")
-            if len(to_sum) > 1:
-                # Make a global profile
-                cum = copy.copy(to_sum[0])
-                msg = f"Sum of all({len(to_sum)}) printed profiles at exit."
-                cum.message = msg
-                for ps in to_sum[1:]:
-                    for attr in [
-                        "compile_time",
-                        "fct_call_time",
-                        "fct_callcount",
-                        "vm_call_time",
-                        "rewriter_time",
-                        "linker_time",
-                        "validate_time",
-                        "import_time",
-                        "linker_node_make_thunks",
-                    ]:
-                        setattr(cum, attr, getattr(cum, attr) + getattr(ps, attr))
-
-                    # merge dictionary
-                    for attr in [
-                        "apply_time",
-                        "apply_callcount",
-                        "apply_cimpl",
-                        "variable_shape",
-                        "variable_strides",
-                        "variable_offset",
-                        "linker_make_thunk_time",
-                    ]:
-                        cum_attr = getattr(cum, attr)
-                        for key, val in getattr(ps, attr.items()):
-                            assert key not in cum_attr, (key, cum_attr)
-                            cum_attr[key] = val
-
-                    if cum.rewriter_profile and ps.rewriter_profile:
-                        try:
-                            merge = cum.rewriter_profile[0].merge_profile(
-                                cum.rewriter_profile[1], ps.rewriter_profile[1]
-                            )
-                            assert len(merge) == len(cum.rewriter_profile[1])
-                            cum.rewriter_profile = (cum.rewriter_profile[0], merge)
-                        except Exception as e:
-                            print(e)
-                            cum.rewriter_profile = None
-                    else:
-                        cum.rewriter_profile = None
-
-                cum.summary(
-                    file=destination_file,
-                    n_ops_to_print=config.profiling__n_ops,
-                    n_apply_to_print=config.profiling__n_apply,
-                )
-
-    if config.print_global_stats:
-        print_global_stats()
 
 
 def print_global_stats():
@@ -190,25 +91,11 @@ class ProfileStats:
 
     Parameters
     ----------
-    atexit_print : bool
-        True means that this object will be printed to stderr (using .summary())
-        at the end of the program.
     **kwargs : misc initializers
         These should (but need not) match the names of the class vars declared
         in this class.
 
     """
-
-    def reset(self):
-        """Ignore previous function call"""
-        # self.compile_time = 0.
-        self.fct_call_time = 0.0
-        self.fct_callcount = 0
-        self.vm_call_time = 0.0
-        self.apply_time = {}
-        self.apply_callcount = {}
-        # self.apply_cimpl = None
-        # self.message = None
 
     #
     # Note on implementation:
@@ -277,7 +164,7 @@ class ProfileStats:
 
     linker_make_thunk_time: Dict = {}
 
-    line_width = config.profiling__output_line_width
+    line_width: int = config.profiling__output_line_width
 
     nb_nodes: int = -1
     # The number of nodes in the graph. We need the information separately in
@@ -289,7 +176,7 @@ class ProfileStats:
 
     # param is called flag_time_thunks because most other attributes with time
     # in the name are times *of* something, rather than configuration flags.
-    def __init__(self, atexit_print=True, flag_time_thunks=None, **kwargs):
+    def __init__(self, flag_time_thunks=None, message=None):
         self.apply_callcount = {}
         self.output_size = {}
         # Keys are `(FunctionGraph, Variable)`
@@ -298,19 +185,24 @@ class ProfileStats:
         self.variable_shape = {}
         self.variable_strides = {}
         self.variable_offset = {}
+        self.message = message
         if flag_time_thunks is None:
             self.flag_time_thunks = config.profiling__time_thunks
         else:
             self.flag_time_thunks = flag_time_thunks
-        self.__dict__.update(kwargs)
-        if atexit_print:
-            global _atexit_print_list
-            _atexit_print_list.append(self)
-            global _atexit_registered
-            if not _atexit_registered:
-                atexit.register(_atexit_print_fn)
-                _atexit_registered = True
+
         self.ignore_first_call = config.profiling__ignore_first_call
+
+    def reset(self):
+        """Ignore previous function call"""
+        # self.compile_time = 0.
+        self.fct_call_time = 0.0
+        self.fct_callcount = 0
+        self.vm_call_time = 0.0
+        self.apply_time = {}
+        self.apply_callcount = {}
+        self.apply_cimpl = None
+        self.message = None
 
     def class_time(self):
         """
@@ -360,7 +252,7 @@ class ProfileStats:
         rval = {}
         for (fgraph, node) in self.apply_callcount:
             typ = type(node.op)
-            if self.apply_cimpl[node]:
+            if self.apply_cimpl and self.apply_cimpl[node]:
                 impl = "C "
             else:
                 impl = "Py"
@@ -438,7 +330,7 @@ class ProfileStats:
         # timing is stored by node, we compute timing by Op on demand
         rval = {}
         for (fgraph, node) in self.apply_callcount:
-            if self.apply_cimpl[node]:
+            if self.apply_cimpl and self.apply_cimpl[node]:
                 rval[node.op] = "C "
             else:
                 rval[node.op] = "Py"
@@ -785,7 +677,8 @@ class ProfileStats:
     def summary_function(self, file):
         print("Function profiling", file=file)
         print("==================", file=file)
-        print(f"  Message: {self.message}", file=file)
+        if self.message:
+            print(f"  Message: {self.message}", file=file)
         print(
             f"  Time in {self.fct_callcount} calls to Function.__call__: {self.fct_call_time:e}s",
             file=file,

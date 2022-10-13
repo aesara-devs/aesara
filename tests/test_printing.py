@@ -11,6 +11,7 @@ import pytest
 import aesara
 from aesara.compile.mode import get_mode
 from aesara.compile.ops import deep_copy_op
+from aesara.compile.profiling import ProfileStats
 from aesara.printing import (
     PatternPrinter,
     PPrinter,
@@ -83,7 +84,7 @@ def test_pydotprint_long_name():
 )
 def test_pydotprint_profile():
     A = matrix()
-    prof = aesara.compile.ProfileStats(atexit_print=False, gpu_checks=False)
+    prof = ProfileStats()
     f = aesara.function([A], A + 1, profile=prof)
     pydotprint(f, print_output_file=False)
     f([[1]])

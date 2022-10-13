@@ -136,13 +136,13 @@ class until:
 
 
 class ScanProfileStats(ProfileStats):
-    show_sum = False
-    callcount = 0
-    nbsteps = 0
-    call_time = 0.0
+    show_sum: bool = False
+    callcount: int = 0
+    nbsteps: int = 0
+    call_time: float = 0.0
 
-    def __init__(self, atexit_print=True, name=None, **kwargs):
-        super().__init__(atexit_print, **kwargs)
+    def __init__(self, name: Optional[str] = None, **kwargs):
+        super().__init__(**kwargs)
         self.name = name
 
     def summary_globals(self, file):

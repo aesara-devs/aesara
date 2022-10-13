@@ -5,7 +5,7 @@ Provide a simple user friendly API.
 
 import logging
 from copy import copy
-from typing import Optional
+from typing import Optional, Union
 
 from aesara.compile.function.types import Function, UnusedInputError, orig_function
 from aesara.compile.io import In, Out
@@ -279,7 +279,7 @@ def pfunc(
     name=None,
     rebuild_strict=True,
     allow_input_downcast=None,
-    profile=None,
+    profile: Optional[Union[bool, str, ProfileStats]] = None,
     on_unused_input=None,
     output_keys=None,
     fgraph: Optional[FunctionGraph] = None,
@@ -319,13 +319,13 @@ def pfunc(
         general, or precise, type. None (default) is almost like
         False, but allows downcasting of Python float scalars to
         floatX.
-    profile : None, True, str, or ProfileStats instance
-        Accumulate profiling information into a given ProfileStats instance.
+    profile
+        Accumulate profiling information into a given `ProfileStats` instance.
         None is the default, and means to use the value of config.profile.
-        If argument is `True` then a new ProfileStats instance will be used.
-        If argument is a string, a new ProfileStats instance will be created
+        If argument is ``True`` then a new `ProfileStats` instance will be used.
+        If argument is a string, a new `ProfileStats` instance will be created
         with that string as its `message` attribute. This profiling object will
-        be available via self.profile.
+        be available via `Function.profile`.
     on_unused_input : {'raise', 'warn','ignore', None}
         What to do if a variable in the 'inputs' list is not used in the graph.
     fgraph

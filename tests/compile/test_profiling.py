@@ -1,9 +1,7 @@
-# Test of memory profiling
-
-
 from io import StringIO
 
 import numpy as np
+import pytest
 
 import aesara.tensor as at
 from aesara.compile import ProfileStats
@@ -13,8 +11,13 @@ from aesara.ifelse import ifelse
 from aesara.tensor.type import fvector, scalars
 
 
+pytestmark = pytest.mark.filterwarnings("error")
+
+
 class TestProfiling:
-    # Test of Aesara profiling with min_peak_memory=True
+    """
+    Test Aesara profiling with ``min_peak_memory=True``.
+    """
 
     def test_profiling(self):
 
@@ -32,14 +35,17 @@ class TestProfiling:
             z += [at.outer(x[i], x[i + 1]).sum(axis=1) for i in range(len(x) - 1)]
             z += [x[i] + x[i + 1] for i in range(len(x) - 1)]
 
-            p = ProfileStats(False, gpu_checks=False)
+            p = ProfileStats()
 
             if config.mode in ("DebugMode", "DEBUG_MODE", "FAST_COMPILE"):
                 m = "FAST_RUN"
             else:
                 m = None
 
-            f = function(x, z, profile=p, name="test_profiling", mode=m)
+            with pytest.warns(
+                UserWarning, match=".*CVM does not support memory profiling.*"
+            ):
+                f = function(x, z, profile=p, name="test_profiling", mode=m)
 
             inp = [np.arange(1024, dtype="float32") + 1 for i in range(len(x))]
             f(*inp)
@@ -87,14 +93,19 @@ class TestProfiling:
 
             z = ifelse(at.lt(a, b), x * 2, y * 2)
 
-            p = ProfileStats(False, gpu_checks=False)
+            p = ProfileStats()
 
             if config.mode in ("DebugMode", "DEBUG_MODE", "FAST_COMPILE"):
                 m = "FAST_RUN"
             else:
                 m = None
 
-            f_ifelse = function([a, b, x, y], z, profile=p, name="test_ifelse", mode=m)
+            with pytest.warns(
+                UserWarning, match=".*CVM does not support memory profiling.*"
+            ):
+                f_ifelse = function(
+                    [a, b, x, y], z, profile=p, name="test_ifelse", mode=m
+                )
 
             val1 = 0.0
             val2 = 1.0

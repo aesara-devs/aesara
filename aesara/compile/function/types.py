@@ -14,6 +14,7 @@ import aesara
 import aesara.compile.profiling
 from aesara.compile.io import In, SymbolicInput, SymbolicOutput
 from aesara.compile.ops import deep_copy_op, view_op
+from aesara.compile.profiling import ProfileStats
 from aesara.configdefaults import config
 from aesara.graph.basic import (
     Constant,
@@ -731,10 +732,10 @@ class Function:
                 message = name
             else:
                 message = str(profile.message) + " copy"
-            profile = aesara.compile.profiling.ProfileStats(message=message)
+            profile = ProfileStats(message=message)
             # profile -> object
         elif isinstance(profile, str):
-            profile = aesara.compile.profiling.ProfileStats(message=profile)
+            profile = ProfileStats(message=profile)
 
         f_cpy = maker.__class__(
             inputs=ins,
@@ -1688,7 +1689,7 @@ def orig_function(
     mode=None,
     accept_inplace=False,
     name=None,
-    profile=None,
+    profile: Optional[ProfileStats] = None,
     on_unused_input=None,
     output_keys=None,
     fgraph: Optional[FunctionGraph] = None,
@@ -1712,7 +1713,8 @@ def orig_function(
     accept_inplace : bool
         True iff the graph can contain inplace operations prior to the
         rewrite phase (default is False).
-    profile : None or ProfileStats instance
+    profile :
+        `ProfileStats` instance.
     on_unused_input : {'raise', 'warn', 'ignore', None}
         What to do if a variable in the 'inputs' list is not used in the graph.
     output_keys
