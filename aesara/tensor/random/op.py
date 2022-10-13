@@ -14,7 +14,7 @@ from aesara.tensor.basic import (
     constant,
     get_scalar_constant_value,
     get_vector_length,
-    infer_broadcastable,
+    infer_static_shape,
 )
 from aesara.tensor.random.type import RandomGeneratorType, RandomStateType, RandomType
 from aesara.tensor.random.utils import normalize_size_param, params_broadcast_shapes
@@ -322,7 +322,7 @@ class RandomVariable(Op):
             )
 
         shape = self._infer_shape(size, dist_params)
-        _, bcast = infer_broadcastable(shape)
+        _, static_shape = infer_static_shape(shape)
         dtype = self.dtype or dtype
 
         if dtype == "floatX":
@@ -336,7 +336,7 @@ class RandomVariable(Op):
             dtype_idx = constant(dtype, dtype="int64")
             dtype = all_dtypes[dtype_idx.data]
 
-        outtype = TensorType(dtype=dtype, shape=bcast)
+        outtype = TensorType(dtype=dtype, shape=static_shape)
         out_var = outtype()
         inputs = (rng, size, dtype_idx) + dist_params
         outputs = (rng.type(), out_var)
