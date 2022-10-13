@@ -543,7 +543,6 @@ class Elemwise(OpenMPOp):
         return [[True for output in node.outputs] for ipt in node.inputs]
 
     def L_op(self, inputs, outs, ograds):
-        from aesara.tensor.math import sum as at_sum
 
         # Compute grad with respect to broadcasted input
         rval = self._bgrad(inputs, outs, ograds)
@@ -574,18 +573,9 @@ class Elemwise(OpenMPOp):
             if isinstance(rval[i].type, (NullType, DisconnectedType)):
                 continue
 
-            # List of all the dimensions that are broadcastable for input[i] so
-            # we can sum over them
-            # TODO: only count dimensions that were effectively broadcasted
-            to_sum = [
-                j
-                for j, bcast in enumerate(ipt.type.broadcastable)
-                if bcast and not outs[0].broadcastable[j]
-            ]
-
-            if to_sum:
-                sr = at_sum(rval[i], axis=to_sum, keepdims=True)
-                rval[i] = sr
+            rval[i] = aesara.tensor.extra_ops.sum_broadcasted_dims(
+                rval[i], ipt, outs[0].type.shape
+            )
 
         return rval
 
