@@ -192,6 +192,36 @@ For a general guide on how to provide open source contributions see `here
 For a good overview of the development workflow (e.g. relevant ``git`` commands)
 see the `NumPy development guide <https://numpy.org/doc/stable/dev/>`_.
 
+
+Contributing to the documentation
+---------------------------------
+
+To contribute to the documentation, first follow the instructions in the previous section. Afterward, you can install the documentation dependencies in the virtual environment you created:
+
+
+.. code-block:: bash
+
+    pip install -r requirements-rtd.txt
+
+
+You can now build the documentation from the root of the project with:
+
+
+.. code-block:: bash
+
+    python doc/scripts/docgen.py
+
+
+Afterward, you can go to `html/index.html` and navigate the changes in a browser. One way to do this is to go to the `html` directory and run:
+
+
+.. code-block:: bash
+
+    python -m http.server
+
+**Do not commit the `html` directory. The documentation is built automatically.**
+
+
 Other tools that might help
 ===========================
 
