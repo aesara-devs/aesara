@@ -79,7 +79,6 @@ Community
 
    introduction
    install
-   updating
    tutorial/index
    extending/index
    dev_start_guide
