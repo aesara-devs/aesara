@@ -22,13 +22,6 @@ Throughout the tutorial, bear in mind that there is a :ref:`glossary` as well
 as *index* and *modules* links in the upper-right corner of each page to help
 you out.
 
-Prerequisites
--------------
-.. toctree::
-
-    python
-    numpy
-
 Basics
 ------
 
