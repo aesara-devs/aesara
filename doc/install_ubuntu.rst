@@ -15,8 +15,6 @@ Ubuntu Installation Instructions
 .. |PlatformCompiler| replace:: ``python-dev``, ``g++`` >= 4.2
 .. |CompilerName| replace:: ``g++``
 
-.. include:: requirements.inc
-
 .. include:: install_generic.inc
     :start-line: 5
 

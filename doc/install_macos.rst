@@ -15,8 +15,6 @@ details so that we can add alternative instructions.
 .. |PlatformCompiler| replace:: ``clang`` (the system version)
 .. |CompilerName| replace:: ``Clang``
 
-.. include:: requirements.inc
-
 .. attention::
 
     Aesara officially supports only clang on OS X.  This can be installed

@@ -78,7 +78,6 @@ Community
    :hidden:
 
    introduction
-   requirements
    install
    updating
    tutorial/index
