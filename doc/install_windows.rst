@@ -15,10 +15,6 @@ Windows Installation Instructions
 .. |PlatformCompiler| replace:: GCC compiler with ``g++`` (version >= ``4.2.*``), and Python development files
 .. |CompilerName| replace:: ``g++``
 
-.. List of requirements, optional requirements, and installation of miniconda.
-.. include:: requirements.inc
-    :end-before: .. install_requirements_and_optional_packages
-
 Install requirements and optional packages
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
