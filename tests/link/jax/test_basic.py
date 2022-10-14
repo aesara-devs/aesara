@@ -37,9 +37,10 @@ py_mode = Mode(
 
 def compare_jax_and_py(
     fgraph: FunctionGraph,
-    test_inputs: Iterable,
+    inputs: Iterable,
     assert_fn: Optional[Callable] = None,
-    must_be_device_array: bool = True,
+    jax_mode=jax_mode,
+    updates=None,
 ):
     """Function to compare python graph output and jax compiled output for testing equality
 
@@ -56,34 +57,28 @@ def compare_jax_and_py(
     assert_fn: func, opt
         Assert function used to check for equality between python and jax. If not
         provided uses np.testing.assert_allclose
-    must_be_device_array: Bool
-        Checks for instance of jax.interpreters.xla.DeviceArray. For testing purposes
-        if this device array is found it indicates if the result was computed by jax
-
-    Returns
-    -------
-    jax_res
+    updates
+        Updates to be passed to `aesara.function`.
 
     """
     if assert_fn is None:
         assert_fn = partial(np.testing.assert_allclose, rtol=1e-4)
 
-    fn_inputs = [i for i in fgraph.inputs if not isinstance(i, SharedVariable)]
-    aesara_jax_fn = function(fn_inputs, fgraph.outputs, mode=jax_mode)
-    jax_res = aesara_jax_fn(*test_inputs)
+    if isinstance(fgraph, tuple):
+        fn_inputs, fn_outputs = fgraph
+    else:
+        fn_inputs = fgraph.inputs
+        fn_outputs = fgraph.outputs
 
-    if must_be_device_array:
-        if isinstance(jax_res, list):
-            assert all(
-                isinstance(res, jax.interpreters.xla.DeviceArray) for res in jax_res
-            )
-        else:
-            assert isinstance(jax_res, jax.interpreters.xla.DeviceArray)
+    fn_inputs = [i for i in fn_inputs if not isinstance(i, SharedVariable)]
 
-    aesara_py_fn = function(fn_inputs, fgraph.outputs, mode=py_mode)
-    py_res = aesara_py_fn(*test_inputs)
+    aesara_py_fn = function(fn_inputs, fn_outputs, mode=py_mode, updates=updates)
+    py_res = aesara_py_fn(*inputs)
 
-    if len(fgraph.outputs) > 1:
+    aesara_jax_fn = function(fn_inputs, fn_outputs, mode=jax_mode, updates=updates)
+    jax_res = aesara_jax_fn(*inputs)
+
+    if len(fn_outputs) > 1:
         for j, p in zip(jax_res, py_res):
             assert_fn(j, p)
     else:
