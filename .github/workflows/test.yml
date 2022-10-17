@@ -77,6 +77,7 @@ jobs:
           - "tests/tensor tests/sparse --ignore=tests/tensor/test_basic.py --ignore=tests/tensor/test_math.py --ignore=tests/tensor/test_math_scipy.py --ignore=tests/tensor/test_inplace.py --ignore=tests/tensor/test_elemwise.py --ignore=tests/tensor/rewriting/test_basic.py --ignore=tests/tensor/rewriting/test_math.py --ignore=tests/tensor/nnet --ignore=tests/tensor/signal"
           - "tests/tensor/test_basic.py tests/tensor/test_math.py tests/tensor/test_math_scipy.py tests/tensor/test_inplace.py"
           - "tests/tensor/test_elemwise.py tests/tensor/rewriting/test_basic.py tests/tensor/rewriting/test_math.py"
+          - "tests/tensor/nnet/test_conv.py"
         include:
           - python-version: "3.7"
             fast-compile: 1
