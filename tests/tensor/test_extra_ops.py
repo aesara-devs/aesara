@@ -1142,6 +1142,12 @@ def test_broadcast_shape_basic():
     b_at = broadcast_shape(x_at, y_at)
     assert isinstance(b_at[-1].owner.op, Assert)
 
+    # N.B. Shared variable shape values shouldn't be treated as constants,
+    # because they can change.
+    s = aesara.shared(1)
+    b_at = broadcast_shape((s, 2), (2, 1), arrays_are_shapes=True)
+    assert isinstance(b_at[0].owner.op, Assert)
+
 
 def test_broadcast_shape_constants():
     """Make sure `broadcast_shape` uses constants when it can."""
