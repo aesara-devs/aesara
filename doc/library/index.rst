@@ -60,6 +60,11 @@ Control flow
 
    Alias for :func:`aesara.scan.basic.scan`
 
+Convert to Variable
+====================
+
+.. autofunction:: aesara.as_symbolic(...)
+
 Debug
 =====
 
