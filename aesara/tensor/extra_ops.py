@@ -1493,7 +1493,7 @@ def broadcast_shape_iter(
             (one_at,) * (max_dims - len(a))
             + tuple(
                 one_at
-                if getattr(sh, "value", sh) == 1
+                if sh == 1 or isinstance(sh, Constant) and sh.value == 1
                 else (aes.as_scalar(sh) if not isinstance(sh, Variable) else sh)
                 for sh in a
             )
