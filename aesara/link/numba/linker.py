@@ -27,6 +27,7 @@ class NumbaLinker(JITLinker):
         return numba_funcify(fgraph, **kwargs)
 
     def jit_compile(self, fn):
+        return fn
         import numba
 
         jitted_fn = numba.njit(fn)
