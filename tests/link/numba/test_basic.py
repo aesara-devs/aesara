@@ -2,6 +2,7 @@ import contextlib
 import inspect
 from typing import TYPE_CHECKING, Callable, Optional, Sequence, Tuple, Union
 from unittest import mock
+import aesara
 
 import numba
 import numpy as np
@@ -1003,3 +1004,20 @@ def test_scalar_return_value_conversion():
         mode=numba_mode,
     )
     assert isinstance(x_fn(1.0), np.ndarray)
+
+@pytest.mark.parametrize("input,args", [
+    (set_test_value(at.scalar(), np.array(0.1, dtype=np.float64)), {}),
+    (set_test_value(at.dvector(), np.array([0.3, 0.1], dtype=np.float64)), {}),
+    (set_test_value(at.dmatrix(), np.array([[0.3, 0.1], [0.3, 0.6]], dtype=np.float64)), {}),
+    (set_test_value(at.dtensor3(), np.array([[[0.3, 0.1], [0.3, 0.6]],[[1.3, -.21], [4.3, -1.]]], dtype=np.float64)), dict(axis=[1, 2]))
+])
+def test_Argmax(input, args):
+
+    out = aesara.tensor.argmax(input, **args)
+
+    if not isinstance(out, list):
+        out = [out]
+
+    out_fg = FunctionGraph([input], out)
+
+    compare_numba_and_py(out_fg, [get_test_value(i) for i in out_fg.inputs])
