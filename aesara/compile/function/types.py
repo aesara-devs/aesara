@@ -824,7 +824,7 @@ class Function:
                     self[i] = value
 
         profile = self.profile
-        t0 = time.time_ns()
+        t0 = time.perf_counter()
 
         output_subset = kwargs.pop("output_subset", None)
         if output_subset is not None and self.output_keys is not None:
@@ -965,7 +965,7 @@ class Function:
                     )
 
         # Do the actual work
-        t0_fn = time.time_ns()
+        t0_fn = time.perf_counter()
         try:
             outputs = (
                 self.vm()
@@ -991,7 +991,7 @@ class Function:
                 # old-style linkers raise their own exceptions
                 raise
 
-        dt_fn = (time.time_ns() - t0_fn) / 10**9
+        dt_fn = time.perf_counter() - t0_fn
         self.maker.mode.fn_time += dt_fn
         if profile:
             profile.vm_call_time += dt_fn
@@ -1039,7 +1039,7 @@ class Function:
         #       grep for 'PROFILE_CODE'
         #
 
-        dt_call = (time.time_ns() - t0) / 10**9
+        dt_call = time.perf_counter() - t0
         aesara.compile.profiling.total_fct_exec_time += dt_call
         self.maker.mode.call_time += dt_call
         if profile:
@@ -1395,7 +1395,7 @@ class FunctionMaker:
     ):
 
         try:
-            start_rewriter = time.time_ns()
+            start_rewriter = time.perf_counter()
 
             rewriter_profile = None
             rewrite_time = None
@@ -1406,8 +1406,8 @@ class FunctionMaker:
             ):
                 rewriter_profile = rewriter(fgraph)
 
-                end_rewriter = time.time_ns()
-                rewrite_time = (end_rewriter - start_rewriter) / 10**9
+                end_rewriter = time.perf_counter()
+                rewrite_time = end_rewriter - start_rewriter
                 _logger.debug(f"Rewriting took {rewrite_time:f} seconds")
 
                 # Add deep copy to respect the memory interface
@@ -1416,8 +1416,8 @@ class FunctionMaker:
 
             # If the rewriter got interrupted
             if rewrite_time is None:
-                end_rewriter = time.time_ns()
-                rewrite_time = (end_rewriter - start_rewriter) / 10**9
+                end_rewriter = time.perf_counter()
+                rewrite_time = end_rewriter - start_rewriter
 
             aesara.compile.profiling.total_graph_rewrite_time += rewrite_time
 
@@ -1645,7 +1645,7 @@ class FunctionMaker:
             defaults.append((required, refeed, storage))
 
         # Get a function instance
-        start_linker = time.time_ns()
+        start_linker = time.perf_counter()
         start_import_time = aesara.link.c.cmodule.import_time
 
         with config.change_flags(traceback__limit=config.traceback__compile_limit):
@@ -1653,9 +1653,9 @@ class FunctionMaker:
                 input_storage=input_storage_lists, storage_map=storage_map
             )
 
-        end_linker = time.time_ns()
+        end_linker = time.perf_counter()
 
-        linker_time = (end_linker - start_linker) / 10**9
+        linker_time = end_linker - start_linker
         aesara.compile.profiling.total_time_linker += linker_time
         _logger.debug(f"Linker took {linker_time:f} seconds")
         if self.profile:
@@ -1725,7 +1725,7 @@ def orig_function(
 
     """
 
-    t1 = time.time_ns()
+    t1 = time.perf_counter()
     mode = aesara.compile.mode.get_mode(mode)
 
     inputs = list(map(convert_function_input, inputs))
@@ -1758,9 +1758,9 @@ def orig_function(
         with config.change_flags(compute_test_value="off"):
             fn = m.create(defaults)
     finally:
-        t2 = time.time_ns()
+        t2 = time.perf_counter()
         if fn and profile:
-            profile.compile_time += (t2 - t1) / 10**9
+            profile.compile_time += t2 - t1
             # TODO: append
             profile.nb_nodes = len(fn.maker.fgraph.apply_nodes)
 
