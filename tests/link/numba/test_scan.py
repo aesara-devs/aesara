@@ -367,6 +367,8 @@ def test_scan_save_mem_basic(n_steps_val):
     state_val = np.array([1.0, 2.0])
 
     numba_mode = get_mode("NUMBA").including("scan_save_mem")
+    # multi-output Elemwise not supported in NUMBA
+    numba_mode = numba_mode.excluding("fusion")
     py_mode = Mode("py").including("scan_save_mem")
 
     out_fg = FunctionGraph([init_x, n_steps], [output])
@@ -406,6 +408,8 @@ def test_mitmots_basic():
     g_outs = grad(out.sum(), [seq, init_x])
 
     numba_mode = get_mode("NUMBA").including("scan_save_mem")
+    # multi-output Elemwise not supported in NUMBA
+    numba_mode = numba_mode.excluding("fusion")
     py_mode = Mode("py").including("scan_save_mem")
 
     out_fg = FunctionGraph([seq, init_x], g_outs)
