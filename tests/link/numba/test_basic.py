@@ -2,12 +2,12 @@ import contextlib
 import inspect
 from typing import TYPE_CHECKING, Callable, Optional, Sequence, Tuple, Union
 from unittest import mock
-import aesara
 
 import numba
 import numpy as np
 import pytest
 
+import aesara
 import aesara.scalar as aes
 import aesara.scalar.math as aesm
 import aesara.tensor as at
@@ -1005,12 +1005,30 @@ def test_scalar_return_value_conversion():
     )
     assert isinstance(x_fn(1.0), np.ndarray)
 
-@pytest.mark.parametrize("input,args", [
-    (set_test_value(at.scalar(), np.array(0.1, dtype=np.float64)), {}),
-    (set_test_value(at.dvector(), np.array([0.3, 0.1], dtype=np.float64)), {}),
-    (set_test_value(at.dmatrix(), np.array([[0.3, 0.1], [0.3, 0.6]], dtype=np.float64)), {}),
-    (set_test_value(at.dtensor3(), np.array([[[0.3, 0.1], [0.3, 0.6]],[[1.3, -.21], [4.3, -1.]]], dtype=np.float64)), dict(axis=[1, 2]))
-])
+
+@pytest.mark.parametrize(
+    "input,args",
+    [
+        (set_test_value(at.scalar(), np.array(0.1, dtype=np.float64)), {}),
+        (set_test_value(at.dvector(), np.array([0.3, 0.1], dtype=np.float64)), {}),
+        (
+            set_test_value(
+                at.dmatrix(), np.array([[0.3, 0.1], [0.3, 0.6]], dtype=np.float64)
+            ),
+            {},
+        ),
+        (
+            set_test_value(
+                at.dtensor3(),
+                np.array(
+                    [[[0.3, 0.1], [0.3, 0.6]], [[1.3, -0.21], [4.3, -1.0]]],
+                    dtype=np.float64,
+                ),
+            ),
+            dict(axis=[1, 2]),
+        ),
+    ],
+)
 def test_Argmax(input, args):
 
     out = aesara.tensor.argmax(input, **args)
