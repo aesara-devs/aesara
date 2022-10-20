@@ -331,13 +331,6 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
             # `specify_shape` will combine the more precise shapes of the two types
             return aesara.tensor.specify_shape(var, self.shape)
 
-    def value_zeros(self, shape):
-        """Create an numpy ndarray full of 0 values.
-
-        TODO: Remove this trivial method.
-        """
-        return np.zeros(shape, dtype=self.dtype)
-
     @staticmethod
     def values_eq(a, b, force_same_dtype=True):
         # TODO: check to see if the shapes must match; for now, we err on safe

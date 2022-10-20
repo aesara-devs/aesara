@@ -234,7 +234,6 @@ def test_fixed_shape_basic():
     t1 = TensorType("float64", (2, 3))
     assert t1.shape == (2, 3)
     assert t1.broadcastable == (False, False)
-    assert t1.value_zeros(t1.shape).shape == t1.shape
 
     assert str(t1) == "TensorType(float64, (2, 3))"
 
