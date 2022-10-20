@@ -224,14 +224,6 @@ class SparseTensorType(TensorType, HasDataType):
             + (shape_info[2] + shape_info[3]) * np.dtype("int32").itemsize
         )
 
-    def value_zeros(self, shape):
-        matrix_constructor = self.format_cls.get(self.format)
-
-        if matrix_constructor is None:
-            raise ValueError(f"Sparse matrix type {self.format} not found in SciPy")
-
-        return matrix_constructor(shape, dtype=self.dtype)
-
     def __eq__(self, other):
         res = super().__eq__(other)
 

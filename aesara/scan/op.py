@@ -1380,11 +1380,13 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         # the output value, possibly inplace, at the end of the
                         # function execution. Also, since an update is defined,
                         # a default value must also be (this is verified by
-                        # DebugMode). Use an array of size 0 with the correct
-                        # ndim and dtype (use a shape of 1 on broadcastable
-                        # dimensions, and 0 on the others).
-                        default_shape = [1 if _b else 0 for _b in inp.broadcastable]
-                        default_val = inp.type.value_zeros(default_shape)
+                        # DebugMode).
+                        # TODO FIXME: Why do we need a "default value" here?
+                        # This sounds like a serious design issue.
+                        default_shape = tuple(
+                            s if s is not None else 0 for s in inp.type.shape
+                        )
+                        default_val = np.empty(default_shape, dtype=inp.type.dtype)
                         wrapped_inp = In(
                             variable=inp,
                             value=default_val,
