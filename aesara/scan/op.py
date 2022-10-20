@@ -200,7 +200,7 @@ def copy_var_format(var, as_var):
         rval = as_var.type.filter_variable(rval)
     else:
         tmp = as_var.type.clone(
-            shape=(tuple(var.broadcastable[:1]) + tuple(as_var.broadcastable))
+            shape=(tuple(var.type.shape[:1]) + tuple(as_var.type.shape))
         )
         rval = tmp.filter_variable(rval)
     return rval
@@ -805,7 +805,9 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             # output sequence
             o = outputs[idx]
             self.output_types.append(
-                typeConstructor((False,) + o.type.broadcastable, o.type.dtype)
+                # TODO: What can we actually say about the shape of this
+                # added dimension?
+                typeConstructor((None,) + o.type.shape, o.type.dtype)
             )
 
             idx += len(info.mit_mot_out_slices[jdx])
@@ -816,7 +818,9 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
 
         for o in outputs[idx:end]:
             self.output_types.append(
-                typeConstructor((False,) + o.type.broadcastable, o.type.dtype)
+                # TODO: What can we actually say about the shape of this
+                # added dimension?
+                typeConstructor((None,) + o.type.shape, o.type.dtype)
             )
 
         # shared outputs + possibly the ending condition
@@ -2320,8 +2324,8 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                     # equivalent (if False). Here, we only need the variable.
                     v_shp_i = validator.check(shp_i)
                     if v_shp_i is None:
-                        if hasattr(r, "broadcastable") and r.broadcastable[i]:
-                            shp.append(1)
+                        if r.type.shape[i] is not None:
+                            shp.append(r.type.shape[i])
                         else:
                             shp.append(Shape_i(i)(r))
                     else:
