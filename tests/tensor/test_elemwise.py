@@ -56,13 +56,14 @@ class TestDimShuffle(unittest_tools.InferShapeTester):
             ((1, 1, 1), (), ()),
             ((1,), ("x", "x"), (1, 1)),
         ]:
-            ib = [(entry == 1) for entry in xsh]
-            x = self.type(self.dtype, ib)("x")
+            i_shape = [entry if entry == 1 else None for entry in xsh]
+            ib = [entry == 1 for entry in i_shape]
+            x = self.type(self.dtype, shape=i_shape)("x")
             e = self.op(ib, shuffle)(x)
             f = aesara.function([x], e, mode=Mode(linker=linker))
             assert f(np.ones(xsh, dtype=self.dtype)).shape == zsh
             # test that DimShuffle.infer_shape work correctly
-            x = self.type(self.dtype, ib)("x")
+            x = self.type(self.dtype, shape=i_shape)("x")
             e = self.op(ib, shuffle)(x)
             f = aesara.function(
                 [x], e.shape, mode=Mode(linker=linker), on_unused_input="ignore"
@@ -71,13 +72,13 @@ class TestDimShuffle(unittest_tools.InferShapeTester):
 
         # Test when we drop a axis that is not broadcastable
         ib = [False, True, False]
-        x = self.type(self.dtype, ib)("x")
+        x = self.type(self.dtype, shape=(None, 1, None))("x")
         with pytest.raises(ValueError):
             self.op(ib, shuffle)
 
         # Test when we drop a axis that don't have shape 1
         ib = [True, True, False]
-        x = self.type(self.dtype, ib)("x")
+        x = self.type(self.dtype, shape=(1, 1, None))("x")
         e = self.op(ib, (1, 2))(x)
         f = aesara.function([x], e.shape, mode=Mode(linker=linker))
         with pytest.raises(TypeError):
@@ -86,7 +87,7 @@ class TestDimShuffle(unittest_tools.InferShapeTester):
         # Test that we can't take a dimensions multiple time
         xsh, shuffle, zsh = ((1, 1, 4), (0, 1, 2, 0), (1, 4))
         ib = [False, True, False]
-        x = self.type(self.dtype, ib)("x")
+        x = self.type(self.dtype, shape=(None, 1, None))("x")
         with pytest.raises(ValueError):
             DimShuffle(ib, shuffle)
 
@@ -111,8 +112,9 @@ class TestDimShuffle(unittest_tools.InferShapeTester):
             ((1, 1, 1), ()),
             ((1,), ("x", "x")),
         ]:
+            i_shape = [entry if entry == 1 else None for entry in xsh]
             ib = [(entry == 1) for entry in xsh]
-            adtens = self.type(self.dtype, ib)("x")
+            adtens = self.type(self.dtype, shape=i_shape)("x")
             adtens_val = np.ones(xsh, dtype=self.dtype)
             self._compile_and_check(
                 [adtens],
@@ -234,11 +236,11 @@ class TestBroadcast:
                     # type shape provided by Aesara was broadcastable/non-broadcastable
                     x_type = type(
                         aesara.config.floatX,
-                        broadcastable=[(entry == 1) for entry in xsh],
+                        shape=tuple(s if s == 1 else None for s in xsh),
                     )
                     y_type = type(
                         aesara.config.floatX,
-                        broadcastable=[(entry == 1) for entry in ysh],
+                        shape=tuple(s if s == 1 else None for s in ysh),
                     )
                 else:
                     x_type = type(aesara.config.floatX, shape=[None for _ in xsh])
@@ -285,11 +287,11 @@ class TestBroadcast:
                     # type shape provided by Aesara was broadcastable/non-broadcastable
                     x_type = type(
                         aesara.config.floatX,
-                        broadcastable=[(entry == 1) for entry in xsh],
+                        shape=tuple(s if s == 1 else None for s in xsh),
                     )
                     y_type = type(
                         aesara.config.floatX,
-                        broadcastable=[(entry == 1) for entry in ysh],
+                        shape=tuple(s if s == 1 else None for s in ysh),
                     )
                 else:
                     x_type = type(aesara.config.floatX, shape=[None for _ in xsh])
@@ -349,8 +351,8 @@ class TestBroadcast:
             [self.type, self.ctype],
             [self.rand_val, self.rand_cval],
         ):
-            x = t(aesara.config.floatX, (False, False))("x")
-            y = t(aesara.config.floatX, (True, True))("y")
+            x = t(aesara.config.floatX, shape=(None, None))("x")
+            y = t(aesara.config.floatX, shape=(1, 1))("y")
             e = op(aes.Second(aes.transfer_type(0)), {0: 0})(x, y)
             f = make_function(linker().accept(FunctionGraph([x, y], [e])))
             xv = rval((5, 5))
@@ -363,11 +365,10 @@ class TestBroadcast:
         x.fill(3)
 
     def test_fill_grad(self):
-        # Fix bug reported at
-        # https://groups.google.com/d/topic/theano-users/nQshB8gUA6k/discussion
-        x = TensorType(config.floatX, (False, True, False))("x")
-        y = TensorType(config.floatX, (False, True, False))("y")
+        x = TensorType(config.floatX, shape=(None, 1, None))("x")
+        y = TensorType(config.floatX, shape=(None, 1, None))("y")
         e = second(x, y)
+        # TODO FIXME: Make this a real test and assert something here!
         aesara.grad(e.sum(), y)
 
     @pytest.mark.skipif(
@@ -380,8 +381,8 @@ class TestBroadcast:
             [self.type, self.ctype],
             [self.rand_val, self.rand_cval],
         ):
-            x = t(aesara.config.floatX, (False,) * 5)("x")
-            y = t(aesara.config.floatX, (False,) * 5)("y")
+            x = t(aesara.config.floatX, shape=(None,) * 5)("x")
+            y = t(aesara.config.floatX, shape=(None,) * 5)("y")
             e = op(aes.add)(x, y)
             f = make_function(linker().accept(FunctionGraph([x, y], [e])))
             xv = rval((2, 2, 2, 2, 2))
@@ -399,7 +400,7 @@ class TestBroadcast:
             [self.type, self.ctype],
             [self.rand_val, self.rand_cval],
         ):
-            x = t(aesara.config.floatX, (False,) * 2)("x")
+            x = t(aesara.config.floatX, shape=(None,) * 2)("x")
             e = op(aes.add)(x, x)
             f = make_function(linker().accept(FunctionGraph([x], [e])))
             xv = rval((2, 2))
@@ -440,7 +441,9 @@ class TestCAReduce(unittest_tools.InferShapeTester):
         for xsh, tosum in self.cases:
             if dtype == "floatX":
                 dtype = aesara.config.floatX
-            x = self.type(dtype, [(entry == 1) for entry in xsh])("x")
+            x = self.type(
+                dtype, shape=tuple(entry if entry == 1 else None for entry in xsh)
+            )("x")
             d = {}
             if pre_scalar_op is not None:
                 d = {"pre_scalar_op": pre_scalar_op}
@@ -548,7 +551,9 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                     # GpuCAReduce don't implement all cases when size is 0
                     assert xv.size == 0
 
-            x = self.type(dtype, [(entry == 1) for entry in xsh])("x")
+            x = self.type(
+                dtype, shape=tuple(entry if entry == 1 else None for entry in xsh)
+            )("x")
             if tensor_op is None:
                 e = self.op(scalar_op, axis=tosum)(x)
             else:
@@ -653,7 +658,9 @@ class TestCAReduce(unittest_tools.InferShapeTester):
         if dtype is None:
             dtype = aesara.config.floatX
         for xsh, tosum in self.cases:
-            x = self.type(dtype, [(entry == 1) for entry in xsh])("x")
+            x = self.type(
+                dtype, shape=tuple(entry if entry == 1 else None for entry in xsh)
+            )("x")
             if pre_scalar_op is not None:
                 x = pre_scalar_op(x)
             if tosum is None:
@@ -749,8 +756,12 @@ class TestElemwise(unittest_tools.InferShapeTester):
             ((2, 3, 4, 1), (2, 3, 4, 5)),
         ]:
             dtype = aesara.config.floatX
-            t_left = TensorType(dtype, [(entry == 1) for entry in s_left])()
-            t_right = TensorType(dtype, [(entry == 1) for entry in s_right])()
+            t_left = TensorType(
+                dtype, shape=tuple(entry if entry == 1 else None for entry in s_left)
+            )()
+            t_right = TensorType(
+                dtype, shape=tuple(entry if entry == 1 else None for entry in s_right)
+            )()
             t_left_val = np.zeros(s_left, dtype=dtype)
             t_right_val = np.zeros(s_right, dtype=dtype)
             self._compile_and_check(
@@ -857,7 +868,7 @@ class TestElemwise(unittest_tools.InferShapeTester):
 
     def test_static_shape_unary(self):
         x = tensor("float64", shape=(None, 0, 1, 5))
-        exp(x).type.shape == (None, 0, 1, 5)
+        assert exp(x).type.shape == (None, 0, 1, 5)
 
     def test_static_shape_binary(self):
         x = tensor("float64", shape=(None, 5))

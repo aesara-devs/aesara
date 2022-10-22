@@ -25,30 +25,30 @@ def test_numpy_dtype(dtype, exp_dtype):
 
 
 def test_in_same_class():
-    test_type = TensorType(config.floatX, [False, False])
-    test_type2 = TensorType(config.floatX, [False, True])
+    test_type = TensorType(config.floatX, shape=(None, None))
+    test_type2 = TensorType(config.floatX, shape=(None, 1))
 
     assert test_type.in_same_class(test_type)
     assert not test_type.in_same_class(test_type2)
 
 
 def test_is_super():
-    test_type = TensorType(config.floatX, [False, False])
-    test_type2 = TensorType(config.floatX, [False, True])
+    test_type = TensorType(config.floatX, shape=(None, None))
+    test_type2 = TensorType(config.floatX, shape=(None, 1))
 
     assert test_type.is_super(test_type)
     assert test_type.is_super(test_type2)
     assert not test_type2.is_super(test_type)
 
-    test_type3 = TensorType(config.floatX, [False, False, False])
+    test_type3 = TensorType(config.floatX, shape=(None, None, None))
     assert not test_type3.is_super(test_type)
 
 
 def test_convert_variable():
-    test_type = TensorType(config.floatX, [False, False])
+    test_type = TensorType(config.floatX, shape=(None, None))
     test_var = test_type()
 
-    test_type2 = TensorType(config.floatX, [True, False])
+    test_type2 = TensorType(config.floatX, shape=(1, None))
     test_var2 = test_type2()
 
     res = test_type.convert_variable(test_var)
@@ -60,7 +60,7 @@ def test_convert_variable():
     res = test_type2.convert_variable(test_var)
     assert res.type == test_type2
 
-    test_type3 = TensorType(config.floatX, [True, False, True])
+    test_type3 = TensorType(config.floatX, shape=(1, None, 1))
     test_var3 = test_type3()
 
     res = test_type2.convert_variable(test_var3)
@@ -84,12 +84,12 @@ def test_convert_variable_mixed_specificity():
 
 
 def test_filter_variable():
-    test_type = TensorType(config.floatX, [])
+    test_type = TensorType(config.floatX, shape=())
 
     with pytest.raises(TypeError):
         test_type.filter(test_type())
 
-    test_type = TensorType(config.floatX, [True, False])
+    test_type = TensorType(config.floatX, shape=(1, None))
 
     with pytest.raises(TypeError):
         test_type.filter(np.empty((0, 1), dtype=config.floatX))
@@ -103,7 +103,7 @@ def test_filter_variable():
         test_type.filter_checks_isfinite = True
         test_type.filter(np.full((1, 2), np.inf, dtype=config.floatX))
 
-    test_type2 = TensorType(config.floatX, [False, False])
+    test_type2 = TensorType(config.floatX, shape=(None, None))
     test_var = test_type()
     test_var2 = test_type2()
 
@@ -120,7 +120,7 @@ def test_filter_variable():
 
 
 def test_filter_strict():
-    test_type = TensorType(config.floatX, [])
+    test_type = TensorType(config.floatX, shape=())
 
     with pytest.raises(TypeError):
         test_type.filter(1, strict=True)
@@ -131,7 +131,7 @@ def test_filter_strict():
 
 def test_filter_ndarray_subclass():
     """Make sure `TensorType.filter` can handle NumPy `ndarray` subclasses."""
-    test_type = TensorType(config.floatX, [False])
+    test_type = TensorType(config.floatX, shape=(None,))
 
     class MyNdarray(np.ndarray):
         pass
@@ -147,7 +147,7 @@ def test_filter_ndarray_subclass():
 def test_filter_float_subclass():
     """Make sure `TensorType.filter` can handle `float` subclasses."""
     with config.change_flags(floatX="float64"):
-        test_type = TensorType("float64", shape=[])
+        test_type = TensorType("float64", shape=())
 
         nan = np.array([np.nan], dtype="float64")[0]
         assert isinstance(nan, float) and not isinstance(nan, np.ndarray)
@@ -157,7 +157,7 @@ def test_filter_float_subclass():
 
     with config.change_flags(floatX="float32"):
         # Try again, except this time `nan` isn't a `float`
-        test_type = TensorType("float32", shape=[])
+        test_type = TensorType("float32", shape=())
 
         nan = np.array([np.nan], dtype="float32")[0]
         assert isinstance(nan, np.floating) and not isinstance(nan, np.ndarray)
@@ -173,7 +173,7 @@ def test_filter_memmap():
     filename = path.join(mkdtemp(), "newfile.dat")
     fp = np.memmap(filename, dtype=config.floatX, mode="w+", shape=(3, 4))
 
-    test_type = TensorType(config.floatX, [False, False])
+    test_type = TensorType(config.floatX, shape=(None, None))
 
     res = test_type.filter(fp)
     assert res is fp
@@ -219,25 +219,25 @@ def test_tensor_values_eq_approx():
 
 
 def test_fixed_shape_basic():
-    t1 = TensorType("float64", (1, 1))
+    t1 = TensorType("float64", shape=(1, 1))
     assert t1.shape == (1, 1)
     assert t1.broadcastable == (True, True)
 
-    t1 = TensorType("float64", (0,))
+    t1 = TensorType("float64", shape=(0,))
     assert t1.shape == (0,)
     assert t1.broadcastable == (False,)
 
-    t1 = TensorType("float64", (False, False))
+    t1 = TensorType("float64", shape=(None, None))
     assert t1.shape == (None, None)
     assert t1.broadcastable == (False, False)
 
-    t1 = TensorType("float64", (2, 3))
+    t1 = TensorType("float64", shape=(2, 3))
     assert t1.shape == (2, 3)
     assert t1.broadcastable == (False, False)
 
     assert str(t1) == "TensorType(float64, (2, 3))"
 
-    t1 = TensorType("float64", (1,))
+    t1 = TensorType("float64", shape=(1,))
     assert t1.shape == (1,)
     assert t1.broadcastable == (True,)
 
@@ -256,13 +256,13 @@ def test_fixed_shape_clone():
     t2 = t1.clone(dtype="float32", shape=(2, 4))
     assert t2.shape == (2, 4)
 
-    t2 = t1.clone(dtype="float32", shape=(False, False))
+    t2 = t1.clone(dtype="float32", shape=(None, None))
     assert t2.shape == (None, None)
 
 
 def test_fixed_shape_comparisons():
-    t1 = TensorType("float64", (True, True))
-    t2 = TensorType("float64", (1, 1))
+    t1 = TensorType("float64", shape=(1, 1))
+    t2 = TensorType("float64", shape=(1, 1))
     assert t1 == t2
 
     assert t1.is_super(t2)
@@ -270,19 +270,19 @@ def test_fixed_shape_comparisons():
 
     assert hash(t1) == hash(t2)
 
-    t3 = TensorType("float64", (True, False))
-    t4 = TensorType("float64", (1, 2))
+    t3 = TensorType("float64", shape=(1, None))
+    t4 = TensorType("float64", shape=(1, 2))
     assert t3 != t4
 
-    t1 = TensorType("float64", (True, True))
-    t2 = TensorType("float64", ())
+    t1 = TensorType("float64", shape=(1, 1))
+    t2 = TensorType("float64", shape=())
     assert t1 != t2
 
 
 def test_fixed_shape_convert_variable():
     # These are equivalent types
-    t1 = TensorType("float64", (True, True))
-    t2 = TensorType("float64", (1, 1))
+    t1 = TensorType("float64", shape=(1, 1))
+    t2 = TensorType("float64", shape=(1, 1))
 
     assert t1 == t2
     assert t1.shape == t2.shape
@@ -298,13 +298,13 @@ def test_fixed_shape_convert_variable():
     res = t2.convert_variable(t1_var)
     assert res is t1_var
 
-    t3 = TensorType("float64", (False, True))
+    t3 = TensorType("float64", shape=(None, 1))
     t3_var = t3()
     res = t2.convert_variable(t3_var)
     assert isinstance(res.owner.op, SpecifyShape)
 
-    t3 = TensorType("float64", (False, False))
-    t4 = TensorType("float64", (3, 2))
+    t3 = TensorType("float64", shape=(None, None))
+    t4 = TensorType("float64", shape=(3, 2))
     t4_var = t4()
     assert t3.shape == (None, None)
     res = t3.convert_variable(t4_var)

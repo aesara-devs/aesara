@@ -1122,7 +1122,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
         rng = np.random.default_rng(utt.fetch_seed())
         maxpoolshps = [(3, 2)]
         imval = rng.random((2, 1, 1, 1, 3, 4))
-        images = TensorType("float64", [False] * 6)()
+        images = TensorType("float64", shape=(None,) * 6)()
 
         for maxpoolshp, ignore_border, mode in product(
             maxpoolshps,
@@ -1204,7 +1204,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
                         warn=False,
                     )
         # checking with broadcastable input
-        image = tensor(dtype="float64", shape=(False, False, True, True))
+        image = tensor(dtype="float64", shape=(None, None, 1, 1))
         image_val = rng.random((4, 6, 1, 1))
         self._compile_and_check(
             [image],

@@ -511,7 +511,7 @@ class ApplyDefaultTestOp(Op):
 
 
 def test_constant():
-    int8_vector_type = TensorType(dtype="int8", shape=(False,))
+    int8_vector_type = TensorType(dtype="int8", shape=(None,))
 
     # Make sure we return a `TensorConstant` unchanged
     x = TensorConstant(int8_vector_type, [1, 2])
@@ -575,17 +575,17 @@ class TestAsTensorVariable:
             as_tensor_variable(bad_apply_var)
 
     def test_ndim_strip_leading_broadcastable(self):
-        x = TensorType(config.floatX, (True, False))("x")
+        x = TensorType(config.floatX, shape=(1, None))("x")
         x = as_tensor_variable(x, ndim=1)
         assert x.ndim == 1
 
     def test_ndim_all_broadcastable(self):
-        x = TensorType(config.floatX, (True, True))("x")
+        x = TensorType(config.floatX, shape=(1, 1))("x")
         res = as_tensor_variable(x, ndim=0)
         assert res.ndim == 0
 
     def test_ndim_incompatible(self):
-        x = TensorType(config.floatX, (True, False))("x")
+        x = TensorType(config.floatX, shape=(1, None))("x")
         with pytest.raises(ValueError, match="^Tensor of type.*"):
             as_tensor_variable(x, ndim=0)
 
@@ -661,7 +661,7 @@ class TestAsTensorVariable:
         assert x_scalar is a_scalar
 
         x_vector = TensorConstant(
-            TensorType(dtype="int8", shape=(False,)),
+            TensorType(dtype="int8", shape=(None,)),
             np.array([1, 2], dtype="int8"),
         )
         a_vector = as_tensor_variable(x_vector)
@@ -975,7 +975,7 @@ class TestNonzero:
     @config.change_flags(compute_test_value="raise")
     def test_nonzero(self):
         def check(m):
-            m_symb = tensor(dtype=m.dtype, shape=(False,) * m.ndim)
+            m_symb = tensor(dtype=m.dtype, shape=(None,) * m.ndim)
             m_symb.tag.test_value = m
 
             res_tuple_at = nonzero(m_symb, return_matrix=False)
@@ -1004,7 +1004,7 @@ class TestNonzero:
     @config.change_flags(compute_test_value="raise")
     def test_flatnonzero(self):
         def check(m):
-            m_symb = tensor(dtype=m.dtype, shape=(False,) * m.ndim)
+            m_symb = tensor(dtype=m.dtype, shape=(None,) * m.ndim)
             m_symb.tag.test_value = m
 
             res_at = flatnonzero(m_symb)
@@ -1033,7 +1033,7 @@ class TestNonzero:
     @config.change_flags(compute_test_value="raise")
     def test_nonzero_values(self):
         def check(m):
-            m_symb = tensor(dtype=m.dtype, shape=(False,) * m.ndim)
+            m_symb = tensor(dtype=m.dtype, shape=(None,) * m.ndim)
             m_symb.tag.test_value = m
 
             res_at = nonzero_values(m_symb)
@@ -1660,8 +1660,8 @@ class TestJoinAndSplit:
         a_val = rng.random((1, 4, 1)).astype(self.floatX)
         b_val = rng.random((1, 3, 1)).astype(self.floatX)
 
-        a = self.shared(a_val, shape=(False, False, True))
-        b = self.shared(b_val, shape=(True, False, True))
+        a = self.shared(a_val, shape=(None, None, 1))
+        b = self.shared(b_val, shape=(1, None, 1))
         c = self.join_op(1, a, b)
         assert c.type.broadcastable[0] and c.type.broadcastable[2]
         assert not c.type.broadcastable[1]
@@ -1698,8 +1698,8 @@ class TestJoinAndSplit:
         a_val = rng.random((2, 4, 1)).astype(self.floatX)
         b_val = rng.random((1, 4, 1)).astype(self.floatX)
 
-        a = self.shared(a_val, shape=(False, False, True))
-        b = self.shared(b_val, shape=(True, False, True))
+        a = self.shared(a_val, shape=(None, None, 1))
+        b = self.shared(b_val, shape=(1, None, 1))
         c = self.join_op(0, a, b)
         assert not c.type.broadcastable[0]
 
@@ -1715,8 +1715,8 @@ class TestJoinAndSplit:
         # We can't set the value|
         with pytest.raises(TypeError):
             b.set_value(rng.random((3, 4, 1)).astype(self.floatX))
-        a = TensorType(dtype=self.floatX, shape=[False, False, True])()
-        b = TensorType(dtype=self.floatX, shape=[True, False, True])()
+        a = TensorType(dtype=self.floatX, shape=(None, None, 1))()
+        b = TensorType(dtype=self.floatX, shape=(1, None, 1))()
         c = self.join_op(0, a, b)
         f = function([a, b], c, mode=self.mode)
         bad_b_val = rng.random((3, 4, 1)).astype(self.floatX)
@@ -1731,8 +1731,8 @@ class TestJoinAndSplit:
         a_val = rng.random((1, 4, 1)).astype(self.floatX)
         b_val = rng.random((1, 4, 1)).astype(self.floatX)
 
-        a = self.shared(a_val, shape=(True, False, True))
-        b = self.shared(b_val, shape=(True, False, True))
+        a = self.shared(a_val, shape=(1, None, 1))
+        b = self.shared(b_val, shape=(1, None, 1))
         c = self.join_op(0, a, b)
         assert not c.type.broadcastable[0]
 
@@ -1750,7 +1750,7 @@ class TestJoinAndSplit:
         # single-input join.
         rng = np.random.default_rng(seed=utt.fetch_seed())
         a_val = rng.random((1, 4, 1)).astype(self.floatX)
-        a = self.shared(a_val, shape=(True, False, True))
+        a = self.shared(a_val, shape=(1, None, 1))
         b = self.join_op(0, a)
         assert b.type.broadcastable[0]
         assert b.type.broadcastable[2]
@@ -1774,21 +1774,11 @@ class TestJoinAndSplit:
     def test_broadcastable_flags_many_dims_and_inputs(self):
         # Test that the right broadcastable flags get set for a join
         # with many inputs and many input dimensions.
-        a = TensorType(
-            dtype=self.floatX, shape=[True, False, True, False, False, False]
-        )()
-        b = TensorType(
-            dtype=self.floatX, shape=[True, True, True, False, False, False]
-        )()
-        c = TensorType(
-            dtype=self.floatX, shape=[True, False, False, False, False, False]
-        )()
-        d = TensorType(
-            dtype=self.floatX, shape=[True, False, True, True, False, True]
-        )()
-        e = TensorType(
-            dtype=self.floatX, shape=[True, False, True, False, False, True]
-        )()
+        a = TensorType(dtype=self.floatX, shape=(1, None, 1, None, None, None))()
+        b = TensorType(dtype=self.floatX, shape=(1, 1, 1, None, None, None))()
+        c = TensorType(dtype=self.floatX, shape=(1, None, None, None, None, None))()
+        d = TensorType(dtype=self.floatX, shape=(1, None, 1, 1, None, 1))()
+        e = TensorType(dtype=self.floatX, shape=(1, None, 1, None, None, 1))()
         f = self.join_op(0, a, b, c, d, e)
         fb = f.type.broadcastable
         assert not fb[0] and fb[1] and fb[2] and fb[3] and not fb[4] and fb[5]
@@ -1881,8 +1871,8 @@ class TestJoinAndSplit:
 
     def test_rebroadcast(self):
         # Regression test for a crash that used to happen when rebroadcasting.
-        x = TensorType(self.floatX, [False, False, True])()
-        u = TensorType(self.floatX, [False, False, True])()
+        x = TensorType(self.floatX, shape=(None, None, 1))()
+        u = TensorType(self.floatX, shape=(None, None, 1))()
         # This line used to crash.
         at.concatenate([x, -u], axis=2)
 
@@ -2118,7 +2108,7 @@ def test_flatten_ndim2():
 
 
 def test_flatten_ndim2_of_3():
-    a = TensorType("float64", (False, False, False))()
+    a = TensorType("float64", shape=(None, None, None))()
     c = flatten(a, 2)
     f = inplace_func([a], c)
     a_val = _asarray([[[0, 1], [2, 3]], [[4, 5], [6, 7]]], dtype="float64")
@@ -2135,23 +2125,23 @@ def test_flatten_broadcastable():
     # Ensure that the broadcastable pattern of the output is coherent with
     # that of the input
 
-    inp = TensorType("float64", (False, False, False, False))()
+    inp = TensorType("float64", shape=(None, None, None, None))()
     out = flatten(inp, ndim=2)
     assert out.broadcastable == (False, False)
 
-    inp = TensorType("float64", (False, False, False, True))()
+    inp = TensorType("float64", shape=(None, None, None, 1))()
     out = flatten(inp, ndim=2)
     assert out.broadcastable == (False, False)
 
-    inp = TensorType("float64", (False, True, False, True))()
+    inp = TensorType("float64", shape=(None, 1, None, 1))()
     out = flatten(inp, ndim=2)
     assert out.broadcastable == (False, False)
 
-    inp = TensorType("float64", (False, True, True, True))()
+    inp = TensorType("float64", shape=(None, 1, 1, 1))()
     out = flatten(inp, ndim=2)
     assert out.broadcastable == (False, True)
 
-    inp = TensorType("float64", (True, False, True, True))()
+    inp = TensorType("float64", shape=(1, None, 1, 1))()
     out = flatten(inp, ndim=3)
     assert out.broadcastable == (True, False, True)
 
@@ -2949,7 +2939,7 @@ class TestPermuteRowElements:
         # input.type.broadcastable = (False, True, False),
         # p.type.broadcastable = (False, False).
 
-        input = TensorType("floatX", (False, True, False))()
+        input = TensorType("floatX", shape=(None, 1, None))()
         p = imatrix()
         out = permute_row_elements(input, p)
         permute = function([input, p], out)
@@ -3185,7 +3175,7 @@ class TestLongTensor:
 
 def test_len():
     for shape_ in [(5,), (3, 4), (7, 4, 6)]:
-        x = tensor(dtype="floatX", shape=(False,) * len(shape_))
+        x = tensor(dtype="floatX", shape=(None,) * len(shape_))
         with pytest.raises(TypeError):
             len(x)
 
@@ -3327,7 +3317,7 @@ class TestGetScalarConstantValue:
         assert get_scalar_constant_value(s) == 3
         s = Shape_i(1)(c)
         assert get_scalar_constant_value(s) == 4
-        d = aesara.shared(np.random.standard_normal((1, 1)), shape=(True, True))
+        d = aesara.shared(np.random.standard_normal((1, 1)), shape=(1, 1))
         f = ScalarFromTensor()(Shape_i(0)(d))
         assert get_scalar_constant_value(f) == 1
 
@@ -3532,7 +3522,7 @@ class TestAllocDiag:
         for d in range(1, dims + 1):
             # Create a TensorType of the same dimensions as
             # as the data we want to test.
-            x = TensorType(dtype=config.floatX, shape=(False,) * d)("x")
+            x = TensorType(dtype=config.floatX, shape=(None,) * d)("x")
 
             # Make a slice of the test data that has the
             # dimensions we need by doing xv[0,...,0]
@@ -4117,8 +4107,10 @@ class TestChoose(utt.InferShapeTester):
             ((4,), (1,)),
             ((1,), (1,)),
         ]:
-            a = tensor(dtype="int32", shape=[n == 1 for n in shp1])
-            c = tensor(dtype="float32", shape=[n == 1 for n in shp2])
+            a = tensor(dtype="int32", shape=tuple(1 if s == 1 else None for s in shp1))
+            c = tensor(
+                dtype="float32", shape=tuple(1 if s == 1 else None for s in shp2)
+            )
             A = np.asarray(np.random.random(shp1) * shp2[0], dtype="int32")
             C = np.asarray(np.random.random(shp2) * shp2[0], dtype="float32")
             self._compile_and_check(
@@ -4268,8 +4260,12 @@ class TestTakeAlongAxis:
         indices_size[axis or 0] = samples
         indices = rng.integers(low=0, high=shape[axis or 0], size=indices_size)
 
-        arr_in = at.tensor(config.floatX, [s == 1 for s in arr.shape])
-        indices_in = at.tensor(np.int64, [s == 1 for s in indices.shape])
+        arr_in = at.tensor(
+            config.floatX, shape=tuple(1 if s == 1 else None for s in arr.shape)
+        )
+        indices_in = at.tensor(
+            np.int64, shape=tuple(1 if s == 1 else None for s in indices.shape)
+        )
 
         out = at.take_along_axis(arr_in, indices_in, axis)
 
@@ -4280,12 +4276,12 @@ class TestTakeAlongAxis:
         )
 
     def test_ndim_dtype_failures(self):
-        arr = at.tensor(config.floatX, [False] * 2)
-        indices = at.tensor(np.int64, [False] * 3)
+        arr = at.tensor(config.floatX, shape=(None,) * 2)
+        indices = at.tensor(np.int64, shape=(None,) * 3)
         with pytest.raises(ValueError):
             at.take_along_axis(arr, indices)
 
-        indices = at.tensor(np.float64, [False] * 2)
+        indices = at.tensor(np.float64, shape=(None,) * 2)
         with pytest.raises(IndexError):
             at.take_along_axis(arr, indices)
 

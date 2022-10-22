@@ -192,7 +192,7 @@ def test_local_dimshuffle_subtensor():
     assert not all(isinstance(x, DimShuffle) for x in topo)
 
     # Test dimshuffle remove dimensions the subtensor don't "see".
-    x = tensor(shape=(False, True, False), dtype="float64")
+    x = tensor(dtype="float64", shape=(None, 1, None))
     out = x[i].dimshuffle(1)
 
     g = FunctionGraph([x, i], [out])
@@ -203,7 +203,7 @@ def test_local_dimshuffle_subtensor():
 
     # Test dimshuffle remove dimensions the subtensor don't "see" but
     # have in between dimensions.
-    x = tensor(shape=(False, True, False, True), dtype="float64")
+    x = tensor(dtype="float64", shape=(None, 1, None, 1))
     out = x[i].dimshuffle(1)
 
     f = aesara.function([x, i], out)

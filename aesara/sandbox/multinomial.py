@@ -44,7 +44,9 @@ class MultinomialFromUniform(COp):
             odtype = pvals.dtype
         else:
             odtype = self.odtype
-        out = at.tensor(dtype=odtype, shape=pvals.type.broadcastable)
+        out = at.tensor(
+            dtype=odtype, shape=tuple(1 if s == 1 else None for s in pvals.type.shape)
+        )
         return Apply(self, [pvals, unis, as_scalar(n)], [out])
 
     def grad(self, ins, outgrads):

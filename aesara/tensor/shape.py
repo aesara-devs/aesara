@@ -536,7 +536,8 @@ def specify_shape(
 ):
     """Specify a fixed shape for a `Variable`.
 
-    If a dimension's shape value is ``None``, the size of that dimension is not considered fixed/static at runtime.
+    If a dimension's shape value is ``None``, the size of that dimension is not
+    considered fixed/static at runtime.
     """
 
     if not isinstance(shape, (tuple, list)):
@@ -608,28 +609,27 @@ class Reshape(COp):
             # except when shp is constant and empty
             # (in this case, shp.dtype does not matter anymore).
             raise TypeError(f"Shape must be integers; got {shp.dtype}")
+
         assert shp.ndim == 1
+
         if isinstance(shp, TensorConstant):
-            bcast = [s == 1 for s in shp.data]
-            return Apply(self, [x, shp], [tensor(x.type.dtype, bcast)])
+            out_shape = tuple(int(s) if s >= 0 else None for s in shp.data)
         else:
-            bcasts = [False] * self.ndim
+            out_shape = [None] * self.ndim
             shp_list = shp_orig
             if hasattr(shp_orig, "ndim") and shp_orig.ndim == 0:
                 shp_list = [shp_orig]
             for index in range(self.ndim):
                 y = shp_list[index]
                 y = at.as_tensor_variable(y)
-                # Try to see if we can infer that y has a constant value of 1.
-                # If so, that dimension should be broadcastable.
                 try:
-                    bcasts[index] = (
-                        hasattr(y, "get_scalar_constant_value")
-                        and y.get_scalar_constant_value() == 1
-                    )
+                    s_val = at.get_scalar_constant_value(y).item()
+                    if s_val >= 0:
+                        out_shape[index] = s_val
                 except NotScalarConstantError:
                     pass
-            return Apply(self, [x, shp], [tensor(x.type.dtype, bcasts)])
+
+        return Apply(self, [x, shp], [tensor(x.type.dtype, shape=out_shape)])
 
     def perform(self, node, inp, out_, params):
         x, shp = inp
@@ -769,7 +769,7 @@ class Reshape(COp):
 def reshape(x, newshape, ndim=None):
     if ndim is None:
         newshape = at.as_tensor_variable(newshape)
-        if newshape.ndim != 1:
+        if newshape.type.ndim != 1:
             raise TypeError(
                 "New shape in reshape must be a vector or a list/tuple of"
                 f" scalar. Got {newshape} after conversion to a vector."
@@ -894,8 +894,7 @@ register_shape_i_c_code(
 
 
 def specify_broadcastable(x, *axes):
-    """
-    Specify the input as being broadcastable in the specified axes.
+    """Specify the input as being broadcastable in the specified axes.
 
     For example, specify_broadcastable(x, 0) will make the first dimension of
     x broadcastable. When performing the function, if the length of
@@ -924,7 +923,7 @@ def specify_broadcastable(x, *axes):
     if max(axes) >= x.type.ndim:
         raise ValueError("Trying to specify broadcastable of non-existent dimension")
 
-    shape_info = [1 if i in axes else None for i in range(len(x.type.shape))]
+    shape_info = [1 if i in axes else s for i, s in enumerate(x.type.shape)]
     return specify_shape(x, shape_info)
 
 

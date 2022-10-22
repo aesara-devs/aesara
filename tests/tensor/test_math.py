@@ -562,7 +562,7 @@ TestCosBroadcast = makeBroadcastTester(
 
 
 def test_py_c_match():
-    a = TensorType(dtype="int8", shape=(False,))()
+    a = TensorType(dtype="int8", shape=(None,))()
     f = function([a], arccos(a), mode="DebugMode")
     # This can fail in DebugMode
     f(np.asarray([1, 0, -1], dtype="int8"))
@@ -1460,8 +1460,8 @@ class TestOuter:
     def test_outer(self):
         for m in range(4):
             for n in range(4):
-                x = tensor(dtype="floatX", shape=(False,) * m)
-                y = tensor(dtype="floatX", shape=(False,) * n)
+                x = tensor(dtype="floatX", shape=(None,) * m)
+                y = tensor(dtype="floatX", shape=(None,) * n)
                 s1 = self.rng.integers(1, 10, m)
                 s2 = self.rng.integers(1, 10, n)
                 v1 = np.asarray(self.rng.random(s1)).astype(config.floatX)
@@ -1927,21 +1927,21 @@ class TestDot:
         for dtype0 in ("float32", "float64", "complex64"):
             for dtype1 in ("float32", "complex64", "complex128"):
                 for bc0 in (
-                    (True,),
-                    (False,),
-                    (True, True),
-                    (True, False),
-                    (False, True),
-                    (False, False),
+                    (1,),
+                    (None,),
+                    (1, 1),
+                    (1, None),
+                    (None, 1),
+                    (None, None),
                 ):
                     x = TensorType(dtype=dtype0, shape=bc0)()
                     for bc1 in (
-                        (True,),
-                        (False,),
-                        (True, True),
-                        (True, False),
-                        (False, True),
-                        (False, False),
+                        (1,),
+                        (None,),
+                        (1, 1),
+                        (1, None),
+                        (None, 1),
+                        (None, None),
                     ):
 
                         y = TensorType(dtype=dtype1, shape=bc1)()
@@ -2117,7 +2117,7 @@ class TestTensordot:
 
     def test_broadcastable1(self):
         rng = np.random.default_rng(seed=utt.fetch_seed())
-        x = TensorType(dtype=config.floatX, shape=(True, False, False))("x")
+        x = TensorType(dtype=config.floatX, shape=(1, None, None))("x")
         y = tensor3("y")
         z = tensordot(x, y)
         assert z.broadcastable == (True, False)
@@ -2129,7 +2129,7 @@ class TestTensordot:
 
     def test_broadcastable2(self):
         rng = np.random.default_rng(seed=utt.fetch_seed())
-        x = TensorType(dtype=config.floatX, shape=(True, False, False))("x")
+        x = TensorType(dtype=config.floatX, shape=(1, None, None))("x")
         y = tensor3("y")
         axes = [[2, 1], [0, 1]]
         z = tensordot(x, y, axes=axes)
@@ -2156,7 +2156,7 @@ def test_smallest():
 
 
 def test_var():
-    a = TensorType(dtype="float64", shape=[False, False, False])()
+    a = TensorType(dtype="float64", shape=(None, None, None))()
     f = function([a], var(a))
 
     a_val = np.arange(6).reshape(1, 2, 3)
@@ -2206,7 +2206,7 @@ def test_var():
 class TestSum:
     def test_sum_overflow(self):
         # Ensure that overflow errors are a little bit harder to get
-        a = TensorType(dtype="int8", shape=[False])()
+        a = TensorType(dtype="int8", shape=(None,))()
         f = function([a], at_sum(a))
         assert f([1] * 300) == 300
 
@@ -3262,7 +3262,7 @@ def test_grad_useless_sum():
 
     mode = get_default_mode().including("canonicalize")
     mode.check_isfinite = False
-    x = TensorType(config.floatX, (True,))("x")
+    x = TensorType(config.floatX, shape=(1,))("x")
     l = log(1.0 - sigmoid(x))[0]
     g = grad(l, x)
 
@@ -3287,8 +3287,8 @@ def test_tanh_grad_broadcast():
     # FIXME: This is not a real test.
     # This crashed in the past.
 
-    x = tensor(dtype="float32", shape=(True, False, False, False))
-    y = tensor(dtype="float32", shape=(True, True, False, False))
+    x = tensor(dtype="float32", shape=(1, None, None, None))
+    y = tensor(dtype="float32", shape=(1, 1, None, None))
 
     # TODO FIXME: This is a bad test
     grad(tanh(x).sum(), x)

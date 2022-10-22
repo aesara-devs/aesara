@@ -68,7 +68,7 @@ def tensor_constructor(
     # the value might be resized in any dimension in the future.
     #
     if shape is None:
-        shape = (False,) * len(value.shape)
+        shape = (None,) * len(value.shape)
     type = TensorType(value.dtype, shape=shape)
     return TensorSharedVariable(
         type=type,

@@ -75,7 +75,7 @@ class TestCasting:
         ),
     )
     def test_basic(self, type1, type2, converter):
-        x = TensorType(dtype=type1, shape=(False,))()
+        x = TensorType(dtype=type1, shape=(None,))()
         y = converter(x)
         f = function([In(x, strict=True)], y)
         a = np.arange(10, dtype=type1)
@@ -86,8 +86,8 @@ class TestCasting:
         val64 = np.ones(3, dtype="complex64") + 0.5j
         val128 = np.ones(3, dtype="complex128") + 0.5j
 
-        vec64 = TensorType("complex64", (False,))()
-        vec128 = TensorType("complex128", (False,))()
+        vec64 = TensorType("complex64", shape=(None,))()
+        vec128 = TensorType("complex128", shape=(None,))()
 
         f = function([vec64], _convert_to_complex128(vec64))
         # we need to compare with the same type.

@@ -59,27 +59,22 @@ class Fourier(Op):
     def make_node(self, a, n, axis):
         a = as_tensor_variable(a)
         if a.ndim < 1:
-            raise TypeError(
-                f"{self.__class__.__name__}: input must be an array, not a scalar"
-            )
+            raise TypeError("Input must be an array, not a scalar")
         if axis is None:
             axis = a.ndim - 1
             axis = as_tensor_variable(axis)
         else:
             axis = as_tensor_variable(axis)
             if axis.dtype not in integer_dtypes:
-                raise TypeError(
-                    "%s: index of the transformed axis must be"
-                    " of type integer" % self.__class__.__name__
-                )
+                raise TypeError("Index of the transformed axis must be of type integer")
             elif axis.ndim != 0 or (
                 isinstance(axis, TensorConstant)
                 and (axis.data < 0 or axis.data > a.ndim - 1)
             ):
                 raise TypeError(
-                    f"{self.__class__.__name__}: index of the transformed axis must be"
-                    " a scalar not smaller than 0 and smaller than"
-                    " dimension of array"
+                    "Index of the transformed axis must be "
+                    "a scalar not smaller than 0 and smaller than "
+                    "dimension of array"
                 )
         if n is None:
             n = a.shape[axis]
@@ -88,18 +83,21 @@ class Fourier(Op):
             n = as_tensor_variable(n)
             if n.dtype not in integer_dtypes:
                 raise TypeError(
-                    "%s: length of the transformed axis must be"
-                    " of type integer" % self.__class__.__name__
+                    "Length of the transformed axis must be of type integer"
                 )
             elif n.ndim != 0 or (isinstance(n, TensorConstant) and n.data < 1):
                 raise TypeError(
-                    "%s: length of the transformed axis must be a"
-                    " strictly positive scalar" % self.__class__.__name__
+                    "Length of the transformed axis must be a strictly positive scalar"
                 )
         return Apply(
             self,
             [a, n, axis],
-            [TensorType("complex128", a.type.broadcastable)()],
+            [
+                TensorType(
+                    "complex128",
+                    shape=tuple(1 if s == 1 else None for s in a.type.shape),
+                )()
+            ],
         )
 
     def infer_shape(self, fgraph, node, in_shapes):

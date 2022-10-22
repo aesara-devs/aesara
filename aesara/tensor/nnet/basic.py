@@ -507,8 +507,8 @@ class CrossentropySoftmaxArgmax1HotWithBias(COp):
             raise ValueError("y_idx must be 1-d tensor of [u]ints", y_idx.type)
 
         #       TODO: Is this correct? It used to be y, not y_idx
-        nll = TensorType(x.type.dtype, y_idx.type.broadcastable).make_variable()
-        #        nll = TensorType(x.dtype, y.broadcastable)
+        out_shape = tuple(1 if s == 1 else None for s in y_idx.type.shape)
+        nll = TensorType(x.type.dtype, shape=out_shape).make_variable()
         sm = x.type()
         am = y_idx.type()
         return Apply(self, [x, b, y_idx], [nll, sm, am])
@@ -986,7 +986,7 @@ class CrossentropyCategorical1Hot(Op):
         return Apply(
             self,
             [_coding_dist, _true_one_of_n],
-            [TensorType(dtype=_coding_dist.dtype, shape=[False])()],
+            [TensorType(dtype=_coding_dist.dtype, shape=(None,))()],
         )
 
     def perform(self, node, inp, out):

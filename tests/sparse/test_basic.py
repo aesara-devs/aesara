@@ -693,7 +693,7 @@ class TestConstructSparseFromList:
 
     def test_err(self):
         for ndim in [1, 3]:
-            t = TensorType(dtype=config.floatX, shape=(False,) * ndim)()
+            t = TensorType(dtype=config.floatX, shape=(None,) * ndim)()
             v = ivector()
             sub = t[v]
 
@@ -1084,7 +1084,7 @@ class TestConversion:
 
     @staticmethod
     def check_format_ndim(format, ndim):
-        x = tensor(dtype=config.floatX, shape=([False] * ndim), name="x")
+        x = tensor(dtype=config.floatX, shape=(None,) * ndim, name="x")
 
         s = SparseFromDense(format)(x)
         s_m = -s
@@ -1171,7 +1171,7 @@ class TestCsm:
 
         for format in ("csc", "csr"):
             for dtype in ("float32", "float64"):
-                x = tensor(dtype=dtype, shape=(False,))
+                x = tensor(dtype=dtype, shape=(None,))
                 y = ivector()
                 z = ivector()
                 s = ivector()
@@ -1224,7 +1224,7 @@ class TestCsm:
 
         for format in ("csc", "csr"):
             for dtype in ("float32", "float64"):
-                x = tensor(dtype=dtype, shape=(False,))
+                x = tensor(dtype=dtype, shape=(None,))
                 y = ivector()
                 z = ivector()
                 s = ivector()
@@ -1334,7 +1334,7 @@ class TestStructuredDot:
 
         return
         #
-        kerns = TensorType(dtype="int64", shape=[False])("kerns")
+        kerns = TensorType(dtype="int64", shape=(None,))("kerns")
         spmat = sp.sparse.lil_matrix((4, 6), dtype="int64")
         for i in range(5):
             # set non-zeros in random locations (row x, col y)
@@ -1343,7 +1343,7 @@ class TestStructuredDot:
             spmat[x, y] = np.random.random() * 10
         spmat = sp.sparse.csc_matrix(spmat)
 
-        images = TensorType(dtype="float32", shape=[False, False])("images")
+        images = TensorType(dtype="float32", shape=(None, None))("images")
 
         cscmat = CSC(kerns, spmat.indices[: spmat.size], spmat.indptr, spmat.shape)
         f = aesara.function([kerns, images], structured_dot(cscmat, images.T))
@@ -3275,7 +3275,7 @@ class TestTrueDot(utt.InferShapeTester):
                 variable, data = sparse_random_inputs(
                     format, shape=(10, 10), out_dtype=dtype, n=2, p=0.1
                 )
-                variable[1] = TensorType(dtype=dtype, shape=(False, False))()
+                variable[1] = TensorType(dtype=dtype, shape=(None, None))()
                 data[1] = data[1].toarray()
 
                 f = aesara.function(variable, self.op(*variable))

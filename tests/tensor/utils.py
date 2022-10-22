@@ -449,7 +449,9 @@ def makeTester(
                 inputrs = [
                     TensorType(
                         dtype=input.dtype,
-                        shape=[shape_elem == 1 for shape_elem in input.shape],
+                        shape=tuple(
+                            1 if shape_elem == 1 else None for shape_elem in input.shape
+                        ),
                     )()
                     for input in inputs
                 ]
@@ -611,7 +613,9 @@ def makeTester(
                 inputrs = [
                     TensorType(
                         dtype=input.dtype,
-                        shape=[shape_elem == 1 for shape_elem in input.shape],
+                        shape=tuple(
+                            1 if shape_elem == 1 else None for shape_elem in input.shape
+                        ),
                     )()
                     for input in inputs
                 ]
@@ -632,8 +636,10 @@ def makeTester(
                         dtype = config.floatX
                     else:
                         dtype = str(out.dtype)
-                    bcast = [shape_elem == 1 for shape_elem in out.shape]
-                    var = TensorType(dtype=dtype, shape=bcast)()
+                    out_shape = tuple(
+                        1 if shape_elem == 1 else None for shape_elem in out.shape
+                    )
+                    var = TensorType(dtype=dtype, shape=out_shape)()
                     out_grad_vars.append(var)
 
                 try:

@@ -1469,7 +1469,7 @@ class TestGemv(unittest_tools.OptimizationTestMixin):
         v2 = shared(v2_orig)
         m = shared(
             np.array(rng.uniform(size=(1, 2)), dtype="float32"),
-            shape=(True, False),
+            shape=(1, None),
         )
         o = aesara.tensor.dot(m, v1)
         f = function([], o + v2, mode=mode_blas_opt)
@@ -1779,20 +1779,20 @@ class TestDgemv(BaseGemv, unittest_tools.OptimizationTestMixin):
 
 class TestGerMakeNode:
     def setup_method(self):
-        self.iv = tensor(dtype="int32", shape=(False,))
-        self.fv = tensor(dtype="float32", shape=(False,))
-        self.fv1 = tensor(dtype="float32", shape=(True,))
-        self.dv = tensor(dtype="float64", shape=(False,))
-        self.dv1 = tensor(dtype="float64", shape=(True,))
-        self.cv = tensor(dtype="complex64", shape=(False,))
-        self.zv = tensor(dtype="complex128", shape=(False,))
+        self.iv = tensor(dtype="int32", shape=(None,))
+        self.fv = tensor(dtype="float32", shape=(None,))
+        self.fv1 = tensor(dtype="float32", shape=(1,))
+        self.dv = tensor(dtype="float64", shape=(None,))
+        self.dv1 = tensor(dtype="float64", shape=(1,))
+        self.cv = tensor(dtype="complex64", shape=(None,))
+        self.zv = tensor(dtype="complex128", shape=(None,))
 
-        self.fv_2 = tensor(dtype="float32", shape=(False,))
-        self.fv1_2 = tensor(dtype="float32", shape=(True,))
-        self.dv_2 = tensor(dtype="float64", shape=(False,))
-        self.dv1_2 = tensor(dtype="float64", shape=(True,))
-        self.cv_2 = tensor(dtype="complex64", shape=(False,))
-        self.zv_2 = tensor(dtype="complex128", shape=(False,))
+        self.fv_2 = tensor(dtype="float32", shape=(None,))
+        self.fv1_2 = tensor(dtype="float32", shape=(1,))
+        self.dv_2 = tensor(dtype="float64", shape=(None,))
+        self.dv1_2 = tensor(dtype="float64", shape=(1,))
+        self.cv_2 = tensor(dtype="complex64", shape=(None,))
+        self.zv_2 = tensor(dtype="complex128", shape=(None,))
 
         self.fm = fmatrix()
         self.dm = dmatrix()
@@ -1866,10 +1866,10 @@ class TestGer(unittest_tools.OptimizationTestMixin):
         self.mode = aesara.compile.get_default_mode().including("fast_run")
         self.mode = self.mode.excluding("c_blas", "scipy_blas")
         dtype = self.dtype = "float64"  # optimization isn't dtype-dependent
-        self.A = tensor(dtype=dtype, shape=(False, False))
+        self.A = tensor(dtype=dtype, shape=(None, None))
         self.a = tensor(dtype=dtype, shape=())
-        self.x = tensor(dtype=dtype, shape=(False,))
-        self.y = tensor(dtype=dtype, shape=(False,))
+        self.x = tensor(dtype=dtype, shape=(None,))
+        self.y = tensor(dtype=dtype, shape=(None,))
         self.ger = ger
         self.ger_destructive = ger_destructive
         self.gemm = gemm_no_inplace
@@ -2000,9 +2000,9 @@ class TestGer(unittest_tools.OptimizationTestMixin):
         # test corner case shape and dtype
         rng = np.random.default_rng(unittest_tools.fetch_seed())
 
-        A = tensor(dtype=dtype, shape=(False, False))
-        x = tensor(dtype=dtype, shape=(False,))
-        y = tensor(dtype=dtype, shape=(False,))
+        A = tensor(dtype=dtype, shape=(None, None))
+        x = tensor(dtype=dtype, shape=(None,))
+        y = tensor(dtype=dtype, shape=(None,))
 
         f = self.function([A, x, y], A + 0.1 * outer(x, y))
         self.assertFunctionContains(

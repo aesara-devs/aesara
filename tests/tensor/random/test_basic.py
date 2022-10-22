@@ -607,7 +607,7 @@ def test_mvnormal_ShapeFeature():
     assert M_at in graph_inputs([s2])
 
     # Test broadcasted shapes
-    mean = tensor(config.floatX, [True, False])
+    mean = tensor(config.floatX, shape=(1, None))
     mean.tag.test_value = np.array([[0, 1, 2]], dtype=config.floatX)
 
     test_covar = np.diag(np.array([1, 10, 100], dtype=config.floatX))

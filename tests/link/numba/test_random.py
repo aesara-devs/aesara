@@ -270,7 +270,7 @@ rng = np.random.default_rng(42849)
                     np.array([[1, 2], [3, 4]], dtype=np.float64),
                 ),
                 set_test_value(
-                    at.tensor("float64", [True, False, False]),
+                    at.tensor("float64", shape=(1, None, None)),
                     np.eye(2)[None, ...],
                 ),
             ],

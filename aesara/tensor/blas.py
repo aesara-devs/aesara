@@ -167,6 +167,7 @@ from aesara.tensor.rewriting.elemwise import local_dimshuffle_lift
 from aesara.tensor.shape import specify_broadcastable
 from aesara.tensor.type import (
     DenseTensorType,
+    TensorType,
     integer_dtypes,
     tensor,
     values_eq_approx_remove_inf_nan,
@@ -1204,11 +1205,11 @@ def _as_scalar(res, dtype=None):
     """Return ``None`` or a `TensorVariable` of float type"""
     if dtype is None:
         dtype = config.floatX
-    if all(res.type.broadcastable):
+    if all(s == 1 for s in res.type.shape):
         while res.owner and isinstance(res.owner.op, DimShuffle):
             res = res.owner.inputs[0]
         # may still have some number of True's
-        if res.type.broadcastable:
+        if res.type.ndim > 0:
             rval = res.dimshuffle()
         else:
             rval = res
@@ -1230,8 +1231,8 @@ def _is_real_matrix(res):
     return (
         res.type.dtype in ("float16", "float32", "float64")
         and res.type.ndim == 2
-        and res.type.broadcastable[0] is False
-        and res.type.broadcastable[1] is False
+        and res.type.shape[0] != 1
+        and res.type.shape[1] != 1
     )  # cope with tuple vs. list
 
 
@@ -1239,7 +1240,7 @@ def _is_real_vector(res):
     return (
         res.type.dtype in ("float16", "float32", "float64")
         and res.type.ndim == 1
-        and res.type.broadcastable[0] is False
+        and res.type.shape[0] != 1
     )
 
 
@@ -1298,9 +1299,7 @@ def _gemm_canonicalize(fgraph, r, scale, rval, maxclients):
         else:
             return scale * thing
 
-    try:
-        r.type.broadcastable
-    except Exception:
+    if not isinstance(r.type, TensorType):
         return None
 
     if (r.type.ndim not in (1, 2)) or r.type.dtype not in (
@@ -1333,10 +1332,10 @@ def _gemm_canonicalize(fgraph, r, scale, rval, maxclients):
         vectors = []
         matrices = []
         for i in r.owner.inputs:
-            if all(i.type.broadcastable):
+            if all(s == 1 for s in i.type.shape):
                 while i.owner and isinstance(i.owner.op, DimShuffle):
                     i = i.owner.inputs[0]
-                if i.type.broadcastable:
+                if i.type.ndim > 0:
                     scalars.append(i.dimshuffle())
                 else:
                     scalars.append(i)
@@ -1681,8 +1680,7 @@ class Dot22(GemmRelated):
             raise TypeError(y)
         if y.type.dtype != x.type.dtype:
             raise TypeError("dtype mismatch to Dot22")
-        bz = (x.type.broadcastable[0], y.type.broadcastable[1])
-        outputs = [tensor(x.type.dtype, bz)]
+        outputs = [tensor(x.type.dtype, shape=(x.type.shape[0], y.type.shape[1]))]
         return Apply(self, [x, y], outputs)
 
     def perform(self, node, inp, out):
@@ -1986,8 +1984,8 @@ class Dot22Scalar(GemmRelated):
         if not a.dtype.startswith("float") and not a.dtype.startswith("complex"):
             raise TypeError("Dot22Scalar requires float or complex args", a.dtype)
 
-        bz = [x.type.broadcastable[0], y.type.broadcastable[1]]
-        outputs = [tensor(x.type.dtype, bz)]
+        sz = (x.type.shape[0], y.type.shape[1])
+        outputs = [tensor(x.type.dtype, shape=sz)]
         return Apply(self, [x, y, a], outputs)
 
     def perform(self, node, inp, out):
@@ -2213,12 +2211,17 @@ class BatchedDot(COp):
         dtype = aesara.scalar.upcast(*[input.type.dtype for input in inputs])
         # upcast inputs to common dtype if needed
         upcasted_inputs = [at.cast(input, dtype) for input in inputs]
-        broadcastable = (
-            (inputs[0].type.broadcastable[0] or inputs[1].type.broadcastable[0],)
-            + inputs[0].type.broadcastable[1:-1]
-            + inputs[1].type.broadcastable[2:]
+        out_shape = (
+            (
+                1
+                if inputs[0].type.shape[0] == 1 or inputs[1].type.shape[0] == 1
+                else None,
+            )
+            + inputs[0].type.shape[1:-1]
+            + inputs[1].type.shape[2:]
         )
-        return Apply(self, upcasted_inputs, [tensor(dtype, broadcastable)])
+        out_shape = tuple(1 if s == 1 else None for s in out_shape)
+        return Apply(self, upcasted_inputs, [tensor(dtype, shape=out_shape)])
 
     def perform(self, node, inp, out):
         x, y = inp

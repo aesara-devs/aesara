@@ -542,8 +542,10 @@ class Pool(OpenMPOp):
         if pad.dtype not in int_dtypes:
             raise TypeError("Padding parameters must be ints.")
         # If the input shape are broadcastable we can have 0 in the output shape
-        broad = x.broadcastable[:-nd] + (False,) * nd
-        out = TensorType(x.dtype, broad)
+        out_shape = tuple(
+            1 if s == 1 else None for s in x.type.shape[:-nd] + (None,) * nd
+        )
+        out = TensorType(x.dtype, shape=out_shape)
         return Apply(self, [x, ws, stride, pad], [out()])
 
     def perform(self, node, inp, out, params):
@@ -2208,8 +2210,10 @@ class MaxPoolRop(OpenMPOp):
         if not pad.dtype.startswith("int"):
             raise TypeError("Padding parameters must be ints.")
         # If the input shape are broadcastable we can have 0 in the output shape
-        broad = x.broadcastable[:-nd] + (False,) * nd
-        out = TensorType(eval_point.dtype, broad)
+        out_shape = tuple(
+            1 if s == 1 else None for s in x.type.shape[:-nd] + (None,) * nd
+        )
+        out = TensorType(eval_point.dtype, shape=out_shape)
         return Apply(self, [x, eval_point, ws, stride, pad], [out()])
 
     def perform(self, node, inp, out, params):

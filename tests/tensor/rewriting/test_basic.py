@@ -1693,8 +1693,8 @@ class TestLocalElemwiseAlloc:
         ],
     )
     def test_basic(self, expr, x_shape, y_shape):
-        x = at.tensor("int64", (False,) * len(x_shape), name="x")
-        y = at.tensor("int64", (False,) * len(y_shape), name="y")
+        x = at.tensor("int64", shape=(None,) * len(x_shape), name="x")
+        y = at.tensor("int64", shape=(None,) * len(y_shape), name="y")
         z = expr(x, y)
 
         z_opt = aesara.function(
@@ -1872,7 +1872,7 @@ class TestLocalElemwiseAlloc:
 
     def test_misc(self):
         x = row(dtype=self.dtype)
-        y = tensor(dtype=self.dtype, shape=(False, False, True))
+        y = tensor(dtype=self.dtype, shape=(None, None, 1))
 
         out = at.alloc(x, 5, 5).dimshuffle(0, 1, "x") + y
         func = function([y, x], out, mode=self.fast_run_mode)

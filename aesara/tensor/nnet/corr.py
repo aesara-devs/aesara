@@ -692,14 +692,14 @@ class CorrMM(BaseCorrMM):
             if kern.type.ndim != 4:
                 raise TypeError("kern must be 4D tensor")
 
-        broadcastable = [
-            img.type.broadcastable[0],
-            kern.type.broadcastable[0],
-            False,
-            False,
-        ]
+        out_shape = tuple(
+            1 if img.type.shape[0] == 1 else None,
+            1 if kern.type.shape[0] == 1 else None,
+            None,
+            None,
+        )
         dtype = img.type.dtype
-        return Apply(self, [img, kern], [TensorType(dtype, broadcastable)()])
+        return Apply(self, [img, kern], [TensorType(dtype, shape=out_shape)()])
 
     def infer_shape(self, fgraph, node, input_shape):
         imshp = input_shape[0]
@@ -770,24 +770,25 @@ class CorrMM_gradWeights(BaseCorrMM):
             ]
 
         if self.unshared is True:
-            broadcastable = [
-                topgrad.type.broadcastable[1],
-                False,
-                False,
-                img.type.broadcastable[1],
-                False,
-                False,
+            out_shape = [
+                1 if topgrad.type.shape[1] == 1 else None,
+                None,
+                None,
+                1 if img.type.shape[1] == 1 else None,
+                None,
+                None,
             ]
         else:
-            broadcastable = [
-                topgrad.type.broadcastable[1],
-                img.type.broadcastable[1],
-                False,
-                False,
+            out_shape = [
+                1 if topgrad.type.shape[1] == 1 else None,
+                1 if img.type.shape[1] == 1 else None,
+                None,
+                None,
             ]
+
         dtype = img.type.dtype
         return Apply(
-            self, [img, topgrad] + height_width, [TensorType(dtype, broadcastable)()]
+            self, [img, topgrad] + height_width, [TensorType(dtype, shape=out_shape)()]
         )
 
     def infer_shape(self, fgraph, node, input_shape):
@@ -905,17 +906,17 @@ class CorrMM_gradInputs(BaseCorrMM):
             ]
 
         if self.num_groups > 1:
-            broadcastable = [topgrad.type.broadcastable[0], False, False, False]
+            out_shape = [1 if topgrad.type.shape[0] == 1 else None, None, None, None]
         else:
-            broadcastable = [
-                topgrad.type.broadcastable[0],
-                kern.type.broadcastable[-3],
-                False,
-                False,
+            out_shape = [
+                1 if topgrad.type.shape[0] == 1 else None,
+                1 if kern.type.shape[-3] == 1 else None,
+                None,
+                None,
             ]
         dtype = kern.type.dtype
         return Apply(
-            self, [kern, topgrad] + height_width, [TensorType(dtype, broadcastable)()]
+            self, [kern, topgrad] + height_width, [TensorType(dtype, shape=out_shape)()]
         )
 
     def infer_shape(self, fgraph, node, input_shape):

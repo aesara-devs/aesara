@@ -1155,7 +1155,7 @@ def constant_folding(fgraph, node):
         if isinstance(output.type, DenseTensorType):
             output_type = TensorType(
                 output.type.dtype,
-                tuple(s == 1 for s in data.shape),
+                shape=data.shape,
                 name=output.type.name,
             )
         else:

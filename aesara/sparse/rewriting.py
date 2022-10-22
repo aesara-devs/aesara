@@ -126,7 +126,9 @@ class AddSD_ccode(_NoPythonCOp):
         # The magic number two here arises because L{scipy.sparse}
         # objects must be matrices (have dimension 2)
         assert y.type.ndim == 2
-        out = TensorType(dtype=out_dtype, shape=y.type.broadcastable)()
+        out = TensorType(
+            dtype=out_dtype, shape=tuple(1 if s == 1 else None for s in y.type.shape)
+        )()
         return Apply(self, [data, indices, indptr, y], [out])
 
     def c_code(self, node, name, inputs, outputs, sub):
@@ -268,7 +270,7 @@ class StructuredDotCSC(COp):
         r = Apply(
             self,
             [a_val, a_ind, a_ptr, a_nrows, b],
-            [tensor(dtype_out, (False, b.type.broadcastable[1]))],
+            [tensor(dtype_out, shape=(None, 1 if b.type.shape[1] == 1 else None))],
         )
         return r
 
@@ -463,7 +465,7 @@ class StructuredDotCSR(COp):
         r = Apply(
             self,
             [a_val, a_ind, a_ptr, b],
-            [tensor(self.dtype_out, (False, b.type.broadcastable[1]))],
+            [tensor(self.dtype_out, shape=(None, 1 if b.type.shape[1] == 1 else None))],
         )
         return r
 
@@ -703,7 +705,7 @@ class UsmmCscDense(_NoPythonCOp):
         r = Apply(
             self,
             [alpha, x_val, x_ind, x_ptr, x_nrows, y, z],
-            [tensor(dtype_out, (False, y.type.broadcastable[1]))],
+            [tensor(dtype_out, shape=(None, 1 if y.type.shape[1] == 1 else None))],
         )
         return r
 
@@ -1140,7 +1142,7 @@ class MulSDCSC(_NoPythonCOp):
         """
         assert b.type.ndim == 2
         return Apply(
-            self, [a_data, a_indices, a_indptr, b], [tensor(b.dtype, (False,))]
+            self, [a_data, a_indices, a_indptr, b], [tensor(b.dtype, shape=(None,))]
         )
 
     def c_code_cache_version(self):
@@ -1278,7 +1280,7 @@ class MulSDCSR(_NoPythonCOp):
         """
         assert b.type.ndim == 2
         return Apply(
-            self, [a_data, a_indices, a_indptr, b], [tensor(b.dtype, (False,))]
+            self, [a_data, a_indices, a_indptr, b], [tensor(b.dtype, shape=(None,))]
         )
 
     def c_code_cache_version(self):
@@ -1468,7 +1470,7 @@ class MulSVCSR(_NoPythonCOp):
         """
         assert b.type.ndim == 1
         return Apply(
-            self, [a_data, a_indices, a_indptr, b], [tensor(b.dtype, (False,))]
+            self, [a_data, a_indices, a_indptr, b], [tensor(b.dtype, shape=(None,))]
         )
 
     def c_code_cache_version(self):
@@ -1640,7 +1642,7 @@ class StructuredAddSVCSR(_NoPythonCOp):
         assert a_indptr.type.ndim == 1
         assert b.type.ndim == 1
         return Apply(
-            self, [a_data, a_indices, a_indptr, b], [tensor(b.dtype, (False,))]
+            self, [a_data, a_indices, a_indptr, b], [tensor(b.dtype, shape=(None,))]
         )
 
     def c_code_cache_version(self):
@@ -1851,9 +1853,9 @@ class SamplingDotCSR(_NoPythonCOp):
             self,
             [x, y, p_data, p_ind, p_ptr, p_ncols],
             [
-                tensor(dtype=dtype_out, shape=(False,)),
-                tensor(dtype=p_ind.type.dtype, shape=(False,)),
-                tensor(dtype=p_ptr.type.dtype, shape=(False,)),
+                tensor(dtype=dtype_out, shape=(None,)),
+                tensor(dtype=p_ind.type.dtype, shape=(None,)),
+                tensor(dtype=p_ptr.type.dtype, shape=(None,)),
             ],
         )
 

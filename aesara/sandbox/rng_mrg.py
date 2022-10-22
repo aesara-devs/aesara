@@ -379,20 +379,23 @@ class mrg_uniform(COp, mrg_uniform_base):
         # this op should not be called directly.
         #
         # call through MRG_RandomStream instead.
-        broad = []
+        out_shape = ()
         for i in range(self.output_type.ndim):
-            broad.append(at.extract_constant(size[i]) == 1)
-        output_type = self.output_type.clone(shape=broad)()
+            if at.extract_constant(size[i]) == 1:
+                out_shape += (1,)
+            else:
+                out_shape += (None,)
+        output_var = self.output_type.clone(shape=out_shape)()
         rstate = as_tensor_variable(rstate)
         size = as_tensor_variable(size)
-        return Apply(self, [rstate, size], [rstate.type(), output_type])
+        return Apply(self, [rstate, size], [rstate.type(), output_var])
 
     @classmethod
     def new(cls, rstate, ndim, dtype, size):
         v_size = as_tensor_variable(size)
         if ndim is None:
             ndim = get_vector_length(v_size)
-        op = cls(TensorType(dtype, (False,) * ndim))
+        op = cls(TensorType(dtype, shape=(None,) * ndim))
         return op(rstate, v_size)
 
     def perform(self, node, inp, out, params):

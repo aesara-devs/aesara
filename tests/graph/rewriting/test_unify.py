@@ -72,7 +72,7 @@ def test_cons():
     assert car(op1) == CustomOp
     assert cdr(op1) == (1,)
 
-    tt1 = TensorType("float32", [True, False])
+    tt1 = TensorType("float32", shape=(1, None))
 
     assert car(tt1) == TensorType
     assert cdr(tt1) == ("float32", (1, None))
@@ -247,8 +247,8 @@ def test_unify_Constant():
 
 
 def test_unify_Type():
-    t1 = TensorType(np.float64, (True, False))
-    t2 = TensorType(np.float64, (True, False))
+    t1 = TensorType(np.float64, shape=(1, None))
+    t2 = TensorType(np.float64, shape=(1, None))
 
     # `Type`, `Type`
     s = unify(t1, t2)

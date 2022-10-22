@@ -17,10 +17,10 @@ class TestScipyGer(OptimizationTestMixin):
         self.mode = self.mode.including("fast_run")
         self.mode = self.mode.excluding("c_blas")  # c_blas trumps scipy Ops
         dtype = self.dtype = "float64"  # optimization isn't dtype-dependent
-        self.A = tensor(dtype=dtype, shape=(False, False))
+        self.A = tensor(dtype=dtype, shape=(None, None))
         self.a = tensor(dtype=dtype, shape=())
-        self.x = tensor(dtype=dtype, shape=(False,))
-        self.y = tensor(dtype=dtype, shape=(False,))
+        self.x = tensor(dtype=dtype, shape=(None,))
+        self.y = tensor(dtype=dtype, shape=(None,))
         self.Aval = np.ones((2, 3), dtype=dtype)
         self.xval = np.asarray([1, 2], dtype=dtype)
         self.yval = np.asarray([1.5, 2.7, 3.9], dtype=dtype)

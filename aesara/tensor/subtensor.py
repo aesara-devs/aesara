@@ -724,10 +724,11 @@ class Subtensor(COp):
         padded = get_constant_idx(
             self.idx_list, (None,) + inputs, allow_partial=True
         ) + [slice(None, None, None)] * (x.type.ndim - len(idx_list))
-        broadcastable = []
-        for i, (p, bc) in enumerate(zip(padded, x.type.broadcastable)):
+
+        out_shape = []
+        for i, (p, s) in enumerate(zip(padded, x.type.shape)):
             if isinstance(p, slice):
-                if bc:
+                if s == 1:
                     start = p.start
                     try:
                         start = get_scalar_constant_value(start)
@@ -741,15 +742,15 @@ class Subtensor(COp):
                             isinstance(p.stop, (int, np.integer, np.ndarray))
                             and p.stop > start
                         ):
-                            broadcastable.append(True)
+                            out_shape.append(1)
                             continue
 
-                broadcastable.append(False)
+                out_shape.append(None)
 
         return Apply(
             self,
             (x,) + inputs,
-            [tensor(dtype=x.type.dtype, shape=broadcastable)],
+            [tensor(dtype=x.type.dtype, shape=out_shape)],
         )
 
     def perform(self, node, inputs, out_):
@@ -1948,8 +1949,9 @@ class AdvancedSubtensor1(COp):
             raise TypeError("index must be vector")
         if x_.type.ndim == 0:
             raise TypeError("cannot index into a scalar")
-        bcast = (ilist_.broadcastable[0],) + x_.broadcastable[1:]
-        return Apply(self, [x_, ilist_], [TensorType(dtype=x.dtype, shape=bcast)()])
+        out_shape = (ilist_.type.shape[0],) + x_.type.shape[1:]
+        out_shape = tuple(1 if s == 1 else None for s in out_shape)
+        return Apply(self, [x_, ilist_], [TensorType(dtype=x.dtype, shape=out_shape)()])
 
     def perform(self, node, inp, out_):
         x, i = inp
@@ -2551,17 +2553,14 @@ class AdvancedSubtensor(Op):
         x = as_tensor_variable(x)
         index = tuple(map(as_index_variable, index))
 
-        # We only want the broadcast information, and we don't need recursive
-        # `Subtensor` calls, so we create a fake symbolic shape tuple and
-        # identify the broadcast dimensions from the shape result of this
-        # entire subtensor operation.
+        # We create a fake symbolic shape tuple and identify the broadcast
+        # dimensions from the shape result of this entire subtensor operation.
         with config.change_flags(compute_test_value="off"):
             fake_shape = tuple(
-                tensor(dtype="int64", shape=()) if not bcast else 1
-                for bcast in x.broadcastable
+                tensor(dtype="int64", shape=()) if s != 1 else 1 for s in x.type.shape
             )
 
-            bcast_index = tuple(
+            fake_index = tuple(
                 chain.from_iterable(
                     aesara.tensor.basic.nonzero(idx)
                     if getattr(idx, "ndim", 0) > 0
@@ -2571,15 +2570,15 @@ class AdvancedSubtensor(Op):
                 )
             )
 
-            bcast = [
-                getattr(i, "value", i) == 1
-                for i in indexed_result_shape(fake_shape, bcast_index)
-            ]
+            out_shape = tuple(
+                i.value if isinstance(i, Constant) else None
+                for i in indexed_result_shape(fake_shape, fake_index)
+            )
 
         return Apply(
             self,
             (x,) + index,
-            [tensor(dtype=x.type.dtype, shape=bcast)],
+            [tensor(dtype=x.type.dtype, shape=out_shape)],
         )
 
     def R_op(self, inputs, eval_points):
@@ -2682,7 +2681,12 @@ class AdvancedIncSubtensor(Op):
         return Apply(
             self,
             (x, y) + tuple(new_inputs),
-            [tensor(dtype=x.type.dtype, shape=x.type.broadcastable)],
+            [
+                tensor(
+                    dtype=x.type.dtype,
+                    shape=tuple(1 if s == 1 else None for s in x.type.shape),
+                )
+            ],
         )
 
     def perform(self, node, inputs, out_):

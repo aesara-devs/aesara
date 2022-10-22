@@ -877,7 +877,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
 
     def test_adv_sub1_broadcast(self):
         v = np.arange(3, dtype=self.dtype).reshape((1, 3))
-        n = self.shared(v * 5, shape=(True, False))
+        n = self.shared(v * 5, shape=(1, None))
         idx = lvector()
         t = n[idx]
 
@@ -960,8 +960,8 @@ class TestSubtensor(utt.OptimizationTestMixin):
         # The idx can be a broadcastable vector.
         ones = np.ones((4, 3), dtype=self.dtype)
         n = self.shared(ones * 5)
-        idx = TensorType(dtype="int64", shape=(True,))()
-        assert idx.type.broadcastable == (True,)
+        idx = TensorType(dtype="int64", shape=(1,))()
+        assert idx.type.shape == (1,)
         t = n[idx]
 
         f = self.function([idx], t, op=AdvancedSubtensor1)
@@ -1167,7 +1167,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                         # We create a new one every time in order not to
                         # have duplicated variables in the function's inputs
                         data_var = TensorType(
-                            shape=[False] * data_n_dims, dtype=self.dtype
+                            shape=(None,) * data_n_dims, dtype=self.dtype
                         )()
                         # Symbolic variable with rows to be incremented.
                         idx_var = vector(dtype="int64")
@@ -1190,7 +1190,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                         idx_num = idx_num.astype("int64")
                         # Symbolic variable with increment value.
                         inc_var = TensorType(
-                            shape=[False] * inc_n_dims, dtype=self.dtype
+                            shape=(None,) * inc_n_dims, dtype=self.dtype
                         )()
                         # Trick for the case where `inc_shape` is the same as
                         # `data_shape`: what we actually want is the first
@@ -1715,7 +1715,7 @@ class TestAdvancedSubtensor:
 
         def check(idx, y_val, x_val, true):
             x = self.shared(x_val, name="x")
-            y = tensor(dtype="float32", shape=(False,) * len(y_val.shape), name="y")
+            y = tensor(dtype="float32", shape=(None,) * len(y_val.shape), name="y")
             sym_idx = [at.as_tensor_variable(ix) for ix in idx]
             expr = AdvancedIncSubtensor(inplace=inplace)(x, y, *sym_idx)
             f = aesara.function(
@@ -1879,7 +1879,10 @@ class TestAdvancedSubtensor:
         subt = self.m[self.ix1, self.ix12]
         a = inc_subtensor(subt, subt, ignore_duplicates=ignore_duplicates)
 
-        typ = TensorType(self.m.type.dtype, self.ix2.type.broadcastable)
+        typ = TensorType(
+            self.m.type.dtype,
+            shape=tuple(1 if s == 1 else None for s in self.ix2.type.shape),
+        )
         assert a.type == typ
 
         f = aesara.function(
@@ -2071,7 +2074,7 @@ class TestAdvancedSubtensor:
 
     def test_grad(self):
         ones = np.ones((1, 3), dtype=self.dtype)
-        n = self.shared(ones * 5, shape=(True, False))
+        n = self.shared(ones * 5, shape=(1, None))
         idx = lvector()
         idx2 = lvector()
         t = n[idx, idx2]

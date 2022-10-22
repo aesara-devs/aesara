@@ -618,7 +618,7 @@ C code.
             # Create an output variable of the same type as x
             output_var = aesara.tensor.type.TensorType(
                             dtype=aesara.scalar.upcast(x.dtype, y.dtype),
-                            shape=[False])()
+                            shape=(None,))()
 
             return Apply(self, [x, y], [output_var])
 
@@ -767,7 +767,7 @@ The new :class:`Op` is defined inside a Python file with the following code :
             # Create an output variable of the same type as x
             output_var = aesara.tensor.type.TensorType(
                             dtype=aesara.scalar.upcast(x.dtype, y.dtype),
-                            shape=[False])()
+                            shape=(None,))()
 
             return Apply(self, [x, y], [output_var])
 

@@ -1305,8 +1305,6 @@ class CAReduce(COp):
     def make_node(self, input):
         input = as_tensor_variable(input)
         inp_dims = input.type.ndim
-        inp_bdcast = input.type.broadcastable
-        inp_dtype = input.type.dtype
 
         axis = self.axis
         if axis is None:
@@ -1329,9 +1327,12 @@ class CAReduce(COp):
         else:
             op = self
 
-        broadcastable = [x for i, x in enumerate(inp_bdcast) if i not in axis]
+        shape = [x for i, x in enumerate(input.type.shape) if i not in axis]
 
-        output = TensorType(dtype=self._output_dtype(inp_dtype), shape=broadcastable)()
+        output = TensorType(
+            dtype=self._output_dtype(input.type.dtype),
+            shape=shape,
+        )()
 
         return Apply(op, [input], [output])
 
@@ -1411,7 +1412,7 @@ class CAReduce(COp):
         if acc_dtype is not None:
             if acc_dtype == "float16":
                 raise MethodNotDefined("no c_code for float16")
-            acc_type = TensorType(shape=node.outputs[0].broadcastable, dtype=acc_dtype)
+            acc_type = TensorType(shape=node.outputs[0].type.shape, dtype=acc_dtype)
             adtype = acc_type.dtype_specs()[1]
         else:
             adtype = odtype

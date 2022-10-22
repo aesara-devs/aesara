@@ -24,12 +24,12 @@ def test_jax_Dimshuffle():
     x_fg = FunctionGraph([a_at], [x])
     compare_jax_and_py(x_fg, [np.c_[[1.0, 2.0], [3.0, 4.0]].astype(config.floatX)])
 
-    a_at = tensor(dtype=config.floatX, shape=[False, True])
+    a_at = tensor(dtype=config.floatX, shape=(None, 1))
     x = a_at.dimshuffle((0,))
     x_fg = FunctionGraph([a_at], [x])
     compare_jax_and_py(x_fg, [np.c_[[1.0, 2.0, 3.0, 4.0]].astype(config.floatX)])
 
-    a_at = tensor(dtype=config.floatX, shape=[False, True])
+    a_at = tensor(dtype=config.floatX, shape=(None, 1))
     x = at_elemwise.DimShuffle([False, True], (0,))(a_at)
     x_fg = FunctionGraph([a_at], [x])
     compare_jax_and_py(x_fg, [np.c_[[1.0, 2.0, 3.0, 4.0]].astype(config.floatX)])

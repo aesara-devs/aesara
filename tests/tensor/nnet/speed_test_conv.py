@@ -39,7 +39,7 @@ def flip(kern, kshp):
 
 global_rng = np.random.default_rng(3423489)
 
-dmatrix4 = TensorType("float64", (False, False, False, False))
+dmatrix4 = TensorType("float64", shape=(None, None, None, None))
 
 
 def exec_multilayer_conv_nnet_old(

@@ -459,7 +459,7 @@ class TestTopK:
             if k == 0:
                 continue
 
-            x = tensor(name="x", shape=(False,) * len(shp), dtype=dtype)
+            x = tensor(name="x", shape=(None,) * len(shp), dtype=dtype)
             y = argtopk(x, k, axis=axis, sorted=sorted, idx_dtype=idx_dtype)
             fn = aesara.function([x], y, mode=self.mode)
             assert any(
@@ -515,7 +515,7 @@ class TestTopKInferShape(utt.InferShapeTester):
             if k == 0:
                 continue
 
-            x = tensor(name="x", shape=(False,) * len(shp), dtype=aesara.config.floatX)
+            x = tensor(name="x", shape=(None,) * len(shp), dtype=aesara.config.floatX)
             yv, yi = topk_and_argtopk(x, k, axis=axis, sorted=False, idx_dtype="int32")
             size = reduce(int.__mul__, shp)
             xval = gen_unique_vector(size, aesara.config.floatX).reshape(shp)

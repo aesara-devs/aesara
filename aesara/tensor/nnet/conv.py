@@ -739,10 +739,16 @@ class ConvOp(OpenMPOp):
                 "The image and the kernel must have the same type."
                 "inputs({_inputs.dtype}), kerns({_kerns.dtype})"
             )
-        bcastable23 = [self.outshp[0] == 1, self.outshp[1] == 1]
+        out_shape = (
+            _inputs.type.shape[0],
+            _kerns.type.shape[0],
+            self.outshp[0],
+            self.outshp[1],
+        )
+        out_shape = tuple(1 if s == 1 else None for s in out_shape)
         output = tensor(
             dtype=_inputs.type.dtype,
-            shape=[_inputs.broadcastable[0], _kerns.broadcastable[0]] + bcastable23,
+            shape=out_shape,
         )
 
         return Apply(self, [_inputs, _kerns], [output])

@@ -716,8 +716,8 @@ class VecAsRowAndCol(Op):
             v = at.as_tensor_variable(v)
         assert v.type.ndim == 1
         type_class = type(v.type)
-        out_r_type = type_class(dtype=v.dtype, shape=(True, False))
-        out_c_type = type_class(dtype=v.dtype, shape=(False, True))
+        out_r_type = type_class(dtype=v.dtype, shape=(1, None))
+        out_c_type = type_class(dtype=v.dtype, shape=(None, 1))
         return Apply(self, [v], [out_r_type(), out_c_type()])
 
     def perform(self, node, inp, out):
