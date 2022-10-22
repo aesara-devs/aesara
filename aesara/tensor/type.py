@@ -54,6 +54,20 @@ dtype_specs_map = {
 }
 
 
+def parse_bcast_and_shape(s):
+    if isinstance(s, (bool, np.bool_)):
+        return 1 if s else None
+    else:
+        return s
+
+
+def shape_encode(s):
+    if s is None:
+        return -2
+
+    return int(s)
+
+
 class TensorType(CType[np.ndarray], HasDataType, HasShape):
     r"""Symbolic `Type` representing `numpy.ndarray`\s."""
 
@@ -82,7 +96,8 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
             A NumPy dtype (e.g. ``"int64"``).
         shape
             The static shape information.  ``None``\s are used to indicate
-            unknown shape values for their respective dimensions.
+            unknown shape values for their respective dimensions and ``-1`` to
+            indicate the constraint ``shape != 1``.
             If `shape` is a list of ``bool``\s, the ``True`` elements of are
             converted to ``1``\s and the ``False`` values are converted to
             ``None``\s.
@@ -96,7 +111,10 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
                 "The `broadcastable` keyword is deprecated; use `shape`.",
                 DeprecationWarning,
             )
-            shape = broadcastable
+
+            shape = tuple(parse_bcast_and_shape(s) for s in shape)
+
+        self.name = name
 
         if str(dtype) == "floatX":
             self.dtype = config.floatX
@@ -106,15 +124,15 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
 
             self.dtype = np.dtype(dtype).name
 
-        def parse_bcast_and_shape(s):
-            if isinstance(s, (bool, np.bool_)):
-                return 1 if s else None
-            else:
-                return s
+        self.shape_encoded = tuple(shape_encode(s) for s in shape)
 
-        self.shape = tuple(parse_bcast_and_shape(s) for s in shape)
+        # TODO: Raise more informative exceptions
+        assert isinstance(self.shape_encoded, tuple)
+        assert all(
+            isinstance(s, int) and not isinstance(s, bool) for s in self.shape_encoded
+        )
+
         self.dtype_specs()  # error checking is done there
-        self.name = name
         self.numpy_dtype = np.dtype(self.dtype)
 
     def clone(
@@ -125,11 +143,13 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
                 "The `broadcastable` keyword is deprecated; use `shape`.",
                 DeprecationWarning,
             )
-            shape = broadcastable
+            shape = tuple(parse_bcast_and_shape(s) for s in shape)
+
         if dtype is None:
             dtype = self.dtype
         if shape is None:
-            shape = self.shape
+            shape = self.shape_encoded
+
         return type(self)(dtype, shape, name=self.name)
 
     def filter(self, data, strict=False, allow_downcast=None):
@@ -243,16 +263,24 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
                 " Aesara C code does not support that.",
             )
 
-        if not all(
-            ds == ts if ts is not None else True
-            for ds, ts in zip(data.shape, self.shape)
-        ):
-            raise TypeError(
-                f"The type's shape ({self.shape}) is not compatible with the data's ({data.shape})"
-            )
+        def check_shape_info(i, s_val, s_info):
+            if s_info == -1 and s_val == 1:
+                raise TypeError(
+                    f"Value's shape in dimension {i} is not compatible "
+                    f"with the constraint: {s_val} != 1"
+                )
+            if s_info > -1 and s_val != s_info:
+                raise TypeError(
+                    f"Value's shape in dimension {i} is not compatible "
+                    f"with the constraint: {s_val} == {s_info}"
+                )
+
+        for i, (s_val, s_info) in enumerate(zip(np.shape(data), self.shape_encoded)):
+            check_shape_info(i, s_val, s_info)
 
         if self.filter_checks_isfinite and not np.all(np.isfinite(data)):
             raise ValueError("Non-finite elements not allowed")
+
         return data
 
     def filter_variable(self, other, allow_convert=True):
@@ -308,7 +336,11 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
         if (
             isinstance(otype, TensorType)
             and otype.dtype == self.dtype
-            and otype.broadcastable == self.broadcastable
+            and self.ndim == otype.ndim
+            and all(
+                s == o_s if s == 1 or o_s == 1 else True
+                for s, o_s in zip(self.shape, otype.shape)
+            )
         ):
             return True
         return False
@@ -320,7 +352,10 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
             and otype.ndim == self.ndim
             # `otype` is allowed to be as or more shape-specific than `self`,
             # but not less
-            and all(sb == ob or sb is None for sb, ob in zip(self.shape, otype.shape))
+            and all(
+                s == o_s if s > -1 and o_s > -1 else s <= o_s
+                for s, o_s in zip(self.shape_encoded, otype.shape_encoded)
+            )
         ):
             return True
 
@@ -334,8 +369,19 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
         if (self.ndim == var.type.ndim) and (self.dtype == var.type.dtype):
             # `var.type` only differs from `self` in that its shape is (at least partially)
             # less specific than `self`, so we convert `var` to `self`'s `Type`.
-            # `specify_shape` will combine the more precise shapes of the two types
-            return aesara.tensor.specify_shape(var, self.shape)
+            # `specify_shape` will combine the more precise shapes of the two types.
+
+            new_shape_encoded = ()
+            for s, o_s in zip(self.shape_encoded, var.type.shape_encoded):
+
+                if s > -1 and o_s > -1 and s != o_s:
+                    raise TypeError(
+                        f"Incompatible shapes: {self.shape_encoded}, {var.type.shape_encoded}"
+                    )
+
+                new_shape_encoded += (max(s, o_s),)
+
+            return aesara.tensor.specify_shape(var, new_shape_encoded)
 
     @staticmethod
     def values_eq(a, b, force_same_dtype=True):
@@ -367,10 +413,15 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
         if type(self) != type(other):
             return NotImplemented
 
-        return other.dtype == self.dtype and other.shape == self.shape
+        return other.dtype == self.dtype and other.shape_encoded == self.shape_encoded
 
     def __hash__(self):
-        return hash((type(self), self.dtype, self.shape))
+        return hash((type(self), self.dtype, self.shape_encoded))
+
+    @property
+    def shape(self) -> Tuple[Optional[Union[int]]]:
+        """Return a static shape tuple with unknown values equal to ``None``."""
+        return tuple(s if s > -1 else None for s in self.shape_encoded)
 
     @property
     def broadcastable(self):
@@ -388,12 +439,14 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
         else:
 
             def shape_str(s):
-                if s is None:
+                if s == -1:
+                    return "!=1"
+                elif s < -1:
                     return "?"
                 else:
                     return str(s)
 
-            formatted_shape = ", ".join([shape_str(s) for s in self.shape])
+            formatted_shape = ", ".join([shape_str(s) for s in self.shape_encoded])
             if len(self.shape) == 1:
                 formatted_shape += ","
 

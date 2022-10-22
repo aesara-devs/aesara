@@ -316,13 +316,29 @@ def test_fixed_shape_convert_variable():
     assert res.type.shape == (3, 2)
 
 
-def test_deprecated_kwargs():
-    with pytest.warns(DeprecationWarning, match=".*broadcastable.*"):
-        res = TensorType("float64", broadcastable=(True, False))
+def test_non_ones_interface():
+    """Make sure the ``-1`` shape encoding works as expected."""
 
-    assert res.shape == (1, None)
+    x_type = TensorType("float64", shape=(-1, 0, 1, 5, None))
 
-    with pytest.warns(DeprecationWarning, match=".*broadcastable.*"):
-        new_res = res.clone(broadcastable=(False, True))
+    with pytest.raises(TypeError):
+        x_type.filter(np.ones((1, 0, 1, 5, 1)))
 
-    assert new_res.shape == (None, 1)
+    x_val = np.ones((2, 0, 1, 5, 1), dtype=np.float64)
+    assert x_type.filter(x_val) is x_val
+
+    assert str(x_type) == "TensorType(float64, (!=1, 0, 1, 5, ?))"
+
+    assert x_type.shape == (None, 0, 1, 5, None)
+    assert x_type.shape_encoded == (-1, 0, 1, 5, -2)
+
+    y_type = TensorType("float64", shape=(None, -1, 1, 5, -1))
+
+    assert x_type != y_type
+
+    # Make sure the filtering and ordering works
+    xy = x_type.convert_variable(y_type())
+    assert xy.type.shape == (None, 0, 1, 5, None)
+    assert xy.type.shape_encoded == (-1, 0, 1, 5, -1)
+
+    assert not x_type.is_super(y_type)

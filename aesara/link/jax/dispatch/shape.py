@@ -46,12 +46,21 @@ def jax_funcify_Shape_i(op, **kwargs):
 def jax_funcify_SpecifyShape(op, **kwargs):
     def specifyshape(x, *shape):
         assert x.ndim == len(shape)
-        assert jnp.all(x.shape == tuple(shape)), (
-            "got shape",
-            x.shape,
-            "expected",
-            shape,
-        )
+        for s_x, s in zip(x.shape, shape):
+            if s == -1:
+                assert s_x != 1, (
+                    "got shape",
+                    s_x,
+                    "expected",
+                    s,
+                )
+            elif s > -1:
+                assert s_x == s, (
+                    "got shape",
+                    s_x,
+                    "expected",
+                    s,
+                )
         return x
 
     return specifyshape

@@ -581,6 +581,16 @@ def test_Reshape_scalar():
             (1, None),
             False,
         ),
+        (
+            set_test_value(at.matrix(), np.array([[1.0, 2.0]], dtype=config.floatX)),
+            (1, -2),
+            False,
+        ),
+        (
+            set_test_value(at.matrix(), np.array([[1.0, 2.0]], dtype=config.floatX)),
+            (-1, None),
+            True,
+        ),
     ],
 )
 def test_SpecifyShape(v, shape, fails):

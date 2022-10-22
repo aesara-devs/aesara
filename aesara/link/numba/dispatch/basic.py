@@ -2,7 +2,7 @@ import operator
 import warnings
 from contextlib import contextmanager
 from functools import singledispatch
-from textwrap import dedent
+from textwrap import dedent, indent
 from typing import Union
 
 import numba
@@ -673,17 +673,26 @@ def numba_funcify_SpecifyShape(op, node, **kwargs):
     shape_input_names = ["shape_" + str(i) for i in range(len(shape_inputs))]
 
     func_conditions = [
-        f"assert x.shape[{i}] == {shape_input_names}"
-        for i, (shape_input, shape_input_names) in enumerate(
+        dedent(
+            f"""
+        if {shape_name} == -1:
+            assert x.shape[{i}] != 1
+        if {shape_name} > -1:
+            assert x.shape[{i}] == {shape_name}
+        """
+        )
+        for i, (shape_input, shape_name) in enumerate(
             zip(shape_inputs, shape_input_names)
         )
         if shape_input is not NoneConst
     ]
 
+    conditions_block = "\n".join(func_conditions)
+
     func = dedent(
         f"""
         def specify_shape(x, {create_arg_string(shape_input_names)}):
-            {"; ".join(func_conditions)}
+            {indent(conditions_block, ' ' * 12)}
             return x
         """
     )
