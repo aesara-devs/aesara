@@ -86,7 +86,7 @@ z = create_aesara_param(np.random.default_rng().integers(0, 4, size=(2, 2)))
 def test_local_replace_AdvancedSubtensor(indices, is_none):
 
     X_val = np.random.normal(size=(4, 4, 4))
-    X = tensor(np.float64, [False, False, False], name="X")
+    X = tensor(np.float64, shape=(None, None, None), name="X")
     X.tag.test_value = X_val
 
     Y = X[indices]
@@ -1858,7 +1858,10 @@ def test_local_subtensor_of_alloc():
     # DebugMode should detect if something goes wrong.
     # test shape combination of odd and event shape.
     for s in [(3, 5), (4, 6), (3, 8), (4, 7), (1, 5), (5, 1)]:
-        x = tensor(dtype=config.floatX, shape=(s[0] == 1, s[1] == 1))
+        x = tensor(
+            dtype=config.floatX,
+            shape=(1 if s[0] == 1 else None, 1 if s[1] == 1 else None),
+        )
 
         xval = np.zeros(s, dtype=config.floatX)
         yval = np.arange(s[1], dtype=config.floatX)
@@ -1902,7 +1905,7 @@ def test_local_subtensor_of_alloc():
 
 
 def test_local_subtensor_shape_constant():
-    x = tensor(np.float64, [True, False]).shape[0]
+    x = tensor(np.float64, shape=(1, None)).shape[0]
     (res,) = local_subtensor_shape_constant.transform(None, x.owner)
     assert isinstance(res, Constant)
     assert res.data == 1
@@ -1912,21 +1915,21 @@ def test_local_subtensor_shape_constant():
     assert isinstance(res, Constant)
     assert res.data == 1
 
-    x = _shape(tensor(np.float64, [True, False]))[lscalar()]
+    x = _shape(tensor(np.float64, shape=(1, None)))[lscalar()]
     assert not local_subtensor_shape_constant.transform(None, x.owner)
 
-    x = _shape(tensor(np.float64, [True, False]))[0:]
+    x = _shape(tensor(np.float64, shape=(1, None)))[0:]
     assert not local_subtensor_shape_constant.transform(None, x.owner)
 
-    x = _shape(tensor(np.float64, [True, False]))[lscalar() :]
+    x = _shape(tensor(np.float64, shape=(1, None)))[lscalar() :]
     assert not local_subtensor_shape_constant.transform(None, x.owner)
 
-    x = _shape(tensor(np.float64, [True, True]))[1:]
+    x = _shape(tensor(np.float64, shape=(1, 1)))[1:]
     (res,) = local_subtensor_shape_constant.transform(None, x.owner)
     assert isinstance(res, Constant)
     assert np.array_equal(res.data, [1])
 
-    x = _shape(tensor(np.float64, [False, True, True]))[1:]
+    x = _shape(tensor(np.float64, shape=(None, 1, 1)))[1:]
     (res,) = local_subtensor_shape_constant.transform(None, x.owner)
     assert isinstance(res, Constant)
     assert np.array_equal(res.data, [1, 1])

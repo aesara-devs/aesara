@@ -29,7 +29,7 @@ In your Op sub-class:
 
 .. code-block:: python
 
-    params_type = ParamsType(attr1=TensorType('int32', (False, False)), attr2=ScalarType('float64'))
+    params_type = ParamsType(attr1=TensorType('int32', shape=(None, None)), attr2=ScalarType('float64'))
 
 If your op contains attributes ``attr1`` **and** ``attr2``, the default ``op.get_params()``
 implementation will automatically try to look for it and generate an appropriate Params object.
@@ -324,7 +324,7 @@ class ParamsType(CType):
     `ParamsType` constructor takes key-value args.  Key will be the name of the
     attribute in the struct.  Value is the Aesara type of this attribute,
     ie. an instance of (a subclass of) :class:`CType`
-    (eg. ``TensorType('int64', (False,))``).
+    (eg. ``TensorType('int64', (None,))``).
 
     In a Python code any attribute named ``key`` will be available via::
 

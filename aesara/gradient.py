@@ -1802,13 +1802,11 @@ def verify_grad(
         mode=mode,
     )
 
-    tensor_pt = [
-        aesara.tensor.type.TensorType(
-            aesara.tensor.as_tensor_variable(p).dtype,
-            aesara.tensor.as_tensor_variable(p).broadcastable,
-        )(name=f"input {i}")
-        for i, p in enumerate(pt)
-    ]
+    tensor_pt = []
+    for i, p in enumerate(pt):
+        p_t = aesara.tensor.as_tensor_variable(p).type()
+        p_t.name = f"input {i}"
+        tensor_pt.append(p_t)
 
     # fun can be either a function or an actual Op instance
     o_output = fun(*tensor_pt)

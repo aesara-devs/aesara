@@ -110,10 +110,12 @@ def _as_tensor_Variable(x, name, ndim, **kwargs):
 
     if x.type.ndim > ndim:
         # Strip off leading broadcastable dimensions
-        non_broadcastables = [idx for idx in range(x.ndim) if not x.broadcastable[idx]]
+        non_broadcastables = tuple(
+            idx for idx in range(x.type.ndim) if x.type.shape[idx] != 1
+        )
 
         if non_broadcastables:
-            x = x.dimshuffle(list(range(x.ndim))[non_broadcastables[0] :])
+            x = x.dimshuffle(list(range(x.type.ndim))[non_broadcastables[0] :])
         else:
             x = x.dimshuffle()
 
@@ -862,7 +864,7 @@ class Nonzero(Op):
         a = as_tensor_variable(a)
         if a.ndim == 0:
             raise ValueError("Nonzero only supports non-scalar arrays.")
-        output = [TensorType(dtype="int64", shape=(False,))() for i in range(a.ndim)]
+        output = [TensorType(dtype="int64", shape=(None,))() for i in range(a.ndim)]
         return Apply(self, [a], output)
 
     def perform(self, node, inp, out_):
@@ -993,7 +995,7 @@ class Tri(Op):
         return Apply(
             self,
             [N, M, k],
-            [TensorType(dtype=self.dtype, shape=(False, False))()],
+            [TensorType(dtype=self.dtype, shape=(None, None))()],
         )
 
     def perform(self, node, inp, out_):
@@ -1272,7 +1274,7 @@ class Eye(Op):
         return Apply(
             self,
             [n, m, k],
-            [TensorType(dtype=self.dtype, shape=(False, False))()],
+            [TensorType(dtype=self.dtype, shape=(None, None))()],
         )
 
     def perform(self, node, inp, out_):
@@ -1663,7 +1665,7 @@ class MakeVector(COp):
         else:
             dtype = self.dtype
 
-        otype = TensorType(dtype, (len(inputs),))
+        otype = TensorType(dtype, shape=(len(inputs),))
         return Apply(self, inputs, [otype()])
 
     def perform(self, node, inputs, out_):
@@ -1918,7 +1920,7 @@ class Split(COp):
             raise TypeError("`axis` parameter must be an integer scalar")
 
         inputs = [x, axis, splits]
-        out_type = TensorType(dtype=x.dtype, shape=[None] * x.type.ndim)
+        out_type = TensorType(dtype=x.dtype, shape=(None,) * x.type.ndim)
         outputs = [out_type() for i in range(self.len_splits)]
 
         return Apply(self, inputs, outputs)
@@ -2210,9 +2212,9 @@ class Join(COp):
                 "Join cannot handle arguments of dimension 0."
                 " Use `stack` to join scalar values."
             )
-        # Handle single-tensor joins immediately.
+
         if len(tensors) == 1:
-            bcastable = list(tensors[0].type.broadcastable)
+            out_shape = tensors[0].type.shape
         else:
             # When the axis is fixed, a dimension should be
             # broadcastable if at least one of the inputs is
@@ -2220,8 +2222,8 @@ class Join(COp):
             # except for the axis dimension.
             # Initialize bcastable all false, and then fill in some trues with
             # the loops.
-            bcastable = [False] * len(tensors[0].type.broadcastable)
-            ndim = len(bcastable)
+            ndim = tensors[0].type.ndim
+            out_shape = [None] * ndim
 
             if not isinstance(axis, int):
                 try:
@@ -2246,15 +2248,15 @@ class Join(COp):
                     axis += ndim
 
                 for x in tensors:
-                    for current_axis, bflag in enumerate(x.type.broadcastable):
+                    for current_axis, s in enumerate(x.type.shape):
                         # Constant negative axis can no longer be negative at
                         # this point. It safe to compare this way.
                         if current_axis == axis:
                             continue
-                        if bflag:
-                            bcastable[current_axis] = True
+                        if s == 1:
+                            out_shape[current_axis] = 1
                 try:
-                    bcastable[axis] = False
+                    out_shape[axis] = None
                 except IndexError:
                     raise ValueError(
                         f"Axis value {axis} is out of range for the given input dimensions"
@@ -2262,9 +2264,9 @@ class Join(COp):
             else:
                 # When the axis may vary, no dimension can be guaranteed to be
                 # broadcastable.
-                bcastable = [False] * len(tensors[0].type.broadcastable)
+                out_shape = [None] * tensors[0].type.ndim
 
-        if not builtins.all(x.ndim == len(bcastable) for x in tensors):
+        if not builtins.all(x.ndim == len(out_shape) for x in tensors):
             raise TypeError(
                 "Only tensors with the same number of dimensions can be joined"
             )
@@ -2274,7 +2276,7 @@ class Join(COp):
         if inputs[0].type.dtype not in int_dtypes:
             raise TypeError(f"Axis value {inputs[0]} must be an integer type")
 
-        return Apply(self, inputs, [tensor(dtype=out_dtype, shape=bcastable)])
+        return Apply(self, inputs, [tensor(dtype=out_dtype, shape=out_shape)])
 
     def perform(self, node, axis_and_tensors, out_):
         (out,) = out_
@@ -2387,9 +2389,9 @@ class Join(COp):
             # read it if needed.
             split_gz = [
                 g
-                if g.type.broadcastable == t.type.broadcastable
+                if g.type.shape == t.type.shape == 1
                 else specify_broadcastable(
-                    g, *(ax for (ax, b) in enumerate(t.type.broadcastable) if b)
+                    g, *(ax for (ax, s) in enumerate(t.type.shape) if s == 1)
                 )
                 for t, g in zip(tens, split_gz)
             ]
@@ -2770,13 +2772,13 @@ def flatten(x, ndim=1):
         dims = tuple(_x.shape[: ndim - 1]) + (-1,)
     else:
         dims = (-1,)
+
     x_reshaped = _x.reshape(dims)
-    bcast_kept_dims = _x.broadcastable[: ndim - 1]
-    bcast_new_dim = builtins.all(_x.broadcastable[ndim - 1 :])
-    broadcastable = bcast_kept_dims + (bcast_new_dim,)
-    x_reshaped = specify_broadcastable(
-        x_reshaped, *[i for i in range(ndim) if broadcastable[i]]
-    )
+    shape_kept_dims = _x.type.shape[: ndim - 1]
+    bcast_new_dim = builtins.all(s == 1 for s in _x.type.shape[ndim - 1 :])
+    out_shape = shape_kept_dims + (1 if bcast_new_dim else None,)
+    bcasted_indices = tuple(i for i in range(ndim) if out_shape[i] == 1)
+    x_reshaped = specify_broadcastable(x_reshaped, *bcasted_indices)
     return x_reshaped
 
 
@@ -2882,7 +2884,7 @@ class ARange(Op):
         assert step.ndim == 0
 
         inputs = [start, stop, step]
-        outputs = [tensor(self.dtype, (False,))]
+        outputs = [tensor(self.dtype, shape=(None,))]
 
         return Apply(self, inputs, outputs)
 
@@ -3158,11 +3160,11 @@ class PermuteRowElements(Op):
         elif x_dim < y_dim:
             x = shape_padleft(x, n_ones=(y_dim - x_dim))
 
-        # Compute the broadcastable pattern of the output
-        out_broadcastable = [
-            xb and yb for xb, yb in zip(x.type.broadcastable, y.type.broadcastable)
+        out_shape = [
+            1 if xb == 1 and yb == 1 else None
+            for xb, yb in zip(x.type.shape, y.type.shape)
         ]
-        out_type = tensor(dtype=x.type.dtype, shape=out_broadcastable)
+        out_type = tensor(dtype=x.type.dtype, shape=out_shape)
 
         inputlist = [x, y, inverse]
         outputlist = [out_type]
@@ -3394,7 +3396,7 @@ class ExtractDiag(Op):
         return Apply(
             self,
             [x],
-            [x.type.__class__(dtype=x.dtype, shape=[False] * (x.ndim - 1))()],
+            [x.type.clone(dtype=x.dtype, shape=(None,) * (x.ndim - 1))()],
         )
 
     def perform(self, node, inputs, outputs):
@@ -3516,7 +3518,7 @@ class AllocDiag(Op):
         return Apply(
             self,
             [diag],
-            [diag.type.clone(shape=[False] * (diag.ndim + 1))()],
+            [diag.type.clone(shape=(None,) * (diag.ndim + 1))()],
         )
 
     def perform(self, node, inputs, outputs):
@@ -3799,11 +3801,12 @@ class Choose(Op):
             choice = aesara.typed_list.make_list(choices)
         else:
             choice = as_tensor_variable(choices)
+
         (out_shape,) = self.infer_shape(
             None, None, [shape_tuple(a), shape_tuple(choice)]
         )
 
-        bcast = []
+        static_out_shape = ()
         for s in out_shape:
             try:
                 s_val = aesara.get_scalar_constant_value(s)
@@ -3811,11 +3814,11 @@ class Choose(Op):
                 s_val = None
 
             if s_val == 1:
-                bcast.append(True)
+                static_out_shape += (1,)
             else:
-                bcast.append(False)
+                static_out_shape += (None,)
 
-        o = TensorType(choice.dtype, bcast)
+        o = TensorType(choice.dtype, shape=static_out_shape)
         return Apply(self, [a, choice], [o()])
 
     def perform(self, node, inputs, outputs):

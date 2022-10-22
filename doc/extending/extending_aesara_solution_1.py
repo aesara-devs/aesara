@@ -16,9 +16,9 @@ class ProdOp(Op):
     def make_node(self, x, y):
         x = at.as_tensor_variable(x)
         y = at.as_tensor_variable(y)
-        outdim = x.ndim
+        outdim = x.type.ndim
         output = TensorType(
-            dtype=aesara.scalar.upcast(x.dtype, y.dtype), shape=[False] * outdim
+            dtype=aesara.scalar.upcast(x.dtype, y.dtype), shape=(None,) * outdim
         )()
         return Apply(self, inputs=[x, y], outputs=[output])
 
@@ -41,12 +41,12 @@ class SumDiffOp(Op):
     def make_node(self, x, y):
         x = at.as_tensor_variable(x)
         y = at.as_tensor_variable(y)
-        outdim = x.ndim
+        outdim = x.type.ndim
         output1 = TensorType(
-            dtype=aesara.scalar.upcast(x.dtype, y.dtype), shape=[False] * outdim
+            dtype=aesara.scalar.upcast(x.dtype, y.dtype), shape=(None,) * outdim
         )()
         output2 = TensorType(
-            dtype=aesara.scalar.upcast(x.dtype, y.dtype), shape=[False] * outdim
+            dtype=aesara.scalar.upcast(x.dtype, y.dtype), shape=(None,) * outdim
         )()
         return Apply(self, inputs=[x, y], outputs=[output1, output2])
 

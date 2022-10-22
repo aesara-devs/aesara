@@ -495,7 +495,7 @@ def test_batch_normalization_train_broadcast():
                 params_dimshuffle[axis] = i
 
             # construct non-broadcasted parameter variables
-            param_type = TensorType(x.dtype, (False,) * len(non_bc_axes))
+            param_type = TensorType(x.dtype, shape=(None,) * len(non_bc_axes))
             scale, bias, running_mean, running_var = (
                 param_type(n) for n in ("scale", "bias", "running_mean", "running_var")
             )

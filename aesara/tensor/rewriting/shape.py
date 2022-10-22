@@ -797,27 +797,27 @@ register_canonicalize(local_reshape_chain(Reshape), name="local_reshape_chain")
 @register_stabilize
 @node_rewriter([Reshape])
 def local_useless_reshape(fgraph, node):
+    """Remove two kinds of useless `Reshape`.
+
+    - Remove `Reshape` when both the input and output have a single dimension.
+    - Remove `Reshape` when reshaping to the shape of the input.
+
     """
-    Remove two kinds of useless reshape.
-
-    Remove Reshape when both the input and output have a single dimension.
-    Remove Reshape when reshaping to the shape of the input.
-
-    """
-    op = node.op
-    if not isinstance(op, Reshape):
-        return False
-
     inp = node.inputs[0]
     output = node.outputs[0]
     output_shape = node.inputs[1]
 
-    if inp.ndim != output.ndim:
+    if inp.type.ndim != output.type.ndim:
         return False
 
     # Simple case: both input and output have a single dimension.
-    # This could hide errors if the user provides inconsistent shapes.
-    if inp.ndim == 1 and output.ndim == 1 and inp.broadcastable == output.broadcastable:
+    # TODO FIXME XXX: This could hide errors if the user provides inconsistent
+    # shapes.
+    if (
+        inp.type.ndim == 1
+        and output.type.ndim == 1
+        and inp.type.broadcastable == output.type.broadcastable
+    ):
         return [inp]
 
     # Second case: all the shapes match the input shape
@@ -835,8 +835,8 @@ def local_useless_reshape(fgraph, node):
         shape_feature = getattr(fgraph, "shape_feature", None)
 
         nb_m1 = 0
-        shape_match = [False] * inp.ndim
-        for dim in range(inp.ndim):
+        shape_match = [False] * inp.type.ndim
+        for dim in range(inp.type.ndim):
             outshp_i = output_shape_is[dim]
             # Match Shape_i{dim}(input)
             if (
@@ -864,7 +864,7 @@ def local_useless_reshape(fgraph, node):
 
             # Match 1 if input.broadcastable[dim] is True
             cst_outshp_i = extract_constant(outshp_i, only_process_constants=1)
-            if inp.broadcastable[dim] and cst_outshp_i == 1:
+            if inp.type.shape[dim] == 1 and cst_outshp_i == 1:
                 shape_match[dim] = True
                 continue
 
@@ -895,22 +895,18 @@ def local_useless_reshape(fgraph, node):
 @register_canonicalize
 @node_rewriter([Reshape])
 def local_reshape_to_dimshuffle(fgraph, node):
-    """
-    Broadcastable dimensions in Reshape are replaced with dimshuffle.
+    r"""Replace broadcastable dimensions in `Reshape` nodes with `DimShuffle`\s.
 
-    The goal is to avoid using reshape to add or remove broadcastable
-    dimensions, but use dimshuffle instead, so dimshuffles can cancel out
-    or be removed later on.
+    The goal is to avoid using `Reshape` to add or remove broadcastable
+    dimensions, and to use `DimShuffle` instead, since `DimShuffle`\s can
+    cancel out and/or be removed later on.
 
     For example:
-        - reshape(x, (1, n)) --> dimshuffle{x,0}(reshape(x, (n,))
+        - reshape(x, (1, n)) -> DimShuffle{x,0}(Reshape(x, (n,))
         - reshape(x, (1, m, 1, n, 1, 1))
-          --> dimshuffle{x,0,x,1,x,x}(reshape(x, (m, n)))
+          -> DimShuffle{x,0,x,1,x,x}(Reshape(x, (m, n)))
     """
     op = node.op
-    if not isinstance(op, Reshape):
-        return False
-
     inp = node.inputs[0]
     output = node.outputs[0]
     output_shape = node.inputs[1]
@@ -931,7 +927,8 @@ def local_reshape_to_dimshuffle(fgraph, node):
             dimshuffle_new_order.append(index)
             new_output_shape.append(dim)
             index = index + 1
-    if index != output.ndim:
+
+    if index != output.type.ndim:
         inner = op.__class__(len(new_output_shape))(inp, new_output_shape)
         copy_stack_trace(output, inner)
         new_node = [DimShuffle(inner.type.broadcastable, dimshuffle_new_order)(inner)]

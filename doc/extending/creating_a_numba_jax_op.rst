@@ -30,7 +30,7 @@ For example, the :class:`Eye`\ :class:`Op` current has an :meth:`Op.make_node` a
         return Apply(
             self,
             [n, m, k],
-            [TensorType(dtype=self.dtype, shape=(False, False))()],
+            [TensorType(dtype=self.dtype, shape=(None, None))()],
         )
 
 

@@ -15,7 +15,7 @@ class RFFTOp(Op):
 
     def output_type(self, inp):
         # add extra dim for real/imag
-        return TensorType(inp.dtype, shape=[False] * (inp.type.ndim + 1))
+        return TensorType(inp.dtype, shape=(None,) * (inp.type.ndim + 1))
 
     def make_node(self, a, s=None):
         a = as_tensor_variable(a)
@@ -76,7 +76,7 @@ class IRFFTOp(Op):
 
     def output_type(self, inp):
         # remove extra dim for real/imag
-        return TensorType(inp.dtype, shape=[False] * (inp.type.ndim - 1))
+        return TensorType(inp.dtype, shape=(None,) * (inp.type.ndim - 1))
 
     def make_node(self, a, s=None):
         a = as_tensor_variable(a)

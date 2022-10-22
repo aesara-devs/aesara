@@ -2529,7 +2529,7 @@ class TestUnsharedConv:
         self.ref_mode = "FAST_RUN"
 
     def test_fwd(self):
-        tensor6 = TensorType(config.floatX, (False,) * 6)
+        tensor6 = TensorType(config.floatX, shape=(None,) * 6)
         img_sym = tensor4("img")
         kern_sym = tensor6("kern")
         ref_kern_sym = tensor4("ref_kern")
@@ -2652,7 +2652,7 @@ class TestUnsharedConv:
                 utt.verify_grad(conv_gradweight, [img, top], mode=self.mode, eps=1)
 
     def test_gradinput(self):
-        tensor6 = TensorType(config.floatX, (False,) * 6)
+        tensor6 = TensorType(config.floatX, shape=(None,) * 6)
         kern_sym = tensor6("kern")
         top_sym = tensor4("top")
         ref_kern_sym = tensor4("ref_kern")

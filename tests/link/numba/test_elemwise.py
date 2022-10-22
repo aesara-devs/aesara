@@ -140,7 +140,7 @@ def test_Elemwise(inputs, input_vals, output_fn, exc):
         # `{'drop': [1], 'shuffle': [2, 0], 'augment': [0, 2, 4]}`
         (
             set_test_value(
-                at.tensor(config.floatX, [False, True, False], name="a"),
+                at.tensor(config.floatX, shape=(None, 1, None), name="a"),
                 np.array([[[1.0, 2.0]], [[3.0, 4.0]]], dtype=config.floatX),
             ),
             ("x", 2, "x", 0, "x"),
@@ -149,21 +149,21 @@ def test_Elemwise(inputs, input_vals, output_fn, exc):
         # `{'drop': [1], 'shuffle': [0], 'augment': []}`
         (
             set_test_value(
-                at.tensor(config.floatX, [False, True], name="a"),
+                at.tensor(config.floatX, shape=(None, 1), name="a"),
                 np.array([[1.0], [2.0], [3.0], [4.0]], dtype=config.floatX),
             ),
             (0,),
         ),
         (
             set_test_value(
-                at.tensor(config.floatX, [False, True], name="a"),
+                at.tensor(config.floatX, shape=(None, 1), name="a"),
                 np.array([[1.0], [2.0], [3.0], [4.0]], dtype=config.floatX),
             ),
             (0,),
         ),
         (
             set_test_value(
-                at.tensor(config.floatX, [True, True, True], name="a"),
+                at.tensor(config.floatX, shape=(1, 1, 1), name="a"),
                 np.array([[[1.0]]], dtype=config.floatX),
             ),
             (),

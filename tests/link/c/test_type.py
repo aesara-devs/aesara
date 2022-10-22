@@ -44,7 +44,7 @@ class GetOp(COp):
     __props__ = ()
 
     def make_node(self, c):
-        return Apply(self, [c], [TensorType("float32", (False,))()])
+        return Apply(self, [c], [TensorType("float32", shape=(None,))()])
 
     def c_support_code(self, **kwargs):
         return """
@@ -73,7 +73,7 @@ Py_INCREF(%(out)s);
     not aesara.config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_cdata():
-    i = TensorType("float32", (False,))()
+    i = TensorType("float32", shape=(None,))()
     c = ProdOp()(i)
     i2 = GetOp()(c)
     mode = None

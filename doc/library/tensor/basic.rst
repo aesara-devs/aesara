@@ -409,7 +409,7 @@ them perfectly, but a `dscalar` otherwise.
         broadcast over the middle dimension of a 3-dimensional tensor when
         adding them together, we would define it like this:
 
-        >>> middle_broadcaster = TensorType('complex64', [False, True, False])
+        >>> middle_broadcaster = TensorType('complex64', shape=(None, 1, None))
 
     .. attribute:: ndim
 

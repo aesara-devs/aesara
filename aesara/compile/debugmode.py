@@ -848,17 +848,17 @@ def _get_preallocated_maps(
         or "ALL" in prealloc_modes
     ):
         max_ndim = 0
-        rev_out_broadcastable = []
+        rev_out_shape = []
         for r in considered_outputs:
             if isinstance(r.type, TensorType):
                 if max_ndim < r.ndim:
-                    rev_out_broadcastable += [True] * (r.ndim - max_ndim)
+                    rev_out_shape += [1] * (r.ndim - max_ndim)
                     max_ndim = r.ndim
-                assert len(rev_out_broadcastable) == max_ndim
+                assert len(rev_out_shape) == max_ndim
 
-                for i, b in enumerate(r.broadcastable[::-1]):
-                    rev_out_broadcastable[i] = rev_out_broadcastable[i] and b
-        out_broadcastable = rev_out_broadcastable[::-1]
+                for i, s in enumerate(r.type.shape[::-1]):
+                    rev_out_shape[i] = 1 if rev_out_shape[i] == 1 and s == 1 else None
+        out_shape = rev_out_shape[::-1]
 
     if "strided" in prealloc_modes or "ALL" in prealloc_modes:
         check_ndim = config.DebugMode__check_preallocated_output_ndim
@@ -887,14 +887,14 @@ def _get_preallocated_maps(
         # Moreover, to avoid memory problems, we do not test with strides
         # 2 and -2 on those dimensions.
         step_signs_list = []
-        for b in out_broadcastable[-check_ndim:]:
-            if b:
+        for s in out_shape[-check_ndim:]:
+            if s == 1:
                 step_signs_list.append((1,))
             else:
                 step_signs_list.append((-1, 1))
 
         # Use the same step on all dimensions before the last check_ndim.
-        if all(out_broadcastable[:-check_ndim]):
+        if all(s == 1 for s in out_shape[:-check_ndim]):
             step_signs_list = [(1,)] + step_signs_list
         else:
             step_signs_list = [(-1, 1)] + step_signs_list
@@ -905,7 +905,7 @@ def _get_preallocated_maps(
 
                 # First, the dimensions above check_ndim, then the other ones
                 # Do not test with 2 or -2 for dimensions above check_ndim
-                steps = [step_signs[0]] * len(out_broadcastable[:-check_ndim])
+                steps = [step_signs[0]] * len(out_shape[:-check_ndim])
                 steps += [s * step_size for s in step_signs[1:]]
 
                 name = f"strided{tuple(steps)}"
@@ -932,8 +932,8 @@ def _get_preallocated_maps(
 
     if "wrong_size" in prealloc_modes or "ALL" in prealloc_modes:
         # For each dimension, try size-1, size, size+1
-        for dim, b in enumerate(out_broadcastable):
-            if b:
+        for dim, s in enumerate(out_shape):
+            if s == 1:
                 # The shape has to be 1
                 continue
 
@@ -947,11 +947,11 @@ def _get_preallocated_maps(
                 for r in considered_outputs:
                     if isinstance(r.type, TensorType):
                         r_shape_diff = shape_diff[: r.ndim]
-                        out_shape = [
+                        new_buf_shape = [
                             max((s + sd), 0)
                             for s, sd in zip(r_vals[r].shape, r_shape_diff)
                         ]
-                        new_buf = np.empty(out_shape, dtype=r.type.dtype)
+                        new_buf = np.empty(new_buf_shape, dtype=r.type.dtype)
                         new_buf[...] = np.asarray(def_val).astype(r.type.dtype)
                         wrong_size[r] = new_buf
 

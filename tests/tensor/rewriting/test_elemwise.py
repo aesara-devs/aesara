@@ -71,9 +71,9 @@ def ds(x, y):
 
 
 def inputs(xbc=(0, 0), ybc=(0, 0), zbc=(0, 0)):
-    x = TensorType(shape=xbc, dtype="float64")("x")
-    y = TensorType(shape=ybc, dtype="float64")("y")
-    z = TensorType(shape=zbc, dtype="float64")("z")
+    x = TensorType(dtype="float64", shape=xbc)("x")
+    y = TensorType(dtype="float64", shape=ybc)("y")
+    z = TensorType(dtype="float64", shape=zbc)("z")
     return x, y, z
 
 
@@ -205,10 +205,10 @@ class TestDimshuffleLift:
 
 
 def test_local_useless_dimshuffle_in_reshape():
-    vec = TensorType(shape=(False,), dtype="float64")("vector")
-    mat = TensorType(shape=(False, False), dtype="float64")("mat")
-    row = TensorType(shape=(True, False), dtype="float64")("row")
-    col = TensorType(shape=(False, True), dtype="float64")("col")
+    vec = TensorType(dtype="float64", shape=(None,))("vector")
+    mat = TensorType(dtype="float64", shape=(None, None))("mat")
+    row = TensorType(dtype="float64", shape=(1, None))("row")
+    col = TensorType(dtype="float64", shape=(None, 1))("col")
 
     reshape_dimshuffle_vector = reshape(vec.dimshuffle("x", 0), vec.shape)
     reshape_dimshuffle_mat = reshape(mat.dimshuffle("x", 0, "x", 1), mat.shape)
@@ -270,12 +270,12 @@ class TestFusion:
         return np.zeros((5, 5), dtype=dtype) + num
 
     fw, fx, fy, fz = [
-        tensor(dtype="float32", shape=[False] * 2, name=n) for n in "wxyz"
+        tensor(dtype="float32", shape=(None,) * 2, name=n) for n in "wxyz"
     ]
     dw, dx, dy, dz = [
-        tensor(dtype="float64", shape=[False] * 2, name=n) for n in "wxyz"
+        tensor(dtype="float64", shape=(None,) * 2, name=n) for n in "wxyz"
     ]
-    ix, iy, iz = [tensor(dtype="int32", shape=[False] * 2, name=n) for n in "xyz"]
+    ix, iy, iz = [tensor(dtype="int32", shape=(None,) * 2, name=n) for n in "xyz"]
     fv = fvector("v")
     fs = fscalar("s")
     fwv = my_init("float32", 1)

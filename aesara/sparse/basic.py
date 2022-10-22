@@ -592,7 +592,7 @@ class CSMProperties(Op):
 
         csm = as_sparse_variable(csm)
         assert csm.format in ("csr", "csc")
-        data = TensorType(dtype=csm.type.dtype, shape=(False,))()
+        data = TensorType(dtype=csm.type.dtype, shape=(None,))()
         return Apply(self, [csm], [data, ivector(), ivector(), ivector()])
 
     def perform(self, node, inputs, out):
@@ -994,7 +994,7 @@ class DenseFromSparse(Op):
         return Apply(
             self,
             [x],
-            [TensorType(dtype=x.type.dtype, shape=(False, False))()],
+            [TensorType(dtype=x.type.dtype, shape=(None, None))()],
         )
 
     def perform(self, node, inputs, outputs):
@@ -1753,11 +1753,13 @@ class SpSum(Op):
     def make_node(self, x):
         x = as_sparse_variable(x)
         assert x.format in ("csr", "csc")
-        b = ()
-        if self.axis is not None:
-            b = (False,)
 
-        z = TensorType(shape=b, dtype=x.dtype)()
+        if self.axis is not None:
+            out_shape = (None,)
+        else:
+            out_shape = ()
+
+        z = TensorType(dtype=x.dtype, shape=out_shape)()
         return Apply(self, [x], [z])
 
     def perform(self, node, inputs, outputs):
@@ -1872,7 +1874,7 @@ class Diag(Op):
         """
         x = as_sparse_variable(x)
         assert x.format in ("csr", "csc")
-        return Apply(self, [x], [tensor(shape=(False,), dtype=x.dtype)])
+        return Apply(self, [x], [tensor(dtype=x.dtype, shape=(None,))])
 
     def perform(self, node, inputs, outputs):
         (x,) = inputs
@@ -2138,7 +2140,7 @@ class AddSD(Op):
         return Apply(
             self,
             [x, y],
-            [TensorType(dtype=out_dtype, shape=y.type.broadcastable)()],
+            [TensorType(dtype=out_dtype, shape=y.type.shape)()],
         )
 
     def perform(self, node, inputs, outputs):
@@ -2621,7 +2623,7 @@ class __ComparisonOpSD(Op):
         x, y = as_sparse_variable(x), at.as_tensor_variable(y)
 
         assert y.type.ndim == 2
-        out = TensorType(dtype="uint8", shape=(False, False))()
+        out = TensorType(dtype="uint8", shape=(None, None))()
         return Apply(self, [x, y], [out])
 
     def perform(self, node, inputs, outputs):
@@ -3462,7 +3464,7 @@ class StructuredDot(Op):
             return Apply(
                 self,
                 [a, b],
-                [tensor(dtype_out, (False, b.type.broadcastable[1]))],
+                [tensor(dtype_out, shape=(None, 1 if b.type.shape[1] == 1 else None))],
             )
 
     def perform(self, node, inputs, outputs):
@@ -3593,7 +3595,7 @@ class StructuredDotGradCSC(COp):
 
     def make_node(self, a_indices, a_indptr, b, g_ab):
         return Apply(
-            self, [a_indices, a_indptr, b, g_ab], [tensor(g_ab.dtype, (False,))]
+            self, [a_indices, a_indptr, b, g_ab], [tensor(g_ab.dtype, shape=(None,))]
         )
 
     def perform(self, node, inputs, outputs):
@@ -3726,7 +3728,9 @@ class StructuredDotGradCSR(COp):
     __props__ = ()
 
     def make_node(self, a_indices, a_indptr, b, g_ab):
-        return Apply(self, [a_indices, a_indptr, b, g_ab], [tensor(b.dtype, (False,))])
+        return Apply(
+            self, [a_indices, a_indptr, b, g_ab], [tensor(b.dtype, shape=(None,))]
+        )
 
     def perform(self, node, inputs, outputs):
         (a_indices, a_indptr, b, g_ab) = inputs
@@ -3967,6 +3971,7 @@ class Dot(Op):
             x = as_sparse_variable(x)
         if isinstance(y, scipy.sparse.spmatrix):
             y = as_sparse_variable(y)
+
         x_is_sparse_var = _is_sparse_variable(x)
         y_is_sparse_var = _is_sparse_variable(y)
 
@@ -3978,34 +3983,35 @@ class Dot(Op):
             )
 
         if x_is_sparse_var:
-            broadcast_x = (False,) * x.ndim
+            shape_x = (None,) * x.type.ndim
         else:
             x = at.as_tensor_variable(x)
-            broadcast_x = x.type.broadcastable
+            shape_x = x.type.shape
             assert y.format in ("csr", "csc")
             if x.ndim not in (1, 2):
                 raise TypeError(
                     "Input 0 (0-indexed) must have ndim of "
-                    f"1 or 2, {int(x.ndim)} given."
+                    f"1 or 2, {int(x.type.ndim)} given."
                 )
 
         if y_is_sparse_var:
-            broadcast_y = (False,) * y.ndim
+            shape_y = (None,) * y.type.ndim
         else:
             y = at.as_tensor_variable(y)
-            broadcast_y = y.type.broadcastable
+            shape_y = y.type.shape
             assert x.format in ("csr", "csc")
             if y.ndim not in (1, 2):
                 raise TypeError(
                     "Input 1 (1-indexed) must have ndim of "
-                    f"1 or 2, {int(y.ndim)} given."
+                    f"1 or 2, {int(y.type.ndim)} given."
                 )
 
-        if len(broadcast_y) == 2:
-            broadcast_out = broadcast_x[:-1] + broadcast_y[1:]
-        elif len(broadcast_y) == 1:
-            broadcast_out = broadcast_x[:-1]
-        return Apply(self, [x, y], [tensor(dtype=dtype_out, shape=broadcast_out)])
+        if len(shape_y) == 2:
+            shape_out = shape_x[:-1] + shape_y[1:]
+        elif len(shape_y) == 1:
+            shape_out = shape_x[:-1]
+
+        return Apply(self, [x, y], [tensor(dtype=dtype_out, shape=shape_out)])
 
     def perform(self, node, inputs, out):
         x, y = inputs
@@ -4126,21 +4132,21 @@ class Usmm(Op):
         alpha = at.as_tensor_variable(alpha)
         z = at.as_tensor_variable(z)
 
-        assert z.ndim == 2
-        assert alpha.type.broadcastable == (True,) * alpha.ndim
+        assert z.type.ndim == 2
+        assert alpha.type.shape == (1,) * alpha.type.ndim
         if not _is_sparse_variable(x):
             x = at.as_tensor_variable(x)
             assert y.format in ("csr", "csc")
-            assert x.ndim == 2
+            assert x.type.ndim == 2
         if not _is_sparse_variable(y):
             y = at.as_tensor_variable(y)
             assert x.format in ("csr", "csc")
-            assert y.ndim == 2
+            assert y.type.ndim == 2
 
         return Apply(
             self,
             [alpha, x, y, z],
-            [tensor(dtype=dtype_out, shape=(False, False))],
+            [tensor(dtype=dtype_out, shape=(None, None))],
         )
 
     def perform(self, node, inputs, outputs):

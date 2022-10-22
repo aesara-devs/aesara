@@ -125,9 +125,9 @@ def test_RandomVariable_basics():
 def test_RandomVariable_bcast():
     rv = RandomVariable("normal", 0, [0, 0], config.floatX, inplace=True)
 
-    mu = tensor(config.floatX, [True, False, False])
+    mu = tensor(config.floatX, shape=(1, None, None))
     mu.tag.test_value = np.zeros((1, 2, 3)).astype(config.floatX)
-    sd = tensor(config.floatX, [False, False])
+    sd = tensor(config.floatX, shape=(None, None))
     sd.tag.test_value = np.ones((2, 3)).astype(config.floatX)
 
     s1 = iscalar()
@@ -160,14 +160,14 @@ def test_RandomVariable_bcast_specify_shape():
     s3 = Assert("testing")(s3, eq(s1, 1))
 
     size = specify_shape(at.as_tensor([s1, s3, s2, s2, s1]), (5,))
-    mu = tensor(config.floatX, [False, False, True])
+    mu = tensor(config.floatX, shape=(None, None, 1))
     mu.tag.test_value = np.random.normal(size=(2, 2, 1)).astype(config.floatX)
 
-    std = tensor(config.floatX, [False, True, True])
+    std = tensor(config.floatX, shape=(None, 1, 1))
     std.tag.test_value = np.ones((2, 1, 1)).astype(config.floatX)
 
     res = rv(mu, std, size=size)
-    assert res.broadcastable == (True, False, False, False, True)
+    assert res.type.shape == (1, None, None, None, 1)
 
 
 def test_RandomVariable_floatX():

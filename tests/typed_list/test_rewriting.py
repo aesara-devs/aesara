@@ -13,7 +13,7 @@ from tests.tensor.utils import random_ranged
 class TestInplace:
     def test_reverse_inplace(self):
         mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+            TensorType(aesara.config.floatX, shape=(None, None))
         )()
 
         z = Reverse()(mySymbolicMatricesList)
@@ -36,7 +36,7 @@ class TestInplace:
 
     def test_append_inplace(self):
         mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+            TensorType(aesara.config.floatX, shape=(None, None))
         )()
         mySymbolicMatrix = matrix()
         z = Append()(mySymbolicMatricesList, mySymbolicMatrix)
@@ -62,11 +62,11 @@ class TestInplace:
 
     def test_extend_inplace(self):
         mySymbolicMatricesList1 = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+            TensorType(aesara.config.floatX, shape=(None, None))
         )()
 
         mySymbolicMatricesList2 = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+            TensorType(aesara.config.floatX, shape=(None, None))
         )()
 
         z = Extend()(mySymbolicMatricesList1, mySymbolicMatricesList2)
@@ -91,7 +91,7 @@ class TestInplace:
 
     def test_insert_inplace(self):
         mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+            TensorType(aesara.config.floatX, shape=(None, None))
         )()
         mySymbolicIndex = scalar(dtype="int64")
         mySymbolicMatrix = matrix()
@@ -121,7 +121,7 @@ class TestInplace:
 
     def test_remove_inplace(self):
         mySymbolicMatricesList = TypedListType(
-            TensorType(aesara.config.floatX, (False, False))
+            TensorType(aesara.config.floatX, shape=(None, None))
         )()
         mySymbolicMatrix = matrix()
         z = Remove()(mySymbolicMatricesList, mySymbolicMatrix)

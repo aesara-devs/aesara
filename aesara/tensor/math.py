@@ -151,13 +151,15 @@ class MaxAndArgmax(COp):
         # We keep the original broadcastable flags for dimensions on which
         # we do not perform the max / argmax.
         all_axes = set(self.axis)
-        broadcastable = [
-            b for i, b in enumerate(x.type.broadcastable) if i not in all_axes
-        ]
         inputs = [x]
+        out_shape = tuple(
+            1 if s == 1 else None
+            for i, s in enumerate(x.type.shape)
+            if i not in all_axes
+        )
         outputs = [
-            tensor(x.type.dtype, broadcastable, name="max"),
-            tensor("int64", broadcastable, name="argmax"),
+            tensor(x.type.dtype, shape=out_shape, name="max"),
+            tensor("int64", shape=out_shape, name="argmax"),
         ]
         return Apply(self, inputs, outputs)
 
@@ -375,10 +377,8 @@ class Argmax(COp):
 
         # We keep the original broadcastable flags for dimensions on which
         # we do not perform the argmax.
-        broadcastable = [
-            b for i, b in enumerate(x.type.broadcastable) if i not in all_axes
-        ]
-        outputs = [tensor("int64", broadcastable, name="argmax")]
+        out_shape = tuple(s for i, s in enumerate(x.type.shape) if i not in all_axes)
+        outputs = [tensor("int64", shape=out_shape, name="argmax")]
         return Apply(self, inputs, outputs)
 
     def prepare_node(self, node, storage_map, compute_map, impl):
@@ -1911,15 +1911,14 @@ class Dot(Op):
                 "aesara.tensor.dot instead."
             )
 
-        i_broadcastables = [input.type.broadcastable for input in inputs]
-        bx, by = i_broadcastables
-        if len(by) == 2:  # y is a matrix
-            bz = bx[:-1] + by[-1:]
-        elif len(by) == 1:  # y is vector
-            bz = bx[:-1]
+        sx, sy = [input.type.shape for input in inputs]
+        if len(sy) == 2:
+            sz = sx[:-1] + sy[-1:]
+        elif len(sy) == 1:
+            sz = sx[:-1]
 
         i_dtypes = [input.type.dtype for input in inputs]
-        outputs = [tensor(aes.upcast(*i_dtypes), bz)]
+        outputs = [tensor(aes.upcast(*i_dtypes), shape=sz)]
         return Apply(self, inputs, outputs)
 
     def perform(self, node, inp, out):

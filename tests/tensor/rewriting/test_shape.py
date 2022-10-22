@@ -9,7 +9,7 @@ from aesara.compile.function import function
 from aesara.compile.mode import get_default_mode, get_mode
 from aesara.compile.ops import deep_copy_op
 from aesara.configdefaults import config
-from aesara.graph.basic import Apply, Variable
+from aesara.graph.basic import Apply, Variable, equal_computations
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.rewriting.basic import check_stack_trace, node_rewriter, out2in
@@ -324,7 +324,7 @@ class TestLocalReshapeToDimshuffle:
     def setup_method(self):
         self.rng = np.random.default_rng(utt.fetch_seed())
 
-    def test_1(self):
+    def test_basic(self):
         reshape_lift = out2in(local_reshape_to_dimshuffle)
         useless_reshape = out2in(local_useless_reshape)
         x = shared(self.rng.standard_normal((4,)))
@@ -332,27 +332,27 @@ class TestLocalReshapeToDimshuffle:
         reshape_x = reshape(x, (1, 4))
         reshape_y = reshape(y, (1, 5, 1, 6, 1, 1))
 
-        g = FunctionGraph([x, y], [reshape_x, reshape_y])
-        assert str(g) == (
-            "FunctionGraph(Reshape{2}"
-            "(<TensorType(float64, (None,))>, "
-            "TensorConstant{[1 4]}), "
-            "Reshape{6}"
-            "(<TensorType(float64, (None, None))>, "
-            "TensorConstant{[1 5 1 6 1 1]}))"
+        g = FunctionGraph([x, y], [reshape_x, reshape_y], clone=False)
+
+        assert equal_computations(
+            g.outputs,
+            [
+                Reshape(2)(x, as_tensor_variable((1, 4), ndim=1)),
+                Reshape(6)(y, as_tensor_variable((1, 5, 1, 6, 1, 1), ndim=1)),
+            ],
         )
 
         reshape_lift.rewrite(g)
         useless_reshape.rewrite(g)
-        assert str(g) == (
-            "FunctionGraph(InplaceDimShuffle{x,0}"
-            "(<TensorType(float64, (None,))>), "
-            "InplaceDimShuffle{x,0,x,1,x,x}"
-            "(Reshape{2}(<TensorType(float64, (None, None))>, "
-            "TensorConstant{[5 6]})))"
-        )
 
-        # Check stacktrace was copied over correctly after the rewrite was applied
+        exp_x = SpecifyShape()(x, 4).dimshuffle("x", 0)
+        assert equal_computations([g.outputs[0]], [exp_x])
+
+        exp_y = Reshape(2)(y, as_tensor_variable((5, 6), ndim=1)).dimshuffle(
+            "x", 0, "x", 1, "x", "x"
+        )
+        assert equal_computations([g.outputs[1]], [exp_y])
+
         assert check_stack_trace(g, ops_to_check=(DimShuffle, Reshape))
 
 
@@ -494,7 +494,7 @@ def test_local_Shape_of_SpecifyShape_partial(s1):
 
 
 def test_local_Shape_i_of_broadcastable():
-    x = tensor(np.float64, [False, True])
+    x = tensor(np.float64, shape=(None, 1))
     s = Shape_i(1)(x)
 
     fgraph = FunctionGraph(outputs=[s], clone=False)

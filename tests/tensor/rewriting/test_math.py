@@ -161,9 +161,9 @@ def rewrite(g, level="fast_run"):
 
 
 def inputs(xbc=(0, 0), ybc=(0, 0), zbc=(0, 0)):
-    x = TensorType(shape=xbc, dtype="float64")("x")
-    y = TensorType(shape=ybc, dtype="float64")("y")
-    z = TensorType(shape=zbc, dtype="float64")("z")
+    x = TensorType(dtype="float64", shape=xbc)("x")
+    y = TensorType(dtype="float64", shape=ybc)("y")
+    z = TensorType(dtype="float64", shape=zbc)("z")
     return x, y, z
 
 
@@ -959,11 +959,11 @@ class TestAlgebraicCanonizer:
 
     def test_mismatching_types(self):
         a = at.as_tensor([[0.0]], dtype=np.float64)
-        b = tensor("float64", (None,)).dimshuffle("x", 0)
+        b = tensor("float64", shape=(None,)).dimshuffle("x", 0)
         z = add(a, b)
         # Construct a node with the wrong output `Type`
         z = Apply(
-            z.owner.op, z.owner.inputs, [tensor("float64", (None, None))]
+            z.owner.op, z.owner.inputs, [tensor("float64", shape=(None, None))]
         ).outputs[0]
 
         z_rewritten = rewrite_graph(
@@ -1098,13 +1098,13 @@ class TestFusion:
             return ret
 
         fw, fx, fy, fz = [
-            tensor(dtype="float32", shape=[False] * len(shp), name=n) for n in "wxyz"
+            tensor(dtype="float32", shape=(None,) * len(shp), name=n) for n in "wxyz"
         ]
         dw, dx, dy, dz = [
-            tensor(dtype="float64", shape=[False] * len(shp), name=n) for n in "wxyz"
+            tensor(dtype="float64", shape=(None,) * len(shp), name=n) for n in "wxyz"
         ]
         ix, iy, iz = [
-            tensor(dtype="int32", shape=[False] * len(shp), name=n) for n in "xyz"
+            tensor(dtype="int32", shape=(None,) * len(shp), name=n) for n in "xyz"
         ]
         fv = fvector("v")
         fs = fscalar("s")
@@ -3558,7 +3558,7 @@ class TestLocalReduce:
             at_max,
             at_min,
         ]:
-            x = TensorType("int64", (True, True, True))()
+            x = TensorType("int64", shape=(1, 1, 1))()
             f = function([x], [fct(x)], mode=self.mode)
             assert not any(
                 isinstance(node.op, CAReduce) for node in f.maker.fgraph.toposort()
@@ -3573,7 +3573,7 @@ class TestLocalReduce:
             at_max,
             at_min,
         ]:
-            x = TensorType("int64", (True, True))()
+            x = TensorType("int64", shape=(1, 1))()
             f = function([x], [fct(x, axis=[0, 1])], mode=self.mode)
             assert not any(
                 isinstance(node.op, CAReduce) for node in f.maker.fgraph.toposort()
@@ -3588,7 +3588,7 @@ class TestLocalReduce:
             at_max,
             at_min,
         ]:
-            x = TensorType("int64", (True, False, True))()
+            x = TensorType("int64", shape=(1, None, 1))()
             f = function([x], [fct(x, axis=[0, 1])], mode=self.mode)
 
             order = f.maker.fgraph.toposort()
@@ -3613,7 +3613,7 @@ class TestLocalReduce:
             at_max,
             at_min,
         ]:
-            x = TensorType("int64", (True, True, True))()
+            x = TensorType("int64", shape=(1, 1, 1))()
             f = function([x], [fct(x, axis=[0, 2])], mode=self.mode)
             assert not any(
                 isinstance(node.op, CAReduce) for node in f.maker.fgraph.toposort()
@@ -4097,7 +4097,7 @@ def test_local_log_sum_exp_maximum():
     check_max_log_sum_exp(x, axis=2, dimshuffle_op=transpose_op)
 
     # If the sum is performed with keepdims=True
-    x = TensorType(dtype="floatX", shape=(False, True, False))("x")
+    x = TensorType(dtype="floatX", shape=(None, 1, None))("x")
     sum_keepdims_op = x.sum(axis=(0, 1), keepdims=True).owner.op
     check_max_log_sum_exp(x, axis=(0, 1), dimshuffle_op=sum_keepdims_op)
 

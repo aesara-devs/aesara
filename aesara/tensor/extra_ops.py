@@ -668,19 +668,21 @@ class Repeat(Op):
             )
 
         if self.axis is None:
-            broadcastable = [False]
+            out_shape = [None]
         else:
             try:
                 const_reps = at.get_scalar_constant_value(repeats)
             except NotScalarConstantError:
                 const_reps = None
             if const_reps == 1:
-                broadcastable = x.broadcastable
+                out_shape = x.type.shape
             else:
-                broadcastable = list(x.broadcastable)
-                broadcastable[self.axis] = False
+                out_shape = list(x.type.shape)
+                out_shape[self.axis] = None
 
-        out_type = TensorType(x.dtype, broadcastable)
+        out_type = TensorType(
+            x.dtype, shape=tuple(1 if s == 1 else None for s in out_shape)
+        )
 
         return Apply(self, [x, repeats], [out_type()])
 
@@ -1178,33 +1180,26 @@ class Unique(Op):
         self.return_inverse = return_inverse
         self.return_counts = return_counts
         self.axis = axis
-        numpy_ver = [int(n) for n in np.__version__.split(".")[:2]]
-        if self.axis is not None and bool(numpy_ver < [1, 13]):
-            raise RuntimeError(
-                "Numpy version = "
-                + np.__version__
-                + f". Option 'axis={axis}' works starting from version 1.13.0."
-            )
 
     def make_node(self, x):
         x = at.as_tensor_variable(x)
         self_axis = self.axis
         if self_axis is None:
-            broadcastable = [False]
+            out_shape = (None,)
         else:
             if self_axis < 0:
-                self_axis += len(x.broadcastable)
-            if self_axis < 0 or self_axis >= len(x.broadcastable):
-                raise RuntimeError(
-                    "Unique axis `{}` is outside of input ndim = "
-                    "{}.".format(self.axis, len(x.broadcastable))
+                self_axis += x.type.ndim
+            if self_axis < 0 or self_axis >= x.type.ndim:
+                raise ValueError(
+                    f"Unique axis {self.axis} is outside of input ndim = {x.type.ndim}"
                 )
-            broadcastable = [
-                b if axis != self_axis else False
-                for axis, b in enumerate(x.broadcastable)
-            ]
-        outputs = [TensorType(shape=broadcastable, dtype=x.dtype)()]
-        typ = TensorType(shape=[False], dtype="int64")
+            out_shape = tuple(
+                s if s == 1 and axis != self_axis else None
+                for axis, s in enumerate(x.type.shape)
+            )
+
+        outputs = [TensorType(dtype=x.dtype, shape=out_shape)()]
+        typ = TensorType(dtype="int64", shape=(None,))
         if self.return_index:
             outputs.append(typ())
         if self.return_inverse:
@@ -1310,7 +1305,7 @@ class UnravelIndex(Op):
             self,
             [indices, dims],
             [
-                TensorType(dtype="int64", shape=(False,) * indices.ndim)()
+                TensorType(dtype="int64", shape=(None,) * indices.type.ndim)()
                 for i in range(at.get_vector_length(dims))
             ],
         )
@@ -1389,7 +1384,7 @@ class RavelMultiIndex(Op):
         return Apply(
             self,
             multi_index + [dims],
-            [TensorType(dtype="int64", shape=(False,) * multi_index[0].ndim)()],
+            [TensorType(dtype="int64", shape=(None,) * multi_index[0].type.ndim)()],
         )
 
     def infer_shape(self, fgraph, node, input_shapes):

@@ -12,7 +12,7 @@ from aesara.tensor.type import TensorType, matrix
 from tests import unittest_tools as utt
 
 
-tensor_type_0d = TensorType("float64", tuple())
+tensor_type_0d = TensorType("float64", shape=tuple())
 scalar_type = ScalarType("float64")
 generic_type = Generic()
 
@@ -127,15 +127,15 @@ class TestParamsType:
     def test_hash_and_eq_params(self):
         wp1 = ParamsType(
             a=Generic(),
-            array=TensorType("int64", (False,)),
+            array=TensorType("int64", shape=(None,)),
             floatting=ScalarType("float64"),
-            npy_scalar=TensorType("float64", tuple()),
+            npy_scalar=TensorType("float64", shape=tuple()),
         )
         wp2 = ParamsType(
             a=Generic(),
-            array=TensorType("int64", (False,)),
+            array=TensorType("int64", shape=(None,)),
             floatting=ScalarType("float64"),
-            npy_scalar=TensorType("float64", tuple()),
+            npy_scalar=TensorType("float64", shape=tuple()),
         )
         w1 = Params(
             wp1,
@@ -157,9 +157,9 @@ class TestParamsType:
         # Changing attributes names only (a -> other_name).
         wp2_other = ParamsType(
             other_name=Generic(),
-            array=TensorType("int64", (False,)),
+            array=TensorType("int64", shape=(None,)),
             floatting=ScalarType("float64"),
-            npy_scalar=TensorType("float64", tuple()),
+            npy_scalar=TensorType("float64", shape=tuple()),
         )
         w2 = Params(
             wp2_other,
@@ -190,13 +190,13 @@ class TestParamsType:
 
     def test_hash_and_eq_params_type(self):
         w1 = ParamsType(
-            a1=TensorType("int64", (False, False)),
-            a2=TensorType("int64", (False, True, False, False, True)),
+            a1=TensorType("int64", shape=(None, None)),
+            a2=TensorType("int64", shape=(None, 1, None, None, 1)),
             a3=Generic(),
         )
         w2 = ParamsType(
-            a1=TensorType("int64", (False, False)),
-            a2=TensorType("int64", (False, True, False, False, True)),
+            a1=TensorType("int64", shape=(None, None)),
+            a2=TensorType("int64", shape=(None, 1, None, None, 1)),
             a3=Generic(),
         )
         assert w1 == w2
@@ -205,24 +205,24 @@ class TestParamsType:
         assert w1.name == w2.name
         # Changing attributes names only.
         w2 = ParamsType(
-            a1=TensorType("int64", (False, False)),
+            a1=TensorType("int64", shape=(None, None)),
             other_name=TensorType(
-                "int64", (False, True, False, False, True)
+                "int64", shape=(None, 1, None, None, 1)
             ),  # a2 -> other_name
             a3=Generic(),
         )
         assert w1 != w2
         # Changing attributes types only.
         w2 = ParamsType(
-            a1=TensorType("int64", (False, False)),
+            a1=TensorType("int64", shape=(None, None)),
             a2=Generic(),  # changing class
             a3=Generic(),
         )
         assert w1 != w2
         # Changing attributes types characteristics only.
         w2 = ParamsType(
-            a1=TensorType("int64", (False, True)),  # changing broadcasting
-            a2=TensorType("int64", (False, True, False, False, True)),
+            a1=TensorType("int64", shape=(None, 1)),  # changing broadcasting
+            a2=TensorType("int64", shape=(None, 1, None, None, 1)),
             a3=Generic(),
         )
         assert w1 != w2
@@ -239,8 +239,8 @@ class TestParamsType:
         random_tensor = np.random.normal(size=size_tensor5).reshape(shape_tensor5)
 
         w = ParamsType(
-            a1=TensorType("int32", (False, False)),
-            a2=TensorType("float64", (False, False, False, False, False)),
+            a1=TensorType("int32", shape=(None, None)),
+            a2=TensorType("float64", shape=(None, None, None, None, None)),
             a3=Generic(),
         )
 
