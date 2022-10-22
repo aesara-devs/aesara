@@ -55,7 +55,7 @@ from aesara.tensor.basic import (
     get_vector_length,
     horizontal_stack,
     identity_like,
-    infer_broadcastable,
+    infer_static_shape,
     inverse_permutation,
     join,
     make_vector,
@@ -796,20 +796,20 @@ class TestAlloc:
 
 def test_infer_broadcastable():
     with pytest.raises(TypeError, match="^Shapes must be scalar integers.*"):
-        infer_broadcastable([constant(1.0)])
+        infer_static_shape([constant(1.0)])
 
     with config.change_flags(exception_verbosity="high"), pytest.raises(
         TypeError, match=r"A\. x"
     ):
-        infer_broadcastable([dscalar("x")])
+        infer_static_shape([dscalar("x")])
 
     with pytest.raises(ValueError, match=".*could not be cast to have 0 dimensions"):
-        infer_broadcastable((as_tensor_variable([[1, 2]]),))
+        infer_static_shape((as_tensor_variable([[1, 2]]),))
 
     constant_size = constant([1])
     specify_size = specify_shape(constant_size, [1])
-    sh, bcast = infer_broadcastable(specify_size)
-    assert bcast == (True,)
+    sh, static_shape = infer_static_shape(specify_size)
+    assert static_shape == (1,)
 
 
 # This is slow for the ('int8', 3) version.

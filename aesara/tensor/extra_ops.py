@@ -23,6 +23,7 @@ from aesara.misc.safe_asarray import _asarray
 from aesara.raise_op import Assert
 from aesara.scalar import int32 as int_t
 from aesara.scalar import upcast
+from aesara.scalar.basic import Composite
 from aesara.tensor import basic as at
 from aesara.tensor import get_vector_length
 from aesara.tensor.exceptions import NotScalarConstantError
@@ -1552,16 +1553,32 @@ def broadcast_shape_iter(
                     # be broadcastable or equal to the one non-broadcastable
                     # constant `const_nt_shape_var`.
                     assert_dim = Assert("Could not broadcast dimensions")
+
+                    scalar_nonconst_nb_shapes = [
+                        at.scalar_from_tensor(s)
+                        if isinstance(s.type, TensorType)
+                        else s
+                        for s in nonconst_nb_shapes
+                    ]
+
+                    dummy_nonconst_nb_shapes = [
+                        aes.get_scalar_type(dtype=v.dtype)()
+                        for v in scalar_nonconst_nb_shapes
+                    ]
                     assert_cond = reduce(
                         aes.and_,
                         (
                             aes.or_(
                                 aes.eq(nbv, one_at), aes.eq(nbv, const_nt_shape_var)
                             )
-                            for nbv in nonconst_nb_shapes
+                            for nbv in dummy_nonconst_nb_shapes
                         ),
                     )
-                    bcast_dim = assert_dim(const_nt_shape_var, assert_cond)
+                    assert_cond_op = Composite(dummy_nonconst_nb_shapes, [assert_cond])
+
+                    bcast_dim = assert_dim(
+                        const_nt_shape_var, assert_cond_op(*scalar_nonconst_nb_shapes)
+                    )
                 else:
                     bcast_dim = const_nt_shape_var
             else:
@@ -1579,21 +1596,37 @@ def broadcast_shape_iter(
                     result_dims.append(maybe_non_bcast_shapes[0])
                     continue
 
+                scalar_maybe_non_bcast_shapes = [
+                    at.scalar_from_tensor(s) if isinstance(s.type, TensorType) else s
+                    for s in maybe_non_bcast_shapes
+                ]
+                dummy_maybe_non_bcast_shapes = [
+                    aes.get_scalar_type(dtype=v.dtype)()
+                    for v in scalar_maybe_non_bcast_shapes
+                ]
                 non_bcast_vec = [
                     aes.switch(aes.eq(nbv, 1), -one_at, nbv)
-                    for nbv in maybe_non_bcast_shapes
+                    for nbv in dummy_maybe_non_bcast_shapes
                 ]
                 dim_max = aes.abs(reduce(aes.scalar_maximum, non_bcast_vec))
+                dim_max_op = Composite(dummy_maybe_non_bcast_shapes, [dim_max])
+
+                dummy_dim_max = dim_max_op(*dummy_maybe_non_bcast_shapes)
 
                 assert_dim = Assert("Could not broadcast dimensions")
                 assert_cond = reduce(
                     aes.and_,
                     (
-                        aes.or_(aes.eq(nbv, -one_at), aes.eq(nbv, dim_max))
+                        aes.or_(aes.eq(nbv, -one_at), aes.eq(nbv, dummy_dim_max))
                         for nbv in non_bcast_vec
                     ),
                 )
-                bcast_dim = assert_dim(dim_max, assert_cond)
+                assert_cond_op = Composite(dummy_maybe_non_bcast_shapes, [assert_cond])
+
+                bcast_dim = assert_dim(
+                    dim_max_op(*scalar_maybe_non_bcast_shapes),
+                    assert_cond_op(*scalar_maybe_non_bcast_shapes),
+                )
 
             result_dims.append(bcast_dim)
 
@@ -1613,9 +1646,9 @@ class BroadcastTo(COp):
     def make_node(self, a, *shape):
         a = at.as_tensor_variable(a)
 
-        shape, bcast = at.infer_broadcastable(shape)
+        shape, static_shape = at.infer_static_shape(shape)
 
-        out = TensorType(dtype=a.type.dtype, shape=bcast)()
+        out = TensorType(dtype=a.type.dtype, shape=static_shape)()
 
         # Attempt to prevent in-place operations on this view-based output
         out.tag.indestructible = True
@@ -1637,11 +1670,14 @@ class BroadcastTo(COp):
         d_wrt_a = broadcast_to(dout, shape).sum(axis=new_dims)
 
         # Determine the dimensions that were broadcast
-        _, shape_bcast = at.infer_broadcastable(shape)
+        _, static_shape = at.infer_static_shape(shape)
+
+        # TODO: This needs to be performed at run-time when static shape
+        # information isn't available.
         bcast_sums = [
             i
-            for i, (a_b, s_b) in enumerate(zip(a.broadcastable, shape_bcast[-a.ndim :]))
-            if a_b and not s_b
+            for i, (a_s, s_s) in enumerate(zip(a.type.shape, static_shape[-a.ndim :]))
+            if a_s == 1 and s_s != 1
         ]
 
         if bcast_sums:

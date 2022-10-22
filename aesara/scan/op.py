@@ -161,8 +161,9 @@ def check_broadcast(v1, v2):
     which may wrongly be interpreted as broadcastable.
 
     """
-    if not hasattr(v1, "broadcastable") and not hasattr(v2, "broadcastable"):
+    if not isinstance(v1.type, TensorType) and not isinstance(v2.type, TensorType):
         return
+
     msg = (
         "The broadcast pattern of the output of scan (%s) is "
         "inconsistent with the one provided in `output_info` "
@@ -173,13 +174,13 @@ def check_broadcast(v1, v2):
         "them consistent, e.g. using aesara.tensor."
         "{unbroadcast, specify_broadcastable}."
     )
-    size = min(len(v1.broadcastable), len(v2.broadcastable))
+    size = min(v1.type.ndim, v2.type.ndim)
     for n, (b1, b2) in enumerate(
-        zip(v1.broadcastable[-size:], v2.broadcastable[-size:])
+        zip(v1.type.broadcastable[-size:], v2.type.broadcastable[-size:])
     ):
         if b1 != b2:
-            a1 = n + size - len(v1.broadcastable) + 1
-            a2 = n + size - len(v2.broadcastable) + 1
+            a1 = n + size - v1.type.ndim + 1
+            a2 = n + size - v2.type.ndim + 1
             raise TypeError(msg % (v1.type, v2.type, a1, b1, b2, a2))
 
 
@@ -200,7 +201,7 @@ def copy_var_format(var, as_var):
         rval = as_var.type.filter_variable(rval)
     else:
         tmp = as_var.type.clone(
-            shape=(tuple(var.broadcastable[:1]) + tuple(as_var.broadcastable))
+            shape=(tuple(var.type.shape[:1]) + tuple(as_var.type.shape))
         )
         rval = tmp.filter_variable(rval)
     return rval
@@ -628,6 +629,7 @@ class ScanMethodsMixin:
                 type_input = self.inner_inputs[inner_iidx].type
                 type_output = self.inner_outputs[inner_oidx].type
                 if (
+                    # TODO: Use the `Type` interface for this
                     type_input.dtype != type_output.dtype
                     or type_input.broadcastable != type_output.broadcastable
                 ):
@@ -805,7 +807,9 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             # output sequence
             o = outputs[idx]
             self.output_types.append(
-                typeConstructor((False,) + o.type.broadcastable, o.type.dtype)
+                # TODO: What can we actually say about the shape of this
+                # added dimension?
+                typeConstructor((None,) + o.type.shape, o.type.dtype)
             )
 
             idx += len(info.mit_mot_out_slices[jdx])
@@ -816,7 +820,9 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
 
         for o in outputs[idx:end]:
             self.output_types.append(
-                typeConstructor((False,) + o.type.broadcastable, o.type.dtype)
+                # TODO: What can we actually say about the shape of this
+                # added dimension?
+                typeConstructor((None,) + o.type.shape, o.type.dtype)
             )
 
         # shared outputs + possibly the ending condition
@@ -1380,11 +1386,13 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         # the output value, possibly inplace, at the end of the
                         # function execution. Also, since an update is defined,
                         # a default value must also be (this is verified by
-                        # DebugMode). Use an array of size 0 with the correct
-                        # ndim and dtype (use a shape of 1 on broadcastable
-                        # dimensions, and 0 on the others).
-                        default_shape = [1 if _b else 0 for _b in inp.broadcastable]
-                        default_val = inp.type.value_zeros(default_shape)
+                        # DebugMode).
+                        # TODO FIXME: Why do we need a "default value" here?
+                        # This sounds like a serious design issue.
+                        default_shape = tuple(
+                            s if s is not None else 0 for s in inp.type.shape
+                        )
+                        default_val = np.empty(default_shape, dtype=inp.type.dtype)
                         wrapped_inp = In(
                             variable=inp,
                             value=default_val,
@@ -2318,8 +2326,8 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                     # equivalent (if False). Here, we only need the variable.
                     v_shp_i = validator.check(shp_i)
                     if v_shp_i is None:
-                        if hasattr(r, "broadcastable") and r.broadcastable[i]:
-                            shp.append(1)
+                        if r.type.shape[i] is not None:
+                            shp.append(r.type.shape[i])
                         else:
                             shp.append(Shape_i(i)(r))
                     else:

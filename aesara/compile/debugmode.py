@@ -807,7 +807,7 @@ def _get_preallocated_maps(
         for r in considered_outputs:
             if isinstance(r.type, TensorType):
                 # Build a C-contiguous buffer
-                new_buf = r.type.value_zeros(r_vals[r].shape)
+                new_buf = np.empty(r_vals[r].shape, dtype=r.type.dtype)
                 assert new_buf.flags["C_CONTIGUOUS"]
                 new_buf[...] = np.asarray(def_val).astype(r.type.dtype)
 
@@ -875,7 +875,8 @@ def _get_preallocated_maps(
                         buf_shape.append(s)
                     else:
                         buf_shape.append(s * 2)
-                new_buf = r.type.value_zeros(buf_shape)
+
+                new_buf = np.empty(buf_shape, dtype=r.type.dtype)
                 new_buf[...] = np.asarray(def_val).astype(r.type.dtype)
                 init_strided[r] = new_buf
 
@@ -950,7 +951,7 @@ def _get_preallocated_maps(
                             max((s + sd), 0)
                             for s, sd in zip(r_vals[r].shape, r_shape_diff)
                         ]
-                        new_buf = r.type.value_zeros(out_shape)
+                        new_buf = np.empty(out_shape, dtype=r.type.dtype)
                         new_buf[...] = np.asarray(def_val).astype(r.type.dtype)
                         wrong_size[r] = new_buf
 

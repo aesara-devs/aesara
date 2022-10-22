@@ -10,7 +10,7 @@ import warnings
 from collections.abc import Sequence
 from functools import partial
 from numbers import Number
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 from typing import Sequence as TypeSequence
 from typing import Tuple, Union
 from typing import cast as type_cast
@@ -66,6 +66,10 @@ from aesara.tensor.type import (
     values_eq_approx_always_true,
 )
 from aesara.tensor.var import TensorConstant, TensorVariable, get_unique_value
+
+
+if TYPE_CHECKING:
+    from aesara.tensor import TensorLike
 
 
 def __oplist_tag(thing, tag):
@@ -1334,11 +1338,25 @@ def identity_like(x, dtype: Optional[Union[str, np.generic, np.dtype]] = None):
     return eye(_x.shape[0], _x.shape[1], k=0, dtype=dtype)
 
 
-def infer_broadcastable(shape):
-    """Infer the broadcastable dimensions for `shape`.
+def infer_static_shape(
+    shape: Union[Variable, TypeSequence[Union[Variable, int]]]
+) -> Tuple[TypeSequence["TensorLike"], TypeSequence[Optional[int]]]:
+    """Infer the static shapes implied by the potentially symbolic elements in `shape`.
 
-    `shape` will be validated and constant folded in order to determine
-    which dimensions are broadcastable (i.e. equal to ``1``).
+    `shape` will be validated and constant folded.  As a result, this function
+    can be expensive and shouldn't be used unless absolutely necessary.
+
+    It mostly exists as a hold-over from pre-static shape times, when it was
+    required in order to produce correct broadcastable arrays and prevent
+    some graphs from being unusable.  Now, it is no longer strictly required,
+    so don't use it unless you want the same shape graphs to be rewritten
+    multiple times during graph construction.
+
+    Returns
+    -------
+    A validated sequence of symbolic shape values, and a sequence of
+    ``None``/``int`` values that can be used as `TensorType.shape` values.
+
     """
     from aesara.tensor.rewriting.basic import topo_constant_folding
     from aesara.tensor.rewriting.shape import ShapeFeature
@@ -1362,9 +1380,10 @@ def infer_broadcastable(shape):
         clone=True,
     )
     folded_shape = rewrite_graph(shape_fg, custom_rewrite=topo_constant_folding).outputs
-
-    bcast = tuple(getattr(s, "data", s) == 1 for s in folded_shape)
-    return sh, bcast
+    static_shape = tuple(
+        s.data.item() if isinstance(s, Constant) else None for s in folded_shape
+    )
+    return sh, static_shape
 
 
 class Alloc(COp):
@@ -1394,7 +1413,7 @@ class Alloc(COp):
 
     def make_node(self, value, *shape):
         v = as_tensor_variable(value)
-        sh, bcast = infer_broadcastable(shape)
+        sh, static_shape = infer_static_shape(shape)
         if v.ndim > len(sh):
             raise TypeError(
                 "The Alloc value to use has more dimensions"
@@ -1402,7 +1421,7 @@ class Alloc(COp):
                 v.ndim,
                 len(sh),
             )
-        otype = TensorType(dtype=v.dtype, shape=bcast)
+        otype = TensorType(dtype=v.dtype, shape=static_shape)
         return Apply(self, [v] + sh, [otype()])
 
     def perform(self, node, inputs, out_):
@@ -3823,8 +3842,8 @@ class AllocEmpty(COp):
         return np.dtype(self.dtype).num
 
     def make_node(self, *_shape):
-        _shape, bcast = infer_broadcastable(_shape)
-        otype = TensorType(dtype=self.dtype, shape=bcast)
+        _shape, static_shape = infer_static_shape(_shape)
+        otype = TensorType(dtype=self.dtype, shape=static_shape)
         output = otype()
 
         output.tag.values_eq_approx = values_eq_approx_always_true

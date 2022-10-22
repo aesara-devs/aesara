@@ -725,10 +725,10 @@ class VecAsRowAndCol(Op):
         r, c = out
         lv = v.shape[0]
         if (r[0] is None) or (r[0].shape != (1, lv)):
-            r[0] = node.outputs[0].type.value_zeros((1, lv))
+            r[0] = np.empty((1, lv), dtype=node.outputs[0].type.dtype)
 
         if (c[0] is None) or (c[0].shape != (lv, 1)):
-            c[0] = node.outputs[1].type.value_zeros((lv, 1))
+            c[0] = np.empty((lv, 1), dtype=node.outputs[0].type.dtype)
 
         for i in range(lv):
             r[0][0, i] = v[i]

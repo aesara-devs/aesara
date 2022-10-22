@@ -1101,7 +1101,7 @@ class TestScanInplaceOptimizer:
         outputs, updates = scan(
             lambda x, y: (x + asarrayX(1), y + asarrayX(1)), [], [x0, x1], n_steps=3
         )
-        x0 = asarrayX(np.zeros((3,)))
+        x0 = asarrayX(np.zeros((4,)))
         x0[0] = vx0
         x0 = at.constant(x0)
 
