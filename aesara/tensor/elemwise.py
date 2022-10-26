@@ -258,15 +258,16 @@ class DimShuffle(ExternalCOp):
         (x,) = inp
         (gz,) = grads
         gz = as_tensor_variable(gz)
-        grad_order = ["x"] * len(x.type.broadcastable)
+        grad_order = ["x"] * x.type.ndim
         for i, v in enumerate(self.new_order):
             if v != "x":
                 grad_order[v] = i
+
         # Do not make the DimShuffle inplace as an optimization at the
         # canonicalization optimization phase will remove the inplace.
         # The inplace will be reintroduced automatically later in the graph.
-        if inp[0].dtype in discrete_dtypes:
-            return [inp[0].zeros_like(dtype=config.floatX)]
+        if x.dtype in discrete_dtypes:
+            return [x.zeros_like(dtype=config.floatX)]
         else:
             return [
                 DimShuffle(gz.type.broadcastable, grad_order)(

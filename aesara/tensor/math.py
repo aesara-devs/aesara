@@ -504,7 +504,7 @@ def makeKeepDims(x, y, axis):
         newaxis.append(a)
     i = 0
     new_dims = []
-    for j, _ in enumerate(x.type.broadcastable):
+    for j in range(x.type.ndim):
         if j in newaxis:
             new_dims.append("x")
         else:
