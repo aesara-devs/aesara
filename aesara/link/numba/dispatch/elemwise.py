@@ -194,8 +194,7 @@ def create_guvectorize_func(
 
     gu_fn_src = f"""
 def {gu_fn_name}({', '.join(input_names)}, {', '.join(output_names)}):
-    for i in range({input_names[0]}.shape[0]):
-      {'[i], '.join(output_names)}[i] = scalar_op_fn({'[i], '.join(input_names)}[i])
+    {'[()], '.join(output_names)}[()] = scalar_op_fn({'[()], '.join(input_names)}[()])
 """
     print(gu_fn_src)
 
