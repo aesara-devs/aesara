@@ -150,6 +150,17 @@ class TestComposite:
         fn = make_function(DualLinker().accept(g))
         assert fn(1.0, 2.0, 3.0) == [6.0, 7.0, 0.5]
 
+    def test_identical_outputs(self):
+        x, y, z = floats("xyz")
+        e0 = x + y + z
+        e1 = x + y + z
+        e2 = x / y
+        C = Composite([x, y, z], [e0, e1, e2])
+        c = C.make_node(x, y, z)
+        g = FunctionGraph([x, y, z], c.outputs)
+        fn = make_function(DualLinker().accept(g))
+        assert fn(1.0, 2.0, 3.0) == [6.0, 6.0, 0.5]
+
     def test_composite_printing(self):
         x, y, z = floats("xyz")
         e0 = x + y + z
