@@ -1177,6 +1177,8 @@ def test_get_vector_length():
     # Test `Alloc`s
     assert 3 == get_vector_length(alloc(0, 3))
 
+    assert 5 == get_vector_length(tensor(np.float64, shape=(5,)))
+
 
 class TestJoinAndSplit:
     # Split is tested by each verify_grad method.
