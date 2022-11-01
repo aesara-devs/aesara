@@ -167,9 +167,10 @@ class SharedVariable(Variable):
         else:
             self.container.value = 0 * self.container.value
 
-    def clone(self):
+    def clone(self, **kwargs):
+        name = kwargs.get("name", self.name)
         cp = self.__class__(
-            name=self.name,
+            name=name,
             type=self.type,
             value=None,
             strict=None,

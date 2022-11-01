@@ -354,6 +354,12 @@ class TestAutoName:
         assert r1.auto_name == "auto_" + str(autoname_id)
         assert r2.auto_name == "auto_" + str(autoname_id + 1)
 
+        assert r1.name is None and r1.name is r2.name
+
+        r3_name = "r3"
+        r3 = r1.clone(name=r3_name)
+        assert r3.name == r3_name
+
 
 def test_equal_computations():
 
