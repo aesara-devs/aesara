@@ -11,6 +11,7 @@ from aesara.graph.rewriting.db import RewriteDatabaseQuery
 from aesara.link.jax.linker import JAXLinker
 from aesara.scan.basic import scan
 from aesara.scan.op import Scan
+from aesara.scan.utils import until
 from aesara.tensor.math import gammaln, log
 from aesara.tensor.random.utils import RandomStream
 from aesara.tensor.type import ivector, lscalar, scalar
@@ -26,10 +27,11 @@ py_no_opts = Mode("py", opts)
 
 
 def test_while_cannnot_use_all_outputs():
-    """The JAX backend cannot use all the outputs of a while loop.
+    """The JAX backend cannot return all the outputs of a while loop.
 
     Indeed, JAX has fundamental limitations that prevent it from returning
     all the intermediate results computed in a `jax.lax.while_loop` loop.
+
     """
     res, updates = scan(
         fn=lambda a_tm1: (a_tm1 + 1, until(a_tm1 > 2)),
@@ -202,6 +204,16 @@ def test_sequence_opt():
             None,
             lambda op: op.info.n_nit_sot > 0,
         ),
+        # (
+        #     lambda: at.as_tensor(2.0),
+        #     [],
+        #     [{}],
+        #     [],
+        #     3,
+        #     [],
+        #     None,
+        #     lambda op: op.info.n_nit_sot > 0,
+        # ),
         # nit-sot, non_seq
         (
             lambda c: at.as_tensor(2.0) * c,
@@ -218,16 +230,6 @@ def test_sequence_opt():
         #     lambda a_tm1: 2 * a_tm1,
         #     [],
         #     [{"initial": at.as_tensor(0.0, dtype="floatX"), "taps": [-1]}],
-        #     [],
-        #     3,
-        #     [],
-        #     lambda op: op.info.n_sit_sot > 0,
-        # ),
-        # # sit-sot, while
-        # (
-        #     lambda a_tm1: (a_tm1 + 1, until(a_tm1 > 2)),
-        #     [],
-        #     [{"initial": at.as_tensor(1, dtype=np.int64), "taps": [-1]}],
         #     [],
         #     3,
         #     [],
@@ -258,7 +260,7 @@ def test_sequence_opt():
         #     None,
         #     lambda op: op.info.n_mit_sot > 0,
         # ),
-        # # mit-sot
+        # mit-sot
         # (
         #     lambda a_tm1, b_tm1: (2 * a_tm1, 2 * b_tm1),
         #     [],
