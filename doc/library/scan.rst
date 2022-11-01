@@ -406,7 +406,7 @@ Using the original Gibbs sampling example, with ``strict=True`` added to the
     Traceback (most recent call last):
     ...
     MissingInputError: An input of the graph, used to compute
-    DimShuffle{1,0}(<TensorType(float64, (None, None))>), was not provided and
+    DimShuffle{1,0}(<TensorType(float64, (?, ?))>), was not provided and
     not given a value.Use the Aesara flag exception_verbosity='high',for
     more information on this error.
 

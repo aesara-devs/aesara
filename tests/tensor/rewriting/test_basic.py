@@ -614,8 +614,8 @@ class TestUselessElemwise:
         f2 = function([x], eq(x, x), mode=self.mode)
         assert np.all(f2(vx) == np.ones((5, 4)))
         topo2 = f2.maker.fgraph.toposort()
-        # Shape_i{1}(<TensorType(float64, (None, None))>),
-        # Shape_i{0}(<TensorType(float64, (None, None))>), Alloc([[1]], Shape_i{0}.0,
+        # Shape_i{1}(<TensorType(float64, (?, ?))>),
+        # Shape_i{0}(<TensorType(float64, (?, ?))>), Alloc([[1]], Shape_i{0}.0,
         # Shape_i{1}.0
         assert len(topo2) == 3
         assert isinstance(topo2[-1].op, Alloc)

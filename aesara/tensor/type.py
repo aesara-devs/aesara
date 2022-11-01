@@ -386,7 +386,18 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
         if self.name:
             return self.name
         else:
-            return f"TensorType({self.dtype}, {self.shape})"
+
+            def shape_str(s):
+                if s is None:
+                    return "?"
+                else:
+                    return str(s)
+
+            formatted_shape = ", ".join([shape_str(s) for s in self.shape])
+            if len(self.shape) == 1:
+                formatted_shape += ","
+
+            return f"TensorType({self.dtype}, ({formatted_shape}))"
 
     def __repr__(self):
         return str(self)
