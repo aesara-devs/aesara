@@ -80,8 +80,9 @@ def get_vector_length(v: TensorLike) -> int:
     if v.type.ndim != 1:
         raise TypeError(f"Argument must be a vector; got {v.type}")
 
-    if v.type.broadcastable[0]:
-        return 1
+    static_shape: Optional[int] = v.type.shape[0]
+    if static_shape is not None:
+        return static_shape
 
     return _get_vector_length(getattr(v.owner, "op", v), v)
 
