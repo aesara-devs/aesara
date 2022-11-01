@@ -82,6 +82,7 @@ class TestDimshuffleLift:
         x, y, z = inputs()
         e = ds(ds(x, (1, 0)), (1, 0))
         g = FunctionGraph([x], [e])
+        # TODO FIXME: Construct these graphs and compare them.
         assert (
             str(g) == "FunctionGraph(InplaceDimShuffle{1,0}(InplaceDimShuffle{1,0}(x)))"
         )
@@ -93,6 +94,7 @@ class TestDimshuffleLift:
         x, y, z = inputs()
         e = ds(ds(x, (1, "x", 0)), (2, 0, "x", 1))
         g = FunctionGraph([x], [e])
+        # TODO FIXME: Construct these graphs and compare them.
         assert (
             str(g)
             == "FunctionGraph(InplaceDimShuffle{2,0,x,1}(InplaceDimShuffle{1,x,0}(x)))"
@@ -106,6 +108,7 @@ class TestDimshuffleLift:
         x, y, z = inputs()
         e = ds(ds(ds(x, (0, "x", 1)), (2, 0, "x", 1)), (1, 0))
         g = FunctionGraph([x], [e])
+        # TODO FIXME: Construct these graphs and compare them.
         assert str(g) == (
             "FunctionGraph(InplaceDimShuffle{1,0}(InplaceDimShuffle{2,0,x,1}"
             "(InplaceDimShuffle{0,x,1}(x))))"
@@ -119,6 +122,7 @@ class TestDimshuffleLift:
         e = x + y + z
         g = FunctionGraph([x, y, z], [e])
 
+        # TODO FIXME: Construct these graphs and compare them.
         # It does not really matter if the DimShuffles are inplace
         # or not.
         init_str_g_inplace = (
@@ -149,13 +153,14 @@ class TestDimshuffleLift:
         m = matrix(dtype="float64")
         out = ((v + 42) * (m + 84)).T
         g = FunctionGraph([v, m], [out])
+        # TODO FIXME: Construct these graphs and compare them.
         init_str_g = (
             "FunctionGraph(InplaceDimShuffle{1,0}(Elemwise{mul,no_inplace}"
             "(InplaceDimShuffle{x,0}(Elemwise{add,no_inplace}"
-            "(<TensorType(float64, (None,))>, "
+            "(<TensorType(float64, (?,))>, "
             "InplaceDimShuffle{x}(TensorConstant{42}))), "
             "Elemwise{add,no_inplace}"
-            "(<TensorType(float64, (None, None))>, "
+            "(<TensorType(float64, (?, ?))>, "
             "InplaceDimShuffle{x,x}(TensorConstant{84})))))"
         )
         assert str(g) == init_str_g
@@ -163,10 +168,10 @@ class TestDimshuffleLift:
         new_g = FunctionGraph(g.inputs, [new_out])
         rewrite_str_g = (
             "FunctionGraph(Elemwise{mul,no_inplace}(Elemwise{add,no_inplace}"
-            "(InplaceDimShuffle{0,x}(<TensorType(float64, (None,))>), "
+            "(InplaceDimShuffle{0,x}(<TensorType(float64, (?,))>), "
             "InplaceDimShuffle{x,x}(TensorConstant{42})), "
             "Elemwise{add,no_inplace}(InplaceDimShuffle{1,0}"
-            "(<TensorType(float64, (None, None))>), "
+            "(<TensorType(float64, (?, ?))>), "
             "InplaceDimShuffle{x,x}(TensorConstant{84}))))"
         )
         assert str(new_g) == rewrite_str_g
@@ -177,6 +182,7 @@ class TestDimshuffleLift:
         x, _, _ = inputs()
         e = ds(x, (0, 1))
         g = FunctionGraph([x], [e])
+        # TODO FIXME: Construct these graphs and compare them.
         assert str(g) == "FunctionGraph(InplaceDimShuffle{0,1}(x))"
         dimshuffle_lift.rewrite(g)
         assert str(g) == "FunctionGraph(x)"
@@ -191,6 +197,7 @@ class TestDimshuffleLift:
         ds_z = ds(z, (2, 1, 0))  # useful
         ds_u = ds(u, ("x"))  # useful
         g = FunctionGraph([x, y, z, u], [ds_x, ds_y, ds_z, ds_u])
+        # TODO FIXME: Construct these graphs and compare them.
         assert (
             str(g)
             == "FunctionGraph(InplaceDimShuffle{0,x}(x), InplaceDimShuffle{2,1,0}(y), InplaceDimShuffle{2,1,0}(z), InplaceDimShuffle{x}(TensorConstant{1}))"
@@ -225,6 +232,7 @@ def test_local_useless_dimshuffle_in_reshape():
         ],
     )
 
+    # TODO FIXME: Construct these graphs and compare them.
     assert str(g) == (
         "FunctionGraph(Reshape{1}(InplaceDimShuffle{x,0}(vector), Shape(vector)), "
         "Reshape{2}(InplaceDimShuffle{x,0,x,1}(mat), Shape(mat)), "

@@ -217,7 +217,7 @@ For example, :ref:`aesara.tensor.irow <libdoc_tensor_creation>` is an instance o
 
 >>> from aesara.tensor import irow
 >>> irow()
-<TensorType(int32, (1, None))>
+<TensorType(int32, (1, ?))>
 
 As the string print-out shows, `irow` specifies the following information about
 the :class:`Variable`\s it constructs:

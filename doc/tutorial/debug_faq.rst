@@ -44,8 +44,8 @@ Running the code above we see:
    Traceback (most recent call last):
      ...
    ValueError: Input dimension mismatch. (input[0].shape[0] = 3, input[1].shape[0] = 2)
-   Apply node that caused the error: Elemwise{add,no_inplace}(<TensorType(float64, (None,))>, <TensorType(float64, (None,))>, <TensorType(float64, (None,))>)
-   Inputs types: [TensorType(float64, (None,)), TensorType(float64, (None,)), TensorType(float64, (None,))]
+   Apply node that caused the error: Elemwise{add,no_inplace}(<TensorType(float64, (?,))>, <TensorType(float64, (?,))>, <TensorType(float64, (?,))>)
+   Inputs types: [TensorType(float64, (?,)), TensorType(float64, (?,)), TensorType(float64, (?,))]
    Inputs shapes: [(3,), (2,), (2,)]
    Inputs strides: [(8,), (8,), (8,)]
    Inputs scalar values: ['not scalar', 'not scalar', 'not scalar']
@@ -73,11 +73,11 @@ message becomes :
         z = z + y
 
     Debugprint of the apply node:
-    Elemwise{add,no_inplace} [id A] <TensorType(float64, (None,))> ''
-     |Elemwise{add,no_inplace} [id B] <TensorType(float64, (None,))> ''
-     | |<TensorType(float64, (None,))> [id C] <TensorType(float64, (None,))>
-     | |<TensorType(float64, (None,))> [id C] <TensorType(float64, (None,))>
-     |<TensorType(float64, (None,))> [id D] <TensorType(float64, (None,))>
+    Elemwise{add,no_inplace} [id A] <TensorType(float64, (?,))> ''
+     |Elemwise{add,no_inplace} [id B] <TensorType(float64, (?,))> ''
+     | |<TensorType(float64, (?,))> [id C] <TensorType(float64, (?,))>
+     | |<TensorType(float64, (?,))> [id C] <TensorType(float64, (?,))>
+     |<TensorType(float64, (?,))> [id D] <TensorType(float64, (?,))>
 
 We can here see that the error can be traced back to the line ``z = z + y``.
 For this example, using ``optimizer=fast_compile`` worked. If it did not,
@@ -145,18 +145,18 @@ Running the above code generates the following error message:
         outputs = self.vm()
     ValueError: Shape mismatch: x has 10 cols (and 5 rows) but y has 20 rows (and 10 cols)
     Apply node that caused the error: Dot22(x, DimShuffle{1,0}.0)
-    Inputs types: [TensorType(float64, (None, None)), TensorType(float64, (None, None))]
+    Inputs types: [TensorType(float64, (?, ?)), TensorType(float64, (?, ?))]
     Inputs shapes: [(5, 10), (20, 10)]
     Inputs strides: [(80, 8), (8, 160)]
     Inputs scalar values: ['not scalar', 'not scalar']
 
     Debugprint of the apply node:
-    Dot22 [id A] <TensorType(float64, (None, None))> ''
-     |x [id B] <TensorType(float64, (None, None))>
-     |DimShuffle{1,0} [id C] <TensorType(float64, (None, None))> ''
-       |Flatten{2} [id D] <TensorType(float64, (None, None))> ''
-         |DimShuffle{2,0,1} [id E] <TensorType(float64, (None, None, None))> ''
-           |W1 [id F] <TensorType(float64, (None, None, None))>
+    Dot22 [id A] <TensorType(float64, (?, ?))> ''
+     |x [id B] <TensorType(float64, (?, ?))>
+     |DimShuffle{1,0} [id C] <TensorType(float64, (?, ?))> ''
+       |Flatten{2} [id D] <TensorType(float64, (?, ?))> ''
+         |DimShuffle{2,0,1} [id E] <TensorType(float64, (?, ?, ?))> ''
+           |W1 [id F] <TensorType(float64, (?, ?, ?))>
 
     HINT: Re-running with most Aesara optimization disabled could give you a back-traces when this node was created. This can be done with by setting the Aesara flags 'optimizer=fast_compile'. If that does not work, Aesara optimization can be disabled with 'optimizer=None'.
 
@@ -483,7 +483,7 @@ Consider this example script (``ex.py``):
    ValueError: Input dimension mismatch. (input[0].shape[0] = 3, input[1].shape[0] = 5)
    Apply node that caused the error: Elemwise{mul,no_inplace}(a, b)
    Toposort index: 0
-   Inputs types: [TensorType(float64, (None, None)), TensorType(float64, (None, None))]
+   Inputs types: [TensorType(float64, (?, ?)), TensorType(float64, (?, ?))]
    Inputs shapes: [(3, 4), (5, 5)]
    Inputs strides: [(32, 8), (40, 8)]
    Inputs values: ['not shown', 'not shown']

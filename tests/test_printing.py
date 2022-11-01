@@ -282,7 +282,7 @@ def test_debugprint():
          |   |   |B
          |   |TensorConstant{1.0}
          |   |B
-         |   |<TensorType(float64, (None,))>
+         |   |<TensorType(float64, (?,))>
          |   |TensorConstant{0.0}
          |D
         """
@@ -306,9 +306,9 @@ def test_debugprint_id_type():
 
     exp_res = f"""Elemwise{{add,no_inplace}} [id {e_at.auto_name}]
  |dot [id {d_at.auto_name}]
- | |<TensorType(float64, (None, None))> [id {b_at.auto_name}]
- | |<TensorType(float64, (None,))> [id {a_at.auto_name}]
- |<TensorType(float64, (None,))> [id {a_at.auto_name}]
+ | |<TensorType(float64, (?, ?))> [id {b_at.auto_name}]
+ | |<TensorType(float64, (?,))> [id {a_at.auto_name}]
+ |<TensorType(float64, (?,))> [id {a_at.auto_name}]
     """
 
     assert [l.strip() for l in s.split("\n")] == [
@@ -319,7 +319,7 @@ def test_debugprint_id_type():
 def test_pprint():
     x = dvector()
     y = x[1]
-    assert pp(y) == "<TensorType(float64, (None,))>[1]"
+    assert pp(y) == "<TensorType(float64, (?,))>[1]"
 
 
 def test_debugprint_inner_graph():

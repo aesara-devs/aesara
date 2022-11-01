@@ -90,7 +90,7 @@ For example, let's say we have two :class:`Variable`\s with the following
 >>> from aesara.tensor.type import TensorType
 >>> v1 = TensorType("float64", (2, None))()
 >>> v1.type
-TensorType(float64, (2, None))
+TensorType(float64, (2, ?))
 >>> v2 = TensorType("float64", (2, 1))()
 >>> v2.type
 TensorType(float64, (2, 1))
@@ -145,7 +145,7 @@ SpecifyShape.0
 >>> import aesara
 >>> aesara.dprint(v3, print_type=True)
 SpecifyShape [id A] <TensorType(float64, (2, 1))>
- |<TensorType(float64, (2, None))> [id B] <TensorType(float64, (2, None))>
+ |<TensorType(float64, (2, ?))> [id B] <TensorType(float64, (2, ?))>
  |TensorConstant{2} [id C] <TensorType(int8, ())>
  |TensorConstant{1} [id D] <TensorType(int8, ())>
 
