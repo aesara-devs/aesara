@@ -1020,8 +1020,8 @@ def local_Shape_of_SpecifyShape(fgraph, node):
 @register_useless
 @register_canonicalize
 @node_rewriter([Shape_i])
-def local_Shape_i_of_broadcastable(fgraph, node):
-    """Replace ``shape_i(x, i)`` with ``1`` when ``x.broadcastable[i]`` is ``True``."""
+def local_Shape_i_ground(fgraph, node):
+    """Replace ``shape_i(x, i)`` with ``s`` when ``x.type.shape[i] == s``."""
 
     if not isinstance(node.op, Shape_i):
         return False
@@ -1031,8 +1031,9 @@ def local_Shape_i_of_broadcastable(fgraph, node):
     if not isinstance(shape_arg.type, TensorType):
         return False
 
-    if shape_arg.broadcastable[node.op.i]:
-        return [as_tensor_variable(1, dtype=np.int64)]
+    s_val = shape_arg.type.shape[node.op.i]
+    if s_val is not None:
+        return [as_tensor_variable(s_val, dtype=np.int64)]
 
 
 @register_specialize
