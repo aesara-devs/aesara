@@ -493,15 +493,15 @@ def test_local_Shape_of_SpecifyShape_partial(s1):
     assert not any(isinstance(apply.op, SpecifyShape) for apply in fgraph.apply_nodes)
 
 
-def test_local_Shape_i_of_broadcastable():
-    x = tensor(np.float64, shape=(None, 1))
+def test_local_Shape_i_ground():
+    x = tensor(np.float64, shape=(None, 2))
     s = Shape_i(1)(x)
 
     fgraph = FunctionGraph(outputs=[s], clone=False)
     _ = rewrite_graph(fgraph, clone=False)
 
     assert x not in fgraph.variables
-    assert fgraph.outputs[0].data == 1
+    assert fgraph.outputs[0].data == 2
 
     # A test for a non-`TensorType`
     class MyType(Type):
