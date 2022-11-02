@@ -28,7 +28,7 @@ from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
 from aesara.graph.rewriting.utils import rewrite_graph
-from aesara.graph.type import Type
+from aesara.graph.type import HasShape, Type
 from aesara.link.c.op import COp
 from aesara.link.c.params_type import ParamsType
 from aesara.misc.safe_asarray import _asarray
@@ -348,8 +348,8 @@ def get_scalar_constant_value(
                 if isinstance(inp, Constant):
                     return np.asarray(np.shape(inp.data)[i])
                 # The shape of a broadcastable dimension is 1
-                if hasattr(inp.type, "broadcastable") and inp.type.broadcastable[i]:
-                    return np.asarray(1)
+                if isinstance(inp.type, HasShape) and inp.type.shape[i] is not None:
+                    return np.asarray(inp.type.shape[i])
 
             # Don't act as the constant_folding optimization here as this
             # fct is used too early in the optimization phase.  This would
@@ -502,21 +502,16 @@ def get_scalar_constant_value(
                             owner.inputs[1], max_recur=max_recur
                         )
                     grandparent = leftmost_parent.owner.inputs[0]
-                    gp_broadcastable = grandparent.type.broadcastable
+                    gp_shape = grandparent.type.shape
                     ndim = grandparent.type.ndim
                     if grandparent.owner and isinstance(
                         grandparent.owner.op, Unbroadcast
                     ):
-                        ggp_broadcastable = grandparent.owner.inputs[0].broadcastable
-                        l = [
-                            b1 or b2
-                            for b1, b2 in zip(ggp_broadcastable, gp_broadcastable)
-                        ]
-                        gp_broadcastable = tuple(l)
+                        ggp_shape = grandparent.owner.inputs[0].type.shape
+                        l = [s1 == 1 or s2 == 1 for s1, s2 in zip(ggp_shape, gp_shape)]
+                        gp_shape = tuple(l)
 
-                    assert ndim == len(gp_broadcastable)
-
-                    if not (idx < len(gp_broadcastable)):
+                    if not (idx < ndim):
                         msg = (
                             "get_scalar_constant_value detected "
                             f"deterministic IndexError: x.shape[{int(idx)}] "
@@ -528,8 +523,9 @@ def get_scalar_constant_value(
                             msg += f" x={v}"
                         raise ValueError(msg)
 
-                    if gp_broadcastable[idx]:
-                        return np.asarray(1)
+                    gp_shape_val = gp_shape[idx]
+                    if gp_shape_val is not None and gp_shape_val > -1:
+                        return np.asarray(gp_shape_val)
 
                     if isinstance(grandparent, Constant):
                         return np.asarray(np.shape(grandparent.data)[idx])
@@ -1511,15 +1507,16 @@ class Alloc(COp):
         axis_kept = []
         for i, (ib, gb) in enumerate(
             zip(
-                inputs[0].broadcastable,
+                inputs[0].type.shape,
                 # We need the dimensions corresponding to x
-                grads[0].broadcastable[-inputs[0].ndim :],
+                grads[0].type.shape[-inputs[0].ndim :],
             )
         ):
-            if ib and not gb:
+            if ib == 1 and gb != 1:
                 axis_broadcasted.append(i + n_axes_to_sum)
             else:
                 axis_kept.append(i)
+
         gx = gz.sum(axis=axis + axis_broadcasted)
         if axis_broadcasted:
             new_order = ["x"] * x.ndim
@@ -1865,11 +1862,14 @@ def transpose(x, axes=None):
 
     """
     _x = as_tensor_variable(x)
+
     if axes is None:
-        axes = list(range((_x.ndim - 1), -1, -1))
-    ret = DimShuffle(_x.broadcastable, axes)(_x)
-    if _x.name and axes == list(range((_x.ndim - 1), -1, -1)):
+        axes = list(range((_x.type.ndim - 1), -1, -1))
+    ret = DimShuffle(tuple(s == 1 for s in _x.type.shape), axes)(_x)
+
+    if _x.name and axes == list(range((_x.type.ndim - 1), -1, -1)):
         ret.name = _x.name + ".T"
+
     return ret
 
 
@@ -3207,11 +3207,11 @@ class PermuteRowElements(Op):
             if xs0 == ys0:
                 for i in range(xs0):
                     self._rec_perform(node, x[i], y[i], inverse, out[i], curdim + 1)
-            elif ys0 == 1 and node.inputs[1].type.broadcastable[curdim]:
+            elif ys0 == 1 and node.inputs[1].type.shape[curdim] == 1:
                 # Broadcast y
                 for i in range(xs0):
                     self._rec_perform(node, x[i], y[0], inverse, out[i], curdim + 1)
-            elif xs0 == 1 and node.inputs[0].type.broadcastable[curdim]:
+            elif xs0 == 1 and node.inputs[0].type.shape[curdim] == 1:
                 # Broadcast x
                 for i in range(ys0):
                     self._rec_perform(node, x[0], y[i], inverse, out[i], curdim + 1)
@@ -3270,7 +3270,7 @@ class PermuteRowElements(Op):
         broadcasted_dims = [
             dim
             for dim in range(gz.type.ndim)
-            if x.type.broadcastable[dim] and not gz.type.broadcastable[dim]
+            if x.type.shape[dim] == 1 and gz.type.shape[dim] != 1
         ]
         gx = Sum(axis=broadcasted_dims)(gx)
 
@@ -3285,8 +3285,13 @@ class PermuteRowElements(Op):
                 newdims.append(i)
                 i += 1
 
-        gx = DimShuffle(gx.type.broadcastable, newdims)(gx)
-        assert gx.type.broadcastable == x.type.broadcastable
+        gx = DimShuffle(tuple(s == 1 for s in gx.type.shape), newdims)(gx)
+        assert gx.type.ndim == x.type.ndim
+        assert all(
+            s1 == s2
+            for s1, s2 in zip(gx.type.shape, x.type.shape)
+            if s1 == 1 or s2 == 1
+        )
 
         # if x is an integer type, then so is the output.
         # this means f(x+eps) = f(x) so the gradient with respect

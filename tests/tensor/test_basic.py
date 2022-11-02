@@ -458,10 +458,10 @@ class TestMakeVector(utt.InferShapeTester):
             res = MakeVector("int32")(a, b)
 
         res = MakeVector()(a)
-        assert res.broadcastable == (True,)
+        assert res.type.shape == (1,)
 
         res = MakeVector()()
-        assert res.broadcastable == (False,)
+        assert res.type.shape == (0,)
 
     def test_infer_shape(self):
         adscal = dscalar()
@@ -1665,18 +1665,18 @@ class TestJoinAndSplit:
         a = self.shared(a_val, shape=(None, None, 1))
         b = self.shared(b_val, shape=(1, None, 1))
         c = self.join_op(1, a, b)
-        assert c.type.broadcastable[0] and c.type.broadcastable[2]
-        assert not c.type.broadcastable[1]
+        assert c.type.shape[0] == 1 and c.type.shape[2] == 1
+        assert c.type.shape[1] != 1
 
         # Opt can remplace the int by an Aesara constant
         c = self.join_op(constant(1), a, b)
-        assert c.type.broadcastable[0] and c.type.broadcastable[2]
-        assert not c.type.broadcastable[1]
+        assert c.type.shape[0] == 1 and c.type.shape[2] == 1
+        assert c.type.shape[1] != 1
 
         # In case futur opt insert other useless stuff
         c = self.join_op(cast(constant(1), dtype="int32"), a, b)
-        assert c.type.broadcastable[0] and c.type.broadcastable[2]
-        assert not c.type.broadcastable[1]
+        assert c.type.shape[0] == 1 and c.type.shape[2] == 1
+        assert c.type.shape[1] != 1
 
         f = function([], c, mode=self.mode)
         topo = f.maker.fgraph.toposort()
@@ -1703,7 +1703,7 @@ class TestJoinAndSplit:
         a = self.shared(a_val, shape=(None, None, 1))
         b = self.shared(b_val, shape=(1, None, 1))
         c = self.join_op(0, a, b)
-        assert not c.type.broadcastable[0]
+        assert c.type.shape[0] != 1
 
         f = function([], c, mode=self.mode)
         topo = f.maker.fgraph.toposort()
@@ -1736,7 +1736,7 @@ class TestJoinAndSplit:
         a = self.shared(a_val, shape=(1, None, 1))
         b = self.shared(b_val, shape=(1, None, 1))
         c = self.join_op(0, a, b)
-        assert not c.type.broadcastable[0]
+        assert c.type.shape[0] != 1
 
         f = function([], c, mode=self.mode)
         topo = f.maker.fgraph.toposort()
@@ -1754,9 +1754,9 @@ class TestJoinAndSplit:
         a_val = rng.random((1, 4, 1)).astype(self.floatX)
         a = self.shared(a_val, shape=(1, None, 1))
         b = self.join_op(0, a)
-        assert b.type.broadcastable[0]
-        assert b.type.broadcastable[2]
-        assert not b.type.broadcastable[1]
+        assert b.type.shape[0] == 1
+        assert b.type.shape[2] == 1
+        assert b.type.shape[1] != 1
 
         f = function([], b, mode=self.mode)
         topo = f.maker.fgraph.toposort()
@@ -1782,13 +1782,13 @@ class TestJoinAndSplit:
         d = TensorType(dtype=self.floatX, shape=(1, None, 1, 1, None, 1))()
         e = TensorType(dtype=self.floatX, shape=(1, None, 1, None, None, 1))()
         f = self.join_op(0, a, b, c, d, e)
-        fb = f.type.broadcastable
+        fb = tuple(s == 1 for s in f.type.shape)
         assert not fb[0] and fb[1] and fb[2] and fb[3] and not fb[4] and fb[5]
         g = self.join_op(1, a, b, c, d, e)
-        gb = g.type.broadcastable
+        gb = tuple(s == 1 for s in g.type.shape)
         assert gb[0] and not gb[1] and gb[2] and gb[3] and not gb[4] and gb[5]
         h = self.join_op(4, a, b, c, d, e)
-        hb = h.type.broadcastable
+        hb = tuple(s == 1 for s in h.type.shape)
         assert hb[0] and hb[1] and hb[2] and hb[3] and not hb[4] and hb[5]
 
         f = function([a, b, c, d, e], f, mode=self.mode)
@@ -1981,8 +1981,8 @@ def test_TensorFromScalar():
     s = aes.constant(56)
     t = tensor_from_scalar(s)
     assert t.owner.op is tensor_from_scalar
-    assert t.type.broadcastable == (), t.type.broadcastable
-    assert t.type.ndim == 0, t.type.ndim
+    assert t.type.shape == ()
+    assert t.type.ndim == 0
     assert t.type.dtype == s.type.dtype
 
     v = eval_outputs([t])
@@ -2129,23 +2129,23 @@ def test_flatten_broadcastable():
 
     inp = TensorType("float64", shape=(None, None, None, None))()
     out = flatten(inp, ndim=2)
-    assert out.broadcastable == (False, False)
+    assert out.type.shape == (None, None)
 
     inp = TensorType("float64", shape=(None, None, None, 1))()
     out = flatten(inp, ndim=2)
-    assert out.broadcastable == (False, False)
+    assert out.type.shape == (None, None)
 
     inp = TensorType("float64", shape=(None, 1, None, 1))()
     out = flatten(inp, ndim=2)
-    assert out.broadcastable == (False, False)
+    assert out.type.shape == (None, None)
 
     inp = TensorType("float64", shape=(None, 1, 1, 1))()
     out = flatten(inp, ndim=2)
-    assert out.broadcastable == (False, True)
+    assert out.type.shape == (None, 1)
 
     inp = TensorType("float64", shape=(1, None, 1, 1))()
     out = flatten(inp, ndim=3)
-    assert out.broadcastable == (True, False, True)
+    assert out.type.shape == (1, None, 1)
 
 
 def test_flatten_ndim_invalid():
@@ -2938,8 +2938,8 @@ class TestPermuteRowElements:
 
     def test_3b_2(self):
         # Test permute_row_elements on a more complex broadcasting pattern:
-        # input.type.broadcastable = (False, True, False),
-        # p.type.broadcastable = (False, False).
+        # input.type.shape = (None, 1, None),
+        # p.type.shape = (None, None).
 
         input = TensorType("floatX", shape=(None, 1, None))()
         p = imatrix()
@@ -4046,7 +4046,7 @@ class TestChoose(utt.InferShapeTester):
         B = np.asarray(np.random.random((4, 1)), dtype="float32")
         for m in self.modes:
             f = function([a, b], choose(a, b, mode=m))
-            assert choose(a, b, mode=m).broadcastable[0]
+            assert choose(a, b, mode=m).type.shape[0] == 1
             t_c = f(A, B)
             n_c = np.choose(A, B, mode=m)
             assert np.allclose(t_c, n_c)
