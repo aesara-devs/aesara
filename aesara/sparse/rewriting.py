@@ -677,7 +677,7 @@ class UsmmCscDense(_NoPythonCOp):
         assert x_ind.dtype == "int32"
         assert x_ptr.dtype == "int32"
         assert x_nrows.dtype == "int32"
-        assert alpha.ndim == 2 and alpha.type.broadcastable == (True, True)
+        assert alpha.ndim == 2 and alpha.type.shape == (1, 1)
         assert x_val.ndim == 1
         assert y.ndim == 2
         assert z.ndim == 2
@@ -905,7 +905,7 @@ local_usmm = PatternNodeRewriter(
             {
                 "pattern": "alpha",
                 "constraint": lambda expr: (
-                    all(expr.type.broadcastable) and config.blas__ldflags
+                    all(s == 1 for s in expr.type.shape) and config.blas__ldflags
                 ),
             },
             (sparse._dot, "x", "y"),
