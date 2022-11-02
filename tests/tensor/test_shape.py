@@ -9,6 +9,7 @@ from aesara.graph.basic import Variable
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.type import Type
 from aesara.misc.safe_asarray import _asarray
+from aesara.scalar.basic import ScalarConstant
 from aesara.tensor import as_tensor_variable, get_vector_length, row
 from aesara.tensor.basic import MakeVector, constant
 from aesara.tensor.elemwise import DimShuffle, Elemwise
@@ -22,6 +23,7 @@ from aesara.tensor.shape import (
     reshape,
     shape,
     shape_i,
+    shape_tuple,
     specify_broadcastable,
     specify_shape,
     unbroadcast,
@@ -46,6 +48,7 @@ from aesara.tensor.type_other import NoneConst
 from aesara.tensor.var import TensorVariable
 from aesara.typed_list import make_list
 from tests import unittest_tools as utt
+from tests.graph.utils import MyType2
 from tests.tensor.utils import eval_outputs, random
 from tests.test_rop import RopLopChecker
 
@@ -657,3 +660,18 @@ class TestUnbroadcastInferShape(utt.InferShapeTester):
             Unbroadcast,
             warn=False,
         )
+
+
+def test_shape_tuple():
+
+    x = Variable(MyType2(), None, None)
+    assert shape_tuple(x) == ()
+
+    x = tensor(np.float64, shape=(1, 2, None))
+    res = shape_tuple(x)
+    assert isinstance(res, tuple)
+    assert isinstance(res[0], ScalarConstant)
+    assert res[0].data == 1
+    assert isinstance(res[1], ScalarConstant)
+    assert res[1].data == 2
+    assert not isinstance(res[2], ScalarConstant)

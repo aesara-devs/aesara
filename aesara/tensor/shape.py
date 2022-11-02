@@ -8,6 +8,7 @@ import numpy as np
 import aesara
 from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply, Variable
+from aesara.graph.type import HasShape
 from aesara.link.c.op import COp
 from aesara.link.c.params_type import ParamsType
 from aesara.misc.safe_asarray import _asarray
@@ -158,18 +159,28 @@ def _get_vector_length_Shape(op, var):
 
 
 def shape_tuple(x: TensorVariable) -> Tuple[Variable, ...]:
-    """Get a tuple of symbolic shape values.
+    r"""Get a tuple of symbolic shape values.
 
-    This will return a `ScalarConstant` with the value ``1`` wherever
-    broadcastable is ``True``.
+    This will return `ScalarConstant`\s for static shape values.
+
     """
-    one_at = aesara.scalar.ScalarConstant(aesara.scalar.int64, 1)
-    return tuple(
-        one_at if getattr(sh, "value", sh) == 1 or bcast else sh
-        for sh, bcast in zip(
-            shape(x), getattr(x, "broadcastable", (False,) * x.type.ndim)
-        )
-    )
+    if not isinstance(x.type, HasShape):
+        # We assume/call it a scalar
+        return ()
+
+    res = ()
+    symbolic_shape = shape(x)
+    static_shape = x.type.shape
+    for i in range(x.type.ndim):
+        shape_val = static_shape[i]
+
+        if shape_val is not None:
+            # TODO: Why not use uint64?
+            res += (aesara.scalar.ScalarConstant(aesara.scalar.int64, shape_val),)
+        else:
+            res += (symbolic_shape[i],)
+
+    return res
 
 
 class Shape_i(COp):
