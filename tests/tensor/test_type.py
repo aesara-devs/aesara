@@ -31,6 +31,10 @@ def test_in_same_class():
     assert test_type.in_same_class(test_type)
     assert not test_type.in_same_class(test_type2)
 
+    test_type = TensorType(config.floatX, shape=())
+    test_type2 = TensorType(config.floatX, shape=(None,))
+    assert not test_type.in_same_class(test_type2)
+
 
 def test_is_super():
     test_type = TensorType(config.floatX, shape=(None, None))
