@@ -364,8 +364,8 @@ class ShapeFeature(Feature):
                 else:
                     shape_vars.append(self.unpack(s[i], r))
             assert all(
-                not hasattr(r.type, "broadcastable")
-                or not r.type.broadcastable[i]
+                not hasattr(r.type, "shape")
+                or r.type.shape[i] != 1
                 or self.lscalar_one.equals(shape_vars[i])
                 or self.lscalar_one.equals(extract_constant(shape_vars[i]))
                 for i in range(r.type.ndim)
@@ -447,9 +447,9 @@ class ShapeFeature(Feature):
                 merged_shape.append(other_shape[i])
         assert all(
             (
-                not hasattr(r.type, "broadcastable")
-                or not r.type.broadcastable[i]
-                and not other_r.type.broadcastable[i]
+                not hasattr(r.type, "shape")
+                or r.type.shape[i] != 1
+                and other_r.type.shape[i] != 1
             )
             or self.lscalar_one.equals(merged_shape[i])
             or self.lscalar_one.equals(
@@ -474,8 +474,8 @@ class ShapeFeature(Feature):
             else:
                 new_shape.append(s_j)
         assert all(
-            not hasattr(r.type, "broadcastable")
-            or not r.type.broadcastable[idx]
+            not hasattr(r.type, "shape")
+            or r.type.shape[idx] != 1
             or self.lscalar_one.equals(new_shape[idx])
             or self.lscalar_one.equals(extract_constant(new_shape[idx]))
             for idx in range(r.type.ndim)
@@ -781,7 +781,11 @@ def local_reshape_chain(op):
         # We should try to figure out why we lost the information about this
         # constant value... but in the meantime, better not apply this
         # rewrite.
-        if rval.broadcastable == node.outputs[0].broadcastable:
+        if rval.type.ndim == node.outputs[0].type.ndim and all(
+            s1 == s1
+            for s1, s2 in zip(rval.type.shape, node.outputs[0].type.shape)
+            if s1 == 1 or s2 == 1
+        ):
             return [rval]
         else:
             return False
@@ -816,7 +820,11 @@ def local_useless_reshape(fgraph, node):
     if (
         inp.type.ndim == 1
         and output.type.ndim == 1
-        and inp.type.broadcastable == output.type.broadcastable
+        and all(
+            s1 == s2
+            for s1, s2 in zip(inp.type.shape, output.type.shape)
+            if s1 == 1 or s2 == 1
+        )
     ):
         return [inp]
 
@@ -862,7 +870,7 @@ def local_useless_reshape(fgraph, node):
                         shape_match[dim] = True
                         continue
 
-            # Match 1 if input.broadcastable[dim] is True
+            # Match 1 if input.type.shape[dim] == 1
             cst_outshp_i = extract_constant(outshp_i, only_process_constants=1)
             if inp.type.shape[dim] == 1 and cst_outshp_i == 1:
                 shape_match[dim] = True
@@ -931,7 +939,11 @@ def local_reshape_to_dimshuffle(fgraph, node):
     if index != output.type.ndim:
         inner = op.__class__(len(new_output_shape))(inp, new_output_shape)
         copy_stack_trace(output, inner)
-        new_node = [DimShuffle(inner.type.broadcastable, dimshuffle_new_order)(inner)]
+        new_node = [
+            DimShuffle(tuple(s == 1 for s in inner.type.shape), dimshuffle_new_order)(
+                inner
+            )
+        ]
         copy_stack_trace(output, new_node)
         return new_node
 
@@ -1096,10 +1108,9 @@ def local_useless_dimshuffle_in_reshape(fgraph, node):
 
     new_order = node.inputs[0].owner.op.new_order
     inp = node.inputs[0].owner.inputs[0]
-    broadcastables = node.inputs[0].broadcastable
     new_order_of_nonbroadcast = []
-    for i, bd in zip(new_order, broadcastables):
-        if not bd:
+    for i, s in zip(new_order, node.inputs[0].type.shape):
+        if s != 1:
             new_order_of_nonbroadcast.append(i)
     no_change_in_order = all(
         new_order_of_nonbroadcast[i] <= new_order_of_nonbroadcast[i + 1]
@@ -1123,7 +1134,11 @@ def local_useless_unbroadcast(fgraph, node):
     """
     if isinstance(node.op, Unbroadcast):
         x = node.inputs[0]
-        if x.broadcastable == node.outputs[0].broadcastable:
+        if x.type.ndim == node.outputs[0].type.ndim and all(
+            s1 == s2
+            for s1, s2 in zip(x.type.shape, node.outputs[0].type.shape)
+            if s1 == 1 or s2 == 1
+        ):
             # No broadcastable flag was modified
             # No need to copy over stack trace,
             # because x should already have a stack trace.
