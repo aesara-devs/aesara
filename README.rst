@@ -116,6 +116,16 @@ The current development branch of |Project Name| can be installed from GitHub, a
     pip install git+https://github.com/aesara-devs/aesara
 
 
+Contributing
+============
+
+We welcome bug reports and fixes and improvements to the documentation.
+
+For more information on contributing, please see the
+`contributing guide <https://github.com/aesara-devs/aesara/CONTRIBUTING.md>`.
+
+A good place to start contributing is by looking through the issues
+`here <https://github.com/aesara-devs/aesara/issues`.
 
 Support
 =======

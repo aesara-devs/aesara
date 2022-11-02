@@ -1,29 +1,42 @@
 If you want to contribute to Aesara, have a look at the instructions here:
 https://aesara.readthedocs.io/en/latest/dev_start_guide.html
 
+## Contribution Expectations
 
-## Migrating PRs from the original Theano Repo
-Aesara is actively merging new changes. If you have a pull request on the original Theano repository and would like to move it here use the following commands in your local Aesara repository:
+This "Contribution Expectations" section is adapted from [Open Source
+Archetypes](https://opentechstrategies.com/archetypes) and released under a
+[CC-BY-SA](https://creativecommons.org/licenses/by-sa/4.0/) license.
 
-```
-# Go to your Aesara repo
-cd /path/to/your/repo
+The current focus of the Aesara project is rapid, high quality development of a
+hackable, pure-Python symbolic tensor library with strong support for graph
+rewrites and transpilation to multiple backends including C,
+[JAX](https://github.com/google/jax>), and
+[Numba](https://github.com/numba/numba).
 
-# If you'd like to add aesara as a remote
-git remote add aesara git@github.com:aesara-devs/aesara.git
+We welcome patches with bug fixes, and we’re happy to answer questions if you’ve
+already put in some effort to find the answer yourself. Please note, however,
+that we’re _unlikely_ to consider new feature contributions or design changes
+unless there’s a strong argument that they are fully in line with our stated
+goals. If you’re not sure, just ask.
 
-# Verify the changes. You should see the aesara-devs/aesara.git
-git remote -v
+Our technical scope and project governance may open up later, of course, For
+now, though, we would characterize this project as being a mix of the "Rocket
+Ship To Mars" and "Specialty Library" archetypes (see
+https://opentechstrategies.com/archetypes for details about RStM and other open
+source archetypes).
 
-# Checkout the branch of your request
-git checkout branch_name
+## Issues and Discussions
 
-# Push to Aesara
-git push aesara branch_name
-```
+We expect that Github Issues ("issues") indicate work that should be in Aesara
+and can be picked up immediately by a contributor. This includes bugs, which
+indicate something not working as advertised.
 
-If you would like to make Aesara the new "main" upstream remote:
+Discussions should be created when the scope or direction of the work, though
+within the stated goals of the Aesara project, require additional clarification
+or consideration before a course of action is chosen.
 
-```
-git remote set-url upstream git@github.com:aesara-devs/aesara.git
-```
+For issues a minimal working example (MWE) is strongly recommended when relevant
+(fixing a typo in the documentation does not require a MWE). For discussions,
+MWEs are generally required. All MWEs must be implemented using Aesara. Please
+do not submit MWEs if they are not implemented in Aesara. In certain cases,
+pseudocode may be acceptable, but an Aesara implementation is always preferable.
