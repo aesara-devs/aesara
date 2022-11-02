@@ -55,13 +55,13 @@ from tests.test_rop import RopLopChecker
 
 def test_shape_basic():
     s = shape([])
-    assert s.type.broadcastable == (True,)
+    assert s.type.shape == (1,)
 
     s = shape([10])
-    assert s.type.broadcastable == (True,)
+    assert s.type.shape == (1,)
 
     s = shape(lscalar())
-    assert s.type.broadcastable == (False,)
+    assert s.type.shape == (0,)
 
     class MyType(Type):
         def filter(self, *args, **kwargs):
@@ -71,7 +71,7 @@ def test_shape_basic():
             return isinstance(other, MyType) and other.thingy == self.thingy
 
     s = shape(Variable(MyType(), None))
-    assert s.type.broadcastable == (False,)
+    assert s.type.shape == (None,)
 
     s = shape(np.array(1))
     assert np.array_equal(eval_outputs([s]), [])
@@ -119,15 +119,14 @@ class TestReshape(utt.InferShapeTester, utt.OptimizationTestMixin):
         b = dmatrix()
         d = dmatrix()
 
-        # basic to 1 dim(without list)
-        c = reshape(b, as_tensor_variable(6), ndim=1)
-        f = self.function([b], c)
-
         b_val1 = np.asarray([[0, 1, 2], [3, 4, 5]])
         c_val1 = np.asarray([0, 1, 2, 3, 4, 5])
         b_val2 = b_val1.T
         c_val2 = np.asarray([0, 3, 1, 4, 2, 5])
 
+        # basic to 1 dim(without list)
+        c = reshape(b, as_tensor_variable(6), ndim=1)
+        f = self.function([b], c)
         f_out1 = f(b_val1)
         f_out2 = f(b_val2)
         assert np.array_equal(f_out1, c_val1), (f_out1, c_val1)
@@ -191,10 +190,10 @@ class TestReshape(utt.InferShapeTester, utt.OptimizationTestMixin):
             f(np.asarray([[0, 1, 2], [3, 4, 5]])),
             np.asarray([[[0], [1], [2]], [[3], [4], [5]]]),
         )
-        assert f.maker.fgraph.toposort()[-1].outputs[0].type.broadcastable == (
-            False,
-            False,
-            True,
+        assert f.maker.fgraph.toposort()[-1].outputs[0].type.shape == (
+            None,
+            None,
+            1,
         )
 
         # test broadcast flag for constant value of 1 if it cannot be
@@ -205,10 +204,10 @@ class TestReshape(utt.InferShapeTester, utt.OptimizationTestMixin):
             f(np.asarray([[0, 1, 2], [3, 4, 5]])),
             np.asarray([[[0], [1]], [[2], [3]], [[4], [5]]]),
         )
-        assert f.maker.fgraph.toposort()[-1].outputs[0].type.broadcastable == (
-            False,
-            False,
-            True,
+        assert f.maker.fgraph.toposort()[-1].outputs[0].type.shape == (
+            None,
+            None,
+            1,
         )
 
     def test_m1(self):
