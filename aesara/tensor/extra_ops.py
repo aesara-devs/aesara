@@ -1,6 +1,6 @@
 from collections.abc import Collection
 from functools import reduce
-from typing import Iterable, Set, Tuple, Union
+from typing import Iterable, Optional, Sequence, Set, Tuple, Union
 
 import numpy as np
 import numpy.core.numeric
@@ -1669,19 +1669,11 @@ class BroadcastTo(COp):
 
         d_wrt_a = broadcast_to(dout, shape).sum(axis=new_dims)
 
-        # Determine the dimensions that were broadcast
-        _, static_shape = at.infer_static_shape(shape)
-
-        # TODO: This needs to be performed at run-time when static shape
-        # information isn't available.
-        bcast_sums = [
-            i
-            for i, (a_s, s_s) in enumerate(zip(a.type.shape, static_shape[-a.ndim :]))
-            if a_s == 1 and s_s != 1
-        ]
-
-        if bcast_sums:
-            d_wrt_a = d_wrt_a.sum(axis=bcast_sums, keepdims=True)
+        # Determine the dimensions that were broadcast and sum them
+        static_out_shape = tuple(
+            s.data if isinstance(s, Constant) else None for s in shape[-a.ndim :]
+        )
+        d_wrt_a = sum_broadcasted_dims(d_wrt_a, a, static_out_shape)
 
         return [d_wrt_a] + [
             grad_undefined(self, i, shp) for i, shp in enumerate(shape, 1)
@@ -1806,6 +1798,46 @@ def broadcast_arrays(*args: TensorVariable) -> Tuple[TensorVariable, ...]:
 
     """
     return tuple(broadcast_to(a, broadcast_shape(*args)) for a in args)
+
+
+def sum_broadcasted_dims(
+    value: TensorVariable,
+    inp: TensorVariable,
+    out_shape: Sequence[Optional[int]],
+) -> TensorVariable:
+    """Sum dimensions in `value` that are broadcasted between `inp`'s shape and `out_shape`.
+
+    For ambiguous cases, this builds a graph that determine whether or not
+    dimensions are to be summed at run-time.
+
+    """
+    dims_to_sum = ()
+    ambiguous_dim_conds = ()
+
+    in_shape = inp.type.shape
+
+    for i, (s1, s2) in enumerate(zip(in_shape, out_shape)):
+        if s1 == 1 and s2 != 1:
+            dims_to_sum += (i,)
+        elif s1 is None and s2 != 1:
+            ambiguous_dim_conds += (
+                (i, aes.eq(at.scalar_from_tensor(inp.shape[i]), 1)),
+            )
+
+    if dims_to_sum:
+        value = at_sum(value, axis=dims_to_sum, keepdims=True)
+
+    if ambiguous_dim_conds:
+        from aesara.ifelse import ifelse
+
+        for i, cond in ambiguous_dim_conds:
+            value = ifelse(
+                cond,
+                at_sum(value, axis=i, keepdims=True),
+                value,
+            )
+
+    return value
 
 
 __all__ = [

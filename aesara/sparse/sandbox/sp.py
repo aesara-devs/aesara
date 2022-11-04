@@ -181,7 +181,7 @@ class ConvolutionIndices(Op):
 
                                     # taking into account multiple
                                     # input features
-                                    col = (
+                                    col = int(
                                         iy * inshp[2] + ix + fmapi * np.prod(inshp[1:])
                                     )
 
@@ -196,13 +196,13 @@ class ConvolutionIndices(Op):
 
                                     # convert to row index of sparse matrix
                                     if ws:
-                                        row = (
+                                        row = int(
                                             (y * outshp[1] + x) * inshp[0] * ksize
                                             + l
                                             + fmapi * ksize
                                         )
                                     else:
-                                        row = y * outshp[1] + x
+                                        row = int(y * outshp[1] + x)
 
                                     # Store something at that location
                                     # in sparse matrix.  The written

@@ -718,3 +718,56 @@ def test_nested():
     linker = aesara.link.vm.VMLinker(lazy=True)
     f = function([c1, c2, x1, x2], t4, mode=Mode(linker=linker, optimizer="fast_run"))
     assert f(1, 0, np.array(10, dtype=x1.dtype), 0) == 20.5
+
+
+def test_DimShuffle_drop():
+    c = scalar("c")
+    x = scalar("x")
+    y = vector("y")
+
+    cost = ifelse(c, x.dimshuffle("x"), y).sum()
+
+    # Sum{acc_dtype=float64} [id A] <TensorType(float64, ())>
+    #  |if{} [id B] <TensorType(float64, (None,))>
+    #    |c [id C] <TensorType(float64, ())>
+    #    |InplaceDimShuffle{x} [id D] <TensorType(float64, (1,))>
+    #    | |x [id E] <TensorType(float64, ())>
+    #    |y [id F] <TensorType(float64, (None,))>
+
+    out = aesara.grad(cost, y)
+    assert out.type.shape == (None,)
+
+    out = aesara.grad(cost, x)
+
+    #
+    # `DimShuffle.L_op` `inputs`
+    #
+    # x [id A] <TensorType(float64, ())>
+
+    #
+    # `DimShuffle.L_op` `outputs`
+    #
+    # InplaceDimShuffle{x} [id B] <TensorType(float64, (1,))>
+    #  |x [id A] <TensorType(float64, ())>
+
+    #
+    # `DimShuffle.L_op` `output_grads`
+    #
+    # if{} [id C] <TensorType(float64, (None,))>
+    #  |c [id D] <TensorType(float64, ())>
+    #  |Elemwise{second} [id E] <TensorType(float64, (None,))>
+    #  | |if{} [id F] <TensorType(float64, (None,))>
+    #  | | |c [id D] <TensorType(float64, ())>
+    #  | | |InplaceDimShuffle{x} [id B] <TensorType(float64, (1,))>
+    #  | | |y [id G] <TensorType(float64, (None,))>
+    #  | |InplaceDimShuffle{x} [id H] <TensorType(float64, (1,))>
+    #  |   |Elemwise{second,no_inplace} [id I] <TensorType(float64, ())>
+    #  |     |Sum{acc_dtype=float64} [id J] <TensorType(float64, ())>
+    #  |     | |if{} [id F] <TensorType(float64, (None,))>
+    #  |     |TensorConstant{1.0} [id K] <TensorType(float64, ())>
+    #  |Elemwise{second,no_inplace} [id L] <TensorType(float64, (1,))>
+    #    |InplaceDimShuffle{x} [id B] <TensorType(float64, (1,))>
+    #    |InplaceDimShuffle{x} [id M] <TensorType(float64, (1,))>
+    #      |TensorConstant{0.0} [id N] <TensorType(float64, ())>
+
+    assert out.type.shape == ()

@@ -258,15 +258,16 @@ class DimShuffle(ExternalCOp):
         (x,) = inp
         (gz,) = grads
         gz = as_tensor_variable(gz)
-        grad_order = ["x"] * len(x.type.broadcastable)
+        grad_order = ["x"] * x.type.ndim
         for i, v in enumerate(self.new_order):
             if v != "x":
                 grad_order[v] = i
+
         # Do not make the DimShuffle inplace as an optimization at the
         # canonicalization optimization phase will remove the inplace.
         # The inplace will be reintroduced automatically later in the graph.
-        if inp[0].dtype in discrete_dtypes:
-            return [inp[0].zeros_like(dtype=config.floatX)]
+        if x.dtype in discrete_dtypes:
+            return [x.zeros_like(dtype=config.floatX)]
         else:
             return [
                 DimShuffle(gz.type.broadcastable, grad_order)(
@@ -542,7 +543,6 @@ class Elemwise(OpenMPOp):
         return [[True for output in node.outputs] for ipt in node.inputs]
 
     def L_op(self, inputs, outs, ograds):
-        from aesara.tensor.math import sum as at_sum
 
         # Compute grad with respect to broadcasted input
         rval = self._bgrad(inputs, outs, ograds)
@@ -573,18 +573,9 @@ class Elemwise(OpenMPOp):
             if isinstance(rval[i].type, (NullType, DisconnectedType)):
                 continue
 
-            # List of all the dimensions that are broadcastable for input[i] so
-            # we can sum over them
-            # TODO: only count dimensions that were effectively broadcasted
-            to_sum = [
-                j
-                for j, bcast in enumerate(ipt.type.broadcastable)
-                if bcast and not outs[0].broadcastable[j]
-            ]
-
-            if to_sum:
-                sr = at_sum(rval[i], axis=to_sum, keepdims=True)
-                rval[i] = sr
+            rval[i] = aesara.tensor.extra_ops.sum_broadcasted_dims(
+                rval[i], ipt, outs[0].type.shape
+            )
 
         return rval
 

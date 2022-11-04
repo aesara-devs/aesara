@@ -24,7 +24,7 @@ from aesara.graph.basic import Apply, Variable, clone_replace, is_in_ancestors
 from aesara.graph.op import _NoPythonOp
 from aesara.graph.rewriting.basic import GraphRewriter, in2out, node_rewriter
 from aesara.graph.type import HasDataType, HasShape
-from aesara.tensor.shape import Reshape, Shape, SpecifyShape, Unbroadcast
+from aesara.tensor.shape import Reshape, Shape, SpecifyShape, Unbroadcast, specify_shape
 
 
 if TYPE_CHECKING:
@@ -254,21 +254,34 @@ class IfElse(_NoPythonOp):
         # Since input true/false entries must have the same dtypes, we need to
         # cast the zeros to the corresponding `grads` dtypes and not the input
         # dtypes.
-        inputs_true_grad = (
-            [condition]
-            + grads
-            + [
-                at.basic.zeros_like(t, dtype=grads[i].dtype)
-                for i, t in enumerate(inputs_true_branch)
-            ]
+        # The `grads` can also have different shapes than the `inputs`, so we
+        # effectively assert that the shapes are preserved in each branch.
+        # TODO FIXME: This doesn't seem like a sufficient solution to the
+        # problem.
+        inputs_true_grads = if_true_op(
+            *(
+                [condition]
+                + [specify_shape(g, i.shape) for g, i in zip(grads, inputs_true_branch)]
+                + [
+                    at.basic.zeros_like(t, dtype=grads[i].dtype)
+                    for i, t in enumerate(inputs_true_branch)
+                ]
+            ),
+            return_list=True,
         )
-        inputs_false_grad = (
-            [condition]
-            + [
-                at.basic.zeros_like(f, dtype=grads[i].dtype)
-                for i, f in enumerate(inputs_false_branch)
-            ]
-            + grads
+        inputs_false_grads = if_false_op(
+            *(
+                [condition]
+                + [
+                    at.basic.zeros_like(f, dtype=grads[i].dtype)
+                    for i, f in enumerate(inputs_false_branch)
+                ]
+                + [
+                    specify_shape(g, i.shape)
+                    for g, i in zip(grads, inputs_false_branch)
+                ]
+            ),
+            return_list=True,
         )
 
         # `condition` does affect the elements of the output so it is connected.
@@ -276,11 +289,7 @@ class IfElse(_NoPythonOp):
         # condition + epsilon always triggers the same branch as condition
         condition_grad = condition.zeros_like().astype(config.floatX)
 
-        return (
-            [condition_grad]
-            + if_true_op(*inputs_true_grad, return_list=True)
-            + if_false_op(*inputs_false_grad, return_list=True)
-        )
+        return [condition_grad] + inputs_true_grads + inputs_false_grads
 
     def make_thunk(self, node, storage_map, compute_map, no_recycling, impl=None):
         cond = node.inputs[0]

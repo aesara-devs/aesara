@@ -1318,6 +1318,7 @@ class TestBroadcastTo(utt.InferShapeTester):
         [
             [lambda x: broadcast_to(x, (1,)), (1,)],
             [lambda x: broadcast_to(x, (6, 2, 5, 3)), (1,)],
+            [lambda x: broadcast_to(x, (6, 2, 5, 3)), (1,)],
             [lambda x: broadcast_to(x, (6, 2, 5, 3)), (5, 1)],
             [lambda x: broadcast_to(x, (6, 2, 1, 3)), (2, 1, 3)],
         ],

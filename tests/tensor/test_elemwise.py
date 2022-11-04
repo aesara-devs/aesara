@@ -8,8 +8,9 @@ import pytest
 
 import aesara
 import aesara.scalar as aes
+import aesara.tensor as at
 import tests.unittest_tools as utt
-from aesara.compile.mode import Mode
+from aesara.compile.mode import Mode, get_default_mode
 from aesara.configdefaults import config
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.fg import FunctionGraph
@@ -888,6 +889,39 @@ class TestElemwise(unittest_tools.InferShapeTester):
             match=re.escape("Incompatible Elemwise input shapes [(2,), (3,)]"),
         ):
             x + y
+
+    def test_grad_sum_bcast_input_dims(self):
+        """Make sure broadcasted dimensions in the gradients are summed when static shape information isn't available."""
+        Y = matrix("Y")
+        X = matrix("X")
+        X_grad = aesara.grad((X + Y).sum(), wrt=X)
+
+        mode = get_default_mode().including("fast_run")
+
+        X_grad_fn = aesara.function([X, Y], X_grad, mode=mode)
+        res = X_grad_fn(np.ones((1, 5)), np.ones((5, 5)))
+        assert np.array_equal(res, np.array([[5.0, 5.0, 5.0, 5.0, 5.0]]))
+
+        # When the shapes are known at compile-time, the compiled graph should
+        # simplify
+        Y = tensor(np.float64, shape=(5, None), name="Y")
+        X = tensor(np.float64, shape=(1, 5), name="X")
+        X_grad = aesara.grad((X + Y).sum(), wrt=X)
+
+        X_grad_fn = aesara.function([X, Y], X_grad, mode=mode)
+        res = X_grad_fn(np.ones((1, 5)), np.ones((5, 5)))
+        assert np.array_equal(res, np.array([[5.0, 5.0, 5.0, 5.0, 5.0]]))
+
+        assert X_grad_fn.maker.fgraph.apply_nodes
+
+    def test_grad_of_grad(self):
+        """This tests a special case in which the static shapes of a `DimShuffle` and its gradient don't match."""
+        a = at.vector("a")
+
+        out = aesara.grad((a * a).sum(), a).sum()
+        out = aesara.grad(out, a)
+
+        assert out.type.shape == (None,)
 
 
 def test_not_implemented_elemwise_grad():
