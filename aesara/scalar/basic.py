@@ -4048,7 +4048,7 @@ class Composite(ScalarOp, HasInnerGraph):
 
     @property
     def fn(self):
-        return self._fn
+        return None
 
     @property
     def inner_inputs(self):
