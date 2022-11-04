@@ -414,9 +414,13 @@ class TopKOp(Op):
         _check_tensor_is_scalar(kth)
         outs = []
         if self.return_values:
-            outs.append(inp.type())
+            outs.append(
+                TensorType(dtype=inp.type.dtype, shape=(None,) * inp.type.ndim)()
+            )
         if self.return_indices:
-            outs.append(TensorType(dtype=self.idx_dtype, shape=inp.type.shape)())
+            outs.append(
+                TensorType(dtype=self.idx_dtype, shape=(None,) * inp.type.ndim)()
+            )
         return Apply(self, [inp, kth], outs)
 
     def perform(self, node, inputs, output_storage):
