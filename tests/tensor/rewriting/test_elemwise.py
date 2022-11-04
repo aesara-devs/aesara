@@ -1113,6 +1113,86 @@ class TestFusion:
                 f.maker.fgraph.outputs[0].tag.test_value, np.c_[[2.0]]
             )
 
+    @pytest.mark.parametrize("linker", ["cvm", "py"])
+    @pytest.mark.parametrize("axis", [None, 0, 1, (0, 1), (0, 1, 2)])
+    def test_CAReduce_single_input(self, linker, axis):
+        """Make sure that `CAReduce` and `Elemwise` fusions work with a single input."""
+
+        mode = Mode(linker=linker)
+        mode._optimizer = mode._optimizer.including(
+            "local_careduce_fusion",
+            "canonicalize",
+            "inplace",
+        )
+
+        x = tensor("floatX", shape=(None, None, None), name="x")
+        out = exp(x).sum(axis=axis)
+
+        out_fn = function([x], out, mode=mode)
+
+        if linker != "py":
+            (out_node,) = out_fn.maker.fgraph.toposort()
+            assert isinstance(getattr(out_node.op, "scalar_op"), aes.basic.Composite)
+
+            rng = np.random.default_rng(2320)
+            x_val = rng.random((4, 3, 2), dtype=config.floatX)
+
+            exp_res = np.exp(x_val).sum(axis=axis)
+
+            out_val = out_fn(x_val)
+            assert out_val.shape == exp_res.shape
+            assert np.allclose(out_val, exp_res)
+        else:
+            out_nodes = out_fn.maker.fgraph.toposort()
+            assert not any(
+                isinstance(out_node.op.scalar_op, aes.basic.Composite)
+                for out_node in out_nodes
+                if hasattr(out_node.op, "scalar_op")
+            )
+
+        # `Elemwise`s with more than one client shouldn't be rewritten
+        x = tensor("floatX", shape=(None, None, None), name="x")
+        exp_x = exp(x)
+        out = exp_x.sum(axis=axis) + exp(x)
+
+        out_fn = function([x], out, mode=mode)
+        out_nodes = out_fn.maker.fgraph.toposort()
+        assert not any(
+            isinstance(out_node.op.scalar_op, aes.basic.Composite)
+            for out_node in out_nodes
+            if hasattr(out_node.op, "scalar_op")
+        )
+
+    @pytest.mark.xfail(reason="Not implemented")
+    @pytest.mark.parametrize("linker", ["cvm", "py"])
+    @pytest.mark.parametrize("axis", [None, 0, 1, (0, 1), (0, 1, 2)])
+    def test_CAReduce_multiple_inputs(self, linker, axis):
+        """Make sure that `CAReduce` and `Elemwise` fusions work with multiple inputs."""
+
+        mode = Mode(linker=linker)
+        mode._optimizer = mode._optimizer.including(
+            "local_careduce_fusion",
+            "canonicalize",
+            "inplace",
+        )
+
+        x = tensor("floatX", shape=(None, None, None), name="x")
+        y = tensor("floatX", shape=(None, None, None), name="y")
+        out = (x + y).sum(axis=axis)
+
+        out_fn = function([x, y], out, mode=mode)
+        (out_node,) = out_fn.maker.fgraph.toposort()
+
+        assert isinstance(getattr(out_node.op, "scalar_op"), aes.basic.Composite)
+
+        rng = np.random.default_rng(2320)
+        x_val = rng.random((4, 3, 2), dtype=config.floatX)
+        y_val = rng.random((4, 3, 2), dtype=config.floatX)
+        exp_res = (x_val + y_val).sum(axis=axis)
+        out_val = out_fn(x_val, y_val)
+        assert out_val.shape == exp_res.shape
+        assert np.allclose(out_val, exp_res)
+
 
 class TimesN(aes.basic.UnaryScalarOp):
     """
