@@ -82,7 +82,6 @@ from aesara.tensor.rewriting.basic import (
     register_uncanonicalize,
     register_useless,
 )
-from aesara.tensor.rewriting.elemwise import FusionOptimizer, fuse_seqopt
 from aesara.tensor.shape import Shape, Shape_i
 from aesara.tensor.subtensor import Subtensor
 from aesara.tensor.type import (
@@ -2860,66 +2859,6 @@ def local_grad_log_erfc_neg(fgraph, node):
     ret.tag.values_eq_approx = values_eq_approx_remove_inf_nan
 
     return [ret]
-
-
-def local_add_mul_fusion(fgraph, node):
-    """Fuse consecutive add or mul in one such node with more inputs.
-
-    It is better to fuse add/mul that way then in a Composite node as
-    this make the inner graph of the Composite smaller. This allow to
-    put more computation in a Composite before hitting the max
-    recursion limit when pickling Composite.
-
-    """
-    if not isinstance(node.op, Elemwise) or not isinstance(
-        node.op.scalar_op, (aes.Add, aes.Mul)
-    ):
-        return False
-
-    s_op = node.op.scalar_op.__class__
-    new_inp = []
-    fused = False
-    nb_inputs = len(node.inputs)
-    max_inputs = float("inf")
-    if hasattr(node.op, "max_inputs"):
-        max_inputs = node.op.max_inputs(node)
-    for inp in node.inputs:
-        if (
-            inp.owner
-            and isinstance(inp.owner.op, Elemwise)
-            and isinstance(inp.owner.op.scalar_op, s_op)
-            and
-            # Do not duplicate the operation.
-            len(fgraph.clients[inp]) == 1
-            and (nb_inputs + len(inp.owner.inputs) - 1) <= max_inputs
-        ):
-            new_inp.extend(inp.owner.inputs)
-            fused = True
-        else:
-            new_inp.append(inp)
-
-    # We can not compare the number of inputs as Mul and Add could have
-    # 0 or 1 inputs in some corner cases.
-    if fused:
-        output = node.op(*new_inp)
-        copy_stack_trace(node.outputs[0], output)
-
-        # Do the recursion here to help lower the number of
-        # FusionOptimizer iteration.
-        if output.owner:
-            output2 = local_add_mul_fusion(fgraph, output.owner)
-            if output2:
-                return output2
-        return [output]
-
-
-fuse_seqopt.register(
-    "local_add_mul_fusion",
-    FusionOptimizer(local_add_mul_fusion),
-    "fast_run",
-    "fusion",
-    position=0,
-)
 
 
 def _skip_mul_1(r):

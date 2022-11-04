@@ -998,23 +998,35 @@ class TestFusion:
             for node in dlogp.maker.fgraph.toposort()
         )
 
+    def test_add_mul_fusion_precedence(self):
+        """Test that additions and multiplications are "fused together" before
+        a `Composite` `Op` is introduced. This fusion is done by canonicalization
+        """
+        x, y, z = vectors("x", "y", "z")
+        out = log((x + y + z) / (x * y * z))
+        f = aesara.function([x, y, z], out, mode=self.mode)
+        # There should be a single Composite Op
+        nodes = f.maker.fgraph.apply_nodes
+        assert len(nodes) == 1
+        (node,) = nodes
+        assert isinstance(node.op, Elemwise)
+        scalar_op = node.op.scalar_op
+        assert isinstance(scalar_op, Composite)
+        assert [node.op for node in scalar_op.fgraph.toposort()] == [
+            # There should be a single mul
+            aes.mul,
+            # There should be a single add
+            aes.add,
+            aes.true_div,
+            aes.log,
+        ]
+
     def test_add_mul_fusion_inplace(self):
-
-        rewrites = RewriteDatabaseQuery(
-            include=[
-                "local_elemwise_fusion",
-                "composite_elemwise_fusion",
-                "canonicalize",
-                "inplace",
-            ],
-            exclude=["cxx_only", "BlasOpt"],
-        )
-
-        mode = Mode(self.mode.linker, rewrites)
-
+        # Note: This has nothing to do with the FusionOptimizer, as the "fusion"
+        # is done by canonicalize
         x, y, z = dmatrices("xyz")
         out = dot(x, y) + x + y + z
-        f = function([x, y, z], out, mode=mode)
+        f = function([x, y, z], out, mode=self.mode)
         topo = [n for n in f.maker.fgraph.toposort()]
         assert len(topo) == 2
         assert topo[-1].op.inplace_pattern
@@ -1026,7 +1038,9 @@ class TestFusion:
 
         # TODO: Do we really need to do this?
         _ = f(
-            np.random.random((5, 5)), np.random.random((5, 5)), np.random.random((5, 5))
+            np.random.random((5, 5)),
+            np.random.random((5, 5)),
+            np.random.random((5, 5)),
         )
 
     @pytest.mark.skipif(not config.cxx, reason="No cxx compiler")
