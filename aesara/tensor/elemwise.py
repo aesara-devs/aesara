@@ -1,5 +1,5 @@
 from copy import copy
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
 import numpy as np
 
@@ -1257,33 +1257,61 @@ class CAReduce(COp):
 
     """
 
-    __props__: Union[
-        Tuple[str], Tuple[str, str], Tuple[str, str, str], Tuple[str, str, str, str]
-    ] = ("scalar_op", "axis")
+    __props__ = ("scalar_op", "axis", "dtype", "acc_dtype", "upcast_discrete_output")
 
-    def __init__(self, scalar_op, axis=None):
+    def __init__(
+        self,
+        scalar_op,
+        axis=None,
+        dtype=None,
+        acc_dtype=None,
+        upcast_discrete_output=False,
+    ):
         """
 
         Parameters
         ----------
         scalar_op
-            A binary scalar `Op` with only one output. It must be commutative
-            and associative.
+            A binary scalar `Op` with only one output.
+            It must be commutative and associative.
         axis
-            - The dimension along which we want to reduce
-            - List of dimensions that we want to reduce
-            - If ``None``, all dimensions are reduced
+            - the dimension along which we want to reduce
+            - list of dimensions that we want to reduce
+            - if ``None``, all dimensions are reduced
+        dtype
+            The dtype of the returned tensor. If ``None``, then we use the default
+            dtype which is the same as the input array's dtype except when
+            `upcast_discrete_output` is ``True`` and the following holds:
+
+            - the input dtype is a signed integer of precision < 64 bit, in which
+            case we use int64
+            - the input dtype is an unsigned integer of precision < 64 bit, in
+            which case we use uint64
+
+            This default dtype does _not_ depend on the value of `acc_dtype`.
+            This behavior is similar in spirit to that of NumPy, except that
+            NumPy uses the default machine integer while we always use 64 bit
+            integers to avoid platform-dependent behavior.
+        acc_dtype
+            The dtype of the internal accumulator.
+            If ``None`` (default), we use the dtype in the list below,
+            or the input dtype if its precision is higher:
+
+            - for int dtypes, we use at least int64;
+            - for uint dtypes, we use at least uint64;
+            - for float dtypes, we use at least float64;
+            - for complex dtypes, we use at least complex128.
+        upcast_discrete_output
+            See
 
         """
         if scalar_op.nin not in (-1, 2) or scalar_op.nout != 1:
             raise NotImplementedError(
-                "CAReduce only supports binary functions with a single " "output."
+                "CAReduce only supports binary functions with a single output."
             )
 
         self.axis = None
-        self.ufunc_is_vectorized = False
         self.scalar_op = scalar_op
-        self.set_ufunc(scalar_op)
 
         if axis is not None:
             if isinstance(axis, (int, np.integer)) or (
@@ -1293,64 +1321,179 @@ class CAReduce(COp):
             else:
                 self.axis = tuple(axis)
 
-    def set_ufunc(self, scalar_op):
-        if hasattr(scalar_op, "nfunc_spec") and hasattr(np, scalar_op.nfunc_spec[0]):
-            self.ufunc = getattr(np, scalar_op.nfunc_spec[0])
-        else:
-            self.ufunc = np.frompyfunc(scalar_op.impl, 2, 1)
-            self.ufunc_is_vectorized = True
+        self.dtype = dtype
+        self.acc_dtype = acc_dtype
+        self.upcast_discrete_output = upcast_discrete_output
 
-    def _output_dtype(self, input_dtype):
-        return input_dtype
+    @property
+    def ufunc(self):
+        if hasattr(self, "_ufunc"):
+            return self._ufunc
+
+        if hasattr(self.scalar_op, "nfunc_spec") and hasattr(
+            np, self.scalar_op.nfunc_spec[0]
+        ):
+            self._ufunc = getattr(np, self.scalar_op.nfunc_spec[0])
+        else:
+            self._ufunc = np.frompyfunc(
+                self.scalar_op.impl, 2, 1, identity=self.scalar_op.identity
+            )
+
+        return self._ufunc
+
+    def _output_dtype(self, idtype):
+
+        if not self.upcast_discrete_output:
+            return idtype
+
+        dtype = self.dtype
+
+        if dtype == "OLD":
+            return dict(
+                int8="int32",
+                int16="int32",
+                int32="int64",
+                uint8="uint32",
+                uint16="uint32",
+                uint32="uint64",
+            ).get(idtype, idtype)
+        elif dtype is None:
+            # If input has a discrete dtype, upcast it to 64
+            return dict(
+                bool="int64",
+                int8="int64",
+                int16="int64",
+                int32="int64",
+                uint8="uint64",
+                uint16="uint64",
+                uint32="uint64",
+            ).get(idtype, idtype)
+        else:
+            # The important is that the accumulator dtype does not
+            # lose precision. Then, the result can be downcasted.
+            return dtype
+
+    def _acc_dtype(self, idtype):
+        acc_dtype = self.acc_dtype
+        if acc_dtype is None:
+            return dict(
+                bool="int64",
+                int8="int64",
+                int16="int64",
+                int32="int64",
+                uint8="uint64",
+                uint16="uint64",
+                uint32="uint64",
+                float16="float32",
+                float32="float64",
+                complex64="complex128",
+            ).get(idtype, idtype)
+        elif acc_dtype in continuous_dtypes and idtype in discrete_dtypes:
+            # Specifying a continuous accumulator for discrete input is OK
+            return acc_dtype
+        else:
+            # The conversion has to be considered an upcast.
+            upcasted_dtype = upcast(idtype, acc_dtype)
+            if acc_dtype != upcasted_dtype:
+                raise TypeError(
+                    f"Cannot build {self} node with input dtype {idtype} "
+                    f"and acc_dtype {acc_dtype}, as precision would be lost. "
+                    "To correct this error, you can:\n"
+                    "  - not specify acc_dtype, or\n"
+                    f"  - use an acc_dtype at least as precise as {upcasted_dtype}.\n"
+                    '  - specify "dtype" instead of "acc_dtype", so '
+                    "the reduction will be precise, but the result will "
+                    'be casted into "dtype" at the end.\n'
+                    "If you are expecting the precision loss, you can "
+                    f'use tensor.cast(..., dtype="{acc_dtype}"), on your input.'
+                )
+            return acc_dtype
 
     def make_node(self, input):
         input = as_tensor_variable(input)
         inp_dims = input.type.ndim
+        inp_dtype = input.type.dtype
+
+        # We need to redefine make_node so that, if self.dtype is None,
+        # we can infer what dtype should be, and create a node from an Op
+        # of the appropriate dtype.
+        dtype = self._output_dtype(inp_dtype)
+        acc_dtype = self._acc_dtype(inp_dtype)
+
+        assert dtype is not None
+        assert acc_dtype is not None
 
         axis = self.axis
-        if axis is None:
-            axis = list(range(inp_dims))
 
-        copy_op = any(a < 0 for a in axis)
         # scalar inputs are treated as 1D regarding axis in this `Op`
-        try:
-            axis = np.core.numeric.normalize_axis_tuple(axis, ndim=max(1, inp_dims))
-        except np.AxisError:
-            raise np.AxisError(axis, ndim=inp_dims)
+        if axis is not None:
+            try:
+                axis = np.core.numeric.normalize_axis_tuple(axis, ndim=max(1, inp_dims))
+            except np.AxisError:
+                raise np.AxisError(axis, ndim=inp_dims)
 
-        # We can't call self.__class__() as there is a class that
-        # inherits from CAReduce that doesn't have the same signature
-        if copy_op:
-            op = copy(self)
-            op.set_ufunc(op.scalar_op)
-            assert len(axis) == len(self.axis)
-            op.axis = tuple(axis)
+            out_shape = tuple(
+                s for i, s in enumerate(input.type.shape) if i not in axis
+            )
+        else:
+            out_shape = ()
+
+        if (
+            (axis is not None and any(a < 0 for a in axis))
+            or dtype != self.dtype
+            or acc_dtype != self.acc_dtype
+        ):
+            op = self.clone(axis=axis, dtype=dtype, acc_dtype=acc_dtype)
         else:
             op = self
 
-        shape = [x for i, x in enumerate(input.type.shape) if i not in axis]
-
-        output = TensorType(
-            dtype=self._output_dtype(input.type.dtype),
-            shape=shape,
-        )()
+        output = TensorType(dtype=dtype, shape=out_shape)()
 
         return Apply(op, [input], [output])
 
-    def __getstate__(self):
-        d = copy(self.__dict__)
-        d.pop("ufunc", None)
-        return d
+    def clone(
+        self,
+        axis=None,
+        dtype=None,
+        acc_dtype=None,
+        upcast_discrete_output=None,
+        **kwargs,
+    ):
+        if axis is None:
+            axis = self.axis
+        if dtype is None:
+            dtype = self.dtype
+        if acc_dtype is None:
+            acc_dtype = self.acc_dtype
+        if upcast_discrete_output is None:
+            upcast_discrete_output = self.upcast_discrete_output
 
-    def __setstate__(self, d):
-        self.__dict__.update(d)
-        self.set_ufunc(self.scalar_op)
+        res = type(self)(
+            self.scalar_op,
+            axis=axis,
+            dtype=dtype,
+            acc_dtype=acc_dtype,
+            upcast_discrete_output=None,
+            **kwargs,
+        )
+
+        return res
 
     def __str__(self):
         prefix = f"{type(self).__name__}{{{self.scalar_op}}}"
+        extra_params = []
+
         if self.axis is not None:
-            axes_str = ", ".join(str(x) for x in self.axis)
-            return f"{prefix}{{{axes_str}}}"
+            axis = ", ".join(str(x) for x in self.axis)
+            extra_params.append(f"axis=[{axis}]")
+
+        if self.acc_dtype:
+            extra_params.append(f"acc_dtype={self.acc_dtype}")
+
+        extra_params_str = ", ".join(extra_params)
+
+        if extra_params_str:
+            return f"{prefix}{{{extra_params_str}}}"
         else:
             return f"{prefix}"
 
@@ -1358,31 +1501,21 @@ class CAReduce(COp):
         (input,) = inp
         (output,) = out
         axis = self.axis
-        if axis is None:
-            axis = list(range(input.ndim))
 
-        if hasattr(self, "acc_dtype") and self.acc_dtype is not None:
+        out_dtype = node.outputs[0].type.dtype
+
+        if self.acc_dtype is not None:
             acc_dtype = self.acc_dtype
         else:
-            acc_dtype = node.outputs[0].type.dtype
+            acc_dtype = out_dtype
 
-        variable = np.array(input, dtype=acc_dtype)
+        # out_dtype = self.dtype if self.dtype and self.dtype != "OLD" else out_dtype
 
-        if axis:
-            # Reducing functions built using np.frompyfunc() do not
-            # support reduction along multiple axes. Hence loop through
-            # each, otherwise numpy's inbuilt reduction functions
-            # support reduction along multiple axes directly.
-            if self.ufunc_is_vectorized:
-                to_reduce = reversed(sorted(axis))
-                for dimension in to_reduce:
-                    variable = self.ufunc.reduce(variable, dimension, dtype=acc_dtype)
-            else:
-                variable = self.ufunc.reduce(variable, axis=tuple(axis))
-            output[0] = _asarray(variable, dtype=node.outputs[0].type.dtype)
-        else:
-            # Force a copy
-            output[0] = np.array(variable, copy=True, dtype=node.outputs[0].type.dtype)
+        input = np.array(input, dtype=acc_dtype)
+
+        out = self.ufunc.reduce(input, axis=axis, dtype=acc_dtype)
+
+        output[0] = _asarray(out, dtype=out_dtype)
 
     def infer_shape(self, fgraph, node, shapes):
         (ishape,) = shapes
@@ -1586,176 +1719,6 @@ class CAReduce(COp):
             return tuple(version)
         else:
             return ()
-
-
-class CAReduceDtype(CAReduce):
-    """A subclass of `CAReduce` that accepts an additional output "dtype" parameter.
-
-    It also accepts an optional `acc_dtype`, which specifies the dtype that
-    will be used for the accumulation.  The accumulation will be done using an
-    array of dtype `acc_dtype`, then it will be cast into `dtype` and returned.
-
-    If no `dtype` is provided, one will be inferred so as not to lose
-    too much precision.
-
-    """
-
-    __props__: Union[Tuple[str, str, str], Tuple[str, str, str, str]] = (
-        "scalar_op",
-        "axis",
-        "dtype",
-        "acc_dtype",
-    )
-
-    def __init__(self, scalar_op, axis=None, dtype=None, acc_dtype=None):
-        """
-
-        Parameters
-        ----------
-        scalar_op
-            A binary scalar `Op` with only one output.
-            It must be commutative and associative.
-        axis
-            * the dimension along which we want to reduce
-            * list of dimensions that we want to reduce
-            * if ``None``, all dimensions are reduced
-        dtype
-            The dtype of the returned tensor. If ``None``, then we use the default
-            dtype which is the same as the input array's dtype except when:
-
-            * the input dtype is a signed integer of precision < 64 bit, in which
-            case we use int64
-            * the input dtype is an unsigned integer of precision < 64 bit, in
-            which case we use uint64
-
-            This default dtype does _not_ depend on the value of `acc_dtype`.
-            This behavior is similar in spirit to that of NumPy, except that
-            NumPy uses the default machine integer while we always use 64 bit
-            integers to avoid platform-dependent behavior.
-        acc_dtype
-            The dtype of the internal accumulator.
-            If ``None`` (default), we use the dtype in the list below,
-            or the input dtype if its precision is higher:
-
-            * for int dtypes, we use at least int64;
-            * for uint dtypes, we use at least uint64;
-            * for float dtypes, we use at least float64;
-            * for complex dtypes, we use at least complex128.
-
-        """
-        super().__init__(scalar_op, axis=axis)
-        self.dtype = dtype
-        self.acc_dtype = acc_dtype
-
-    def __setstate__(self, d):
-        super().__setstate__(d)
-        if not hasattr(self, "dtype"):
-            # This is needed as old pickled will crash otherwise.
-            # We need to keep the old dtype behavior as the op
-            # could be in an apply node with a specified dtype.
-            self.dtype = "OLD"
-
-        if not hasattr(self, "acc_dtype"):
-            # acc_dtype is not used by any external Op, so we do not
-            # need to keep the previous behaviour here.
-            self.acc_dtype = None
-
-    def _output_dtype(self, idtype):
-        dtype = self.dtype
-        if dtype == "OLD":
-            return dict(
-                int8="int32",
-                int16="int32",
-                int32="int64",
-                uint8="uint32",
-                uint16="uint32",
-                uint32="uint64",
-            ).get(idtype, idtype)
-        if dtype is None:
-            # If input has a discrete dtype, upcast it to 64
-            return dict(
-                bool="int64",
-                int8="int64",
-                int16="int64",
-                int32="int64",
-                uint8="uint64",
-                uint16="uint64",
-                uint32="uint64",
-            ).get(idtype, idtype)
-        else:
-            # The important is that the accumulator dtype does not
-            # lose precision. Then, the result can be downcasted.
-            return dtype
-
-    def _acc_dtype(self, idtype):
-        acc_dtype = self.acc_dtype
-        if acc_dtype is None:
-            return dict(
-                bool="int64",
-                int8="int64",
-                int16="int64",
-                int32="int64",
-                uint8="uint64",
-                uint16="uint64",
-                uint32="uint64",
-                float16="float32",
-                float32="float64",
-                complex64="complex128",
-            ).get(idtype, idtype)
-        elif acc_dtype in continuous_dtypes and idtype in discrete_dtypes:
-            # Specifying a continuous accumulator for discrete input is OK
-            return acc_dtype
-        else:
-            # The conversion has to be considered an upcast.
-            upcasted_dtype = upcast(idtype, acc_dtype)
-            if acc_dtype != upcasted_dtype:
-                raise TypeError(
-                    f"Cannot build {self} node with input dtype {idtype} "
-                    f"and acc_dtype {acc_dtype}, as precision would be lost. "
-                    "To correct this error, you can:\n"
-                    "  - not specify acc_dtype, or\n"
-                    f"  - use an acc_dtype at least as precise as {upcasted_dtype}.\n"
-                    '  - specify "dtype" instead of "acc_dtype", so '
-                    "the reduction will be precise, but the result will "
-                    'be casted into "dtype" at the end.\n'
-                    "If you are expecting the precision loss, you can "
-                    f'use tensor.cast(..., dtype="{acc_dtype}"), on your input.'
-                )
-            return acc_dtype
-
-    def make_node(self, input):
-        # We need to redefine make_node so that, if self.dtype is None,
-        # we can infer what dtype should be, and create a node from an Op
-        # of the appropriate dtype.
-        input = as_tensor_variable(input)
-        dtype = self._output_dtype(input.dtype)
-        acc_dtype = self._acc_dtype(input.dtype)
-
-        assert dtype is not None
-        assert acc_dtype is not None
-
-        if dtype == self.dtype and acc_dtype == self.acc_dtype:
-            # Don't build another instance
-            op = self
-        else:
-            op = copy(self)
-            op.set_ufunc(self.scalar_op)
-            op.dtype = dtype
-            op.acc_dtype = acc_dtype
-
-        assert op.acc_dtype is not None
-
-        # TODO: Why doesn't `make_node` just take these
-        # automatically-determined values as arguments?
-        return super(CAReduceDtype, op).make_node(input)
-
-    def __str__(self):
-        prefix = f"{type(self).__name__}{{{self.scalar_op}}}"
-        if self.axis is not None:
-            axis = ", ".join(str(x) for x in self.axis)
-            return f"{prefix}{{axis=[{axis}], acc_dtype={self.acc_dtype}}}"
-        else:
-            return f"{prefix}{{acc_dtype={self.acc_dtype}}}"
 
 
 def scalar_elemwise(*symbol, nfunc=None, nin=None, nout=None, symbolname=None):
