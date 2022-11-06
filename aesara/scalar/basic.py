@@ -27,6 +27,7 @@ from aesara.configdefaults import config
 from aesara.gradient import DisconnectedType, grad_undefined
 from aesara.graph.basic import Apply, Constant, Variable, clone, list_of_nodes
 from aesara.graph.fg import FunctionGraph
+from aesara.graph.op import HasInnerGraph
 from aesara.graph.rewriting.basic import MergeOptimizer
 from aesara.graph.type import HasDataType, HasShape
 from aesara.graph.utils import MetaObject, MethodNotDefined
@@ -3987,7 +3988,7 @@ class ComplexFromPolar(BinaryScalarOp):
 complex_from_polar = ComplexFromPolar(name="complex_from_polar")
 
 
-class Composite(ScalarOp):
+class Composite(ScalarOp, HasInnerGraph):
     """
     Composite is an Op that takes a graph of scalar operations and
     produces c code for the whole graph. Its purpose is to implement loop
@@ -3999,9 +4000,65 @@ class Composite(ScalarOp):
 
     init_param: Union[Tuple[str, str], Tuple[str]] = ("inputs", "outputs")
 
+    def __init__(self, inputs, outputs):
+        # We need to clone the graph as sometimes its nodes already
+        # contain a reference to an fgraph. As we want the Composite
+        # to be pickable, we can't have reference to fgraph.
+
+        # Also, if there is Composite in the inner graph, we want to
+        # remove them. In that case, we do a more complicated clone
+        # that will flatten Composite. We don't need to do this
+        # recursively, as the way the fusion optimizer work, we have
+        # only 1 new Composite each time at the output.
+        for i in inputs:
+            assert i not in outputs  # This isn't supported, use identity
+
+        if len(outputs) > 1 or not any(
+            isinstance(var.owner.op, Composite) for var in outputs
+        ):
+            # No inner Composite
+            inputs, outputs = clone(inputs, outputs)
+        else:
+            # Inner Composite that we need to flatten
+            assert len(outputs) == 1
+            # 1. Create a new graph from inputs up to the
+            # Composite
+            res = aesara.compile.rebuild_collect_shared(
+                inputs=inputs, outputs=outputs[0].owner.inputs, copy_inputs_over=False
+            )  # Clone also the inputs
+            # 2. We continue this partial clone with the graph in
+            # the inner Composite
+            res2 = aesara.compile.rebuild_collect_shared(
+                inputs=outputs[0].owner.op.inputs,
+                outputs=outputs[0].owner.op.outputs,
+                replace=dict(zip(outputs[0].owner.op.inputs, res[1])),
+            )
+            assert len(res2[1]) == len(outputs)
+            assert len(res[0]) == len(inputs)
+            assert res[0] != inputs
+            inputs, outputs = res[0], res2[1]
+
+        self.inputs = copy(inputs)
+        self.outputs = copy(outputs)
+        self.inputs_type = tuple([input.type for input in inputs])
+        self.outputs_type = tuple([output.type for output in outputs])
+        self.nin = len(inputs)
+        self.nout = len(outputs)
+        self.prepare_node_called = set()
+
+    @property
+    def fn(self):
+        return self._fn
+
+    @property
+    def inner_inputs(self):
+        return self.fgraph.inputs
+
+    @property
+    def inner_outputs(self):
+        return self.fgraph.outputs
+
     def __str__(self):
-        if self.name is None:
-            self.init_name()
         return self.name
 
     def make_new_inplace(self, output_types_preference=None, name=None):
@@ -4020,17 +4077,186 @@ class Composite(ScalarOp):
         super(Composite, out).__init__(output_types_preference, name)
         return out
 
-    def init_c_code(self):
-        """
-        Assemble the C code for this Composite Op.
+    @property
+    def py_perform(self):
+        if hasattr(self, "_py_perform_fn"):
+            return self._py_perform_fn
 
-        The result is assigned to `self._c_code`.
-        """
+        from aesara.link.utils import fgraph_to_python
+
+        def python_convert(op, node=None, **kwargs):
+            assert node is not None
+
+            n_outs = len(node.outputs)
+
+            if n_outs > 1:
+
+                def _perform(*inputs, outputs=[[None]] * n_outs):
+                    op.perform(node, inputs, outputs)
+                    return tuple(o[0] for o in outputs)
+
+            else:
+
+                def _perform(*inputs, outputs=[[None]]):
+                    op.perform(node, inputs, outputs)
+                    return outputs[0][0]
+
+            return _perform
+
+        self._py_perform_fn = fgraph_to_python(self.fgraph, python_convert)
+        return self._py_perform_fn
+
+    @property
+    def name(self):
+        if hasattr(self, "_name"):
+            return self._name
+
+        # TODO FIXME: Just implement pretty printing for the `Op`; don't do
+        # this redundant, outside work in the `Op` itself.
+        for i, r in enumerate(self.fgraph.inputs):
+            r.name = f"i{int(i)}"
+        for i, r in enumerate(self.fgraph.outputs):
+            r.name = f"o{int(i)}"
+        io = set(self.fgraph.inputs + self.fgraph.outputs)
+        for i, r in enumerate(self.fgraph.variables):
+            if r not in io and len(self.fgraph.clients[r]) > 1:
+                r.name = f"t{int(i)}"
+        outputs_str = ", ".join([pprint(output) for output in self.fgraph.outputs])
+        rval = f"Composite{{{outputs_str}}}"
+        self._name = rval
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        self._name = name
+
+    @property
+    def fgraph(self):
+        if hasattr(self, "_fgraph"):
+            return self._fgraph
+
+        # The clone done by FunctionGraph is needed as we don't want
+        # the fgraph to be set to the variable as we need to pickle
+        # them for the cache of c module to work.
+        fgraph = FunctionGraph(self.inputs, self.outputs)
+        MergeOptimizer().rewrite(fgraph)
+        for node in fgraph.apply_nodes:
+            if not isinstance(node.op, ScalarOp):
+                raise TypeError(
+                    "The fgraph to Composite must be exclusively"
+                    " composed of ScalarOp instances."
+                )
+        self._fgraph = fgraph
+        return self._fgraph
+
+    def prepare_node(self, node, storage_map, compute_map, impl):
+        if impl not in self.prepare_node_called:
+            for n in list_of_nodes(self.inputs, self.outputs):
+                n.op.prepare_node(n, None, None, impl)
+            self.prepare_node_called.add(impl)
+
+    def clone_float32(self):
+        # This will not modify the fgraph or the nodes
+        new_ins, new_outs = composite_f32.apply(self.fgraph)
+        return Composite(new_ins, new_outs)
+
+    def clone(self):
+        new_ins, new_outs = composite_f32.apply(self.fgraph)
+        return Composite(new_ins, new_outs)
+
+    def output_types(self, input_types):
+        # TODO FIXME: What's the intended purpose/use of this method, and why
+        # does it even need to be a method?
+        if tuple(input_types) != self.inputs_type:
+            raise TypeError(
+                f"Wrong types for Composite. Expected {self.inputs_type}, got {tuple(input_types)}."
+            )
+        return self.outputs_type
+
+    def make_node(self, *inputs):
+        if tuple([i.type for i in self.inputs]) == tuple([i.type for i in inputs]):
+            return super().make_node(*inputs)
+        else:
+            # Make a new op with the right input type.
+            assert len(inputs) == self.nin
+            res = aesara.compile.rebuild_collect_shared(
+                self.outputs,
+                replace=dict(zip(self.inputs, inputs)),
+                rebuild_strict=False,
+            )
+            # After rebuild_collect_shared, the Variable in inputs
+            # are not necessarily in the graph represented by res.
+            # res[2][0] is a dict that map from the original variable to the
+            # cloned variable.
+            cloned_inputs = [res[2][0][i] for i in inputs]
+            node = Composite(cloned_inputs, res[1]).make_node(*inputs)
+            return node
+
+    def perform(self, node, inputs, output_storage):
+        outputs = self.py_perform(*inputs)
+        for storage, out_val in zip(output_storage, outputs):
+            storage[0] = out_val
+
+    def impl(self, *inputs):
+        output_storage = [[None] for i in range(self.nout)]
+        self.perform(None, inputs, output_storage)
+        ret = to_return_values([storage[0] for storage in output_storage])
+        if self.nout > 1:
+            ret = tuple(ret)
+        return ret
+
+    def grad(self, inputs, output_grads):
+        raise NotImplementedError("grad is not implemented for Composite")
+
+    def __eq__(self, other):
+        if self is other:
+            return True
+        if (
+            type(self) != type(other)
+            or self.nin != other.nin
+            or self.nout != other.nout
+        ):
+            return False
+
+        # TODO FIXME: Why this?  Shouldn't we expect equivalent inputs to this
+        # object to generate the same `_c_code`?
+        return self.c_code_template == other.c_code_template
+
+    def __hash__(self):
+        # Note that in general, the configparser settings at the time
+        # of code generation (__init__) affect the semantics of this Op.
+        # This function assumes that all relevant info about the configparser
+        # is embodied in _c_code.  So the _c_code, rather than self.fgraph,
+        # is the signature of the semantics of this Op.
+        # _c_code is preserved through unpickling, so the Op will not change
+        # semantics when it is reloaded with different configparser
+        # settings.
+        #
+        # TODO FIXME: Doesn't the above just mean that we should be including
+        # the relevant "configparser settings" here?  Also, why should we even
+        # care about the exact form of the generated C code when comparing
+        # `Op`s?  All this smells of leaky concerns and interfaces.
+        return hash((type(self), self.nin, self.nout, self.c_code_template))
+
+    def __getstate__(self):
+        rval = dict(self.__dict__)
+        rval.pop("_c_code", None)
+        rval.pop("_py_perform_fn", None)
+        rval.pop("_fgraph", None)
+        rval.pop("prepare_node_called", None)
+        return rval
+
+    def __setstate__(self, d):
+        self.__dict__.update(d)
+        self.prepare_node_called = set()
+
+    @property
+    def c_code_template(self):
         from aesara.link.c.interface import CLinkerType
 
-        # It was already called
         if hasattr(self, "_c_code"):
-            return
+            return self._c_code
+
         subd = dict(
             chain(
                 ((e, f"%(i{int(i)})s") for i, e in enumerate(self.fgraph.inputs)),
@@ -4078,200 +4304,14 @@ class Composite(ScalarOp):
             )
             _c_code += s
             _c_code += "\n"
+
         _c_code += "}\n"
+
         self._c_code = _c_code
 
-    def init_py_impls(self):
-        """
-        Return a list of functions that compute each output of self.
-
-        """
-        # In the case where the graph is a dag, but not a tree like:
-        # add(*1 -> mul(x, y), *1)
-
-        # We have an efficient way to build the executable (we build
-        # and traverse each node only once).
-
-        # But we don't have an efficient execution. We will execute
-        # like a tree, so nodes that have more then 1 client will be
-        # executed as many times as there number of clients. In the
-        # example above, it will calculate *1 twice. Doing otherwise
-        # imply making a complicated execution engine.
-
-        # We need the fast creation of the executor as we always do it
-        # even if we will use the c code. The Python implementation is
-        # already slow, so it is not as much important to have a fast
-        # execution there.
-
-        memo = {}
-
-        def compose_impl(r):
-            if r in memo:
-                return memo[r]
-            if r in self.fgraph.inputs:
-                idx = self.fgraph.inputs.index(r)
-
-                def f(inputs):
-                    return inputs[idx]
-
-                memo[r] = f
-                return f
-            elif r.owner is None:  # in fgraph.orphans:
-
-                def f(inputs):
-                    return r.data
-
-                memo[r] = f
-                return f
-            node = r.owner
-            producers = [compose_impl(input) for input in node.inputs]
-
-            def f(inputs):
-                return node.op.impl(*[p(inputs) for p in producers])
-
-            memo[r] = f
-            return f
-
-        self._impls = [compose_impl(r) for r in self.fgraph.outputs]
-
-    def init_name(self):
-        """
-        Return a readable string representation of self.fgraph.
-
-        """
-        rval = self.name
-        if rval is None:
-            for i, r in enumerate(self.fgraph.inputs):
-                r.name = f"i{int(i)}"
-            for i, r in enumerate(self.fgraph.outputs):
-                r.name = f"o{int(i)}"
-            io = set(self.fgraph.inputs + self.fgraph.outputs)
-            for i, r in enumerate(self.fgraph.variables):
-                if r not in io and len(self.fgraph.clients[r]) > 1:
-                    r.name = f"t{int(i)}"
-            outputs_str = ", ".join([pprint(output) for output in self.fgraph.outputs])
-            rval = f"Composite{{{outputs_str}}}"
-            self.name = rval
-
-    def init_fgraph(self):
-        # The clone done by FunctionGraph is needed as we don't want
-        # the fgraph to be set to the variable as we need to pickle
-        # them for the cache of c module to work.
-        fgraph = FunctionGraph(self.inputs, self.outputs)
-        MergeOptimizer().rewrite(fgraph)
-        for node in fgraph.apply_nodes:
-            if not isinstance(node.op, ScalarOp):
-                raise ValueError(
-                    "The fgraph to Composite must be exclusively"
-                    " composed of ScalarOp instances."
-                )
-        self.fgraph = fgraph
-
-    def __init__(self, inputs, outputs):
-        # We need to clone the graph as sometimes its nodes already
-        # contain a reference to an fgraph. As we want the Composite
-        # to be pickable, we can't have reference to fgraph.
-
-        # Also, if there is Composite in the inner graph, we want to
-        # remove them. In that case, we do a more complicated clone
-        # that will flatten Composite. We don't need to do this
-        # recursively, as the way the fusion optimizer work, we have
-        # only 1 new Composite each time at the output.
-        for i in inputs:
-            assert i not in outputs  # This isn't supported, use identity
-        if len(outputs) > 1 or not any(
-            isinstance(var.owner.op, Composite) for var in outputs
-        ):
-            # No inner Composite
-            inputs, outputs = clone(inputs, outputs)
-        else:
-            # Inner Composite that we need to flatten
-            assert len(outputs) == 1
-            # 1. Create a new graph from inputs up to the
-            # Composite
-            res = aesara.compile.rebuild_collect_shared(
-                inputs=inputs, outputs=outputs[0].owner.inputs, copy_inputs_over=False
-            )  # Clone also the inputs
-            # 2. We continue this partial clone with the graph in
-            # the inner Composite
-            res2 = aesara.compile.rebuild_collect_shared(
-                inputs=outputs[0].owner.op.inputs,
-                outputs=outputs[0].owner.op.outputs,
-                replace=dict(zip(outputs[0].owner.op.inputs, res[1])),
-            )
-            assert len(res2[1]) == len(outputs)
-            assert len(res[0]) == len(inputs)
-            assert res[0] != inputs
-            inputs, outputs = res[0], res2[1]
-
-        self.inputs = copy(inputs)
-        self.outputs = copy(outputs)
-        self.inputs_type = tuple([input.type for input in inputs])
-        self.outputs_type = tuple([output.type for output in outputs])
-        self.nin = len(inputs)
-        self.nout = len(outputs)
-        self.init_fgraph()  # self.fgraph
-        # Postpone the creation in case it isn't needed.
-        #  self.init_name()      # self.name
-        self.name = None
-        self.prepare_node_called = set()
-
-    def prepare_node(self, node, storage_map, compute_map, impl):
-        if impl == "py":
-            self.init_py_impls()  # self._impls
-        if impl not in self.prepare_node_called:
-            for n in list_of_nodes(self.inputs, self.outputs):
-                n.op.prepare_node(n, None, None, impl)
-            self.prepare_node_called.add(impl)
-
-    def clone_float32(self):
-        # This will not modify the fgraph or the nodes
-        new_ins, new_outs = composite_f32.apply(self.fgraph)
-        return Composite(new_ins, new_outs)
-
-    def output_types(self, input_types):
-        if tuple(input_types) != self.inputs_type:
-            raise TypeError(
-                f"Wrong types for Composite. Expected {self.inputs_type}, got {tuple(input_types)}."
-            )
-        return self.outputs_type
-
-    def make_node(self, *inputs):
-        if tuple([i.type for i in self.inputs]) == tuple([i.type for i in inputs]):
-            return super().make_node(*inputs)
-        else:
-            # Make a new op with the right input type.
-            assert len(inputs) == self.nin
-            res = aesara.compile.rebuild_collect_shared(
-                self.outputs,
-                replace=dict(zip(self.inputs, inputs)),
-                rebuild_strict=False,
-            )
-            # After rebuild_collect_shared, the Variable in inputs
-            # are not necessarily in the graph represented by res.
-            # res[2][0] is a dict that map from the original variable to the
-            # cloned variable.
-            cloned_inputs = [res[2][0][i] for i in inputs]
-            node = Composite(cloned_inputs, res[1]).make_node(*inputs)
-            return node
-
-    def perform(self, node, inputs, output_storage):
-        for storage, impl in zip(output_storage, self._impls):
-            storage[0] = impl(inputs)
-
-    def impl(self, *inputs):
-        output_storage = [[None] for i in range(self.nout)]
-        self.perform(None, inputs, output_storage)
-        ret = to_return_values([storage[0] for storage in output_storage])
-        if self.nout > 1:
-            ret = tuple(ret)
-        return ret
-
-    def grad(self, inputs, output_grads):
-        raise NotImplementedError("grad is not implemented for Composite")
+        return self._c_code
 
     def c_code(self, node, nodename, inames, onames, sub):
-        self.init_c_code()
 
         d = dict(
             chain(
@@ -4286,7 +4326,7 @@ class Composite(ScalarOp):
             # It won't generate conflicting variable name.
             d["id"] = "_DUMMY_ID_"
 
-        return self._c_code % d
+        return self.c_code_template % d
 
     def c_code_cache_version(self):
         rval = [3]
@@ -4314,7 +4354,6 @@ class Composite(ScalarOp):
         return "\n".join(sorted(rval))
 
     def c_support_code_apply(self, node, name):
-        self.init_c_code()
         rval = []
         for subnode, subnodename in zip(self.fgraph.toposort(), self.nodenames):
             subnode_support_code = subnode.op.c_support_code_apply(
@@ -4327,49 +4366,6 @@ class Composite(ScalarOp):
         # Any block that isn't specialized should be returned via
         # c_support_code instead of c_support_code_apply.
         return "\n".join(rval)
-
-    def __eq__(self, other):
-        if self is other:
-            return True
-        if (
-            type(self) != type(other)
-            or self.nin != other.nin
-            or self.nout != other.nout
-        ):
-            return False
-        # see __hash__ for comment on why there is no mention of fgraph
-        # or module cache key here.
-        self.init_c_code()  # self._c_code and self.nodenames
-        other.init_c_code()
-        return self._c_code == other._c_code
-
-    def __hash__(self):
-        self.init_c_code()  # self._c_code and self.nodenames
-        rval = hash((type(self), self.nin, self.nout, self._c_code))
-        # Note that in general, the configparser settings at the time
-        # of code generation (__init__) affect the semantics of this Op.
-        # This function assumes that all relevant info about the configparser
-        # is embodied in _c_code.  So the _c_code, rather than self.fgraph,
-        # is the signature of the semantics of this Op.
-        # _c_code is preserved through unpickling, so the Op will not change
-        # semantics when it is reloaded with different configparser
-        # settings.
-        return rval
-
-    def __getstate__(self):
-        rval = dict(self.__dict__)
-        rval.pop("_impls", None)
-        rval.pop("prepare_node_called", None)
-        del rval["fgraph"]
-        return rval
-
-    def __setstate__(self, d):
-        self.__dict__.update(d)
-        # We must call init to set fgraph and _impls again, as otherwise
-        # self.perform will not work.
-        self.prepare_node_called = set()
-        self.init_fgraph()
-        self.init_py_impls()
 
 
 class Compositef32:
