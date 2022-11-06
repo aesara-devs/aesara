@@ -17,7 +17,7 @@ from aesara.link.basic import PerformLinker
 from aesara.link.c.basic import CLinker, OpWiseCLinker
 from aesara.tensor import as_tensor_variable
 from aesara.tensor.basic import second
-from aesara.tensor.elemwise import CAReduce, CAReduceDtype, DimShuffle, Elemwise
+from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
 from aesara.tensor.exceptions import ShapeError
 from aesara.tensor.math import all as at_all
 from aesara.tensor.math import any as at_any
@@ -532,24 +532,16 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                 for axis in reversed(sorted(tosum)):
                     zv = np.bitwise_xor.reduce(zv, axis)
             else:
-                raise Exception(
+                raise NotImplementedError(
                     f"Test for CAReduce with scalar_op {scalar_op} not implemented"
                 )
 
             if test_nan:
-                try:
-                    assert self.type.values_eq(f(xv), zv), (f(xv), zv)
-                except NotImplementedError:
-                    # GpuCAReduce don't implement all cases when size is 0
-                    assert xv.size == 0
+                assert self.type.values_eq(f(xv), zv), (f(xv), zv)
             else:
-                try:
-                    f_xv = f(xv)
-                    assert f_xv.shape == zv.shape, (f_xv, zv)
-                    utt.assert_allclose(zv, f_xv)
-                except NotImplementedError:
-                    # GpuCAReduce don't implement all cases when size is 0
-                    assert xv.size == 0
+                f_xv = f(xv)
+                assert f_xv.shape == zv.shape, (f_xv, zv)
+                utt.assert_allclose(zv, f_xv)
 
             x = self.type(
                 dtype, shape=tuple(entry if entry == 1 else None for entry in xsh)
@@ -565,11 +557,7 @@ class TestCAReduce(unittest_tools.InferShapeTester):
                 scalar_op in [aes.scalar_maximum, aes.scalar_minimum]
                 and (xsh == () or np.prod(xsh) == 0)
             ):
-                try:
-                    assert all(f(xv) == zv.shape)
-                except NotImplementedError:
-                    # GpuCAReduce don't implement all cases when size is 0
-                    assert xv.size == 0
+                assert all(f(xv) == zv.shape)
 
     def test_perform_noopt(self):
         self.with_mode(Mode(linker="py", optimizer=None), aes.add, dtype="floatX")
@@ -683,12 +671,12 @@ class TestCAReduce(unittest_tools.InferShapeTester):
         op = CAReduce(aes.add, axis=None)
         assert str(op) == "CAReduce{add}"
         op = CAReduce(aes.add, axis=(1,))
-        assert str(op) == "CAReduce{add}{1}"
+        assert str(op) == "CAReduce{add}{axis=[1]}"
 
-        op = CAReduceDtype(aes.add, axis=None, acc_dtype="float64")
-        assert str(op) == "CAReduceDtype{add}{acc_dtype=float64}"
-        op = CAReduceDtype(aes.add, axis=(1,), acc_dtype="float64")
-        assert str(op) == "CAReduceDtype{add}{axis=[1], acc_dtype=float64}"
+        op = CAReduce(aes.add, axis=None, acc_dtype="float64")
+        assert str(op) == "CAReduce{add}{acc_dtype=float64}"
+        op = CAReduce(aes.add, axis=(1,), acc_dtype="float64")
+        assert str(op) == "CAReduce{add}{axis=[1], acc_dtype=float64}"
 
     def test_repeated_axis(self):
         x = vector("x")

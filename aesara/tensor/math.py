@@ -25,13 +25,7 @@ from aesara.tensor.basic import (
     stack,
     switch,
 )
-from aesara.tensor.elemwise import (
-    CAReduce,
-    CAReduceDtype,
-    DimShuffle,
-    Elemwise,
-    scalar_elemwise,
-)
+from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise, scalar_elemwise
 from aesara.tensor.shape import shape, specify_broadcastable
 from aesara.tensor.type import (
     DenseTensorType,
@@ -633,12 +627,20 @@ class Max(NonZeroCAReduce):
     def __init__(self, axis):
         super().__init__(aes.scalar_maximum, axis)
 
+    def clone(self, **kwargs):
+        axis = kwargs.get("axis", self.axis)
+        return type(self)(axis=axis)
+
 
 class Min(NonZeroCAReduce):
     nfunc_spec = ("min", 1, 1)
 
     def __init__(self, axis):
         super().__init__(aes.scalar_minimum, axis)
+
+    def clone(self, **kwargs):
+        axis = kwargs.get("axis", self.axis)
+        return type(self)(axis=axis)
 
 
 def max(x, axis=None, keepdims=False):
@@ -1530,6 +1532,10 @@ class Mean(CAReduce):
   """
         )
 
+    def clone(self, **kwargs):
+        axis = kwargs.get("axis", self.axis)
+        return type(self)(axis=axis)
+
 
 # TODO: implement the grad. When done and tested, you can make this the default
 # version.
@@ -2350,7 +2356,6 @@ class All(CAReduce):
 
     """
 
-    __props__ = ("axis",)
     nfunc_spec = ("all", 1, 1)
 
     def __init__(self, axis=None):
@@ -2376,6 +2381,10 @@ class All(CAReduce):
         (x,) = inp
         return [x.zeros_like(config.floatX)]
 
+    def clone(self, **kwargs):
+        axis = kwargs.get("axis", self.axis)
+        return type(self)(axis=axis)
+
 
 class Any(CAReduce):
     """Applies `bitwise or` to all the values of a tensor along the
@@ -2383,7 +2392,6 @@ class Any(CAReduce):
 
     """
 
-    __props__ = ("axis",)
     nfunc_spec = ("any", 1, 1)
 
     def __init__(self, axis=None):
@@ -2409,48 +2417,31 @@ class Any(CAReduce):
         (x,) = inp
         return [x.zeros_like(config.floatX)]
 
+    def clone(self, **kwargs):
+        axis = kwargs.get("axis", self.axis)
+        return type(self)(axis=axis)
 
-class Sum(CAReduceDtype):
+
+class Sum(CAReduce):
     """
     Sums all the values of a tensor along the specified axis(es).
 
-    Equivalent to `CAReduceDtype(scalar.add, axis=axis, dtype=dtype)`,
+    Equivalent to `CAReduce(scalar.add, axis=axis, dtype=dtype)`,
     with the difference that this defines the gradient of sum wrt its
     tensor input.
 
-    Parameters
-    ----------
-    axis
-        Axis(es) along which the tensor should be summed
-        (use None to sum over all axes, and a list or tuple to sum along more
-        than one axis).
-
-    dtype
-        The dtype of the internal accumulator and returned
-        tensor. If None, then we use the default dtype which is the same as the
-        input tensor's dtype except when:
-        - the input dtype is a signed integer of precision < 64 bit, in
-        which case we use int64
-        - the input dtype is an unsigned integer of precision < 64 bit, in
-        which case we use uint64
-        This value does not depend on the value of "acc_dtype".
-
-    acc_dtype
-        The dtype of the internal accumulator.
-        If None (default), we use the dtype in the list below,
-        or the input dtype if its precision is higher:
-        - for int dtypes, we use at least int64;
-        - for uint dtypes, we use at least uint64;
-        - for float dtypes, we use at least float64;
-        - for complex dtypes, we use at least complex128.
-
     """
 
-    __props__ = ("axis", "dtype", "acc_dtype")
     nfunc_spec = ("sum", 1, 1)
 
     def __init__(self, axis=None, dtype=None, acc_dtype=None):
-        super().__init__(aes.add, axis=axis, dtype=dtype, acc_dtype=acc_dtype)
+        super().__init__(
+            aes.add,
+            axis=axis,
+            dtype=dtype,
+            acc_dtype=acc_dtype,
+            upcast_discrete_output=True,
+        )
 
     def __str__(self):
         name = self.__class__.__name__
@@ -2492,6 +2483,12 @@ class Sum(CAReduceDtype):
             return [None]
         return self(*eval_points, return_list=True)
 
+    def clone(self, **kwargs):
+        axis = kwargs.get("axis", self.axis)
+        dtype = kwargs.get("dtype", self.dtype)
+        acc_dtype = kwargs.get("acc_dtype", self.acc_dtype)
+        return type(self)(axis=axis, dtype=dtype, acc_dtype=acc_dtype)
+
 
 def sum(input, axis=None, dtype=None, keepdims=False, acc_dtype=None):
     """
@@ -2523,7 +2520,7 @@ def sum(input, axis=None, dtype=None, keepdims=False, acc_dtype=None):
 pprint.assign(Sum, printing.FunctionPrinter(["sum"], ["axis"]))
 
 
-class Prod(CAReduceDtype):
+class Prod(CAReduce):
     """
     Multiplies all the values of a tensor along the specified axis(es).
 
@@ -2533,18 +2530,19 @@ class Prod(CAReduceDtype):
 
     """
 
-    __props__ = ("axis", "dtype", "acc_dtype")
+    __props__ = ("scalar_op", "axis", "dtype", "acc_dtype", "no_zeros_in_input")
+
     nfunc_spec = ("prod", 1, 1)
 
     def __init__(self, axis=None, dtype=None, acc_dtype=None, no_zeros_in_input=False):
-        super().__init__(aes.mul, axis=axis, dtype=dtype, acc_dtype=acc_dtype)
+        super().__init__(
+            aes.mul,
+            axis=axis,
+            dtype=dtype,
+            acc_dtype=acc_dtype,
+            upcast_discrete_output=True,
+        )
         self.no_zeros_in_input = no_zeros_in_input
-
-    def __setstate__(self, dct):
-        super().__setstate__(dct)
-        # Add default value to be able to reload old pickled objects.
-        if "no_zeros_in_input" not in dct:
-            self.no_zeros_in_input = False
 
     def L_op(self, inp, out, grads):
         """
@@ -2668,6 +2666,18 @@ class Prod(CAReduceDtype):
     def c_code_cache_version(self):
         return (1,)
 
+    def clone(self, **kwargs):
+        axis = kwargs.get("axis", self.axis)
+        dtype = kwargs.get("dtype", self.dtype)
+        acc_dtype = kwargs.get("acc_dtype", self.acc_dtype)
+        no_zeros_in_input = kwargs.get("no_zeros_in_input", self.no_zeros_in_input)
+        return type(self)(
+            axis=axis,
+            dtype=dtype,
+            acc_dtype=acc_dtype,
+            no_zeros_in_input=no_zeros_in_input,
+        )
+
 
 def prod(
     input,
@@ -2736,12 +2746,15 @@ class MulWithoutZeros(BinaryScalarOp):
 mul_without_zeros = MulWithoutZeros(aes.upcast_out, name="mul_without_zeros")
 
 
-class ProdWithoutZeros(CAReduceDtype):
-
-    __props__ = ("axis", "dtype", "acc_dtype")
-
+class ProdWithoutZeros(CAReduce):
     def __init__(self, axis=None, dtype=None, acc_dtype=None):
-        super().__init__(mul_without_zeros, axis=axis, dtype=dtype, acc_dtype=acc_dtype)
+        super().__init__(
+            mul_without_zeros,
+            axis=axis,
+            dtype=dtype,
+            acc_dtype=acc_dtype,
+            upcast_discrete_output=True,
+        )
 
     def grad(self, inp, grads):
         from aesara.gradient import grad_not_implemented
@@ -2756,6 +2769,12 @@ class ProdWithoutZeros(CAReduceDtype):
             "`product(a, no_zeros_in_input=True)`.",
         )
         return [a_grad]
+
+    def clone(self, **kwargs):
+        axis = kwargs.get("axis", self.axis)
+        dtype = kwargs.get("dtype", self.dtype)
+        acc_dtype = kwargs.get("acc_dtype", self.acc_dtype)
+        return type(self)(axis=axis, dtype=dtype, acc_dtype=acc_dtype)
 
 
 def any(x, axis=None, keepdims=False):
