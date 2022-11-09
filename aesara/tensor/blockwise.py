@@ -281,29 +281,28 @@ class Blockwise(Op):
                 return atleast_Nd(res, nd)
 
             blocked_inputs = [transform(ipt, node) for ipt in node.inputs]
-
             grad_signature = getattr(node.op, "gufunc_sig", None)
+            op = node.op
 
             if grad_signature is None:
-                if isinstance(node.op, DimShuffle):
+                if isinstance(op, DimShuffle):
                     # remove the extra dimensions that
                     # we have added during op creation
-                    new_order = [i for i in node.op.new_order if i != "x"]
+                    new_order = [i for i in op.new_order if i != "x"]
 
                     # derive gufunc signature for DimShuffle
                     input_signature = tuple([f"a{i}" for i in range(len(new_order))])
                     output_signature = tuple([f"a{i}" for i in new_order])
                     grad_signature = ((input_signature,), (output_signature,))
-                elif isinstance(node.op, Elemwise):
+                elif isinstance(op, Elemwise):
+                    op = op.scalar_op
                     input_signature = ((),) * len(blocked_inputs)
                     output_signature = ((),)
                     grad_signature = (input_signature, output_signature)
                 else:
-                    raise ValueError(
-                        f"'{node.op}' object has no attribute 'gufunc_sig'"
-                    )
+                    raise ValueError(f"'{op}' object has no attribute 'gufunc_sig'")
 
-            new_r = Blockwise(node.op, signature=grad_signature)(*blocked_inputs)
+            new_r = Blockwise(op, signature=grad_signature)(*blocked_inputs)
             assert isinstance(new_r, Variable)
             return new_r
 
