@@ -194,6 +194,9 @@ class Blockwise(Op):
         ]
         return Apply(self, list(inputs), outputs)
 
+    def __str__(self):
+        return f"{type(self).__name__}{{op={type(self.op).__name__}}}"
+
     def infer_shape(self, fgraph, node, shapes):
         bcast_shape, dim_sizes = _parse_input_dimensions(node.inputs, self.signature[0])
         output_shapes = _calculate_shapes(bcast_shape, dim_sizes, self.signature[1])
