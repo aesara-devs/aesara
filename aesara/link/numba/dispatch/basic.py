@@ -377,6 +377,9 @@ def numba_funcify(op, node=None, storage_map=None, **kwargs):
 
 @numba_funcify.register(OpFromGraph)
 def numba_funcify_OpFromGraph(op, node=None, **kwargs):
+
+    _ = kwargs.pop("storage_map", None)
+
     fgraph_fn = numba_njit(numba_funcify(op.fgraph, **kwargs))
 
     if len(op.fgraph.outputs) == 1:

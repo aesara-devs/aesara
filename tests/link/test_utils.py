@@ -176,6 +176,25 @@ def test_fgraph_to_python_constant_outputs():
     assert out_py()[0] is y.data
 
 
+def test_fgraph_to_python_constant_inputs():
+    x = constant([1.0])
+    y = vector("y")
+
+    out = x + y
+    out_fg = FunctionGraph(outputs=[out], clone=False)
+
+    out_py = fgraph_to_python(out_fg, to_python, storage_map=None)
+
+    res = out_py(2.0)
+    assert res == (3.0,)
+
+    storage_map = {out: [None], x: [np.r_[2.0]], y: [None]}
+    out_py = fgraph_to_python(out_fg, to_python, storage_map=storage_map)
+
+    res = out_py(2.0)
+    assert res == (4.0,)
+
+
 def test_unique_name_generator():
 
     unique_names = unique_name_generator(["blah"], suffix_sep="_")
