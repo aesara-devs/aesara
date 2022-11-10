@@ -36,7 +36,7 @@ from aesara.tensor.var import (
 from tests.tensor.utils import random
 
 
-pytestmark = pytest.mark.filterwarnings("error")
+# pytestmark = pytest.mark.filterwarnings("error")
 
 
 @pytest.mark.parametrize(

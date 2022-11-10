@@ -392,7 +392,7 @@ def add_compile_configvars():
     config.add(
         "mode",
         "Default compilation mode",
-        ConfigParam("Mode", apply=_filter_mode),
+        ConfigParam("NUMBA", apply=_filter_mode),
         in_c_key=False,
     )
 
@@ -463,7 +463,18 @@ def add_compile_configvars():
             "linker",
             "Default linker used if the aesara flags mode is Mode",
             EnumStr(
-                "cvm", ["c|py", "py", "c", "c|py_nogc", "vm", "vm_nogc", "cvm_nogc"]
+                "numba",
+                [
+                    "c|py",
+                    "py",
+                    "c",
+                    "c|py_nogc",
+                    "vm",
+                    "vm_nogc",
+                    "cvm_nogc",
+                    "numba",
+                    "jax",
+                ],
             ),
             in_c_key=False,
         )
@@ -473,7 +484,7 @@ def add_compile_configvars():
         config.add(
             "linker",
             "Default linker used if the aesara flags mode is Mode",
-            EnumStr("vm", ["py", "vm_nogc"]),
+            EnumStr("numba", ["py", "vm_nogc", "vm", "numba", "jax"]),
             in_c_key=False,
         )
         if type(config).cxx.is_default:

@@ -248,7 +248,7 @@ class TestScan:
         "rng_type",
         [
             np.random.default_rng,
-            np.random.RandomState,
+            # np.random.RandomState,
         ],
     )
     def test_inner_graph_cloning(self, rng_type):
@@ -396,7 +396,7 @@ class TestScan:
         assert all(i.value is None for i in scan_node.op.fn.input_storage)
         assert all(o.value is None for o in scan_node.op.fn.output_storage)
 
-    @pytest.mark.parametrize("mode", [Mode(linker="py"), Mode(linker="cvm")])
+    @pytest.mark.parametrize("mode", ["NUMBA", Mode(linker="py"), Mode(linker="cvm")])
     @pytest.mark.parametrize(
         "x_init",
         [
@@ -421,7 +421,12 @@ class TestScan:
         assert res.dtype == exp_res.dtype
 
     @pytest.mark.parametrize(
-        "mode", [Mode(linker="py", optimizer=None), Mode(linker="cvm", optimizer=None)]
+        "mode",
+        [
+            "NUMBA",
+            Mode(linker="py", optimizer=None),
+            Mode(linker="cvm", optimizer=None),
+        ],
     )
     @pytest.mark.parametrize(
         "x",
@@ -459,7 +464,12 @@ class TestScan:
         assert res.dtype == exp_res.dtype
 
     @pytest.mark.parametrize(
-        "mode", [Mode(linker="py", optimizer=None), Mode(linker="cvm", optimizer=None)]
+        "mode",
+        [
+            "NUMBA",
+            Mode(linker="py", optimizer=None),
+            Mode(linker="cvm", optimizer=None),
+        ],
     )
     @pytest.mark.parametrize(
         "x",
@@ -1122,7 +1132,7 @@ class TestScan:
         utt.assert_allclose(out, vR)
 
     @pytest.mark.parametrize(
-        "mode", [Mode(linker="cvm", optimizer=None), Mode(linker="cvm")]
+        "mode", ["NUMBA", Mode(linker="cvm", optimizer=None), Mode(linker="cvm")]
     )
     def test_sequence_is_scan(self, mode):
         """Make sure that a `Scan` can be used as a sequence input to another `Scan`."""
