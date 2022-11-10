@@ -678,8 +678,6 @@ def fgraph_to_python(
     *,
     type_conversion_fn: Callable = lambda x, **kwargs: x,
     order: Optional[List[Apply]] = None,
-    input_storage: Optional["InputStorageType"] = None,
-    output_storage: Optional["OutputStorageType"] = None,
     storage_map: Optional["StorageMapType"] = None,
     fgraph_name: str = "fgraph_to_python",
     global_env: Optional[Dict[Any, Any]] = None,
@@ -704,10 +702,6 @@ def fgraph_to_python(
         ``(value: Optional[Any], variable: Variable=None, storage: List[Optional[Any]]=None, **kwargs)``.
     order
         The `order` argument to `map_storage`.
-    input_storage
-        The `input_storage` argument to `map_storage`.
-    output_storage
-        The `output_storage` argument to `map_storage`.
     storage_map
         The `storage_map` argument to `map_storage`.
     fgraph_name
@@ -730,9 +724,9 @@ def fgraph_to_python(
 
     if order is None:
         order = fgraph.toposort()
-    input_storage, output_storage, storage_map = map_storage(
-        fgraph, order, input_storage, output_storage, storage_map
-    )
+
+    if storage_map is None:
+        storage_map = {}
 
     unique_name = unique_name_generator([fgraph_name])
 
@@ -752,10 +746,13 @@ def fgraph_to_python(
         node_input_names = []
         for i in node.inputs:
             local_input_name = unique_name(i)
-            if storage_map[i][0] is not None or isinstance(i, Constant):
+            input_storage = storage_map.setdefault(
+                i, [None if not isinstance(i, Constant) else i.data]
+            )
+            if input_storage[0] is not None or isinstance(i, Constant):
                 # Constants need to be assigned locally and referenced
                 global_env[local_input_name] = type_conversion_fn(
-                    storage_map[i][0], variable=i, storage=storage_map[i], **kwargs
+                    input_storage[0], variable=i, storage=input_storage, **kwargs
                 )
                 # TODO: We could attempt to use the storage arrays directly
                 # E.g. `local_input_name = f"{local_input_name}[0]"`
@@ -763,20 +760,24 @@ def fgraph_to_python(
 
         node_output_names = [unique_name(v) for v in node.outputs]
 
-        assign_comment_str = f"{indent(str(node), '# ')}"
         assign_str = f"{', '.join(node_output_names)} = {local_compiled_func_name}({', '.join(node_input_names)})"
-        body_assigns.append(f"{assign_comment_str}\n{assign_str}")
+        assign_comment_str = f"{indent(str(node), '# ')}"
+        assign_block_str = f"{assign_comment_str}\n{assign_str}"
+        body_assigns.append(assign_block_str)
 
     # Handle `Constant`-only outputs (these don't have associated `Apply`
     # nodes, so the above isn't applicable)
     for out in fgraph.outputs:
         if isinstance(out, Constant):
-            local_input_name = unique_name(out)
-            if local_input_name not in global_env:
-                global_env[local_input_name] = type_conversion_fn(
-                    storage_map[out][0],
+            local_output_name = unique_name(out)
+            if local_output_name not in global_env:
+                output_storage = storage_map.setdefault(
+                    out, [None if not isinstance(out, Constant) else out.data]
+                )
+                global_env[local_output_name] = type_conversion_fn(
+                    output_storage[0],
                     variable=out,
-                    storage=storage_map[out],
+                    storage=output_storage,
                     **kwargs,
                 )
 
@@ -794,7 +795,7 @@ def fgraph_to_python(
     fgraph_def_src = dedent(
         f"""
     def {fgraph_name}({", ".join(fgraph_input_names)}):
-    {indent(joined_body_assigns, " " * 4)}
+{indent(joined_body_assigns, " " * 4)}
         return {fgraph_return_src}
     """
     ).strip()
