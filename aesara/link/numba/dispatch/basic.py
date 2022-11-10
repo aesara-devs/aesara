@@ -17,6 +17,7 @@ from numba.cpython.unsafe.tuple import tuple_setitem  # noqa: F401
 from numba.extending import box
 
 from aesara import config
+from aesara.compile.builders import OpFromGraph
 from aesara.compile.ops import DeepCopyOp
 from aesara.graph.basic import Apply, NoParams
 from aesara.graph.fg import FunctionGraph
@@ -372,6 +373,25 @@ def numba_funcify(op, node=None, storage_map=None, **kwargs):
         return ret
 
     return perform
+
+
+@numba_funcify.register(OpFromGraph)
+def numba_funcify_OpFromGraph(op, node=None, **kwargs):
+    fgraph_fn = numba_njit(numba_funcify(op.fgraph, **kwargs))
+
+    if len(op.fgraph.outputs) == 1:
+
+        @numba_njit
+        def opfromgraph(*inputs):
+            return fgraph_fn(*inputs)[0]
+
+    else:
+
+        @numba_njit
+        def opfromgraph(*inputs):
+            return fgraph_fn(*inputs)
+
+    return opfromgraph
 
 
 @numba_funcify.register(FunctionGraph)

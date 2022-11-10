@@ -12,6 +12,7 @@ import aesara.scalar.math as aesm
 import aesara.tensor as at
 import aesara.tensor.math as aem
 from aesara import config, shared
+from aesara.compile.builders import OpFromGraph
 from aesara.compile.function import function
 from aesara.compile.mode import Mode
 from aesara.compile.ops import ViewOp
@@ -1003,3 +1004,18 @@ def test_scalar_return_value_conversion():
         mode=numba_mode,
     )
     assert isinstance(x_fn(1.0), np.ndarray)
+
+
+def test_OpFromGraph():
+    x, y, z = at.matrices("xyz")
+    ofg_1 = OpFromGraph([x, y], [x + y], inline=False)
+    ofg_2 = OpFromGraph([x, y], [x * y, x - y], inline=False)
+
+    o1, o2 = ofg_2(y, z)
+    out = ofg_1(x, o1) + o2
+
+    xv = np.ones((2, 2), dtype=config.floatX)
+    yv = np.ones((2, 2), dtype=config.floatX) * 3
+    zv = np.ones((2, 2), dtype=config.floatX) * 5
+
+    compare_numba_and_py(((x, y, z), (out,)), [xv, yv, zv])
