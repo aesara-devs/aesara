@@ -688,14 +688,14 @@ def fgraph_to_python(
     squeeze_output: bool = False,
     **kwargs,
 ) -> Callable:
-    """Convert a ``FunctionGraph`` into a regular Python function.
+    """Convert a `FunctionGraph` into a regular Python function.
 
     Parameters
     ==========
     fgraph
-        The ``FunctionGraph`` to convert.
+        The `FunctionGraph` to convert.
     op_conversion_fn
-        A callable used to convert nodes inside `fgraph` based on their ``Op``
+        A callable used to convert nodes inside `fgraph` based on their `Op`
         types.  It must have the signature
         ``(op: Op, node: Apply=None, storage_map: Dict[Variable, List[Optional[Any]]]=None, **kwargs)``.
     type_conversion_fn
@@ -703,13 +703,13 @@ def fgraph_to_python(
         the signature
         ``(value: Optional[Any], variable: Variable=None, storage: List[Optional[Any]]=None, **kwargs)``.
     order
-        The ``order`` argument to ``map_storage``.
+        The `order` argument to `map_storage`.
     input_storage
-        The ``input_storage`` argument to ``map_storage``.
+        The `input_storage` argument to `map_storage`.
     output_storage
-        The ``output_storage`` argument to ``map_storage``.
+        The `output_storage` argument to `map_storage`.
     storage_map
-        The ``storage_map`` argument to ``map_storage``.
+        The `storage_map` argument to `map_storage`.
     fgraph_name
         The name used for the resulting function.
     global_env
@@ -722,7 +722,7 @@ def fgraph_to_python(
         A function used to provide names for the objects referenced within the
         generated function.
     squeeze_output
-        If the ``FunctionGraph`` has only one output and this option is
+        If the `FunctionGraph` has only one output and this option is
         ``True``, return the single output instead of a tuple with the output.
     **kwargs
         The remaining keywords are passed to `python_conversion_fn`
