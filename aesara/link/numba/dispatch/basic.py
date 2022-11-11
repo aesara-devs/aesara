@@ -48,10 +48,14 @@ from aesara.tensor.type_other import MakeSlice, NoneConst
 
 def numba_njit(*args, **kwargs):
 
-    if len(args) > 0 and callable(args[0]):
-        return numba.njit(*args[1:], cache=config.numba__cache, **kwargs)(args[0])
+    kwargs = kwargs.copy()
+    if "cache" not in kwargs:
+        kwargs["cache"] = config.numba__cache
 
-    return numba.njit(*args, cache=config.numba__cache, **kwargs)
+    if len(args) > 0 and callable(args[0]):
+        return numba.njit(*args[1:], **kwargs)(args[0])
+
+    return numba.njit(*args, **kwargs)
 
 
 def numba_vectorize(*args, **kwargs):

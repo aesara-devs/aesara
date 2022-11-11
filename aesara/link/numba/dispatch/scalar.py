@@ -144,7 +144,7 @@ def {scalar_op_fn_name}({', '.join(input_names)}):
     signature = create_numba_signature(node, force_scalar=True)
 
     return numba_basic.numba_njit(
-        signature, inline="always", fastmath=config.numba__fastmath
+        signature, inline="always", fastmath=config.numba__fastmath, cache=False,
     )(scalar_op_fn)
 
 
