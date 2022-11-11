@@ -26,30 +26,18 @@ def numba_funcify_SVD(op, node, **kwargs):
     full_matrices = op.full_matrices
     compute_uv = op.compute_uv
 
+    inputs_cast = int_to_float_fn(node.inputs, out_dtype)
+
     if not compute_uv:
 
-        warnings.warn(
-            (
-                "Numba will use object mode to allow the "
-                "`compute_uv` argument to `numpy.linalg.svd`."
-            ),
-            UserWarning,
-        )
-
-        ret_sig = get_numba_type(node.outputs[0].type)
-
-        @numba_basic.numba_njit
+        @numba_basic.numba_njit()
         def svd(x):
-            with numba.objmode(ret=ret_sig):
-                ret = np.linalg.svd(x, full_matrices, compute_uv)
+            _, ret, _ = np.linalg.svd(inputs_cast(x), full_matrices)
             return ret
 
     else:
 
-        out_dtype = node.outputs[0].type.numpy_dtype
-        inputs_cast = int_to_float_fn(node.inputs, out_dtype)
-
-        @numba_basic.numba_njit(inline="always")
+        @numba_basic.numba_njit()
         def svd(x):
             return np.linalg.svd(inputs_cast(x), full_matrices)
 
