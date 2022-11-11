@@ -291,14 +291,16 @@ class Blockwise(Op):
                     new_order = [i for i in op.new_order if i != "x"]
 
                     # derive gufunc signature for DimShuffle
-                    input_signature = tuple([f"a{i}" for i in range(len(new_order))])
-                    output_signature = tuple([f"a{i}" for i in new_order])
+                    input_signature: Tuple[str, ...] = tuple(
+                        f"a{i}" for i in range(len(new_order))
+                    )
+                    output_signature: Tuple[str, ...] = tuple(
+                        f"a{i}" for i in new_order
+                    )
                     grad_signature = ((input_signature,), (output_signature,))
                 elif isinstance(op, Elemwise):
                     op = op.scalar_op
-                    input_signature = ((),) * len(blocked_inputs)
-                    output_signature = ((),)
-                    grad_signature = (input_signature, output_signature)
+                    grad_signature = (((),) * len(blocked_inputs), ((),))
                 else:
                     raise ValueError(f"'{op}' object has no attribute 'gufunc_sig'")
 
