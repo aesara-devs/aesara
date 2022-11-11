@@ -42,15 +42,15 @@ IfElse vs Switch
 
    n_times = 10
 
-   tic = time.clock()
+   tic = time.perf_counter()
    for i in range(n_times):
        f_switch(val1, val2, big_mat1, big_mat2)
-   print('time spent evaluating both values %f sec' % (time.clock() - tic))
+   print('time spent evaluating both values %f sec' % (time.perf_counter() - tic))
 
-   tic = time.clock()
+   tic = time.perf_counter()
    for i in range(n_times):
        f_lazyifelse(val1, val2, big_mat1, big_mat2)
-   print('time spent evaluating one value %f sec' % (time.clock() - tic))
+   print('time spent evaluating one value %f sec' % (time.perf_counter() - tic))
 
 .. testoutput::
    :hide:
