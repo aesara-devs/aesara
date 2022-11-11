@@ -320,6 +320,7 @@ class Blockwise(Op):
             # TODO:This can be avoided by making a single dummy node
             # But will that cover all cases?
             inner_node = self.op.make_node(*inner_inputs)
+            inner_inputs = [np.asarray(i) for i in inner_inputs]
             if isinstance(self.op, DimShuffle):
                 self.op.perform(inner_node, inner_inputs, res, params=None)
             else:
