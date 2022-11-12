@@ -1069,6 +1069,7 @@ def clone_get_equiv(
         Dict[Union[Apply, Variable, "Op"], Union[Apply, Variable, "Op"]]
     ] = None,
     clone_inner_graphs: bool = False,
+    **kwargs,
 ) -> Dict[Union[Apply, Variable, "Op"], Union[Apply, Variable, "Op"]]:
     r"""Clone the graph between `inputs` and `outputs` and return a map of the cloned objects.
 
@@ -1099,6 +1100,8 @@ def clone_get_equiv(
         dictionary and return it.
     clone_inner_graphs
         If ``True``, clone `HasInnerGraph` `Op`\s and their inner-graphs.
+    kwargs
+        Keywords passed to `Apply.clone_with_new_inputs`.
 
     """
     if memo is None:
@@ -1124,7 +1127,9 @@ def clone_get_equiv(
                 else:
                     memo[input] = input
 
-        clone_node_and_cache(apply, memo, clone_inner_graphs=clone_inner_graphs)
+        clone_node_and_cache(
+            apply, memo, clone_inner_graphs=clone_inner_graphs, **kwargs
+        )
 
     # finish up by cloning any remaining outputs (it can happen)
     for output in outputs:
