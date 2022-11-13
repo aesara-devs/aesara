@@ -273,8 +273,7 @@ def test_debugprint():
     s = s.getvalue()
     exp_res = dedent(
         r"""
-        Elemwise{Composite{(i0 + (i1 - i2))}} 4
-         |A
+        Elemwise{Composite{(i2 + (i0 - i1))}} 4
          |InplaceDimShuffle{x,0} v={0: [0]} 3
          | |CGemv{inplace} d={0: [0]} 2
          |   |AllocEmpty{dtype='float64'} 1
@@ -285,6 +284,7 @@ def test_debugprint():
          |   |<TensorType(float64, (None,))>
          |   |TensorConstant{0.0}
          |D
+         |A
         """
     ).lstrip()
 
