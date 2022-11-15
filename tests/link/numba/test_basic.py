@@ -120,7 +120,7 @@ def eval_python_only(fn_inputs, fn_outputs, inputs, mode=numba_mode):
         else:
             return x
 
-    def njit_noop(*args, **kwargs):
+    def jit_noop(*args, **kwargs):
         if len(args) == 1 and callable(args[0]):
             return args[0]
         else:
@@ -151,10 +151,10 @@ def eval_python_only(fn_inputs, fn_outputs, inputs, mode=numba_mode):
             return wrap
 
     mocks = [
-        mock.patch("numba.njit", njit_noop),
+        mock.patch("numba.jit", jit_noop),
         mock.patch("numba.vectorize", vectorize_noop),
         mock.patch("aesara.link.numba.dispatch.basic.tuple_setitem", py_tuple_setitem),
-        mock.patch("aesara.link.numba.dispatch.basic.numba_njit", njit_noop),
+        mock.patch("aesara.link.numba.dispatch.basic.numba_jit", jit_noop),
         mock.patch("aesara.link.numba.dispatch.basic.numba_vectorize", vectorize_noop),
         mock.patch("aesara.link.numba.dispatch.basic.direct_cast", lambda x, dtype: x),
         mock.patch("aesara.link.numba.dispatch.basic.to_scalar", py_to_scalar),

@@ -348,7 +348,7 @@ def create_multiaxis_reducer(
     for i, axis in enumerate(to_reduce):
         careducer_axes_fn_name = f"careduce_axes_fn_{i}"
         reducer_py_fn = create_axis_reducer(scalar_op, identity, axis, ndim, dtype)
-        reducer_fn = numba_basic.numba_njit(
+        reducer_fn = numba_basic.numba_jit(
             boundscheck=False, fastmath=config.numba__fastmath
         )(reducer_py_fn)
 
@@ -385,11 +385,11 @@ def jit_compile_reducer(node, fn, **kwds):
     fn
         The Python function object to compile.
     kwds
-        Extra keywords to be added to the :func:`numba.njit` function.
+        Extra keywords to be added to the :func:`numba.jit` function.
 
     Returns
     =======
-    A :func:`numba.njit`-compiled function.
+    A :func:`numba.jit`-compiled function.
 
     """
     signature = create_numba_signature(node, reduce_to_scalar=True)
@@ -397,7 +397,7 @@ def jit_compile_reducer(node, fn, **kwds):
     # Eagerly compile the function using increased optimizations.  This should
     # help improve nested loop reductions.
     with use_optimized_cheap_pass():
-        res = numba_basic.numba_njit(
+        res = numba_basic.numba_jit(
             signature,
             boundscheck=False,
             fastmath=config.numba__fastmath,
@@ -410,7 +410,7 @@ def jit_compile_reducer(node, fn, **kwds):
 def create_axis_apply_fn(fn, axis, ndim, dtype):
     reaxis_first = tuple(i for i in range(ndim) if i != axis) + (axis,)
 
-    @numba_basic.numba_njit(boundscheck=False)
+    @numba_basic.numba_jit(boundscheck=False)
     def axis_apply_fn(x):
         x_reaxis = x.transpose(reaxis_first)
 
@@ -468,7 +468,7 @@ def {inplace_elemwise_fn_name}({input_signature_str}):
             inplace_elemwise_fn_name,
             {**globals(), **inplace_global_env},
         )
-        return numba_basic.numba_njit(inline="always", fastmath=config.numba__fastmath)(
+        return numba_basic.numba_jit(inline="always", fastmath=config.numba__fastmath)(
             inplace_elemwise_fn
         )
 
@@ -524,7 +524,7 @@ def numba_funcify_DimShuffle(op, **kwargs):
 
     if len(shuffle) > 0:
 
-        @numba_basic.numba_njit
+        @numba_basic.numba_jit
         def populate_new_shape(i, j, new_shape, shuffle_shape):
             if i in augment:
                 new_shape = numba_basic.tuple_setitem(new_shape, i, 1)
@@ -538,7 +538,7 @@ def numba_funcify_DimShuffle(op, **kwargs):
         # is typed as `getitem(Tuple(), int)`, which has no implementation
         # (since getting an item from an empty sequence doesn't make sense).
         # To avoid this compile-time error, we omit the expression altogether.
-        @numba_basic.numba_njit(inline="always")
+        @numba_basic.numba_jit(inline="always")
         def populate_new_shape(i, j, new_shape, shuffle_shape):
             return j, numba_basic.tuple_setitem(new_shape, i, 1)
 
@@ -547,7 +547,7 @@ def numba_funcify_DimShuffle(op, **kwargs):
             lambda _: 0, ndim_new_shape
         )
 
-        @numba_basic.numba_njit
+        @numba_basic.numba_jit
         def dimshuffle_inner(x, shuffle):
             res = np.transpose(x, transposition)
             shuffle_shape = res.shape[: len(shuffle)]
@@ -568,7 +568,7 @@ def numba_funcify_DimShuffle(op, **kwargs):
 
     else:
 
-        @numba_basic.numba_njit
+        @numba_basic.numba_jit
         def dimshuffle_inner(x, shuffle):
             return x.item()
 
@@ -584,7 +584,7 @@ def numba_funcify_DimShuffle(op, **kwargs):
     # E       No match.
     # ...(on this line)...
     # E           shuffle_shape = res.shape[: len(shuffle)]
-    @numba_basic.numba_njit(inline="always")
+    @numba_basic.numba_jit(inline="always")
     def dimshuffle(x):
         return dimshuffle_inner(np.asarray(x), shuffle)
 
@@ -607,7 +607,7 @@ def numba_funcify_Softmax(op, node, **kwargs):
             add_as, 0.0, axis, x_at.ndim, x_dtype, keepdims=True
         )
 
-        jit_fn = numba_basic.numba_njit(
+        jit_fn = numba_basic.numba_jit(
             boundscheck=False, fastmath=config.numba__fastmath
         )
         reduce_max = jit_fn(reduce_max_py)
@@ -641,7 +641,7 @@ def numba_funcify_SoftmaxGrad(op, node, **kwargs):
             add_as, 0.0, axis, sm_at.ndim, sm_dtype, keepdims=True
         )
 
-        jit_fn = numba_basic.numba_njit(
+        jit_fn = numba_basic.numba_jit(
             boundscheck=False, fastmath=config.numba__fastmath
         )
         reduce_sum = jit_fn(reduce_sum_py)
@@ -675,7 +675,7 @@ def numba_funcify_LogSoftmax(op, node, **kwargs):
             add_as, 0.0, axis, x_at.ndim, x_dtype, keepdims=True
         )
 
-        jit_fn = numba_basic.numba_njit(
+        jit_fn = numba_basic.numba_jit(
             boundscheck=False, fastmath=config.numba__fastmath
         )
         reduce_max = jit_fn(reduce_max_py)
@@ -703,7 +703,7 @@ def numba_funcify_MaxAndArgmax(op, node, **kwargs):
 
     if x_ndim == 0:
 
-        @numba_basic.numba_njit(inline="always")
+        @numba_basic.numba_jit(inline="always")
         def maxandargmax(x):
             return x, 0
 
@@ -731,7 +731,7 @@ def numba_funcify_MaxAndArgmax(op, node, **kwargs):
         sl1 = slice(None, len(keep_axes))
         sl2 = slice(len(keep_axes), None)
 
-        @numba_basic.numba_njit
+        @numba_basic.numba_jit
         def maxandargmax(x):
             max_res = reduce_max(x)
 

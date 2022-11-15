@@ -56,7 +56,7 @@ def allocempty({", ".join(shape_var_names)}):
         alloc_def_src, "allocempty", {**globals(), **global_env}
     )
 
-    return numba_basic.numba_njit(alloc_fn)
+    return numba_basic.numba_jit(alloc_fn)
 
 
 @_numba_funcify.register(Alloc)
@@ -92,14 +92,14 @@ def alloc(val, {", ".join(shape_var_names)}):
 
     alloc_fn = compile_function_src(alloc_def_src, "alloc", {**globals(), **global_env})
 
-    return numba_basic.numba_njit(alloc_fn)
+    return numba_basic.numba_jit(alloc_fn)
 
 
 @_numba_funcify.register(AllocDiag)
 def numba_funcify_AllocDiag(op, **kwargs):
     offset = op.offset
 
-    @numba_basic.numba_njit(inline="always")
+    @numba_basic.numba_jit(inline="always")
     def allocdiag(v):
         return np.diag(v, k=offset)
 
@@ -110,7 +110,7 @@ def numba_funcify_AllocDiag(op, **kwargs):
 def numba_funcify_ARange(op, **kwargs):
     dtype = np.dtype(op.dtype)
 
-    @numba_basic.numba_njit(inline="always")
+    @numba_basic.numba_jit(inline="always")
     def arange(start, stop, step):
         return np.arange(
             numba_basic.to_scalar(start),
@@ -132,7 +132,7 @@ def numba_funcify_Join(op, **kwargs):
         # probably just remove it.
         raise NotImplementedError("The `view` parameter to `Join` is not supported")
 
-    @numba_basic.numba_njit
+    @numba_basic.numba_jit
     def join(axis, *tensors):
         return np.concatenate(tensors, numba_basic.to_scalar(axis))
 
@@ -141,7 +141,7 @@ def numba_funcify_Join(op, **kwargs):
 
 @_numba_funcify.register(Split)
 def numba_funcify_Split(op, **kwargs):
-    @numba_basic.numba_njit
+    @numba_basic.numba_jit
     def split(tensor, axis, indices):
         # Work around for https://github.com/numba/numba/issues/8257
         axis = axis % tensor.ndim
@@ -157,7 +157,7 @@ def numba_funcify_ExtractDiag(op, **kwargs):
     # axis1 = op.axis1
     # axis2 = op.axis2
 
-    @numba_basic.numba_njit(inline="always")
+    @numba_basic.numba_jit(inline="always")
     def extract_diag(x):
         return np.diag(x, k=offset)
 
@@ -168,7 +168,7 @@ def numba_funcify_ExtractDiag(op, **kwargs):
 def numba_funcify_Eye(op, **kwargs):
     dtype = np.dtype(op.dtype)
 
-    @numba_basic.numba_njit(inline="always")
+    @numba_basic.numba_jit(inline="always")
     def eye(N, M, k):
         return np.eye(
             numba_basic.to_scalar(N),
@@ -205,12 +205,12 @@ def makevector({", ".join(input_names)}):
         makevector_def_src, "makevector", {**globals(), **global_env}
     )
 
-    return numba_basic.numba_njit(makevector_fn)
+    return numba_basic.numba_jit(makevector_fn)
 
 
 @_numba_funcify.register(Unbroadcast)
 def numba_funcify_Unbroadcast(op, **kwargs):
-    @numba_basic.numba_njit
+    @numba_basic.numba_jit
     def unbroadcast(x):
         return x
 
@@ -219,7 +219,7 @@ def numba_funcify_Unbroadcast(op, **kwargs):
 
 @_numba_funcify.register(TensorFromScalar)
 def numba_funcify_TensorFromScalar(op, **kwargs):
-    @numba_basic.numba_njit(inline="always")
+    @numba_basic.numba_jit(inline="always")
     def tensor_from_scalar(x):
         return np.array(x)
 
@@ -228,7 +228,7 @@ def numba_funcify_TensorFromScalar(op, **kwargs):
 
 @_numba_funcify.register(ScalarFromTensor)
 def numba_funcify_ScalarFromTensor(op, **kwargs):
-    @numba_basic.numba_njit(inline="always")
+    @numba_basic.numba_jit(inline="always")
     def scalar_from_tensor(x):
         return numba_basic.to_scalar(x)
 

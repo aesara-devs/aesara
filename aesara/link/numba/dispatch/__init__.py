@@ -2,7 +2,7 @@
 from aesara.link.numba.dispatch.basic import (
     numba_funcify,
     numba_const_convert,
-    numba_njit,
+    numba_jit,
 )
 
 # Load dispatch specializations

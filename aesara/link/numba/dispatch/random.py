@@ -49,7 +49,7 @@ class RandomStateNumbaModel(models.StructModel):
         members = [
             # TODO: We can add support for boxing and unboxing
             # the attributes that describe a RandomState so that
-            # they can be accessed inside njit functions, if required.
+            # they can be accessed inside jit functions, if required.
             ("state_key", types.Array(types.uint32, 1, "C")),
         ]
         models.StructModel.__init__(self, dmm, fe_type, members)
@@ -202,7 +202,7 @@ def {sized_fn_name}({random_fn_input_names}):
     random_fn = compile_function_src(
         sized_fn_src, sized_fn_name, {**globals(), **random_fn_global_env}
     )
-    random_fn = numba_basic.numba_njit(random_fn)
+    random_fn = numba_basic.numba_jit(random_fn)
 
     return random_fn
 
@@ -331,7 +331,7 @@ def numba_funcify_CategoricalRV(op, node, **kwargs):
     out_dtype = node.outputs[1].type.numpy_dtype
     size_len = int(get_vector_length(node.inputs[1]))
 
-    @numba_basic.numba_njit
+    @numba_basic.numba_jit
     def categorical_rv(rng, size, dtype, p):
         if not size_len:
             size_tpl = p.shape[:-1]
@@ -360,7 +360,7 @@ def numba_funcify_DirichletRV(op, node, **kwargs):
 
     if alphas_ndim > 1:
 
-        @numba_basic.numba_njit
+        @numba_basic.numba_jit
         def dirichlet_rv(rng, size, dtype, alphas):
 
             if size_len > 0:
@@ -384,7 +384,7 @@ def numba_funcify_DirichletRV(op, node, **kwargs):
 
     else:
 
-        @numba_basic.numba_njit
+        @numba_basic.numba_jit
         def dirichlet_rv(rng, size, dtype, alphas):
             size = numba_ndarray.to_fixed_tuple(size, size_len)
             return (rng, np.random.dirichlet(alphas, size))

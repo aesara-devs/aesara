@@ -38,7 +38,7 @@ def numba_funcify_SVD(op, node, **kwargs):
 
         ret_sig = get_numba_type(node.outputs[0].type)
 
-        @numba_basic.numba_njit
+        @numba_basic.numba_jit
         def svd(x):
             with numba.objmode(ret=ret_sig):
                 ret = np.linalg.svd(x, full_matrices, compute_uv)
@@ -49,7 +49,7 @@ def numba_funcify_SVD(op, node, **kwargs):
         out_dtype = node.outputs[0].type.numpy_dtype
         inputs_cast = int_to_float_fn(node.inputs, out_dtype)
 
-        @numba_basic.numba_njit(inline="always")
+        @numba_basic.numba_jit(inline="always")
         def svd(x):
             return np.linalg.svd(inputs_cast(x), full_matrices)
 
@@ -62,7 +62,7 @@ def numba_funcify_Det(op, node, **kwargs):
     out_dtype = node.outputs[0].type.numpy_dtype
     inputs_cast = int_to_float_fn(node.inputs, out_dtype)
 
-    @numba_basic.numba_njit(inline="always")
+    @numba_basic.numba_jit(inline="always")
     def det(x):
         return numba_basic.direct_cast(np.linalg.det(inputs_cast(x)), out_dtype)
 
@@ -77,7 +77,7 @@ def numba_funcify_Eig(op, node, **kwargs):
 
     inputs_cast = int_to_float_fn(node.inputs, out_dtype_1)
 
-    @numba_basic.numba_njit
+    @numba_basic.numba_jit
     def eig(x):
         out = np.linalg.eig(inputs_cast(x))
         return (out[0].astype(out_dtype_1), out[1].astype(out_dtype_2))
@@ -104,7 +104,7 @@ def numba_funcify_Eigh(op, node, **kwargs):
             [get_numba_type(node.outputs[0].type), get_numba_type(node.outputs[1].type)]
         )
 
-        @numba_basic.numba_njit
+        @numba_basic.numba_jit
         def eigh(x):
             with numba.objmode(ret=ret_sig):
                 out = np.linalg.eigh(x, UPLO=uplo)
@@ -113,7 +113,7 @@ def numba_funcify_Eigh(op, node, **kwargs):
 
     else:
 
-        @numba_basic.numba_njit(inline="always")
+        @numba_basic.numba_jit(inline="always")
         def eigh(x):
             return np.linalg.eigh(x)
 
@@ -126,7 +126,7 @@ def numba_funcify_Inv(op, node, **kwargs):
     out_dtype = node.outputs[0].type.numpy_dtype
     inputs_cast = int_to_float_fn(node.inputs, out_dtype)
 
-    @numba_basic.numba_njit(inline="always")
+    @numba_basic.numba_jit(inline="always")
     def inv(x):
         return np.linalg.inv(inputs_cast(x)).astype(out_dtype)
 
@@ -139,7 +139,7 @@ def numba_funcify_MatrixInverse(op, node, **kwargs):
     out_dtype = node.outputs[0].type.numpy_dtype
     inputs_cast = int_to_float_fn(node.inputs, out_dtype)
 
-    @numba_basic.numba_njit(inline="always")
+    @numba_basic.numba_jit(inline="always")
     def matrix_inverse(x):
         return np.linalg.inv(inputs_cast(x)).astype(out_dtype)
 
@@ -152,7 +152,7 @@ def numba_funcify_MatrixPinv(op, node, **kwargs):
     out_dtype = node.outputs[0].type.numpy_dtype
     inputs_cast = int_to_float_fn(node.inputs, out_dtype)
 
-    @numba_basic.numba_njit(inline="always")
+    @numba_basic.numba_jit(inline="always")
     def matrixpinv(x):
         return np.linalg.pinv(inputs_cast(x)).astype(out_dtype)
 
@@ -177,7 +177,7 @@ def numba_funcify_QRFull(op, node, **kwargs):
         else:
             ret_sig = get_numba_type(node.outputs[0].type)
 
-        @numba_basic.numba_njit
+        @numba_basic.numba_jit
         def qr_full(x):
             with numba.objmode(ret=ret_sig):
                 ret = np.linalg.qr(x, mode=mode)
@@ -188,7 +188,7 @@ def numba_funcify_QRFull(op, node, **kwargs):
         out_dtype = node.outputs[0].type.numpy_dtype
         inputs_cast = int_to_float_fn(node.inputs, out_dtype)
 
-        @numba_basic.numba_njit(inline="always")
+        @numba_basic.numba_jit(inline="always")
         def qr_full(x):
             return np.linalg.qr(inputs_cast(x))
 

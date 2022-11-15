@@ -27,9 +27,9 @@ class NumbaLinker(JITLinker):
         return numba_funcify(fgraph, **kwargs)
 
     def jit_compile(self, fn):
-        from aesara.link.numba.dispatch import numba_njit
+        from aesara.link.numba.dispatch import numba_jit
 
-        jitted_fn = numba_njit(fn)
+        jitted_fn = numba_jit(fn)
         return jitted_fn
 
     def create_thunk_inputs(self, storage_map):

@@ -48,7 +48,7 @@ def array0d_range(x):
 
 @_numba_funcify.register(Scan)
 def numba_funcify_Scan(op, node, **kwargs):
-    scan_inner_func = numba_basic.numba_njit(numba_funcify(op.fgraph))
+    scan_inner_func = numba_basic.numba_jit(numba_funcify(op.fgraph))
 
     outer_in_names_to_vars = {
         (f"outer_in_{i}" if i > 0 else "n_steps"): v for i, v in enumerate(node.inputs)
@@ -353,4 +353,4 @@ def scan({", ".join(outer_in_names)}):
         scan_op_src, "scan", {**globals(), **global_env}
     )
 
-    return numba_basic.numba_njit(scalar_op_fn)
+    return numba_basic.numba_jit(scalar_op_fn)

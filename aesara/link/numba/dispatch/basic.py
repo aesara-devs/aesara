@@ -53,12 +53,12 @@ if TYPE_CHECKING:
     from aesara.graph.op import StorageMapType
 
 
-def numba_njit(*args, **kwargs):
+def numba_jit(*args, **kwargs):
 
     if len(args) > 0 and callable(args[0]):
-        return numba.njit(*args[1:], cache=config.numba__cache, **kwargs)(args[0])
+        return numba.jit(*args[1:], cache=config.numba__cache, **kwargs)(args[0])
 
-    return numba.njit(*args, cache=config.numba__cache, **kwargs)
+    return numba.jit(*args, cache=config.numba__cache, **kwargs)
 
 
 def numba_vectorize(*args, **kwargs):
@@ -292,19 +292,19 @@ def create_tuple_creator(f, n):
     """
     assert n > 0
 
-    f = numba_njit(f)
+    f = numba_jit(f)
 
-    @numba_njit
+    @numba_jit
     def creator(args):
         return (f(0, *args),)
 
     for i in range(1, n):
 
-        @numba_njit
+        @numba_jit
         def creator(args, creator=creator, i=i):
             return creator(args) + (f(i, *args),)
 
-    return numba_njit(lambda *args: creator(args))
+    return numba_jit(lambda *args: creator(args))
 
 
 def create_tuple_string(x):
@@ -420,7 +420,7 @@ def numba_funcify_perform(op, node, storage_map=None, **kwargs) -> Callable:
                 for out_type, out in zip(output_types, py_perform(inputs))
             )
 
-    @numba_njit
+    @numba_jit
     def perform(*inputs):
         with numba.objmode(ret=ret_sig):
             ret = py_perform_return(inputs)
@@ -434,17 +434,17 @@ def numba_funcify_OpFromGraph(op, node=None, **kwargs):
 
     _ = kwargs.pop("storage_map", None)
 
-    fgraph_fn = numba_njit(numba_funcify(op.fgraph, **kwargs))
+    fgraph_fn = numba_jit(numba_funcify(op.fgraph, **kwargs))
 
     if len(op.fgraph.outputs) == 1:
 
-        @numba_njit
+        @numba_jit
         def opfromgraph(*inputs):
             return fgraph_fn(*inputs)[0]
 
     else:
 
-        @numba_njit
+        @numba_jit
         def opfromgraph(*inputs):
             return fgraph_fn(*inputs)
 
@@ -574,7 +574,7 @@ def numba_funcify_Subtensor(op, node, **kwargs):
         subtensor_def_src, "subtensor", {**globals(), **global_env}
     )
 
-    return numba_njit(subtensor_fn)
+    return numba_jit(subtensor_fn)
 
 
 @_numba_funcify.register(IncSubtensor)
@@ -591,7 +591,7 @@ def numba_funcify_IncSubtensor(op, node, **kwargs):
         incsubtensor_def_src, "incsubtensor", {**globals(), **global_env}
     )
 
-    return numba_njit(incsubtensor_fn)
+    return numba_jit(incsubtensor_fn)
 
 
 @_numba_funcify.register(AdvancedIncSubtensor1)
@@ -601,7 +601,7 @@ def numba_funcify_AdvancedIncSubtensor1(op, node, **kwargs):
 
     if set_instead_of_inc:
 
-        @numba_njit
+        @numba_jit
         def advancedincsubtensor1_inplace(x, vals, idxs):
             for idx, val in zip(idxs, vals):
                 x[idx] = val
@@ -609,7 +609,7 @@ def numba_funcify_AdvancedIncSubtensor1(op, node, **kwargs):
 
     else:
 
-        @numba_njit
+        @numba_jit
         def advancedincsubtensor1_inplace(x, vals, idxs):
             for idx, val in zip(idxs, vals):
                 x[idx] += val
@@ -619,7 +619,7 @@ def numba_funcify_AdvancedIncSubtensor1(op, node, **kwargs):
         return advancedincsubtensor1_inplace
     else:
 
-        @numba_njit
+        @numba_jit
         def advancedincsubtensor1(x, vals, idxs):
             x = x.copy()
             return advancedincsubtensor1_inplace(x, vals, idxs)
@@ -636,13 +636,13 @@ def numba_funcify_DeepCopyOp(op, node, **kwargs):
     # The type can also be RandomType with no ndims
     if not hasattr(node.outputs[0].type, "ndim") or node.outputs[0].type.ndim == 0:
         # TODO: Do we really need to compile a pass-through function like this?
-        @numba_njit(inline="always")
+        @numba_jit(inline="always")
         def deepcopyop(x):
             return x
 
     else:
 
-        @numba_njit(inline="always")
+        @numba_jit(inline="always")
         def deepcopyop(x):
             return x.copy()
 
@@ -651,7 +651,7 @@ def numba_funcify_DeepCopyOp(op, node, **kwargs):
 
 @_numba_funcify.register(MakeSlice)
 def numba_funcify_MakeSlice(op, node, **kwargs):
-    @numba_njit
+    @numba_jit
     def makeslice(*x):
         return slice(*x)
 
@@ -660,7 +660,7 @@ def numba_funcify_MakeSlice(op, node, **kwargs):
 
 @_numba_funcify.register(Shape)
 def numba_funcify_Shape(op, node, **kwargs):
-    @numba_njit(inline="always")
+    @numba_jit(inline="always")
     def shape(x):
         return np.asarray(np.shape(x))
 
@@ -671,7 +671,7 @@ def numba_funcify_Shape(op, node, **kwargs):
 def numba_funcify_Shape_i(op, node, **kwargs):
     i = op.i
 
-    @numba_njit(inline="always")
+    @numba_jit(inline="always")
     def shape_i(x):
         return np.shape(x)[i]
 
@@ -704,13 +704,13 @@ def numba_funcify_Reshape(op, node, **kwargs):
 
     if ndim == 0:
 
-        @numba_njit(inline="always")
+        @numba_jit(inline="always")
         def reshape(x, shape):
             return x.item()
 
     else:
 
-        @numba_njit(inline="always")
+        @numba_jit(inline="always")
         def reshape(x, shape):
             # TODO: Use this until https://github.com/numba/numba/issues/7353 is closed.
             return np.reshape(
@@ -743,7 +743,7 @@ def numba_funcify_SpecifyShape(op, node, **kwargs):
     )
 
     specify_shape = compile_function_src(func, "specify_shape", globals())
-    return numba_njit(specify_shape)
+    return numba_jit(specify_shape)
 
 
 def int_to_float_fn(inputs, out_dtype):
@@ -753,7 +753,7 @@ def int_to_float_fn(inputs, out_dtype):
 
         args_dtype = np.dtype(f"f{out_dtype.itemsize}")
 
-        @numba_njit(inline="always")
+        @numba_jit(inline="always")
         def inputs_cast(x):
             return x.astype(args_dtype)
 
@@ -761,7 +761,7 @@ def int_to_float_fn(inputs, out_dtype):
         args_dtype_sz = max(_arg.type.numpy_dtype.itemsize for _arg in inputs)
         args_dtype = np.dtype(f"f{args_dtype_sz}")
 
-        @numba_njit(inline="always")
+        @numba_jit(inline="always")
         def inputs_cast(x):
             return x.astype(args_dtype)
 
@@ -776,7 +776,7 @@ def numba_funcify_Dot(op, node, **kwargs):
     out_dtype = node.outputs[0].type.numpy_dtype
     inputs_cast = int_to_float_fn(node.inputs, out_dtype)
 
-    @numba_njit(inline="always")
+    @numba_jit(inline="always")
     def dot(x, y):
         return np.asarray(np.dot(inputs_cast(x), inputs_cast(y))).astype(out_dtype)
 
@@ -788,7 +788,7 @@ def numba_funcify_Softplus(op, node, **kwargs):
 
     x_dtype = np.dtype(node.inputs[0].dtype)
 
-    @numba_njit
+    @numba_jit
     def softplus(x):
         if x < -37.0:
             return direct_cast(np.exp(x), x_dtype)
@@ -812,7 +812,7 @@ def numba_funcify_Cholesky(op, node, **kwargs):
 
         inputs_cast = int_to_float_fn(node.inputs, out_dtype)
 
-        @numba_njit(inline="always")
+        @numba_jit(inline="always")
         def cholesky(a):
             return np.linalg.cholesky(inputs_cast(a)).astype(out_dtype)
 
@@ -829,7 +829,7 @@ def numba_funcify_Cholesky(op, node, **kwargs):
 
         ret_sig = get_numba_type(node.outputs[0].type)
 
-        @numba_njit
+        @numba_jit
         def cholesky(a):
             with numba.objmode(ret=ret_sig):
                 ret = scipy.linalg.cholesky(a, lower=lower).astype(out_dtype)
@@ -858,7 +858,7 @@ def numba_funcify_Solve(op, node, **kwargs):
 
         ret_sig = get_numba_type(node.outputs[0].type)
 
-        @numba_njit
+        @numba_jit
         def solve(a, b):
             with numba.objmode(ret=ret_sig):
                 ret = scipy.linalg.solve_triangular(
@@ -873,7 +873,7 @@ def numba_funcify_Solve(op, node, **kwargs):
         out_dtype = node.outputs[0].type.numpy_dtype
         inputs_cast = int_to_float_fn(node.inputs, out_dtype)
 
-        @numba_njit(inline="always")
+        @numba_jit(inline="always")
         def solve(a, b):
             return np.linalg.solve(
                 inputs_cast(a),
@@ -889,7 +889,7 @@ def numba_funcify_Solve(op, node, **kwargs):
 def numba_funcify_BatchedDot(op, node, **kwargs):
     dtype = node.outputs[0].type.numpy_dtype
 
-    @numba_njit
+    @numba_jit
     def batched_dot(x, y):
         shape = x.shape[:-1] + y.shape[2:]
         z0 = np.empty(shape, dtype=dtype)
@@ -912,7 +912,7 @@ def numba_funcify_IfElse(op, **kwargs):
 
     if n_outs > 1:
 
-        @numba_njit
+        @numba_jit
         def ifelse(cond, *args):
             if cond:
                 res = args[:n_outs]
@@ -923,7 +923,7 @@ def numba_funcify_IfElse(op, **kwargs):
 
     else:
 
-        @numba_njit
+        @numba_jit
         def ifelse(cond, *args):
             if cond:
                 res = args[:n_outs]
