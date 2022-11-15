@@ -514,7 +514,6 @@ def {fn_name}({", ".join(input_names)}):
 
 
 @numba_funcify.register(Subtensor)
-@numba_funcify.register(AdvancedSubtensor)
 @numba_funcify.register(AdvancedSubtensor1)
 def numba_funcify_Subtensor(op, node, **kwargs):
 
@@ -532,7 +531,6 @@ def numba_funcify_Subtensor(op, node, **kwargs):
 
 
 @numba_funcify.register(IncSubtensor)
-@numba_funcify.register(AdvancedIncSubtensor)
 def numba_funcify_IncSubtensor(op, node, **kwargs):
 
     incsubtensor_def_src = create_index_func(
