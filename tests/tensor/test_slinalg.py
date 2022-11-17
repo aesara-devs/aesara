@@ -12,7 +12,6 @@ from aesara import tensor as at
 from aesara.configdefaults import config
 from aesara.tensor.slinalg import (
     Cholesky,
-    CholeskyGrad,
     CholeskySolve,
     Solve,
     SolveBase,
@@ -121,22 +120,17 @@ def test_cholesky_grad_indef():
 
 
 @pytest.mark.slow
-def test_cholesky_and_cholesky_grad_shape():
+def test_cholesky_shape():
     rng = np.random.default_rng(utt.fetch_seed())
     x = matrix()
     for l in (cholesky(x), Cholesky(lower=True)(x), Cholesky(lower=False)(x)):
         f_chol = aesara.function([x], l.shape)
-        g = aesara.gradient.grad(l.sum(), x)
-        f_cholgrad = aesara.function([x], g.shape)
         topo_chol = f_chol.maker.fgraph.toposort()
-        topo_cholgrad = f_cholgrad.maker.fgraph.toposort()
         if config.mode != "FAST_COMPILE":
             assert sum(node.op.__class__ == Cholesky for node in topo_chol) == 0
-            assert sum(node.op.__class__ == CholeskyGrad for node in topo_cholgrad) == 0
         for shp in [2, 3, 5]:
             m = np.cov(rng.standard_normal((shp, shp + 10))).astype(config.floatX)
             np.testing.assert_equal(f_chol(m), (shp, shp))
-            np.testing.assert_equal(f_cholgrad(m), (shp, shp))
 
 
 def test_eigvalsh():
