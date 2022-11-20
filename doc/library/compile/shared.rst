@@ -13,7 +13,7 @@
 
 .. class:: SharedVariable
 
-    Variable with Storage that is shared between functions that it appears in.
+    Variable with storage that is shared between the compiled functions that it appears in.
     These variables are meant to be created by registered *shared constructors*
     (see :func:`shared_constructor`).
 
@@ -68,7 +68,6 @@
 
         A container to use for this SharedVariable when it is an implicit function parameter.
 
-        :type: class:`Container`
 
 .. autofunction:: shared
 
@@ -76,10 +75,10 @@
 
     Append `ctor` to the list of shared constructors (see :func:`shared`).
 
-    Each registered constructor ``ctor`` will be called like this:
+    Each registered constructor `ctor` will be called like this:
 
     .. code-block:: python
 
         ctor(value, name=name, strict=strict, **kwargs)
 
-    If it do not support given value, it must raise a TypeError.
+    If it do not support given value, it must raise a `TypeError`.

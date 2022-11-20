@@ -36,6 +36,22 @@ def data_of(s):
 
 
 class TestPfunc:
+    def test_errors(self):
+        a = lscalar()
+        b = shared(1)
+
+        with pytest.raises(TypeError):
+            pfunc({a}, a + b)
+
+        with pytest.raises(TypeError):
+            pfunc([a], a + b, no_default_updates=1)
+
+        with pytest.raises(TypeError):
+            pfunc([a], a + b, updates=[{b, a}])
+
+        with pytest.raises(TypeError):
+            pfunc([a], a + b, updates=[(1, b)])
+
     def test_doc(self):
         # Ensure the code given in pfunc.txt works as expected
 

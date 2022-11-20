@@ -22,7 +22,7 @@ class RandomGeneratorSharedVariable(SharedVariable):
 def randomgen_constructor(
     value, name=None, strict=False, allow_downcast=None, borrow=False
 ):
-    r"""`SharedVariable` Constructor for NumPy's `Generator` and/or `RandomState`."""
+    r"""`SharedVariable` constructor for NumPy's `Generator` and/or `RandomState`."""
     if isinstance(value, np.random.RandomState):
         rng_sv_type = RandomStateSharedVariable
         rng_type = random_state_type
