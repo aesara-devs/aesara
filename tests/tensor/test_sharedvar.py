@@ -10,6 +10,7 @@ from aesara.misc.may_share_memory import may_share_memory
 from aesara.tensor import get_vector_length
 from aesara.tensor.basic import MakeVector
 from aesara.tensor.shape import Shape_i, specify_shape
+from aesara.tensor.sharedvar import ScalarSharedVariable, TensorSharedVariable
 from tests import unittest_tools as utt
 
 
@@ -649,10 +650,31 @@ class TestSharedOptions:
     pass
 
 
+def test_tensor_shared_zero():
+    shared_val = np.array([1.0, 3.0], dtype=np.float32)
+    res = aesara.shared(value=shared_val, borrow=True)
+    assert isinstance(res, TensorSharedVariable)
+    assert res.get_value(borrow=True) is shared_val
+
+    res.zero(borrow=True)
+    new_shared_val = res.get_value(borrow=True)
+    assert new_shared_val is shared_val
+    assert np.array_equal(new_shared_val, np.zeros((2,), dtype=np.float32))
+
+    res.set_value(shared_val, borrow=True)
+
+    res.zero(borrow=False)
+    new_shared_val = res.get_value(borrow=True)
+    assert new_shared_val is not shared_val
+    assert np.array_equal(new_shared_val, np.zeros((2,), dtype=np.float32))
+
+
 def test_scalar_shared_options():
-    # Simple test to make sure we do not loose that fonctionality.
-    aesara.shared(value=0.0, name="lk", borrow=True)
-    aesara.shared(value=np.float32(0.0), name="lk", borrow=True)
+    res = aesara.shared(value=np.float32(0.0), name="lk", borrow=True)
+    assert isinstance(res, ScalarSharedVariable)
+    assert res.type.dtype == "float32"
+    assert res.name == "lk"
+    assert res.type.shape == ()
 
 
 def test_get_vector_length():

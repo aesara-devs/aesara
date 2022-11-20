@@ -19,9 +19,25 @@ def load_shared_variable(val):
     return tensor_constructor(val)
 
 
-# _tensor_py_operators is first to have its version of __{gt,ge,lt,le}__
 class TensorSharedVariable(_tensor_py_operators, SharedVariable):
-    pass
+    def zero(self, borrow: bool = False):
+        r"""Set the values of a shared variable to 0.
+
+        Parameters
+        ----------
+        borrow
+            ``True`` to modify the value of a shared variable directly by using
+            its previous value. Potentially this can cause problems regarding
+            to the aliased memory.
+
+        Changes done with this function will be visible to all functions using
+        this `SharedVariable`.
+
+        """
+        if borrow:
+            self.container.value[...] = 0
+        else:
+            self.container.value = 0 * self.container.value
 
 
 @_get_vector_length.register(TensorSharedVariable)
@@ -69,13 +85,13 @@ def tensor_constructor(
     return TensorSharedVariable(
         type=type,
         value=np.array(value, copy=(not borrow)),
-        name=name,
         strict=strict,
         allow_downcast=allow_downcast,
+        name=name,
     )
 
 
-class ScalarSharedVariable(_tensor_py_operators, SharedVariable):
+class ScalarSharedVariable(TensorSharedVariable):
     pass
 
 

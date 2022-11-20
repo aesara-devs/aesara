@@ -37,7 +37,7 @@ def randomgen_constructor(
     return rng_sv_type(
         type=rng_type,
         value=value,
-        name=name,
         strict=strict,
         allow_downcast=allow_downcast,
+        name=name,
     )

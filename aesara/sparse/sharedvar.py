@@ -2,13 +2,15 @@ import copy
 
 import scipy.sparse
 
-from aesara.compile import SharedVariable, shared_constructor
+from aesara.compile import shared_constructor
 from aesara.sparse.basic import SparseTensorType, _sparse_py_operators
+from aesara.tensor.sharedvar import TensorSharedVariable
 
 
-class SparseTensorSharedVariable(_sparse_py_operators, SharedVariable):
-    dtype = property(lambda self: self.type.dtype)
-    format = property(lambda self: self.type.format)
+class SparseTensorSharedVariable(TensorSharedVariable, _sparse_py_operators):
+    @property
+    def format(self):
+        return self.type.format
 
 
 @shared_constructor.register(scipy.sparse.spmatrix)
@@ -24,5 +26,5 @@ def sparse_constructor(
         value = copy.deepcopy(value)
 
     return SparseTensorSharedVariable(
-        type=type, value=value, name=name, strict=strict, allow_downcast=allow_downcast
+        type=type, value=value, strict=strict, allow_downcast=allow_downcast, name=name
     )
