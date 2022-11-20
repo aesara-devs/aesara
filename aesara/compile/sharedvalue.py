@@ -3,12 +3,16 @@
 import copy
 from contextlib import contextmanager
 from functools import singledispatch
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from aesara.graph.basic import Variable
 from aesara.graph.utils import add_tag_trace
 from aesara.link.basic import Container
 from aesara.link.c.type import generic
+
+
+if TYPE_CHECKING:
+    from aesara.graph.type import Type
 
 
 __SHARED_CONTEXT__: Optional[List[Variable]] = None
@@ -30,14 +34,39 @@ def collect_new_shareds():
 class SharedVariable(Variable):
     """Variable that is shared between compiled functions."""
 
-    container: Optional[Container] = None
-    """
-    A container to use for this SharedVariable when it is an implicit
-    function parameter.
-    """
+    def __init__(
+        self,
+        type: "Type",
+        value,
+        strict: bool,
+        allow_downcast=None,
+        container: Optional[Container] = None,
+        name: Optional[str] = None,
+    ):
+        r"""
+        Parameters
+        ----------
+        type
+            The `Type` for this variable (see `Variable`).
+        value
+            A value to associate with this variable (a new container will be
+            created).
+        strict
+            ``True`` means that values assigned to this variable will not be
+            cast or copied, so they must have the correct `Type`\s.
+        allow_downcast
+            Only applies if `strict` is ``False``.
+            ``True`` means that the assigned value can lose precision when cast
+            during assignment. ``None`` means that only down-casting of a Python
+            float to a scalar ``floatX`` is allowed.
+        container
+            The container to use for this variable. Illegal to pass this as well as
+            a value.
+        name
+            The name for this variable (see `Variable`).
 
-    def __init__(self, name, type, value, strict, allow_downcast=None, container=None):
-        super().__init__(type=type, name=name, owner=None, index=None)
+        """
+        super().__init__(type=type, owner=None, index=None, name=name)
 
         if container is not None:
             self.container = container
@@ -106,26 +135,6 @@ class SharedVariable(Variable):
 
     def get_test_value(self):
         return self.get_value(borrow=True, return_internal_type=True)
-
-    def zero(self, borrow=False):
-        """
-        Set the values of a shared variable to 0.
-
-        Parameters
-        ----------
-        borrow : bbol
-            True to modify the value of a shared variable directly by using
-            its previous value. Potentially this can cause problems
-            regarding to the aliased memory.
-
-        Changes done with this function will be visible to all functions using
-        this SharedVariable.
-
-        """
-        if borrow:
-            self.container.value[...] = 0
-        else:
-            self.container.value = 0 * self.container.value
 
     def clone(self, **kwargs):
         name = kwargs.get("name", self.name)
@@ -209,7 +218,7 @@ def shared_constructor(value, name=None, strict=False, allow_downcast=None, **kw
     return SharedVariable(
         type=generic,
         value=value,
-        name=name,
         strict=strict,
         allow_downcast=allow_downcast,
+        name=name,
     )
