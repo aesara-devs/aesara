@@ -1,7 +1,4 @@
-"""
-Provide a simple user friendly API to Aesara-managed memory.
-
-"""
+"""Provide a simple user friendly API to Aesara-managed memory."""
 
 import copy
 from contextlib import contextmanager
@@ -30,51 +27,13 @@ def collect_new_shareds():
 
 
 class SharedVariable(Variable):
-    """
-    Variable that is (defaults to being) shared between functions that
-    it appears in.
+    """Variable that is shared between compiled functions."""
 
-    Parameters
-    ----------
-    name : str
-        The name for this variable (see `Variable`).
-    type : str
-        The type for this variable (see `Variable`).
-    value
-        A value to associate with this variable (a new container will be
-        created).
-    strict
-        True : assignments to .value will not be cast or copied, so they must
-        have the correct type.
-    allow_downcast
-        Only applies if `strict` is False.
-        True : allow assigned value to lose precision when cast during
-        assignment.
-        False : never allow precision loss.
-        None : only allow downcasting of a Python float to a scalar floatX.
-    container
-        The container to use for this variable. Illegal to pass this as well as
-        a value.
-
-    Notes
-    -----
-    For more user-friendly constructor, see `shared`.
-
-    """
-
-    # Container object
-    container = None
+    container: Optional[Container] = None
     """
     A container to use for this SharedVariable when it is an implicit
     function parameter.
-
-    :type: `Container`
     """
-
-    # default_update
-    # If this member is present, its value will be used as the "update" for
-    # this Variable, unless another update value has been passed to "function",
-    # or the "no_default_updates" list passed to "function" contains it.
 
     def __init__(self, name, type, value, strict, allow_downcast=None, container=None):
         super().__init__(type=type, name=name, owner=None, index=None)
@@ -207,37 +166,30 @@ def shared_constructor(ctor, remove=False):
 
 
 def shared(value, name=None, strict=False, allow_downcast=None, **kwargs):
-    """Return a SharedVariable Variable, initialized with a copy or
-    reference of `value`.
+    r"""Create a `SharedVariable` initialized with a copy or reference of `value`.
 
     This function iterates over constructor functions to find a
-    suitable SharedVariable subclass.  The suitable one is the first
+    suitable `SharedVariable` subclass.  The suitable one is the first
     constructor that accept the given value.  See the documentation of
     :func:`shared_constructor` for the definition of a constructor
     function.
 
     This function is meant as a convenient default.  If you want to use a
-    specific shared variable constructor, consider calling it directly.
+    specific constructor, consider calling it directly.
 
-    ``aesara.shared`` is a shortcut to this function.
-
-    .. attribute:: constructors
-
-    A list of shared variable constructors that will be tried in reverse
-    order.
+    `aesara.shared` is a shortcut to this function.
 
     Notes
     -----
     By passing kwargs, you effectively limit the set of potential constructors
     to those that can accept those kwargs.
 
-    Some shared variable have ``borrow`` as extra kwargs.
+    Some shared variable have `borrow` as a kwarg.
 
-    Some shared variable have ``broadcastable`` as extra kwargs. As shared
+    `SharedVariable`\s of `TensorType` have `broadcastable` as a kwarg. As shared
     variable shapes can change, all dimensions default to not being
-    broadcastable, even if ``value`` has a shape of 1 along some dimension.
-    This parameter allows you to create for example a `row` or `column` 2d
-    tensor.
+    broadcastable, even if `value` has a shape of 1 along some dimension.
+    This parameter allows one to create for example a row or column tensor.
 
     """
 
