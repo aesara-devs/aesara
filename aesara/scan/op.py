@@ -55,8 +55,7 @@ import numpy as np
 
 import aesara
 from aesara import tensor as at
-from aesara.compile import SharedVariable
-from aesara.compile.builders import infer_shape
+from aesara.compile.builders import construct_nominal_fgraph, infer_shape
 from aesara.compile.function.pfunc import pfunc
 from aesara.compile.io import In, Out
 from aesara.compile.mode import Mode, get_default_mode, get_mode
@@ -65,17 +64,13 @@ from aesara.configdefaults import config
 from aesara.gradient import DisconnectedType, NullType, Rop, grad, grad_undefined
 from aesara.graph.basic import (
     Apply,
-    Constant,
-    NominalVariable,
     Variable,
     clone_replace,
     equal_computations,
     graph_inputs,
     io_connection_pattern,
-    replace_nominals_with_dummies,
 )
 from aesara.graph.features import NoOutputFromInplace
-from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import HasInnerGraph, Op
 from aesara.graph.utils import InconsistencyError, MissingInputError
 from aesara.link.c.basic import CLinker
@@ -755,22 +750,12 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             If ``True``, all the shared variables used in the inner-graph must be provided.
 
         """
-        inputs, outputs = replace_nominals_with_dummies(inputs, outputs)
+        self.fgraph, shared_inputs, _, _ = construct_nominal_fgraph(inputs, outputs)
 
-        input_replacements = []
-        for n, v in enumerate(inputs):
-            if not isinstance(v, (SharedVariable, Constant)):
-                input_replacements.append((v, NominalVariable(n, v.type)))
-
-            assert not isinstance(v, NominalVariable)
-
-        outputs = clone_replace(outputs, replace=input_replacements)
-
-        if input_replacements:
-            _, inputs_ = zip(*input_replacements)
-            inputs = list(inputs_)
-        else:
-            inputs = []
+        # The shared variables should have been removed, so, if there are
+        # any, it's because the user didn't specify an input.
+        if shared_inputs:
+            raise MissingInputError(f"Scan is missing inputs: {shared_inputs}")
 
         self.info = info
         self.truncate_gradient = truncate_gradient
@@ -782,7 +767,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         # Clone mode_instance, altering "allow_gc" for the linker,
         # and adding a message if we profile
         if self.name:
-            message = self.name + " sub profile"
+            message = f"{self.name} sub profile"
         else:
             message = "Scan sub profile"
 
@@ -805,7 +790,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         while idx < info.n_mit_mot_outs:
             # Not that for mit_mot there are several output slices per
             # output sequence
-            o = outputs[idx]
+            o = self.fgraph.outputs[idx]
             self.output_types.append(
                 # TODO: What can we actually say about the shape of this
                 # added dimension?
@@ -818,7 +803,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         # mit_sot / sit_sot / nit_sot
         end = idx + info.n_mit_sot + info.n_sit_sot + info.n_nit_sot
 
-        for o in outputs[idx:end]:
+        for o in self.fgraph.outputs[idx:end]:
             self.output_types.append(
                 # TODO: What can we actually say about the shape of this
                 # added dimension?
@@ -826,7 +811,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             )
 
         # shared outputs + possibly the ending condition
-        for o in outputs[end:]:
+        for o in self.fgraph.outputs[end:]:
             self.output_types.append(o.type)
 
         if info.as_while:
@@ -862,8 +847,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
         self.n_outer_inputs = info.n_outer_inputs
         self.n_outer_outputs = info.n_outer_outputs
 
-        self.fgraph = FunctionGraph(inputs, outputs, clone=False)
-
         _ = self.prepare_fgraph(self.fgraph)
 
         if any(node.op.destroy_map for node in self.fgraph.apply_nodes):
@@ -871,10 +854,6 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                 "Inner-graphs must not contain in-place operations."
             )
 
-        # Do the missing inputs check here to have the error early.
-        for var in graph_inputs(self.inner_outputs, self.inner_inputs):
-            if var not in self.inner_inputs and not isinstance(var, Constant):
-                raise MissingInputError(f"ScanOp is missing an input: {repr(var)}")
         self._cmodule_key = CLinker().cmodule_key_variables(
             self.inner_inputs, self.inner_outputs, []
         )

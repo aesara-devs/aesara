@@ -586,10 +586,6 @@ class TestScan:
         assert np.allclose(aesara_values, v_out)
 
     def test_oinp_iinp_iout_oout_mappings(self):
-        """
-        Test the mapping produces by
-        ScanOp.get_oinp_iinp_iout_oout_mappings()
-        """
 
         rng = RandomStream(123)
 
