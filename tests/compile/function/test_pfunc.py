@@ -432,7 +432,8 @@ class TestPfunc:
         f()
         assert x.get_value() == 1
 
-        del x.default_update
+        x.default_update = None
+
         f()
         assert x.get_value() == 2
 
