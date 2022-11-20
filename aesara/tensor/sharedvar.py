@@ -1,4 +1,3 @@
-import traceback
 import warnings
 
 import numpy as np
@@ -30,7 +29,7 @@ def _get_vector_length_TensorSharedVariable(var_inst, var):
     return len(var.get_value(borrow=True))
 
 
-@shared_constructor
+@shared_constructor.register(np.ndarray)
 def tensor_constructor(
     value,
     name=None,
@@ -60,14 +59,13 @@ def tensor_constructor(
     if target != "cpu":
         raise TypeError("not for cpu")
 
-    if not isinstance(value, np.ndarray):
-        raise TypeError()
-
     # If no shape is given, then the default is to assume that the value might
     # be resized in any dimension in the future.
     if shape is None:
-        shape = (None,) * len(value.shape)
+        shape = (None,) * value.ndim
+
     type = TensorType(value.dtype, shape=shape)
+
     return TensorSharedVariable(
         type=type,
         value=np.array(value, copy=(not borrow)),
@@ -81,7 +79,10 @@ class ScalarSharedVariable(_tensor_py_operators, SharedVariable):
     pass
 
 
-@shared_constructor
+@shared_constructor.register(np.number)
+@shared_constructor.register(float)
+@shared_constructor.register(int)
+@shared_constructor.register(complex)
 def scalar_constructor(
     value, name=None, strict=False, allow_downcast=None, borrow=False, target="cpu"
 ):
@@ -101,28 +102,22 @@ def scalar_constructor(
     if target != "cpu":
         raise TypeError("not for cpu")
 
-    if not isinstance(value, (np.number, float, int, complex)):
-        raise TypeError()
     try:
         dtype = value.dtype
-    except Exception:
+    except AttributeError:
         dtype = np.asarray(value).dtype
 
     dtype = str(dtype)
     value = _asarray(value, dtype=dtype)
-    tensor_type = TensorType(dtype=str(value.dtype), shape=[])
+    tensor_type = TensorType(dtype=str(value.dtype), shape=())
 
-    try:
-        # Do not pass the dtype to asarray because we want this to fail if
-        # strict is True and the types do not match.
-        rval = ScalarSharedVariable(
-            type=tensor_type,
-            value=np.array(value, copy=True),
-            name=name,
-            strict=strict,
-            allow_downcast=allow_downcast,
-        )
-        return rval
-    except Exception:
-        traceback.print_exc()
-        raise
+    # Do not pass the dtype to asarray because we want this to fail if
+    # strict is True and the types do not match.
+    rval = ScalarSharedVariable(
+        type=tensor_type,
+        value=np.array(value, copy=True),
+        name=name,
+        strict=strict,
+        allow_downcast=allow_downcast,
+    )
+    return rval

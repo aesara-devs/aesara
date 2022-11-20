@@ -2,6 +2,7 @@
 
 import copy
 from contextlib import contextmanager
+from functools import singledispatch
 from typing import List, Optional
 
 from aesara.graph.basic import Variable
@@ -157,14 +158,6 @@ class SharedVariable(Variable):
             self._default_update = value
 
 
-def shared_constructor(ctor, remove=False):
-    if remove:
-        shared.constructors.remove(ctor)
-    else:
-        shared.constructors.append(ctor)
-    return ctor
-
-
 def shared(value, name=None, strict=False, allow_downcast=None, **kwargs):
     r"""Create a `SharedVariable` initialized with a copy or reference of `value`.
 
@@ -193,53 +186,26 @@ def shared(value, name=None, strict=False, allow_downcast=None, **kwargs):
 
     """
 
+    if isinstance(value, Variable):
+        raise TypeError("Shared variable values can not be symbolic.")
+
     try:
-        if isinstance(value, Variable):
-            raise TypeError(
-                "Shared variable constructor needs numeric "
-                "values and not symbolic variables."
-            )
-
-        for ctor in reversed(shared.constructors):
-            try:
-                var = ctor(
-                    value,
-                    name=name,
-                    strict=strict,
-                    allow_downcast=allow_downcast,
-                    **kwargs,
-                )
-                add_tag_trace(var)
-                return var
-            except TypeError:
-                continue
-            # This may happen when kwargs were supplied
-            # if kwargs were given, the generic_constructor won't be callable.
-            #
-            # This was done on purpose, the rationale being that if kwargs
-            # were supplied, the user didn't want them to be ignored.
-
+        var = shared_constructor(
+            value,
+            name=name,
+            strict=strict,
+            allow_downcast=allow_downcast,
+            **kwargs,
+        )
+        add_tag_trace(var)
+        return var
     except MemoryError as e:
         e.args = e.args + ("Consider using `aesara.shared(..., borrow=True)`",)
         raise
 
-    raise TypeError(
-        "No suitable SharedVariable constructor could be found."
-        " Are you sure all kwargs are supported?"
-        " We do not support the parameter dtype or type."
-        f' value="{value}". parameters="{kwargs}"'
-    )
 
-
-shared.constructors = []
-
-
-@shared_constructor
-def generic_constructor(value, name=None, strict=False, allow_downcast=None):
-    """
-    SharedVariable Constructor.
-
-    """
+@singledispatch
+def shared_constructor(value, name=None, strict=False, allow_downcast=None, **kwargs):
     return SharedVariable(
         type=generic,
         value=value,
