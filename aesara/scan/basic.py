@@ -996,8 +996,8 @@ def scan(
             # We also don't want to remove a default update that applies to
             # the scope/context containing this `Scan`, so we only remove
             # default updates on "local" variables.
-            if is_local and hasattr(input.variable, "default_update"):
-                del input.variable.default_update
+            if is_local and input.variable.default_update is not None:
+                input.variable.default_update = None
 
             new_var = safe_new(input.variable)
 

@@ -103,7 +103,7 @@ def rebuild_collect_shared(
         elif isinstance(v, SharedVariable):
             if v not in shared_inputs:
                 shared_inputs.append(v)
-            if hasattr(v, "default_update"):
+            if v.default_update is not None:
                 # Check that v should not be excluded from the default
                 # updates list
                 if no_default_updates is False or (

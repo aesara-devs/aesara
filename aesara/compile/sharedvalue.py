@@ -7,8 +7,6 @@ import copy
 from contextlib import contextmanager
 from typing import List, Optional
 
-import numpy as np
-
 from aesara.graph.basic import Variable
 from aesara.graph.utils import add_tag_trace
 from aesara.link.basic import Container
@@ -103,6 +101,8 @@ class SharedVariable(Variable):
         if isinstance(__SHARED_CONTEXT__, list):
             __SHARED_CONTEXT__.append(self)
 
+        self._default_update: Optional[Variable] = None
+
     def get_value(self, borrow=False, return_internal_type=False):
         """
         Get the non-symbolic value associated with this SharedVariable.
@@ -179,47 +179,23 @@ class SharedVariable(Variable):
         cp.tag = copy.copy(self.tag)
         return cp
 
-    def __getitem__(self, *args):
-        # __getitem__ is not available for generic SharedVariable objects.
-        # We raise a TypeError like Python would do if __getitem__ was not
-        # implemented at all, but with a more explicit error message to help
-        # Aesara users figure out the root of the problem more easily.
-        value = self.get_value(borrow=True)
-        if isinstance(value, np.ndarray):
-            # Array probably had an unknown dtype.
-            msg = (
-                f"a Numpy array with dtype: '{value.dtype}'. This data type is not "
-                "currently recognized by Aesara tensors: please cast "
-                "your data into a supported numeric type if you need "
-                "Aesara tensor functionalities."
-            )
+    @property
+    def default_update(self) -> Optional[Variable]:
+        """A default update expression for this `Variable`.
+
+        If this value is non-``None``, its value will be used as the `update`
+        (see `aesara.function`) for this `Variable` when no updates are
+        provided through `aesara.function` and `no_default_updates` isn't
+        enabled.
+        """
+        return self._default_update
+
+    @default_update.setter
+    def default_update(self, value):
+        if value is not None:
+            self._default_update = self.type.filter_variable(value, allow_convert=True)
         else:
-            msg = (
-                f"an object of type: {type(value)}. Did you forget to cast it into "
-                "a Numpy array before calling aesara.shared()?"
-            )
-
-        raise TypeError(
-            "The generic 'SharedVariable' object is not subscriptable. "
-            f"This shared variable contains {msg}"
-        )
-
-    def _value_get(self):
-        raise Exception(
-            "sharedvar.value does not exist anymore. Use "
-            "sharedvar.get_value() or sharedvar.set_value()"
-            " instead."
-        )
-
-    def _value_set(self, new_value):
-        raise Exception(
-            "sharedvar.value does not exist anymore. Use "
-            "sharedvar.get_value() or sharedvar.set_value()"
-            " instead."
-        )
-
-    # We keep this just to raise an error
-    value = property(_value_get, _value_set)
+            self._default_update = value
 
 
 def shared_constructor(ctor, remove=False):
