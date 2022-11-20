@@ -2,7 +2,7 @@
 from collections import OrderedDict
 from copy import copy
 from functools import partial
-from typing import List, Optional, Sequence, cast
+from typing import Dict, List, Optional, Sequence, Tuple, cast
 
 import aesara.tensor as at
 from aesara import function
@@ -79,6 +79,81 @@ def infer_shape(outs, inputs, input_shapes):
         local_traverse(o)
         ret.append(shape_feature.shape_of[o])
     return ret
+
+
+def construct_nominal_fgraph(
+    inputs: Sequence[Variable], outputs: Sequence[Variable]
+) -> Tuple[
+    FunctionGraph,
+    Sequence[Variable],
+    Dict[Variable, Variable],
+    Dict[Variable, Variable],
+]:
+    """Construct an inner-`FunctionGraph` with ordered nominal inputs."""
+    dummy_inputs = []
+    for n, inp in enumerate(inputs):
+        if (
+            not isinstance(inp, Variable)
+            or isinstance(inp, Constant)
+            or isinstance(inp, SharedVariable)
+        ):
+            raise TypeError(
+                f"Inputs and outputs must be non-Constant/shared Variable instances; got {inp}"
+            )
+
+        dummy_inputs.append(inp.type())
+
+    dummy_shared_inputs = []
+    shared_inputs = []
+    for var in graph_inputs(outputs, inputs):
+        if isinstance(var, SharedVariable):
+            # To correctly support shared variables the inner-graph should
+            # not see them; otherwise, there will be problems with
+            # gradients.
+            # That's why we collect the shared variables and replace them
+            # with dummies.
+            shared_inputs.append(var)
+            dummy_shared_inputs.append(var.type())
+        elif var not in inputs and not isinstance(var, Constant):
+            raise MissingInputError(f"OpFromGraph is missing an input: {var}")
+
+    replacements = dict(zip(inputs + shared_inputs, dummy_inputs + dummy_shared_inputs))
+
+    new = rebuild_collect_shared(
+        cast(Sequence[Variable], outputs),
+        inputs=inputs + shared_inputs,
+        replace=replacements,
+        copy_inputs_over=False,
+    )
+    (
+        local_inputs,
+        local_outputs,
+        (clone_d, update_d, update_expr, new_shared_inputs),
+    ) = new
+
+    assert len(local_inputs) == len(inputs) + len(shared_inputs)
+    assert len(local_outputs) == len(outputs)
+    assert not update_d
+    assert not update_expr
+    assert not new_shared_inputs
+
+    fgraph = FunctionGraph(local_inputs, local_outputs, clone=False)
+
+    # The inputs need to be `NominalVariable`s so that we can merge
+    # inner-graphs
+    nominal_local_inputs = tuple(
+        NominalVariable(n, var.type) for n, var in enumerate(local_inputs)
+    )
+
+    fgraph.replace_all(zip(local_inputs, nominal_local_inputs))
+
+    for i, inp in enumerate(fgraph.inputs):
+        nom_inp = nominal_local_inputs[i]
+        fgraph.inputs[i] = nom_inp
+        fgraph.clients.pop(inp, None)
+        fgraph.add_input(nom_inp)
+
+    return fgraph, shared_inputs, update_d, update_expr
 
 
 class OpFromGraph(Op, HasInnerGraph):
@@ -338,75 +413,14 @@ class OpFromGraph(Op, HasInnerGraph):
                     f"Inputs and outputs must be Variable instances; got {out}"
                 )
 
-        dummy_inputs = []
-        for n, inp in enumerate(inputs):
-            if (
-                not isinstance(inp, Variable)
-                or isinstance(inp, Constant)
-                or isinstance(inp, SharedVariable)
-            ):
-                raise TypeError(
-                    f"Inputs and outputs must be non-Constant/shared Variable instances; got {inp}"
-                )
-
-            dummy_inputs.append(inp.type())
-
         if "updates" in kwargs or "givens" in kwargs:
             raise NotImplementedError("Updates and givens are not supported")
 
         self.is_inline = inline
 
-        dummy_shared_inputs = []
-        self.shared_inputs = []
-        for var in graph_inputs(outputs, inputs):
-            if isinstance(var, SharedVariable):
-                # To correctly support shared variables the inner-graph should
-                # not see them; otherwise, there will be problems with
-                # gradients.
-                # That's why we collect the shared variables and replace them
-                # with dummies.
-                self.shared_inputs.append(var)
-                dummy_shared_inputs.append(var.type())
-            elif var not in inputs and not isinstance(var, Constant):
-                raise MissingInputError(f"OpFromGraph is missing an input: {var}")
-
-        replacements = dict(
-            zip(inputs + self.shared_inputs, dummy_inputs + dummy_shared_inputs)
+        self.fgraph, self.shared_inputs, _, _ = construct_nominal_fgraph(
+            inputs, outputs
         )
-
-        new = rebuild_collect_shared(
-            cast(Sequence[Variable], outputs),
-            inputs=inputs + self.shared_inputs,
-            replace=replacements,
-            copy_inputs_over=False,
-        )
-        (
-            local_inputs,
-            local_outputs,
-            (clone_d, update_d, update_expr, shared_inputs),
-        ) = new
-
-        assert len(local_inputs) == len(inputs) + len(self.shared_inputs)
-        assert len(local_outputs) == len(outputs)
-        assert not update_d
-        assert not update_expr
-        assert not shared_inputs
-
-        self.fgraph = FunctionGraph(local_inputs, local_outputs, clone=False)
-
-        # The inputs need to be `NominalVariable`s so that we can merge
-        # inner-graphs
-        nominal_local_inputs = tuple(
-            NominalVariable(n, var.type) for n, var in enumerate(local_inputs)
-        )
-
-        self.fgraph.replace_all(zip(local_inputs, nominal_local_inputs))
-
-        for i, inp in enumerate(self.fgraph.inputs):
-            nom_inp = nominal_local_inputs[i]
-            self.fgraph.inputs[i] = nom_inp
-            self.fgraph.clients.pop(inp, None)
-            self.fgraph.add_input(nom_inp)
 
         self.kwargs = kwargs
         self.input_types = [inp.type for inp in inputs]
