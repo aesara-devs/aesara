@@ -3,7 +3,6 @@ Provide a simple user friendly API.
 
 """
 
-import logging
 from copy import copy
 from typing import Optional
 
@@ -14,11 +13,6 @@ from aesara.compile.sharedvalue import SharedVariable, shared
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant, Variable, clone_node_and_cache
 from aesara.graph.fg import FunctionGraph
-
-
-_logger = logging.getLogger("aesara.compile.function.pfunc")
-
-__docformat__ = "restructuredtext en"
 
 
 def rebuild_collect_shared(
