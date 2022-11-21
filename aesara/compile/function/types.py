@@ -32,6 +32,7 @@ from aesara.link.utils import raise_with_op
 
 
 if TYPE_CHECKING:
+    from aesara.compile.mode import Mode
     from aesara.link.vm import VM
 
 
@@ -1391,8 +1392,15 @@ class FunctionMaker:
 
     @staticmethod
     def prepare_fgraph(
-        inputs, outputs, additional_outputs, fgraph, rewriter, linker, profile
+        inputs,
+        outputs,
+        additional_outputs,
+        fgraph: FunctionGraph,
+        mode: "Mode",
+        profile,
     ):
+
+        rewriter = mode.optimizer
 
         try:
             start_rewriter = time.perf_counter()
@@ -1401,6 +1409,7 @@ class FunctionMaker:
             rewrite_time = None
 
             with config.change_flags(
+                mode=mode,
                 compute_test_value=config.compute_test_value_opt,
                 traceback__limit=config.traceback__compile_limit,
             ):
@@ -1440,7 +1449,7 @@ class FunctionMaker:
                     stacklevel=3,
                 )
 
-        if not hasattr(linker, "accept"):
+        if not hasattr(mode.linker, "accept"):
             raise ValueError(
                 "'linker' parameter of FunctionMaker should be "
                 f"a Linker with an accept method or one of {list(aesara.compile.mode.predefined_linkers.keys())}"
@@ -1511,12 +1520,8 @@ class FunctionMaker:
 
         self.fgraph = fgraph
 
-        rewriter, linker = mode.optimizer, copy.copy(mode.linker)
-
         if not no_fgraph_prep:
-            self.prepare_fgraph(
-                inputs, outputs, found_updates, fgraph, rewriter, linker, profile
-            )
+            self.prepare_fgraph(inputs, outputs, found_updates, fgraph, mode, profile)
 
         assert len(fgraph.outputs) == len(outputs + found_updates)
 
@@ -1527,6 +1532,8 @@ class FunctionMaker:
             for output, spec in zip(fgraph.outputs, outputs + found_updates)
             if not spec.borrow
         ]
+
+        linker = copy.copy(mode.linker)
 
         if no_borrow:
             self.linker = linker.accept(
