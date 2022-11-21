@@ -7,6 +7,8 @@ import logging
 import warnings
 from typing import Optional, Tuple, Union
 
+from typing_extensions import Literal
+
 from aesara.compile.function.types import Supervisor
 from aesara.configdefaults import config
 from aesara.graph.destroyhandler import DestroyHandler
@@ -530,3 +532,26 @@ def register_mode(name, mode):
     if name in predefined_modes:
         raise ValueError(f"Mode name already taken: {name}")
     predefined_modes[name] = mode
+
+
+def get_target_language(mode=None) -> Tuple[Literal["py", "c", "numba", "jax"], ...]:
+    """Get the compilation target language."""
+
+    if mode is None:
+        mode = get_default_mode()
+
+    linker = mode.linker
+
+    if isinstance(linker, NumbaLinker):
+        return ("numba",)
+    if isinstance(linker, JAXLinker):
+        return ("jax",)
+    if isinstance(linker, PerformLinker):
+        return ("py",)
+    if isinstance(linker, CLinker):
+        return ("c",)
+
+    if isinstance(linker, (VMLinker, OpWiseCLinker)):
+        return ("c", "py") if config.cxx else ("py",)
+
+    raise Exception(f"Unsupported Linker: {linker}")
