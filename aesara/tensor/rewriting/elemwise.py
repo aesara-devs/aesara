@@ -839,9 +839,9 @@ class FusionOptimizer(GraphRewriter):
             callbacks_before = fgraph.execute_callbacks_times.copy()
             callback_before = fgraph.execute_callbacks_time
         while did_something:
-            t0 = time.time()
+            t0 = time.perf_counter()
             nodelist = list(fgraph.toposort())
-            time_toposort += time.time() - t0
+            time_toposort += time.perf_counter() - t0
             nodelist.reverse()
             did_something = False
             for node in nodelist:

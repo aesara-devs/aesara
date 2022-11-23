@@ -112,13 +112,13 @@ def test_merge_opt_runtime():
     for i in range(50):
         r = r + r / 10
 
-    t = time.time()
+    t = time.perf_counter()
     aesara.function([x], r, mode="FAST_COMPILE")
     # FAST_RUN does in-place optimizer which requires a lot of
     # toposorting, which is actually pretty slow at the moment.  This
     # test was designed to test MergeOptimizer... so I'm leaving
     # toposort optimizations for a later date.
-    dt = time.time() - t
+    dt = time.perf_counter() - t
 
     # it should never take longer than 5 seconds to compile this graph
     assert dt < 5.0, dt

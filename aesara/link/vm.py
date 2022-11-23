@@ -394,9 +394,9 @@ class Loop(UpdatingVM):
                 for thunk, node, old_storage in zip_longest(
                     self.thunks, self.nodes, self.post_thunk_clear, fillvalue=()
                 ):
-                    t0 = time.time()
+                    t0 = time.perf_counter()
                     thunk()
-                    t1 = time.time()
+                    t1 = time.perf_counter()
                     self.call_counts[i] += 1
                     self.call_times[i] += t1 - t0
                     for old_s in old_storage:
@@ -515,15 +515,15 @@ class Stack(UpdatingVM):
 
         """
         idx = self.node_idx[node]
-        t0 = time.time()
+        t0 = time.perf_counter()
         rval = self.thunks[idx]()
         self.node_executed_order.append(node)
 
         # Some thunks on some computers run faster than the granularity
-        # of the time.time clock.
+        # of the time.perf_counter clock.
         # Profile output looks buggy if a node has run but takes 0 time.
         # (and profile code might hide real bugs if it rounds up 0)
-        dt = max(time.time() - t0, 1e-10)
+        dt = max(time.perf_counter() - t0, 1e-10)
         if self.callback is not None:
             self.callback(
                 node=node,
@@ -1231,21 +1231,21 @@ class VMLinker(LocalLinker):
 
         thunks = []
 
-        t0 = time.time()
+        t0 = time.perf_counter()
         linker_make_thunk_time = {}
         impl = None
         if self.c_thunks is False:
             impl = "py"
         for node in order:
             try:
-                thunk_start = time.time()
+                thunk_start = time.perf_counter()
                 # no-recycling is done at each VM.__call__ So there is
                 # no need to cause duplicate c code by passing
                 # no_recycling here.
                 thunks.append(
                     node.op.make_thunk(node, storage_map, compute_map, [], impl=impl)
                 )
-                linker_make_thunk_time[node] = time.time() - thunk_start
+                linker_make_thunk_time[node] = time.perf_counter() - thunk_start
                 if not hasattr(thunks[-1], "lazy"):
                     # We don't want all ops maker to think about lazy Ops.
                     # So if they didn't specify that its lazy or not, it isn't.
@@ -1254,7 +1254,7 @@ class VMLinker(LocalLinker):
             except Exception:
                 raise_with_op(fgraph, node)
 
-        t1 = time.time()
+        t1 = time.perf_counter()
 
         if self.profile:
             self.profile.linker_node_make_thunks += t1 - t0

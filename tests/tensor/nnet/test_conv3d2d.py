@@ -127,9 +127,9 @@ def test_conv3d(border_mode):
         np.arange(Nf * Tf * C * Hf * Wf).reshape(Nf, Tf, C, Hf, Wf).astype("float32")
     )
 
-    # t0 = time.time()
+    # t0 = time.perf_counter()
     pyres = pyconv3d(signals, filters, border_mode)
-    # print(time.time() - t0)
+    # print(time.perf_counter() - t0)
 
     s_signals = shared(signals)
     s_filters = shared(filters)
@@ -146,9 +146,9 @@ def test_conv3d(border_mode):
     newconv3d = aesara.function([], [], updates={s_output: out}, mode=mode)
 
     check_diagonal_subtensor_view_traces(newconv3d)
-    # t0 = time.time()
+    # t0 = time.perf_counter()
     newconv3d()
-    # print(time.time() - t0)
+    # print(time.perf_counter() - t0)
     utt.assert_allclose(pyres, s_output.get_value(borrow=True))
     gsignals, gfilters = aesara.grad(out.sum(), [s_signals, s_filters])
     gnewconv3d = aesara.function(
@@ -160,9 +160,9 @@ def test_conv3d(border_mode):
     )
     check_diagonal_subtensor_view_traces(gnewconv3d)
 
-    # t0 = time.time()
+    # t0 = time.perf_counter()
     gnewconv3d()
-    # print("grad", time.time() - t0)
+    # print("grad", time.perf_counter() - t0)
 
     Ns, Ts, C, Hs, Ws = 3, 3, 3, 5, 5
     Nf, Tf, C, Hf, Wf = 4, 2, 3, 2, 2
@@ -189,9 +189,9 @@ def test_conv3d(border_mode):
         np.arange(Nf * Tf * C * Hf * Wf).reshape(Nf, Tf, C, Hf, Wf).astype("float32")
     )
 
-    # t0 = time.time()
+    # t0 = time.perf_counter()
     pyres = pyconv3d(signals, filters, border_mode)
-    # print(time.time() - t0)
+    # print(time.perf_counter() - t0)
 
     s_signals = shared(signals)
     s_filters = shared(filters)
@@ -207,9 +207,9 @@ def test_conv3d(border_mode):
 
     newconv3d = aesara.function([], [], updates={s_output: out}, mode=mode)
 
-    # t0 = time.time()
+    # t0 = time.perf_counter()
     newconv3d()
-    # print(time.time() - t0)
+    # print(time.perf_counter() - t0)
     utt.assert_allclose(pyres, s_output.get_value(borrow=True))
     gsignals, gfilters = aesara.grad(out.sum(), [s_signals, s_filters])
     gnewconv3d = aesara.function(
@@ -220,9 +220,9 @@ def test_conv3d(border_mode):
         name="grad",
     )
 
-    # t0 = time.time()
+    # t0 = time.perf_counter()
     gnewconv3d()
-    # print("grad", time.time() - t0)
+    # print("grad", time.perf_counter() - t0)
 
     Ns, Ts, C, Hs, Ws = 3, 3, 3, 5, 5
     Nf, Tf, C, Hf, Wf = 4, 1, 3, 2, 2

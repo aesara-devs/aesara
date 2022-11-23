@@ -712,7 +712,7 @@ class FunctionGraph(MetaObject):
         a method called after name.
 
         """
-        t0 = time.time()
+        t0 = time.perf_counter()
         for feature in self._features:
             try:
                 fn = getattr(feature, name)
@@ -721,10 +721,10 @@ class FunctionGraph(MetaObject):
                 # try; the AttributeError really must come from feature.${name}
                 # not existing
                 continue
-            tf0 = time.time()
+            tf0 = time.perf_counter()
             fn(self, *args, **kwargs)
-            self.execute_callbacks_times[feature] += time.time() - tf0
-        self.execute_callbacks_time += time.time() - t0
+            self.execute_callbacks_times[feature] += time.perf_counter() - tf0
+        self.execute_callbacks_time += time.perf_counter() - t0
 
     def collect_callbacks(self, name: str, *args) -> Dict[Feature, Any]:
         """Collects callbacks

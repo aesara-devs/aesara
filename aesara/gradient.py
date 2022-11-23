@@ -492,7 +492,7 @@ def grad(
         respect to the output, then a zero variable is returned.
 
     """
-    t0 = time.time()
+    t0 = time.perf_counter()
 
     if cost is None:
         if known_grads is None:
@@ -643,7 +643,7 @@ def grad(
             else:
                 assert return_disconnected.lower() == "disconnected"
 
-    t1 = time.time()
+    t1 = time.perf_counter()
     global grad_time
     grad_time += t1 - t0
 

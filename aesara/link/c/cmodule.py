@@ -326,11 +326,11 @@ def dlimport(fullpath, suffix=None):
     global import_time
     try:
         importlib.invalidate_caches()
-        t0 = time.time()
+        t0 = time.perf_counter()
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", message="numpy.ndarray size changed")
             rval = __import__(module_name, {}, {}, [module_name])
-        t1 = time.time()
+        t1 = time.perf_counter()
         import_time += t1 - t0
         if not rval:
             raise Exception("__import__ failed", fullpath)
@@ -771,7 +771,7 @@ class ModuleCache:
         """
         if age_thresh_use is None:
             age_thresh_use = self.age_thresh_use
-        start_time = time.time()
+        start_time = time.perf_counter()
         too_old_to_use = []
 
         to_delete = []
@@ -786,7 +786,7 @@ class ModuleCache:
                 to_delete_empty.append((args, kwargs))
 
         # add entries that are not in the entry_from_key dictionary
-        time_now = time.time()
+        time_now = time.perf_counter()
         # Go through directories in alphabetical order to ensure consistent
         # behavior.
         try:
@@ -956,7 +956,7 @@ class ModuleCache:
                             # directories in alphabetical order so as to make
                             # sure all new processes only use the first one.
                             if cleanup:
-                                age = time.time() - last_access_time(entry)
+                                age = time.perf_counter() - last_access_time(entry)
                                 if delete_if_problem or age > self.age_thresh_del:
                                     rmtree(
                                         root,
@@ -1063,7 +1063,7 @@ class ModuleCache:
                     if not files:
                         _rmtree(*a, **kw)
 
-            _logger.debug(f"Time needed to refresh cache: {time.time() - start_time}")
+            _logger.debug(f"Time needed to refresh cache: {time.perf_counter() - start_time}")
 
         return too_old_to_use
 
@@ -1269,7 +1269,7 @@ class ModuleCache:
             Its associated pickled file containing a KeyData.
 
         """
-        start_time = time.time()
+        start_time = time.perf_counter()
         # Verify that when we reload the KeyData from the pickled file, the
         # same key can be found in it, and is not equal to more than one
         # other key.
@@ -1317,7 +1317,7 @@ class ModuleCache:
                     f"The keys are:\n  {other}\nand\n  {key}\n(found in {key_pkl})."
                 )
 
-        self.time_spent_in_check_key += time.time() - start_time
+        self.time_spent_in_check_key += time.perf_counter() - start_time
 
     # default 31 days
     age_thresh_del = config.cmodule__age_thresh_use + 60 * 60 * 24 * 7
@@ -1506,7 +1506,7 @@ class ModuleCache:
             assert key[0]
 
         to_del = []
-        time_now = time.time()
+        time_now = time.perf_counter()
         for filename in os.listdir(self.dirname):
             if filename.startswith("tmp"):
                 try:
