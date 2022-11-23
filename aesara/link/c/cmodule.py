@@ -1063,7 +1063,9 @@ class ModuleCache:
                     if not files:
                         _rmtree(*a, **kw)
 
-            _logger.debug(f"Time needed to refresh cache: {time.perf_counter() - start_time}")
+            _logger.debug(
+                f"Time needed to refresh cache: {time.perf_counter() - start_time}"
+            )
 
         return too_old_to_use
 
