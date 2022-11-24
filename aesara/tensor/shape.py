@@ -22,6 +22,9 @@ from aesara.tensor.type_other import NoneConst
 from aesara.tensor.var import TensorConstant, TensorVariable
 
 
+ShapeValueType = Union[None, np.integer, int, Variable]
+
+
 def register_shape_c_code(type, code, version=()):
     """
     Tell Shape Op how to generate C code for an Aesara Type.
@@ -541,9 +544,7 @@ _specify_shape = SpecifyShape()
 
 def specify_shape(
     x: Union[np.ndarray, Number, Variable],
-    shape: Union[
-        int, List[Union[int, Variable]], Tuple[Union[int, Variable]], Variable
-    ],
+    shape: Union[ShapeValueType, List[ShapeValueType], Tuple[ShapeValueType]],
 ):
     """Specify a fixed shape for a `Variable`.
 
