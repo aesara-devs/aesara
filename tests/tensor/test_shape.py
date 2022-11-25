@@ -478,6 +478,10 @@ class TestSpecifyShape(utt.InferShapeTester):
         with pytest.raises(AssertionError, match="SpecifyShape:.*"):
             f(xval, 3)
 
+        f = aesara.function([x], specify_shape(x, None, -2), mode=self.mode)
+        x_val = np.zeros((3, 1), dtype=config.floatX)
+        assert np.array_equal(f(xval), xval)
+
     def test_infer_shape(self):
         rng = np.random.default_rng(3453)
         adtens4 = dtensor4()
@@ -514,7 +518,9 @@ class TestSpecifyShape(utt.InferShapeTester):
 
         assert specify_shape(x, (1, 2, 3)) is not x
         assert specify_shape(x, (None, None, 3)) is not x
-        assert specify_shape(x, (1, 3, None)) is not x
+
+        with pytest.raises(AssertionError, match="SpecifyShape:.*"):
+            specify_shape(x, (1, 3, None))
 
     def test_specify_shape_in_grad(self):
         x = matrix()

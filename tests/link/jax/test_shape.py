@@ -36,9 +36,22 @@ def test_jax_specify_shape():
 
     compare_jax_and_py(x_fg, [])
 
+    x_np = np.zeros((20, 3))
+    x = SpecifyShape()(at.as_tensor_variable(x_np), (20, -2))
+    x_fg = FunctionGraph([], [x])
+
+    compare_jax_and_py(x_fg, [])
+
     with config.change_flags(compute_test_value="off"):
 
         x = SpecifyShape()(at.as_tensor_variable(x_np), *(2, 3))
+        x_fg = FunctionGraph([], [x])
+
+        with pytest.raises(AssertionError):
+            compare_jax_and_py(x_fg, [])
+
+        x_np = np.zeros((20, 1))
+        x = SpecifyShape()(at.as_tensor_variable(x_np), *(2, -1))
         x_fg = FunctionGraph([], [x])
 
         with pytest.raises(AssertionError):
