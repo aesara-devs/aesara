@@ -298,9 +298,9 @@ class SequentialGraphRewriter(GraphRewriter, UserList):
             for rewriter in self.data:
                 try:
                     nb_nodes_before = len(fgraph.apply_nodes)
-                    t0 = time.time()
+                    t0 = time.perf_counter()
                     sub_prof = rewriter.apply(fgraph)
-                    l.append(float(time.time() - t0))
+                    l.append(float(time.perf_counter() - t0))
                     sub_profs.append(sub_prof)
                     nb_nodes.append((nb_nodes_before, len(fgraph.apply_nodes)))
                     if fgraph.profile:
@@ -701,7 +701,7 @@ class MergeOptimizer(GraphRewriter):
     def apply(self, fgraph):
         sched = fgraph.merge_feature.scheduled
         nb_fail = 0
-        t0 = time.time()
+        t0 = time.perf_counter()
         if fgraph.profile:
             validate_before = fgraph.profile.validate_time
             callback_before = fgraph.execute_callbacks_time
@@ -807,7 +807,7 @@ class MergeOptimizer(GraphRewriter):
 
         return (
             nb_fail,
-            time.time() - t0,
+            time.perf_counter() - t0,
             validate_time,
             callback_time,
             callbacks_time,
@@ -1066,9 +1066,9 @@ class MetaNodeRewriter(NodeRewriter):
         return self.track_dict[type(node.op)]
 
     def time_call(self, fn):
-        start = time.time()
+        start = time.perf_counter()
         fn()
-        return time.time() - start
+        return time.perf_counter() - start
 
 
 class FromFunctionNodeRewriter(NodeRewriter):
@@ -1303,9 +1303,9 @@ class SequentialNodeRewriter(NodeRewriter):
 
             new_repl = None
             for rewrite in rewrites:
-                rewrite_start = time.time()
+                rewrite_start = time.perf_counter()
                 new_repl = rewrite.transform(fgraph, node)
-                rewrite_finish = time.time()
+                rewrite_finish = time.perf_counter()
                 if self.profile:
                     self.time_rewrites[rewrite] += rewrite_start - rewrite_finish
                     self.process_count[rewrite] += 1
@@ -2026,9 +2026,9 @@ class WalkingGraphRewriter(NodeProcessingGraphRewriter):
             start_from = fgraph.outputs
         callback_before = fgraph.execute_callbacks_time
         nb_nodes_start = len(fgraph.apply_nodes)
-        t0 = time.time()
+        t0 = time.perf_counter()
         q = deque(io_toposort(fgraph.inputs, start_from))
-        io_t = time.time() - t0
+        io_t = time.perf_counter() - t0
 
         def importer(node):
             if node is not current_node:
@@ -2039,7 +2039,7 @@ class WalkingGraphRewriter(NodeProcessingGraphRewriter):
         )
         nb = 0
         try:
-            t0 = time.time()
+            t0 = time.perf_counter()
             while q:
                 if self.order == "out_to_in":
                     node = q.pop()
@@ -2049,7 +2049,7 @@ class WalkingGraphRewriter(NodeProcessingGraphRewriter):
                     continue
                 current_node = node
                 nb += self.process_node(fgraph, node)
-            loop_t = time.time() - t0
+            loop_t = time.perf_counter() - t0
         finally:
             self.detach_updater(fgraph, u)
 
@@ -2367,9 +2367,9 @@ class EquilibriumGraphRewriter(NodeProcessingGraphRewriter):
             for crewriter in self.cleanup_rewriters:
                 change_tracker.reset()
                 nb = change_tracker.nb_imported
-                t_rewrite = time.time()
+                t_rewrite = time.perf_counter()
                 sub_prof = crewriter.apply(fgraph)
-                time_rewriters[crewriter] += time.time() - t_rewrite
+                time_rewriters[crewriter] += time.perf_counter() - t_rewrite
                 profs_dict[crewriter].append(sub_prof)
                 if change_tracker.changed:
                     process_count.setdefault(crewriter, 0)
@@ -2381,7 +2381,7 @@ class EquilibriumGraphRewriter(NodeProcessingGraphRewriter):
 
         while changed and not max_use_abort:
             process_count = {}
-            t0 = time.time()
+            t0 = time.perf_counter()
             changed = False
             iter_cleanup_sub_profs = {}
             for crewrite in self.cleanup_rewriters:
@@ -2392,9 +2392,9 @@ class EquilibriumGraphRewriter(NodeProcessingGraphRewriter):
             for grewrite in self.global_rewriters:
                 change_tracker.reset()
                 nb = change_tracker.nb_imported
-                t_rewrite = time.time()
+                t_rewrite = time.perf_counter()
                 sub_prof = grewrite.apply(fgraph)
-                time_rewriters[grewrite] += time.time() - t_rewrite
+                time_rewriters[grewrite] += time.perf_counter() - t_rewrite
                 sub_profs.append(sub_prof)
                 if change_tracker.changed:
                     process_count.setdefault(grewrite, 0)
@@ -2409,13 +2409,13 @@ class EquilibriumGraphRewriter(NodeProcessingGraphRewriter):
                         )
             global_sub_profs.append(sub_profs)
 
-            global_rewriter_timing.append(float(time.time() - t0))
+            global_rewriter_timing.append(float(time.perf_counter() - t0))
 
             changed |= apply_cleanup(iter_cleanup_sub_profs)
 
-            topo_t0 = time.time()
+            topo_t0 = time.perf_counter()
             q = deque(io_toposort(fgraph.inputs, start_from))
-            io_toposort_timing.append(time.time() - topo_t0)
+            io_toposort_timing.append(time.perf_counter() - topo_t0)
 
             nb_nodes.append(len(q))
             max_nb_nodes = max(max_nb_nodes, len(q))
@@ -2443,11 +2443,11 @@ class EquilibriumGraphRewriter(NodeProcessingGraphRewriter):
                     current_node = node
                     for node_rewriter in self.node_tracker.get_trackers(node.op):
                         nb = change_tracker.nb_imported
-                        t_rewrite = time.time()
+                        t_rewrite = time.perf_counter()
                         node_rewriter_change = self.process_node(
                             fgraph, node, node_rewriter
                         )
-                        time_rewriters[node_rewriter] += time.time() - t_rewrite
+                        time_rewriters[node_rewriter] += time.perf_counter() - t_rewrite
                         if not node_rewriter_change:
                             continue
                         process_count.setdefault(node_rewriter, 0)
@@ -2469,13 +2469,13 @@ class EquilibriumGraphRewriter(NodeProcessingGraphRewriter):
 
             # Apply final rewriters
             sub_profs = []
-            t_before_final_rewrites = time.time()
+            t_before_final_rewrites = time.perf_counter()
             for grewrite in self.final_rewriters:
                 change_tracker.reset()
                 nb = change_tracker.nb_imported
-                t_rewrite = time.time()
+                t_rewrite = time.perf_counter()
                 sub_prof = grewrite.apply(fgraph)
-                time_rewriters[grewrite] += time.time() - t_rewrite
+                time_rewriters[grewrite] += time.perf_counter() - t_rewrite
                 sub_profs.append(sub_prof)
                 if change_tracker.changed:
                     process_count.setdefault(grewrite, 0)
@@ -2490,7 +2490,7 @@ class EquilibriumGraphRewriter(NodeProcessingGraphRewriter):
                         )
             final_sub_profs.append(sub_profs)
 
-            global_rewriter_timing[-1] += time.time() - t_before_final_rewrites
+            global_rewriter_timing[-1] += time.perf_counter() - t_before_final_rewrites
 
             changed |= apply_cleanup(iter_cleanup_sub_profs)
 
@@ -2504,7 +2504,7 @@ class EquilibriumGraphRewriter(NodeProcessingGraphRewriter):
             cleanup_sub_profs.append(c_sub_profs)
 
             loop_process_count.append(process_count)
-            loop_timing.append(float(time.time() - t0))
+            loop_timing.append(float(time.perf_counter() - t0))
 
         end_nb_nodes = len(fgraph.apply_nodes)
 

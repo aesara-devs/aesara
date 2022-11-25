@@ -113,12 +113,12 @@ def test_speed():
         x = np.asarray([2.0, 3.0], dtype=config.floatX)
 
         numpy_version(x, steps_a)
-        t0 = time.time()
+        t0 = time.perf_counter()
         # print numpy_version(x, steps_a)
-        t1 = time.time()
-        t2 = time.time()
+        t1 = time.perf_counter()
+        t2 = time.perf_counter()
         # print numpy_version(x, steps_b)
-        t3 = time.time()
+        t3 = time.perf_counter()
         t_a = t1 - t0
         t_b = t3 - t2
 
@@ -135,15 +135,15 @@ def test_speed():
         f_b = function([x], b, mode=Mode(optimizer=None, linker=linker()))
 
         f_a([2.0, 3.0])
-        t0 = time.time()
+        t0 = time.perf_counter()
         f_a([2.0, 3.0])
-        t1 = time.time()
+        t1 = time.perf_counter()
 
         f_b([2.0, 3.0])
 
-        t2 = time.time()
+        t2 = time.perf_counter()
         f_b([2.0, 3.0])
-        t3 = time.time()
+        t3 = time.perf_counter()
 
         t_a = t1 - t0
         t_b = t3 - t2
@@ -185,15 +185,15 @@ def test_speed_lazy(linker):
     f_b = function([x], b, mode=Mode(optimizer=None, linker=linker))
 
     f_a([2.0])
-    t0 = time.time()
+    t0 = time.perf_counter()
     f_a([2.0])
-    t1 = time.time()
+    t1 = time.perf_counter()
 
     f_b([2.0])
 
-    t2 = time.time()
+    t2 = time.perf_counter()
     f_b([2.0])
-    t3 = time.time()
+    t3 = time.perf_counter()
 
     t_a = t1 - t0
     t_b = t3 - t2

@@ -1739,15 +1739,15 @@ class TestFusion:
                 f = function(list(sym_inputs), g, mode=mode)
                 for x in range(nb_repeat):
                     out = f(*val_inputs)
-                t1 = time.time()
+                t1 = time.perf_counter()
             else:
                 out = shared_fn(np.zeros(shp, dtype=out_dtype), "out")
                 assert out.dtype == g.dtype
                 f = function(sym_inputs, [], updates=[(out, g)], mode=mode)
-                t0 = time.time()
+                t0 = time.perf_counter()
                 for x in range(nb_repeat):
                     f(*val_inputs)
-                t1 = time.time()
+                t1 = time.perf_counter()
                 out = out.get_value()
 
             times[id] = t1 - t0
@@ -2327,11 +2327,11 @@ def speed_local_pow_specialize_range():
         f1 = function([v], v**i, mode=mode)
         f2 = function([v], v**i, mode=mode_without_pow_rewrite)
         assert len(f1.maker.fgraph.toposort()) == 1
-        t1 = time.time()
+        t1 = time.perf_counter()
         f1(val)
-        t2 = time.time()
+        t2 = time.perf_counter()
         f2(val)
-        t3 = time.time()
+        t3 = time.perf_counter()
         print(i, t2 - t1, t3 - t2, t2 - t1 < t3 - t2)
         if not t2 - t1 < t3 - t2:
             print("WARNING WE ARE SLOWER")
@@ -2339,11 +2339,11 @@ def speed_local_pow_specialize_range():
         f1 = function([v], v**i, mode=mode)
         f2 = function([v], v**i, mode=mode_without_pow_rewrite)
         assert len(f1.maker.fgraph.toposort()) == 1
-        t1 = time.time()
+        t1 = time.perf_counter()
         f1(val)
-        t2 = time.time()
+        t2 = time.perf_counter()
         f2(val)
-        t3 = time.time()
+        t3 = time.perf_counter()
         print(i, t2 - t1, t3 - t2, t2 - t1 < t3 - t2)
         if not t2 - t1 < t3 - t2:
             print("WARNING WE ARE SLOWER")
@@ -3113,11 +3113,11 @@ class TestLocalErfc:
         f2 = function([x], log(erfc(x)), mode=mode)
         print(f1.maker.fgraph.toposort())
         print(f2.maker.fgraph.toposort())
-        t0 = time.time()
+        t0 = time.perf_counter()
         f1(val)
-        t1 = time.time()
+        t1 = time.perf_counter()
         f2(val)
-        t2 = time.time()
+        t2 = time.perf_counter()
         print(t1 - t0, t2 - t1)
 
 

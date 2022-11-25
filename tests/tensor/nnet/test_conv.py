@@ -615,9 +615,9 @@ class TestConv2D(utt.InferShapeTester):
                             )
                         )
                         aesara_conv = aesara.function([], output, mode=mode)
-                        t1 = time.time()
+                        t1 = time.perf_counter()
                         aesara_conv.vm(n_calls=n_calls)
-                        t2 = time.time()
+                        t2 = time.perf_counter()
                         print(t2 - t1, end=" ")
                     print()
 

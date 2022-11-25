@@ -99,7 +99,7 @@ def exec_multilayer_conv_nnet_old(
             (nkern, ConvOp.getOutputShape(imshp[1:], kshp, ss, conv_mode))
         )
 
-        time1 = time.time()
+        time1 = time.perf_counter()
         outval = np.zeros(np.r_[bsize, outshp])
         if validate:
             # causes an atexit problem
@@ -119,7 +119,7 @@ def exec_multilayer_conv_nnet_old(
                         outval[b, n, ...] += _convolve2d(
                             imgval[b, i, ...], w_flip[n, i, ...], 1, val, bval, 0
                         )[0 :: ss[0], 0 :: ss[1]]
-            ntot += time.time() - time1
+            ntot += time.perf_counter() - time1
 
         # ConvOp
         if unroll_patch and not unroll_patch_size:
@@ -149,18 +149,18 @@ def exec_multilayer_conv_nnet_old(
         propup2 = function([inputs4, kerns4], conv_op)
         propup3 = function([inputs4, kerns4], conv_op, mode=Mode(linker="py"))
 
-        time1 = time.time()
+        time1 = time.perf_counter()
         for i in range(repeat):
             hidval2_ = propup2(imgval, w_flip)
         hidval2 = hidval2_  # [:,:,0::ss[0],0::ss[1]]
-        tctot += time.time() - time1
+        tctot += time.perf_counter() - time1
 
         if conv_op_py:
-            time1 = time.time()
+            time1 = time.perf_counter()
             for i in range(repeat):
                 hidval3_ = propup3(imgval, w_flip)
             hidval3 = hidval3_  # [:,:,0::ss[0],0::ss[1]]
-            tpytot += time.time() - time1
+            tpytot += time.perf_counter() - time1
             assert (np.abs(hidval2 - hidval3) < 1e-5).all()
         else:
             tpytot += 0
@@ -223,7 +223,7 @@ def exec_multilayer_conv_nnet(
             (nkern, ConvOp.getOutputShape(imshp[1:], kshp, ss, conv_mode))
         )
 
-        time1 = time.time()
+        time1 = time.perf_counter()
         # outval = np.zeros(np.r_[bsize, outshp])
 
         # ConvOp
@@ -253,10 +253,10 @@ def exec_multilayer_conv_nnet(
         #                ConvOp.getOutputShape(imshp[1:], kshp, ss, conv_mode)))
         propup2 = function([inputs4, kerns4], conv_op)
 
-        time1 = time.time()
+        time1 = time.perf_counter()
         for i in range(repeat):
             propup2(imgval, w_flip)
-        tctot += time.time() - time1
+        tctot += time.perf_counter() - time1
 
         imshp = tuple(outshp)
         # imgval = outval.reshape(bsize, outshp[0], outshp[1], outshp[2])

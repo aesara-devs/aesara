@@ -82,12 +82,12 @@ def execute(execute=True, verbose=True, M=2000, N=2000, K=2000, iters=10, order=
         if sync:
             # Make sure we don't include the time from the first call
             c.get_value(borrow=True, return_internal_type=True).sync()
-        t0 = time.time()
+        t0 = time.perf_counter()
         for i in range(iters):
             f()
         if sync:
             c.get_value(borrow=True, return_internal_type=True).sync()
-        t1 = time.time()
+        t1 = time.perf_counter()
     return t1 - t0, impl
 
 

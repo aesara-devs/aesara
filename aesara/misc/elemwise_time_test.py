@@ -34,9 +34,9 @@ parser.add_option(
 def evalTime(f, v, script=False, loops=1000):
     min = 1e10
     for i in range(0, loops):
-        t0 = time.time()
+        t0 = time.perf_counter()
         f(v)
-        dt = time.time() - t0
+        dt = time.perf_counter() - t0
         min = dt if dt < min else min
     if not script:
         print(f" run time in {int(loops)} loops was {min:2.9f} sec")

@@ -473,7 +473,7 @@ class Validator(Feature):
         exception. replace_all_validate will print out the
         verbose output. Or it has to be done here before raise.
         """
-        t0 = time.time()
+        t0 = time.perf_counter()
         try:
             ret = fgraph.execute_callbacks("validate")
         except Exception as e:
@@ -494,7 +494,7 @@ class Validator(Feature):
                     reason = uf_info.function
                     print(f"validate failed on node {r}.\n Reason: {reason}, {e}")
                 raise
-        t1 = time.time()
+        t1 = time.perf_counter()
         if fgraph.profile:
             fgraph.profile.validate_time += t1 - t0
         return ret

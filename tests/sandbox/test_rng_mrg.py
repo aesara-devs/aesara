@@ -199,10 +199,10 @@ def check_basics(
     avg_var = 0.0
 
     for i in range(steps):
-        t0 = time.time()
+        t0 = time.perf_counter()
         ival = f(*inputs)
         assert ival.shape == sample_size
-        dt += time.time() - t0
+        dt += time.perf_counter() - t0
         ival = np.asarray(ival)
         if i == 0:
             mean = np.array(ival, copy=True)
@@ -733,11 +733,11 @@ def basic_multinomialtest(
     avg_pvals = np.zeros(target_pvals.shape, dtype=config.floatX)
 
     for i in range(steps):
-        t0 = time.time()
+        t0 = time.perf_counter()
         ival = f()
         assert ival.shape == sample_size
         assert np.all(np.sum(ival, axis=1) == n_samples)
-        dt += time.time() - t0
+        dt += time.perf_counter() - t0
         avg_pvals += ival
     avg_pvals /= steps * n_samples
 

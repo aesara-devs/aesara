@@ -530,7 +530,7 @@ class GemmRelated(COp):
         #ifndef MOD
         #define MOD %
         #endif
-        static double time_time() // a time function like time.time()
+        static double time_time() // a time function like time.perf_counter()
         {
             struct timeval tv;
             gettimeofday(&tv, 0);
@@ -1488,15 +1488,15 @@ def _gemm_from_node2(fgraph, node):
 
     """
     lst = []
-    t0 = time.time()
+    t0 = time.perf_counter()
     _gemm_canonicalize(fgraph, node.outputs[0], 1.0, lst, 0)
-    t1 = time.time()
+    t1 = time.perf_counter()
 
     if len(lst) > 1:
         lst = _factor_canonicalized(lst)
-        t2 = time.time()
+        t2 = time.perf_counter()
         rval = _gemm_from_factored_list(fgraph, lst)
-        t3 = time.time()
+        t3 = time.perf_counter()
 
         # It can happen that _factor_canonicalized and
         # _gemm_from_factored_list return a node with an incorrect
@@ -1549,9 +1549,9 @@ class GemmOptimizer(GraphRewriter):
         fgraph.attach_feature(u)
         while did_something:
             nb_iter += 1
-            t0 = time.time()
+            t0 = time.perf_counter()
             nodelist = aesara.graph.basic.io_toposort(fgraph.inputs, fgraph.outputs)
-            time_toposort += time.time() - t0
+            time_toposort += time.perf_counter() - t0
             did_something = False
             nodelist.reverse()
             for node in nodelist:
