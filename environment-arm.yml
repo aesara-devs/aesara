@@ -1,0 +1,47 @@
+# To use:
+#
+#   $ conda env create -f environment.yml  # `mamba` works too for this command
+#   $ conda activate aesara-dev
+#
+name: aesara-dev
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - compilers
+  - numpy>=1.17.0
+  - scipy>=0.14
+  - filelock
+  - etuples
+  - logical-unification
+  - miniKanren
+  - cons
+  # Non-Intel BLAS
+  - nomkl
+  - openblas
+  - libblas=*=*openblas
+  # numba backend
+  - numba>=0.55.2
+  - llvmlite>=0.38.1
+  - numba-scipy
+  # For testing
+  - coveralls
+  - diff-cover
+  - pytest
+  - pytest-cov
+  - pytest-xdist
+  # For building docs
+  - sphinx>=1.3
+  - sphinx_rtd_theme
+  - pygments
+  - pydot
+  - ipython
+  # developer tools
+  - pre-commit
+  - packaging
+  - typing_extensions
+  # optional
+  - sympy
+  - cython
+  - jax
+  - jaxlib
