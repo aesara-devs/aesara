@@ -234,7 +234,7 @@ def compare_numba_and_py(
     numba_res = aesara_numba_fn(*inputs)
 
     # Get some coverage
-    eval_python_only(fn_inputs, fn_outputs, inputs, mode=numba_mode)
+    # eval_python_only(fn_inputs, fn_outputs, inputs, mode=numba_mode)
 
     if len(fn_outputs) > 1:
         for j, p in zip(numba_res, py_res):

@@ -162,6 +162,52 @@ def create_vectorize_func(
     return elemwise_fn
 
 
+def create_guvectorize_func(
+    scalar_op_fn: Callable,
+    node: Apply,
+    identity: Optional[Any] = None,
+    **kwargs,
+) -> Callable:
+    r"""Create a guvectorized Numba function from a `Apply`\s Python function."""
+
+    signature_ = create_numba_signature(node, force_scalar=False)
+    signature = [(*signature_.args, *signature_.return_type.types)]
+
+    target = (
+        getattr(node.tag, "numba__vectorize_target", None)
+        or config.numba__vectorize_target
+    )
+
+    layout = f"{','.join(('()',) * len(node.inputs))}->{','.join(('()',) * len(node.outputs))}"
+    print(f"{signature=}, {layout=}")
+    numba_guvectorized_fn = numba.guvectorize(
+        signature,
+        layout,
+        identity=identity,
+        target=target,
+        fastmath=config.numba__fastmath,
+    )
+
+    input_names = [f"i{i}" for i in range(len(node.inputs))]
+    output_names = [f"o{i}" for i in range(len(node.outputs))]
+    gu_fn_name = "gu_func"
+
+    gu_fn_src = f"""
+def {gu_fn_name}({', '.join(input_names)}, {', '.join(output_names)}):
+    {'[()], '.join(output_names)}[()] = scalar_op_fn({'[()], '.join(input_names)}[()])
+"""
+    print(gu_fn_src)
+
+    gu_fn_inner = compile_function_src(
+        gu_fn_src, gu_fn_name, {"scalar_op_fn": scalar_op_fn, **globals()}
+    )
+
+    gu_fn = numba_guvectorized_fn(gu_fn_inner)
+    # gu_fn.py_scalar_func = py_scalar_func
+
+    return gu_fn
+
+
 def create_axis_reducer(
     scalar_op: Op,
     identity: Union[np.ndarray, Number],
@@ -426,7 +472,10 @@ def create_axis_apply_fn(fn, axis, ndim, dtype):
 def numba_funcify_Elemwise(op, node, **kwargs):
 
     scalar_op_fn = numba_funcify(op.scalar_op, node=node, inline="always", **kwargs)
-    elemwise_fn = create_vectorize_func(scalar_op_fn, node, use_signature=False)
+    if node.outputs == 1:
+        elemwise_fn = create_vectorize_func(scalar_op_fn, node, use_signature=False)
+    else:
+        elemwise_fn = create_guvectorize_func(scalar_op_fn, node)
     elemwise_fn_name = elemwise_fn.__name__
 
     if op.inplace_pattern:

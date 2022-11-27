@@ -3,6 +3,7 @@ import contextlib
 import numpy as np
 import pytest
 
+import aesara.scalar as aes
 import aesara.tensor as at
 import aesara.tensor.inplace as ati
 import aesara.tensor.math as aem
@@ -12,6 +13,7 @@ from aesara.compile.sharedvalue import SharedVariable
 from aesara.graph.basic import Constant
 from aesara.graph.fg import FunctionGraph
 from aesara.tensor import elemwise as at_elemwise
+from aesara.tensor.elemwise import Elemwise
 from aesara.tensor.math import All, Any, Max, Mean, Min, Prod, ProdWithoutZeros, Sum
 from aesara.tensor.special import LogSoftmax, Softmax, SoftmaxGrad
 from tests.link.numba.test_basic import (
@@ -109,6 +111,21 @@ def test_Elemwise(inputs, input_vals, output_fn, exc):
     cm = contextlib.suppress() if exc is None else pytest.raises(exc)
     with cm:
         compare_numba_and_py(out_fg, input_vals)
+
+
+def test_multioutput_elemwise():
+    scalar_inp = aes.float64()
+    scalar_out1 = aes.exp(scalar_inp)
+    scalar_out2 = aes.log(scalar_inp)
+    scalar_composite = aes.Composite([scalar_inp], [scalar_out1, scalar_out2])
+
+    tensor_inp = at.dvector()
+    tensor_outs = Elemwise(scalar_composite)(tensor_inp)
+
+    out_fg = FunctionGraph([tensor_inp], tensor_outs)
+
+    print("")
+    compare_numba_and_py(out_fg, [np.r_[1.0, 2.0, 3.5]])
 
 
 @pytest.mark.parametrize(
