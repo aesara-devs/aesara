@@ -7,6 +7,7 @@ deterministic based on the input type and the op.
 import logging
 import multiprocessing
 import os
+import sys
 import tempfile
 from unittest.mock import patch
 
@@ -221,20 +222,33 @@ def test_linking_patch(listdir_mock, platform):
             ]
 
 
+@config.change_flags(on_opt_error="raise", on_shape_error="raise")
+def _vec_times_constant(k):
+    # Some of the caching issues arise during constant folding within the
+    # optimization passes, so we need these config changes to prevent the
+    # exceptions from being caught
+    a = at.vector()
+    f = aesara.function([a], k * a)
+    return f(np.array([1], dtype=config.floatX))
+
+
 def test_cache_race_condition():
+    # Unclear if this code is properly testing a race condition since it was
+    # originally launching concurrent processes. It's unclear from the code why
+    # 10 iterations and so many subprocesses are necessary. Logically, we should
+    # only need two separate, concurrent runs. Also, if we actually need more
+    # than two concurrent processes, it is unlikely that we would need 30.
 
     with tempfile.TemporaryDirectory() as dir_name:
 
-        @config.change_flags(on_opt_error="raise", on_shape_error="raise")
-        def f_build(factor):
-            # Some of the caching issues arise during constant folding within the
-            # optimization passes, so we need these config changes to prevent the
-            # exceptions from being caught
-            a = at.vector()
-            f = aesara.function([a], factor * a)
-            return f(np.array([1], dtype=config.floatX))
+        # On macOS, spawn is the default starting with Python 3.8
+        # because fork is unsafe per bpo-33725
+        # See https://bugs.python.org/issue?@action=redirect&bpo=33725
+        if sys.platform == "darwin" and sys.version_info < (3, 8):
+            ctx = multiprocessing.get_context("spawn")
+        else:
+            ctx = multiprocessing.get_context()
 
-        ctx = multiprocessing.get_context()
         compiledir_prop = aesara.config._config_var_dict["compiledir"]
 
         # The module cache must (initially) be `None` for all processes so that
@@ -245,14 +259,13 @@ def test_cache_race_condition():
 
             assert aesara.config.compiledir == dir_name
 
-            num_procs = 30
-            rng = np.random.default_rng(209)
+            num_procs = 2
+            factors = [0.1, 0.257]
 
-            for i in range(10):
-                # A random, constant input to prevent caching between runs
-                factor = rng.random()
+            # Use constant inputs to prevent caching between runs
+            for factor in factors:
                 procs = [
-                    ctx.Process(target=f_build, args=(factor,))
+                    ctx.Process(target=_vec_times_constant, args=(factor,))
                     for i in range(num_procs)
                 ]
                 for proc in procs:
