@@ -327,7 +327,8 @@ def use_optimized_cheap_pass(*args, **kwargs):
 
 
 @singledispatch
-def numba_typify(data, dtype=None, **kwargs):
+def numba_const_convert(data, dtype=None, **kwargs):
+    """Create a Numba compatible constant from an Aesara `Constant`."""
     return data
 
 
@@ -419,7 +420,7 @@ def numba_funcify_FunctionGraph(
     return fgraph_to_python(
         fgraph,
         numba_funcify,
-        const_conversion_fn=numba_typify,
+        const_conversion_fn=numba_const_convert,
         fgraph_name=fgraph_name,
         **kwargs,
     )

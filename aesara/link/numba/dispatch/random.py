@@ -20,7 +20,7 @@ import aesara.tensor.random.basic as aer
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
 from aesara.link.numba.dispatch import basic as numba_basic
-from aesara.link.numba.dispatch.basic import numba_funcify, numba_typify
+from aesara.link.numba.dispatch.basic import numba_const_convert, numba_funcify
 from aesara.link.utils import (
     compile_function_src,
     get_name_for_object,
@@ -96,11 +96,11 @@ def uniform_empty_size(a, b, size):
         return uniform_no_size
 
 
-@numba_typify.register(RandomState)
-def numba_typify_RandomState(state, **kwargs):
-    # The numba_typify in this case is just an passthrough function
+@numba_const_convert.register(RandomState)
+def numba_const_convert_RandomState(state, **kwargs):
+    # The `numba_const_convert` in this case is just a passthrough function
     # that synchronizes Numba's internal random state with the current
-    # RandomState object
+    # `RandomState` object.
     ints, index = state.get_state()[1:3]
     ptr = _helperlib.rnd_get_np_state_ptr()
     _helperlib.rnd_set_state(ptr, (index, [int(x) for x in ints]))
