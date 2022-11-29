@@ -44,9 +44,9 @@ predefined_linkers = {
     "c": CLinker(),  # Don't support gc. so don't check allow_gc
     "c|py": OpWiseCLinker(),  # Use allow_gc Aesara flag
     "c|py_nogc": OpWiseCLinker(allow_gc=False),
-    "vm": VMLinker(use_cloop=False),  # Use allow_gc Aesara flag
+    "vm": NumbaLinker(),  # VMLinker(use_cloop=False),  # Use allow_gc Aesara flag
     "cvm": VMLinker(use_cloop=True),  # Use allow_gc Aesara flag
-    "vm_nogc": VMLinker(allow_gc=False, use_cloop=False),
+    "vm_nogc": NumbaLinker(),  # VMLinker(allow_gc=False, use_cloop=False),
     "cvm_nogc": VMLinker(allow_gc=False, use_cloop=True),
     "jax": JAXLinker(),
     "numba": NumbaLinker(),
@@ -443,9 +443,9 @@ class Mode:
 # Use VM_linker to allow lazy evaluation by default.
 FAST_COMPILE = Mode(VMLinker(use_cloop=False, c_thunks=False), "fast_compile")
 if config.cxx:
-    FAST_RUN = Mode("cvm", "fast_run")
+    FAST_RUN = Mode("numba", "fast_run")
 else:
-    FAST_RUN = Mode("vm", "fast_run")
+    FAST_RUN = Mode("numba", "fast_run")
 
 JAX = Mode(
     JAXLinker(),

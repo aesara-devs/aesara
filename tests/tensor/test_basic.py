@@ -146,7 +146,7 @@ from tests.tensor.utils import (
 )
 
 
-pytestmark = pytest.mark.filterwarnings("error")
+# pytestmark = pytest.mark.filterwarnings("error")
 
 if config.mode == "FAST_COMPILE":
     mode_opt = "FAST_RUN"

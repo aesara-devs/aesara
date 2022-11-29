@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 import aesara.tensor as at
-from aesara import config, function, grad
+from aesara import config, grad
 from aesara.compile.mode import Mode, get_mode
 from aesara.graph.fg import FunctionGraph
 from aesara.scan.basic import scan
@@ -14,7 +14,7 @@ from tests.link.numba.test_basic import compare_numba_and_py
 
 
 @pytest.mark.parametrize(
-    "fn, sequences, outputs_info, non_sequences, n_steps, input_vals, output_vals, op_check",
+    "fn, sequences, outputs_info, non_sequences, n_steps, input_vals, op_check",
     [
         # sequences
         (
@@ -24,7 +24,6 @@ from tests.link.numba.test_basic import compare_numba_and_py
             [],
             None,
             [np.arange(10)],
-            None,
             lambda op: op.info.n_seqs > 0,
         ),
         # nit-sot
@@ -35,7 +34,6 @@ from tests.link.numba.test_basic import compare_numba_and_py
             [],
             3,
             [],
-            None,
             lambda op: op.info.n_nit_sot > 0,
         ),
         # nit-sot, non_seq
@@ -46,7 +44,6 @@ from tests.link.numba.test_basic import compare_numba_and_py
             [at.dscalar("c")],
             3,
             [1.0],
-            None,
             lambda op: op.info.n_nit_sot > 0 and op.info.n_non_seqs > 0,
         ),
         # sit-sot
@@ -57,7 +54,6 @@ from tests.link.numba.test_basic import compare_numba_and_py
             [],
             3,
             [],
-            None,
             lambda op: op.info.n_sit_sot > 0,
         ),
         # sit-sot, while
@@ -68,12 +64,11 @@ from tests.link.numba.test_basic import compare_numba_and_py
             [],
             3,
             [],
-            None,
             lambda op: op.info.n_sit_sot > 0,
         ),
         # nit-sot, shared input/output
         (
-            lambda: RandomStream(seed=1930, rng_ctor=np.random.RandomState).normal(
+            lambda: RandomStream(seed=1930, rng_ctor=np.random.default_rng).normal(
                 0, 1, name="a"
             ),
             [],
@@ -81,7 +76,6 @@ from tests.link.numba.test_basic import compare_numba_and_py
             [],
             3,
             [],
-            [np.array([-1.63408257, 0.18046406, 2.43265803])],
             lambda op: op.info.n_shared_outs > 0,
         ),
         # mit-sot (that's also a type of sit-sot)
@@ -92,7 +86,6 @@ from tests.link.numba.test_basic import compare_numba_and_py
             [],
             6,
             [],
-            None,
             lambda op: op.info.n_mit_sot > 0,
         ),
         # mit-sot
@@ -106,7 +99,6 @@ from tests.link.numba.test_basic import compare_numba_and_py
             [],
             10,
             [],
-            None,
             lambda op: op.info.n_mit_sot > 0,
         ),
     ],
@@ -118,7 +110,6 @@ def test_xit_xot_types(
     non_sequences,
     n_steps,
     input_vals,
-    output_vals,
     op_check,
 ):
     """Test basic xit-xot configurations."""
@@ -143,17 +134,7 @@ def test_xit_xot_types(
 
     _ = op_check(scan_op)
 
-    if output_vals is None:
-        compare_numba_and_py(
-            (sequences + non_sequences, res), input_vals, updates=updates
-        )
-    else:
-        numba_mode = get_mode("NUMBA")
-        numba_fn = function(
-            sequences + non_sequences, res, mode=numba_mode, updates=updates
-        )
-        res_val = numba_fn(*input_vals)
-        assert np.allclose(res_val, output_vals)
+    compare_numba_and_py((sequences + non_sequences, res), input_vals, updates=updates)
 
 
 def test_scan_multiple_output():

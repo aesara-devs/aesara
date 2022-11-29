@@ -32,6 +32,7 @@ from aesara.scalar.basic import ScalarType
 from aesara.scalar.math import Softplus
 from aesara.tensor.blas import BatchedDot
 from aesara.tensor.math import Dot
+from aesara.tensor.random.type import RandomGeneratorType
 from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape
 from aesara.tensor.slinalg import Cholesky, Solve
 from aesara.tensor.subtensor import (
@@ -93,6 +94,8 @@ def get_numba_type(
         dtype = np.dtype(aesara_type.dtype)
         numba_dtype = numba.from_dtype(dtype)
         return numba_dtype
+    elif isinstance(aesara_type, RandomGeneratorType):
+        return numba.types.npy_rng
     else:
         raise NotImplementedError(f"Numba type not implemented for {aesara_type}")
 
