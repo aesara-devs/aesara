@@ -7,6 +7,7 @@ from numba.extending import overload
 
 from aesara.link.numba.dispatch import basic as numba_basic
 from aesara.link.numba.dispatch.basic import (
+    _numba_funcify,
     create_arg_string,
     create_tuple_string,
     numba_funcify,
@@ -45,7 +46,7 @@ def array0d_range(x):
         return range_arr
 
 
-@numba_funcify.register(Scan)
+@_numba_funcify.register(Scan)
 def numba_funcify_Scan(op, node, **kwargs):
     scan_inner_func = numba_basic.numba_njit(numba_funcify(op.fgraph))
 

@@ -3,7 +3,7 @@ import warnings
 from contextlib import contextmanager
 from functools import singledispatch
 from textwrap import dedent
-from typing import Union
+from typing import TYPE_CHECKING, Callable, Optional, Union, cast
 
 import numba
 import numba.np.unsafe.ndarray as numba_ndarray
@@ -22,6 +22,7 @@ from aesara.compile.builders import OpFromGraph
 from aesara.compile.ops import DeepCopyOp
 from aesara.graph.basic import Apply, NoParams
 from aesara.graph.fg import FunctionGraph
+from aesara.graph.op import Op
 from aesara.graph.type import Type
 from aesara.ifelse import IfElse
 from aesara.link.utils import (
@@ -46,6 +47,10 @@ from aesara.tensor.subtensor import (
 )
 from aesara.tensor.type import TensorType
 from aesara.tensor.type_other import MakeSlice, NoneConst
+
+
+if TYPE_CHECKING:
+    from aesara.graph.op import StorageMapType
 
 
 def numba_njit(*args, **kwargs):
@@ -335,9 +340,42 @@ def numba_const_convert(data, dtype=None, **kwargs):
     return data
 
 
+def numba_funcify(obj, node=None, storage_map=None, **kwargs) -> Callable:
+    """Convert `obj` to a Numba-JITable object."""
+    return _numba_funcify(obj, node=node, storage_map=storage_map, **kwargs)
+
+
 @singledispatch
-def numba_funcify(op, node=None, storage_map=None, **kwargs):
-    """Create a Numba compatible function from an Aesara `Op`."""
+def _numba_funcify(
+    obj,
+    node: Optional[Apply] = None,
+    storage_map: Optional["StorageMapType"] = None,
+    **kwargs,
+) -> Callable:
+    r"""Dispatch on Aesara object types to perform Numba conversions.
+
+    Arguments
+    ---------
+    obj
+        The object used to determine the appropriate conversion function based
+        on its type.  This is generally an `Op` instance, but `FunctionGraph`\s
+        are also supported.
+    node
+        When `obj` is an `Op`, this value should be the corresponding `Apply` node.
+    storage_map
+        A storage map with, for example, the constant and `SharedVariable` values
+        of the graph being converted.
+
+    Returns
+    -------
+    A `Callable` that can be JIT-compiled in Numba using `numba.jit`.
+
+    """
+
+
+@_numba_funcify.register(Op)
+def numba_funcify_perform(op, node, storage_map=None, **kwargs) -> Callable:
+    """Create a Numba compatible function from an Aesara `Op.perform`."""
 
     warnings.warn(
         f"Numba will use object mode to run {op}'s perform method",
@@ -388,10 +426,10 @@ def numba_funcify(op, node=None, storage_map=None, **kwargs):
             ret = py_perform_return(inputs)
         return ret
 
-    return perform
+    return cast(Callable, perform)
 
 
-@numba_funcify.register(OpFromGraph)
+@_numba_funcify.register(OpFromGraph)
 def numba_funcify_OpFromGraph(op, node=None, **kwargs):
 
     _ = kwargs.pop("storage_map", None)
@@ -413,7 +451,7 @@ def numba_funcify_OpFromGraph(op, node=None, **kwargs):
     return opfromgraph
 
 
-@numba_funcify.register(FunctionGraph)
+@_numba_funcify.register(FunctionGraph)
 def numba_funcify_FunctionGraph(
     fgraph,
     node=None,
@@ -521,9 +559,9 @@ def {fn_name}({", ".join(input_names)}):
     return subtensor_def_src
 
 
-@numba_funcify.register(Subtensor)
-@numba_funcify.register(AdvancedSubtensor)
-@numba_funcify.register(AdvancedSubtensor1)
+@_numba_funcify.register(Subtensor)
+@_numba_funcify.register(AdvancedSubtensor)
+@_numba_funcify.register(AdvancedSubtensor1)
 def numba_funcify_Subtensor(op, node, **kwargs):
 
     subtensor_def_src = create_index_func(
@@ -539,8 +577,8 @@ def numba_funcify_Subtensor(op, node, **kwargs):
     return numba_njit(subtensor_fn)
 
 
-@numba_funcify.register(IncSubtensor)
-@numba_funcify.register(AdvancedIncSubtensor)
+@_numba_funcify.register(IncSubtensor)
+@_numba_funcify.register(AdvancedIncSubtensor)
 def numba_funcify_IncSubtensor(op, node, **kwargs):
 
     incsubtensor_def_src = create_index_func(
@@ -556,7 +594,7 @@ def numba_funcify_IncSubtensor(op, node, **kwargs):
     return numba_njit(incsubtensor_fn)
 
 
-@numba_funcify.register(AdvancedIncSubtensor1)
+@_numba_funcify.register(AdvancedIncSubtensor1)
 def numba_funcify_AdvancedIncSubtensor1(op, node, **kwargs):
     inplace = op.inplace
     set_instead_of_inc = op.set_instead_of_inc
@@ -589,7 +627,7 @@ def numba_funcify_AdvancedIncSubtensor1(op, node, **kwargs):
         return advancedincsubtensor1
 
 
-@numba_funcify.register(DeepCopyOp)
+@_numba_funcify.register(DeepCopyOp)
 def numba_funcify_DeepCopyOp(op, node, **kwargs):
 
     # Scalars are apparently returned as actual Python scalar types and not
@@ -611,8 +649,8 @@ def numba_funcify_DeepCopyOp(op, node, **kwargs):
     return deepcopyop
 
 
-@numba_funcify.register(MakeSlice)
-def numba_funcify_MakeSlice(op, **kwargs):
+@_numba_funcify.register(MakeSlice)
+def numba_funcify_MakeSlice(op, node, **kwargs):
     @numba_njit
     def makeslice(*x):
         return slice(*x)
@@ -620,8 +658,8 @@ def numba_funcify_MakeSlice(op, **kwargs):
     return makeslice
 
 
-@numba_funcify.register(Shape)
-def numba_funcify_Shape(op, **kwargs):
+@_numba_funcify.register(Shape)
+def numba_funcify_Shape(op, node, **kwargs):
     @numba_njit(inline="always")
     def shape(x):
         return np.asarray(np.shape(x))
@@ -629,8 +667,8 @@ def numba_funcify_Shape(op, **kwargs):
     return shape
 
 
-@numba_funcify.register(Shape_i)
-def numba_funcify_Shape_i(op, **kwargs):
+@_numba_funcify.register(Shape_i)
+def numba_funcify_Shape_i(op, node, **kwargs):
     i = op.i
 
     @numba_njit(inline="always")
@@ -660,8 +698,8 @@ def direct_cast(typingctx, val, typ):
     return sig, codegen
 
 
-@numba_funcify.register(Reshape)
-def numba_funcify_Reshape(op, **kwargs):
+@_numba_funcify.register(Reshape)
+def numba_funcify_Reshape(op, node, **kwargs):
     ndim = op.ndim
 
     if ndim == 0:
@@ -683,7 +721,7 @@ def numba_funcify_Reshape(op, **kwargs):
     return reshape
 
 
-@numba_funcify.register(SpecifyShape)
+@_numba_funcify.register(SpecifyShape)
 def numba_funcify_SpecifyShape(op, node, **kwargs):
     shape_inputs = node.inputs[1:]
     shape_input_names = ["shape_" + str(i) for i in range(len(shape_inputs))]
@@ -730,7 +768,7 @@ def int_to_float_fn(inputs, out_dtype):
     return inputs_cast
 
 
-@numba_funcify.register(Dot)
+@_numba_funcify.register(Dot)
 def numba_funcify_Dot(op, node, **kwargs):
     # Numba's `np.dot` does not support integer dtypes, so we need to cast to
     # float.
@@ -745,7 +783,7 @@ def numba_funcify_Dot(op, node, **kwargs):
     return dot
 
 
-@numba_funcify.register(Softplus)
+@_numba_funcify.register(Softplus)
 def numba_funcify_Softplus(op, node, **kwargs):
 
     x_dtype = np.dtype(node.inputs[0].dtype)
@@ -764,7 +802,7 @@ def numba_funcify_Softplus(op, node, **kwargs):
     return softplus
 
 
-@numba_funcify.register(Cholesky)
+@_numba_funcify.register(Cholesky)
 def numba_funcify_Cholesky(op, node, **kwargs):
     lower = op.lower
 
@@ -800,7 +838,7 @@ def numba_funcify_Cholesky(op, node, **kwargs):
     return cholesky
 
 
-@numba_funcify.register(Solve)
+@_numba_funcify.register(Solve)
 def numba_funcify_Solve(op, node, **kwargs):
 
     assume_a = op.assume_a
@@ -847,7 +885,7 @@ def numba_funcify_Solve(op, node, **kwargs):
     return solve
 
 
-@numba_funcify.register(BatchedDot)
+@_numba_funcify.register(BatchedDot)
 def numba_funcify_BatchedDot(op, node, **kwargs):
     dtype = node.outputs[0].type.numpy_dtype
 
@@ -868,7 +906,7 @@ def numba_funcify_BatchedDot(op, node, **kwargs):
 # optimizations are apparently already performed by Numba
 
 
-@numba_funcify.register(IfElse)
+@_numba_funcify.register(IfElse)
 def numba_funcify_IfElse(op, **kwargs):
     n_outs = op.n_outs
 
