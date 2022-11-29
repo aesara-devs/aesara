@@ -24,7 +24,7 @@ from aesara.graph.rewriting.db import RewriteDatabaseQuery
 from aesara.graph.type import Type
 from aesara.ifelse import ifelse
 from aesara.link.numba.dispatch import basic as numba_basic
-from aesara.link.numba.dispatch import numba_typify
+from aesara.link.numba.dispatch import numba_const_convert
 from aesara.link.numba.linker import NumbaLinker
 from aesara.raise_op import assert_op
 from aesara.tensor import blas
@@ -315,7 +315,7 @@ def test_create_numba_signature(v, expected, force_scalar):
     [
         (
             np.random.RandomState(1),
-            numba_typify,
+            numba_const_convert,
             lambda x, y: np.all(x.get_state()[1] == y.get_state()[1]),
         )
     ],
