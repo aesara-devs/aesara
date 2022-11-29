@@ -676,7 +676,7 @@ def fgraph_to_python(
     fgraph: FunctionGraph,
     op_conversion_fn: Callable,
     *,
-    type_conversion_fn: Callable = lambda x, **kwargs: x,
+    const_conversion_fn: Callable = lambda x, **kwargs: x,
     order: Optional[List[Apply]] = None,
     storage_map: Optional["StorageMapType"] = None,
     fgraph_name: str = "fgraph_to_python",
@@ -696,8 +696,8 @@ def fgraph_to_python(
         A callable used to convert nodes inside `fgraph` based on their `Op`
         types.  It must have the signature
         ``(op: Op, node: Apply=None, storage_map: Dict[Variable, List[Optional[Any]]]=None, **kwargs)``.
-    type_conversion_fn
-        A callable used to convert the values in `storage_map`.  It must have
+    const_conversion_fn
+        A callable used to convert the `Constant` values in `storage_map`.  It must have
         the signature
         ``(value: Optional[Any], variable: Variable=None, storage: List[Optional[Any]]=None, **kwargs)``.
     order
@@ -751,7 +751,7 @@ def fgraph_to_python(
             )
             if input_storage[0] is not None or isinstance(i, Constant):
                 # Constants need to be assigned locally and referenced
-                global_env[local_input_name] = type_conversion_fn(
+                global_env[local_input_name] = const_conversion_fn(
                     input_storage[0], variable=i, storage=input_storage, **kwargs
                 )
                 # TODO: We could attempt to use the storage arrays directly
@@ -774,7 +774,7 @@ def fgraph_to_python(
                 output_storage = storage_map.setdefault(
                     out, [None if not isinstance(out, Constant) else out.data]
                 )
-                global_env[local_output_name] = type_conversion_fn(
+                global_env[local_output_name] = const_conversion_fn(
                     output_storage[0],
                     variable=out,
                     storage=output_storage,

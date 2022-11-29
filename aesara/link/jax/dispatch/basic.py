@@ -49,7 +49,7 @@ def jax_funcify_FunctionGraph(
     return fgraph_to_python(
         fgraph,
         jax_funcify,
-        type_conversion_fn=jax_typify,
+        const_conversion_fn=jax_typify,
         fgraph_name=fgraph_name,
         **kwargs,
     )
