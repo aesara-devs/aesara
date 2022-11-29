@@ -10,8 +10,9 @@ import numba.np.unsafe.ndarray as numba_ndarray
 import numpy as np
 import scipy
 import scipy.special
-from llvmlite.llvmpy.core import Type as llvm_Type
+from llvmlite.ir import FunctionType
 from numba import types
+from numba.core.decorators import _jit
 from numba.core.errors import TypingError
 from numba.cpython.unsafe.tuple import tuple_setitem  # noqa: F401
 from numba.extending import box
@@ -59,6 +60,17 @@ def numba_vectorize(*args, **kwargs):
         return numba.vectorize(*args[1:], cache=config.numba__cache, **kwargs)(args[0])
 
     return numba.vectorize(*args, cache=config.numba__cache, **kwargs)
+
+
+# This can be removed after Numba 0.57.0 and `_jit` replaced with standard `[n]jit`
+generated_jit = _jit(
+    sigs=None,
+    locals={},
+    cache=False,
+    target="cpu",
+    targetoptions={},
+    impl_kind="generated",
+)
 
 
 def get_numba_type(
@@ -128,7 +140,7 @@ def create_numba_signature(
 
 
 def slice_new(self, start, stop, step):
-    fnty = llvm_Type.function(self.pyobj, [self.pyobj, self.pyobj, self.pyobj])
+    fnty = FunctionType(self.pyobj, [self.pyobj, self.pyobj, self.pyobj])
     fn = self._get_function(fnty, name="PySlice_New")
     return self.builder.call(fn, [start, stop, step])
 
@@ -168,7 +180,7 @@ def enable_slice_boxing():
 enable_slice_boxing()
 
 
-@numba.generated_jit(nopython=True)
+@generated_jit
 def to_scalar(x):
     if isinstance(x, (numba.types.Number, numba.types.Boolean)):
         return lambda x: x
