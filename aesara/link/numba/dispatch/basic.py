@@ -419,7 +419,7 @@ def numba_funcify_FunctionGraph(
     return fgraph_to_python(
         fgraph,
         numba_funcify,
-        type_conversion_fn=numba_typify,
+        const_conversion_fn=numba_typify,
         fgraph_name=fgraph_name,
         **kwargs,
     )
