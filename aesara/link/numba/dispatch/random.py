@@ -5,7 +5,15 @@ import numba.np.unsafe.ndarray as numba_ndarray
 import numpy as np
 from numba import _helperlib, types
 from numba.core import cgutils
-from numba.extending import NativeValue, box, models, register_model, typeof_impl, unbox
+from numba.extending import (
+    NativeValue,
+    box,
+    models,
+    overload,
+    register_model,
+    typeof_impl,
+    unbox,
+)
 from numpy.random import RandomState
 
 import aesara.tensor.random.basic as aer
@@ -76,6 +84,16 @@ def box_random_state(typ, val, c):
     rng.set_state(("MT19937", state_list, pos))
     class_obj = c.pyapi.unserialize(c.pyapi.serialize_object(rng))
     return class_obj
+
+
+@overload(np.random.uniform)
+def uniform_empty_size(a, b, size):
+    if isinstance(size, types.Tuple) and size.count == 0:
+
+        def uniform_no_size(a, b, size):
+            return np.random.uniform(a, b)
+
+        return uniform_no_size
 
 
 @numba_typify.register(RandomState)
@@ -321,7 +339,7 @@ def numba_funcify_CategoricalRV(op, node, **kwargs):
             size_tpl = numba_ndarray.to_fixed_tuple(size, size_len)
             p = np.broadcast_to(p, size_tpl + p.shape[-1:])
 
-        unif_samples = np.random.uniform(0, 1, size_tpl)
+        unif_samples = np.asarray(np.random.uniform(0, 1, size_tpl))
 
         res = np.empty(size_tpl, dtype=out_dtype)
         for idx in np.ndindex(*size_tpl):
