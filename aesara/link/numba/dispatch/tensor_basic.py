@@ -3,7 +3,7 @@ from textwrap import indent
 import numpy as np
 
 from aesara.link.numba.dispatch import basic as numba_basic
-from aesara.link.numba.dispatch.basic import create_tuple_string, numba_funcify
+from aesara.link.numba.dispatch.basic import _numba_funcify, create_tuple_string
 from aesara.link.utils import compile_function_src, unique_name_generator
 from aesara.tensor.basic import (
     Alloc,
@@ -21,7 +21,7 @@ from aesara.tensor.basic import (
 from aesara.tensor.shape import Unbroadcast
 
 
-@numba_funcify.register(AllocEmpty)
+@_numba_funcify.register(AllocEmpty)
 def numba_funcify_AllocEmpty(op, node, **kwargs):
 
     global_env = {
@@ -59,7 +59,7 @@ def allocempty({", ".join(shape_var_names)}):
     return numba_basic.numba_njit(alloc_fn)
 
 
-@numba_funcify.register(Alloc)
+@_numba_funcify.register(Alloc)
 def numba_funcify_Alloc(op, node, **kwargs):
 
     global_env = {"np": np, "to_scalar": numba_basic.to_scalar}
@@ -95,7 +95,7 @@ def alloc(val, {", ".join(shape_var_names)}):
     return numba_basic.numba_njit(alloc_fn)
 
 
-@numba_funcify.register(AllocDiag)
+@_numba_funcify.register(AllocDiag)
 def numba_funcify_AllocDiag(op, **kwargs):
     offset = op.offset
 
@@ -106,7 +106,7 @@ def numba_funcify_AllocDiag(op, **kwargs):
     return allocdiag
 
 
-@numba_funcify.register(ARange)
+@_numba_funcify.register(ARange)
 def numba_funcify_ARange(op, **kwargs):
     dtype = np.dtype(op.dtype)
 
@@ -122,7 +122,7 @@ def numba_funcify_ARange(op, **kwargs):
     return arange
 
 
-@numba_funcify.register(Join)
+@_numba_funcify.register(Join)
 def numba_funcify_Join(op, **kwargs):
     view = op.view
 
@@ -139,7 +139,7 @@ def numba_funcify_Join(op, **kwargs):
     return join
 
 
-@numba_funcify.register(Split)
+@_numba_funcify.register(Split)
 def numba_funcify_Split(op, **kwargs):
     @numba_basic.numba_njit
     def split(tensor, axis, indices):
@@ -151,7 +151,7 @@ def numba_funcify_Split(op, **kwargs):
     return split
 
 
-@numba_funcify.register(ExtractDiag)
+@_numba_funcify.register(ExtractDiag)
 def numba_funcify_ExtractDiag(op, **kwargs):
     offset = op.offset
     # axis1 = op.axis1
@@ -164,7 +164,7 @@ def numba_funcify_ExtractDiag(op, **kwargs):
     return extract_diag
 
 
-@numba_funcify.register(Eye)
+@_numba_funcify.register(Eye)
 def numba_funcify_Eye(op, **kwargs):
     dtype = np.dtype(op.dtype)
 
@@ -180,7 +180,7 @@ def numba_funcify_Eye(op, **kwargs):
     return eye
 
 
-@numba_funcify.register(MakeVector)
+@_numba_funcify.register(MakeVector)
 def numba_funcify_MakeVector(op, node, **kwargs):
     dtype = np.dtype(op.dtype)
 
@@ -208,7 +208,7 @@ def makevector({", ".join(input_names)}):
     return numba_basic.numba_njit(makevector_fn)
 
 
-@numba_funcify.register(Unbroadcast)
+@_numba_funcify.register(Unbroadcast)
 def numba_funcify_Unbroadcast(op, **kwargs):
     @numba_basic.numba_njit
     def unbroadcast(x):
@@ -217,7 +217,7 @@ def numba_funcify_Unbroadcast(op, **kwargs):
     return unbroadcast
 
 
-@numba_funcify.register(TensorFromScalar)
+@_numba_funcify.register(TensorFromScalar)
 def numba_funcify_TensorFromScalar(op, **kwargs):
     @numba_basic.numba_njit(inline="always")
     def tensor_from_scalar(x):
@@ -226,7 +226,7 @@ def numba_funcify_TensorFromScalar(op, **kwargs):
     return tensor_from_scalar
 
 
-@numba_funcify.register(ScalarFromTensor)
+@_numba_funcify.register(ScalarFromTensor)
 def numba_funcify_ScalarFromTensor(op, **kwargs):
     @numba_basic.numba_njit(inline="always")
     def scalar_from_tensor(x):

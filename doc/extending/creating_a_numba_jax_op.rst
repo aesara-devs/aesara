@@ -83,7 +83,7 @@ Here's an example for :class:`IfElse`:
        return res if n_outs > 1 else res[0]
 
 
-Step 3: Register the function with the `jax_funcify` dispatcher
+Step 3: Register the function with the `_jax_funcify` dispatcher
 ---------------------------------------------------------------
 
 With the Aesara `Op` replicated in JAX, we’ll need to register the
@@ -91,7 +91,7 @@ function with the Aesara JAX `Linker`. This is done through the use of
 `singledispatch`. If you don't know how `singledispatch` works, see the
 `Python documentation <https://docs.python.org/3/library/functools.html#functools.singledispatch>`_.
 
-The relevant dispatch functions created by `singledispatch` are :func:`aesara.link.numba.dispatch.numba_funcify` and
+The relevant dispatch functions created by `singledispatch` are :func:`aesara.link.numba.dispatch.basic._numba_funcify` and
 :func:`aesara.link.jax.dispatch.jax_funcify`.
 
 Here’s an example for the `Eye`\ `Op`:

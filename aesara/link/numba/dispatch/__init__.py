@@ -1,5 +1,9 @@
 # isort: off
-from aesara.link.numba.dispatch.basic import numba_funcify, numba_const_convert
+from aesara.link.numba.dispatch.basic import (
+    numba_funcify,
+    numba_const_convert,
+    numba_njit,
+)
 
 # Load dispatch specializations
 import aesara.link.numba.dispatch.scalar
