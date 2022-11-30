@@ -1617,8 +1617,8 @@ def list_of_nodes(
     )
 
 
-def is_in_ancestors(l_apply: Apply, f_node: Apply) -> bool:
-    """Determine if `f_node` is in the graph given by `l_apply`.
+def is_in_ancestors(l_apply: Apply, f_apply: Apply) -> bool:
+    """Determine if `f_apply` is in the graph given by `l_apply`.
 
     Parameters
     ----------
@@ -1640,7 +1640,7 @@ def is_in_ancestors(l_apply: Apply, f_node: Apply) -> bool:
             continue
         if all(i in computed or i.owner is None for i in cur.inputs):
             computed.update(cur.outputs)
-            if cur is f_node:
+            if cur is f_apply:
                 return True
         else:
             todo.append(cur)
