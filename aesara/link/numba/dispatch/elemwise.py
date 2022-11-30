@@ -27,6 +27,7 @@ from aesara.scalar.basic import (
     OR,
     XOR,
     Add,
+    Composite,
     IntDiv,
     Mean,
     Mul,
@@ -40,6 +41,7 @@ from aesara.scalar.basic import scalar_maximum
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise
 from aesara.tensor.math import MaxAndArgmax, MulWithoutZeros
 from aesara.tensor.special import LogSoftmax, Softmax, SoftmaxGrad
+from aesara.tensor.type import scalar
 
 
 @singledispatch
@@ -162,6 +164,15 @@ def create_vectorize_func(
     return elemwise_fn
 
 
+def normalize_axis(axis, ndim):
+    if axis < 0:
+        axis = ndim + axis
+
+    if axis < 0 or axis >= ndim:
+        raise np.AxisError(ndim=ndim, axis=axis)
+    return axis
+
+
 def create_axis_reducer(
     scalar_op: Op,
     identity: Union[np.ndarray, Number],
@@ -215,6 +226,8 @@ def create_axis_reducer(
     A Python function that can be JITed.
 
     """
+
+    axis = normalize_axis(axis, ndim)
 
     reduce_elemwise_fn_name = "careduce_axis"
 
@@ -338,6 +351,8 @@ def create_multiaxis_reducer(
     if len(axes) == 1:
         return create_axis_reducer(scalar_op, identity, axes[0], ndim, dtype)
 
+    axes = [normalize_axis(axis, ndim) for axis in axes]
+
     careduce_fn_name = f"careduce_{scalar_op}"
     global_env = {}
     to_reduce = reversed(sorted(axes))
@@ -407,6 +422,8 @@ def jit_compile_reducer(node, fn, **kwds):
 
 
 def create_axis_apply_fn(fn, axis, ndim, dtype):
+    axis = normalize_axis(axis, ndim)
+
     reaxis_first = tuple(i for i in range(ndim) if i != axis) + (axis,)
 
     @numba_basic.numba_njit(boundscheck=False)
@@ -424,8 +441,17 @@ def create_axis_apply_fn(fn, axis, ndim, dtype):
 
 @numba_funcify.register(Elemwise)
 def numba_funcify_Elemwise(op, node, **kwargs):
+    # Creating a new scalar node is more involved and unnecessary
+    # if the scalar_op is composite, as the fgraph already contains
+    # all the necessary information.
+    scalar_node = None
+    if not isinstance(op.scalar_op, Composite):
+        scalar_inputs = [scalar(dtype=input.dtype) for input in node.inputs]
+        scalar_node = op.scalar_op.make_node(*scalar_inputs)
 
-    scalar_op_fn = numba_funcify(op.scalar_op, node=node, inline="always", **kwargs)
+    scalar_op_fn = numba_funcify(
+        op.scalar_op, node=scalar_node, parent_node=node, inline="always", **kwargs
+    )
     elemwise_fn = create_vectorize_func(scalar_op_fn, node, use_signature=False)
     elemwise_fn_name = elemwise_fn.__name__
 
@@ -598,6 +624,8 @@ def numba_funcify_Softmax(op, node, **kwargs):
     x_dtype = numba.np.numpy_support.from_dtype(x_dtype)
     axis = op.axis
 
+    axis = normalize_axis(axis, x_at.ndim)
+
     if axis is not None:
         reduce_max_py = create_axis_reducer(
             scalar_maximum, -np.inf, axis, x_at.ndim, x_dtype, keepdims=True
@@ -635,6 +663,7 @@ def numba_funcify_SoftmaxGrad(op, node, **kwargs):
     sm_dtype = numba.np.numpy_support.from_dtype(sm_dtype)
 
     axis = op.axis
+    axis = normalize_axis(axis, sm_at.ndim)
     if axis is not None:
         reduce_sum_py = create_axis_reducer(
             add_as, 0.0, axis, sm_at.ndim, sm_dtype, keepdims=True
@@ -665,6 +694,7 @@ def numba_funcify_LogSoftmax(op, node, **kwargs):
     x_dtype = x_at.type.numpy_dtype
     x_dtype = numba.np.numpy_support.from_dtype(x_dtype)
     axis = op.axis
+    axis = normalize_axis(axis, x_at.ndim)
 
     if axis is not None:
         reduce_max_py = create_axis_reducer(
@@ -699,6 +729,7 @@ def numba_funcify_MaxAndArgmax(op, node, **kwargs):
     x_dtype = x_at.type.numpy_dtype
     x_dtype = numba.np.numpy_support.from_dtype(x_dtype)
     x_ndim = x_at.ndim
+    axis = normalize_axis(axis, x_ndim)
 
     if x_ndim == 0:
 

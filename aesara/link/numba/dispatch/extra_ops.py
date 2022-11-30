@@ -19,6 +19,7 @@ from aesara.tensor.extra_ops import (
     Unique,
     UnravelIndex,
 )
+from aesara.raise_op import CheckAndRaise
 
 
 @numba_funcify.register(Bartlett)
@@ -36,31 +37,57 @@ def numba_funcify_CumOp(op, node, **kwargs):
     mode = op.mode
     ndim = node.outputs[0].ndim
 
+    if axis < 0:
+        axis = ndim + axis
+    if axis < 0 or axis >= ndim:
+        raise ValueError(f"Invalid axis {axis} for array with ndim {ndim}")
+
     reaxis_first = (axis,) + tuple(i for i in range(ndim) if i != axis)
 
     if mode == "add":
-        np_func = np.add
-        identity = 0
+
+        if ndim == 1:
+            @numba_basic.numba_njit(fastmath=config.numba__fastmath)
+            def cumop(x):
+                return np.cumsum(x)
+
+        else:
+            @numba_basic.numba_njit(boundscheck=False, fastmath=config.numba__fastmath)
+            def cumop(x):
+                out_dtype = x.dtype
+                if x.shape[axis] < 2:
+                    return x.astype(out_dtype)
+
+                x_axis_first = x.transpose(reaxis_first)
+                res = np.empty(x_axis_first.shape, dtype=out_dtype)
+
+                res[0] = x_axis_first[0]
+                for m in range(1, x.shape[axis]):
+                    res[m] = res[m - 1] + x_axis_first[m]
+
+                return res.transpose(reaxis_first)
+
     else:
-        np_func = np.multiply
-        identity = 1
+        if ndim == 1:
+            @numba_basic.numba_njit(fastmath=config.numba__fastmath)
+            def cumop(x):
+                return np.cumprod(x)
 
-    @numba_basic.numba_njit(boundscheck=False, fastmath=config.numba__fastmath)
-    def cumop(x):
-        out_dtype = x.dtype
-        if x.shape[axis] < 2:
-            return x.astype(out_dtype)
+        else:
+            @numba_basic.numba_njit(boundscheck=False, fastmath=config.numba__fastmath)
+            def cumop(x):
+                out_dtype = x.dtype
+                if x.shape[axis] < 2:
+                    return x.astype(out_dtype)
 
-        x_axis_first = x.transpose(reaxis_first)
-        res = np.empty(x_axis_first.shape, dtype=out_dtype)
+                x_axis_first = x.transpose(reaxis_first)
+                res = np.empty(x_axis_first.shape, dtype=out_dtype)
 
-        for m in numba.prange(x.shape[axis]):
-            if m == 0:
-                np_func(identity, x_axis_first[m], res[m])
-            else:
-                np_func(res[m - 1], x_axis_first[m], res[m])
+                res[0] = x_axis_first[0]
+                for m in range(1, x.shape[axis]):
+                    res[m] = res[m - 1] * x_axis_first[m]
 
-        return res.transpose(reaxis_first)
+                return res.transpose(reaxis_first)
 
     return cumop
 
@@ -346,3 +373,18 @@ def numba_funcify_BroadcastTo(op, node, **kwargs):
         return np.broadcast_to(x, scalars_shape)
 
     return broadcast_to
+
+
+@numba_funcify.register(CheckAndRaise)
+def numba_funcify_CheckAndRaise(op, node, **kwargs):
+    error = op.exc_type
+    msg = op.msg
+
+    @numba_basic.numba_njit
+    def check_and_raise(x, *conditions):
+        for cond in conditions:
+            if not cond:
+                raise error(msg)
+        return x
+
+    return check_and_raise

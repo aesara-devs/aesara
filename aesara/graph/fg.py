@@ -484,7 +484,9 @@ class FunctionGraph(MetaObject):
                 f"rewriting: rewrite {reason} replaces {var} of {var.owner} with {new_var} of {new_var.owner}"
             )
 
+        name = new_var.name
         new_var = var.type.filter_variable(new_var, allow_convert=True)
+        new_var.name = name
 
         if var not in self.variables:
             # TODO: Raise an actual exception here.

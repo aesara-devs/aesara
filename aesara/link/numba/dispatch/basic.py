@@ -48,10 +48,14 @@ from aesara.tensor.type_other import MakeSlice, NoneConst
 
 def numba_njit(*args, **kwargs):
 
-    if len(args) > 0 and callable(args[0]):
-        return numba.njit(*args[1:], cache=config.numba__cache, **kwargs)(args[0])
+    kwargs = kwargs.copy()
+    if "cache" not in kwargs:
+        kwargs["cache"] = config.numba__cache
 
-    return numba.njit(*args, cache=config.numba__cache, **kwargs)
+    if len(args) > 0 and callable(args[0]):
+        return numba.njit(*args[1:], **kwargs)(args[0])
+
+    return numba.njit(*args, **kwargs)
 
 
 def numba_vectorize(*args, **kwargs):
@@ -319,10 +323,8 @@ def numba_typify(data, dtype=None, **kwargs):
     return data
 
 
-@singledispatch
-def numba_funcify(op, node=None, storage_map=None, **kwargs):
+def generate_fallback_impl(op, node=None, storage_map=None, **kwargs):
     """Create a Numba compatible function from an Aesara `Op`."""
-
     warnings.warn(
         f"Numba will use object mode to run {op}'s perform method",
         UserWarning,
@@ -373,6 +375,12 @@ def numba_funcify(op, node=None, storage_map=None, **kwargs):
         return ret
 
     return perform
+
+
+@singledispatch
+def numba_funcify(op, node=None, storage_map=None, **kwargs):
+    """Generate a numba function for a given op and apply node."""
+    return generate_fallback_impl(op, node, storage_map, **kwargs)
 
 
 @numba_funcify.register(OpFromGraph)
@@ -506,7 +514,6 @@ def {fn_name}({", ".join(input_names)}):
 
 
 @numba_funcify.register(Subtensor)
-@numba_funcify.register(AdvancedSubtensor)
 @numba_funcify.register(AdvancedSubtensor1)
 def numba_funcify_Subtensor(op, node, **kwargs):
 
@@ -524,7 +531,6 @@ def numba_funcify_Subtensor(op, node, **kwargs):
 
 
 @numba_funcify.register(IncSubtensor)
-@numba_funcify.register(AdvancedIncSubtensor)
 def numba_funcify_IncSubtensor(op, node, **kwargs):
 
     incsubtensor_def_src = create_index_func(

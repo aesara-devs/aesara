@@ -1,16 +1,18 @@
 import math
-from functools import reduce
 from typing import List
 
 import numpy as np
-import scipy
-import scipy.special
 
 from aesara import config
 from aesara.compile.ops import ViewOp
 from aesara.graph.basic import Variable
 from aesara.link.numba.dispatch import basic as numba_basic
-from aesara.link.numba.dispatch.basic import create_numba_signature, numba_funcify
+from aesara.link.numba.dispatch.basic import (
+    create_numba_signature,
+    generate_fallback_impl,
+    numba_funcify,
+)
+from aesara.link.numba.dispatch.cython_support import wrap_cython_function
 from aesara.link.utils import (
     compile_function_src,
     get_name_for_object,
@@ -36,69 +38,83 @@ def numba_funcify_ScalarOp(op, node, **kwargs):
     # TODO: Do we need to cache these functions so that we don't end up
     # compiling the same Numba function over and over again?
 
-    scalar_func_name = op.nfunc_spec[0]
+    scalar_func_path = op.nfunc_spec[0]
+    scalar_func_numba = None
 
-    if scalar_func_name.startswith("scipy."):
-        func_package = scipy
-        scalar_func_name = scalar_func_name.split(".", 1)[-1]
-    else:
-        func_package = np
+    *module_path, scalar_func_name = scalar_func_path.split(".")
+    if not module_path:
+        # Assume it is numpy, and numba has an implementation
+        scalar_func_numba = getattr(np, scalar_func_name)
 
-    if "." in scalar_func_name:
-        scalar_func = reduce(getattr, [scipy] + scalar_func_name.split("."))
-    else:
-        scalar_func = getattr(func_package, scalar_func_name)
+    input_dtypes = [np.dtype(input.type.dtype) for input in node.inputs]
+    output_dtypes = [np.dtype(output.type.dtype) for output in node.outputs]
 
-    scalar_op_fn_name = get_name_for_object(scalar_func)
+    if len(output_dtypes) != 1:
+        raise ValueError("ScalarOps with more than one output are not supported")
+
+    output_dtype = output_dtypes[0]
+
+    input_inner_dtypes = None
+    output_inner_dtype = None
+
+    # Cython functions might have an additonal argument
+    has_pyx_skip_dispatch = False
+
+    if scalar_func_path.startswith("scipy.special"):
+        import scipy.special.cython_special
+
+        cython_func = getattr(scipy.special.cython_special, scalar_func_name, None)
+        if cython_func is not None:
+            # try:
+            scalar_func_numba = wrap_cython_function(
+                cython_func, output_dtype, input_dtypes
+            )
+            has_pyx_skip_dispatch = scalar_func_numba.has_pyx_skip_dispatch
+            input_inner_dtypes = scalar_func_numba.numpy_arg_dtypes()
+            output_inner_dtype = scalar_func_numba.numpy_output_dtype()
+            # except NotImplementedError:
+            #    pass
+
+    if scalar_func_numba is None:
+        scalar_func_numba = generate_fallback_impl(op, node, **kwargs)
+
+    scalar_op_fn_name = get_name_for_object(scalar_func_numba)
     unique_names = unique_name_generator(
-        [scalar_op_fn_name, "scalar_func"], suffix_sep="_"
+        [scalar_op_fn_name, "scalar_func_numba"], suffix_sep="_"
     )
 
-    global_env = {"scalar_func": scalar_func}
+    global_env = {"scalar_func_numba": scalar_func_numba}
 
-    input_tmp_dtypes = None
-    if func_package == scipy and hasattr(scalar_func, "types"):
-        # The `numba-scipy` bindings don't provide implementations for all
-        # inputs types, so we need to convert the inputs to floats and back.
-        inp_dtype_kinds = tuple(np.dtype(inp.type.dtype).kind for inp in node.inputs)
-        accepted_inp_kinds = tuple(
-            sig_type.split("->")[0] for sig_type in scalar_func.types
-        )
-        if not any(
-            all(dk == ik for dk, ik in zip(inp_dtype_kinds, ok_kinds))
-            for ok_kinds in accepted_inp_kinds
-        ):
-            # They're usually ordered from lower-to-higher precision, so
-            # we pick the last acceptable input types
-            #
-            # XXX: We should pick the first acceptable float/int types in
-            # reverse, excluding all the incompatible ones (e.g. `"0"`).
-            # The assumption is that this is only used by `numba-scipy`-exposed
-            # functions, although it's possible for this to be triggered by
-            # something else from the `scipy` package
-            input_tmp_dtypes = tuple(np.dtype(k) for k in accepted_inp_kinds[-1])
-
-    if input_tmp_dtypes is None:
+    if input_inner_dtypes is None and output_inner_dtype is None:
         unique_names = unique_name_generator(
-            [scalar_op_fn_name, "scalar_func"], suffix_sep="_"
+            [scalar_op_fn_name, "scalar_func_numba"], suffix_sep="_"
         )
         input_names = ", ".join(
             [unique_names(v, force_unique=True) for v in node.inputs]
         )
-        scalar_op_src = f"""
+        if not has_pyx_skip_dispatch:
+            scalar_op_src = f"""
 def {scalar_op_fn_name}({input_names}):
-    return scalar_func({input_names})
-        """
+    return scalar_func_numba({input_names})
+            """
+        else:
+            scalar_op_src = f"""
+def {scalar_op_fn_name}({input_names}):
+    return scalar_func_numba({input_names}, np.intc(1))
+            """
+
     else:
         global_env["direct_cast"] = numba_basic.direct_cast
-        global_env["output_dtype"] = np.dtype(node.outputs[0].type.dtype)
+        global_env["output_dtype"] = np.dtype(output_inner_dtype)
         input_tmp_dtype_names = {
-            f"inp_tmp_dtype_{i}": i_dtype for i, i_dtype in enumerate(input_tmp_dtypes)
+            f"inp_tmp_dtype_{i}": i_dtype
+            for i, i_dtype in enumerate(input_inner_dtypes)
         }
         global_env.update(input_tmp_dtype_names)
 
         unique_names = unique_name_generator(
-            [scalar_op_fn_name, "scalar_func"] + list(global_env.keys()), suffix_sep="_"
+            [scalar_op_fn_name, "scalar_func_numba"] + list(global_env.keys()),
+            suffix_sep="_",
         )
 
         input_names = [unique_names(v, force_unique=True) for v in node.inputs]
@@ -110,10 +126,16 @@ def {scalar_op_fn_name}({input_names}):
                 )
             ]
         )
-        scalar_op_src = f"""
+        if not has_pyx_skip_dispatch:
+            scalar_op_src = f"""
 def {scalar_op_fn_name}({', '.join(input_names)}):
-    return direct_cast(scalar_func({converted_call_args}), output_dtype)
-        """
+    return direct_cast(scalar_func_numba({converted_call_args}), output_dtype)
+            """
+        else:
+            scalar_op_src = f"""
+def {scalar_op_fn_name}({', '.join(input_names)}):
+    return direct_cast(scalar_func_numba({converted_call_args}, np.intc(1)), output_dtype)
+            """
 
     scalar_op_fn = compile_function_src(
         scalar_op_src, scalar_op_fn_name, {**globals(), **global_env}
@@ -122,7 +144,7 @@ def {scalar_op_fn_name}({', '.join(input_names)}):
     signature = create_numba_signature(node, force_scalar=True)
 
     return numba_basic.numba_njit(
-        signature, inline="always", fastmath=config.numba__fastmath
+        signature, inline="always", fastmath=config.numba__fastmath, cache=False,
     )(scalar_op_fn)
 
 
@@ -220,7 +242,7 @@ def numba_funcify_Clip(op, **kwargs):
 
 @numba_funcify.register(Composite)
 def numba_funcify_Composite(op, node, **kwargs):
-    signature = create_numba_signature(node, force_scalar=True)
+    signature = create_numba_signature(op.fgraph, force_scalar=True)
 
     _ = kwargs.pop("storage_map", None)
 
