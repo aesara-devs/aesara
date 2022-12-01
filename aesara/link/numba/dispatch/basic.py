@@ -31,6 +31,7 @@ from aesara.link.utils import (
 )
 from aesara.scalar.basic import ScalarType
 from aesara.scalar.math import Softplus
+from aesara.sparse.type import SparseTensorType
 from aesara.tensor.blas import BatchedDot
 from aesara.tensor.math import Dot
 from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape
@@ -73,14 +74,33 @@ generated_jit = _jit(
 )
 
 
-def get_numba_type(
-    aesara_type: Type,
+@singledispatch
+def get_numba_type(aesara_type: Type, **kwargs) -> numba.types.Type:
+    r"""Create a Numba type object for a :class:`Type`."""
+    return numba.types.pyobject
+
+
+@get_numba_type.register(SparseTensorType)
+def get_numba_type_SparseType(aesara_type, **kwargs):
+    # This is needed to differentiate `SparseTensorType` from `TensorType`
+    return numba.types.pyobject
+
+
+@get_numba_type.register(ScalarType)
+def get_numba_type_ScalarType(aesara_type, **kwargs):
+    dtype = np.dtype(aesara_type.dtype)
+    numba_dtype = numba.from_dtype(dtype)
+    return numba_dtype
+
+
+@get_numba_type.register(TensorType)
+def get_numba_type_TensorType(
+    aesara_type,
     layout: str = "A",
     force_scalar: bool = False,
     reduce_to_scalar: bool = False,
-) -> numba.types.Type:
-    r"""Create a Numba type object for a :class:`Type`.
-
+):
+    r"""
     Parameters
     ----------
     aesara_type
@@ -92,44 +112,27 @@ def get_numba_type(
     reduce_to_scalar
         Return Numba scalars for zero dimensional :class:`TensorType`\s.
     """
-
-    if isinstance(aesara_type, TensorType):
-        dtype = aesara_type.numpy_dtype
-        numba_dtype = numba.from_dtype(dtype)
-        if force_scalar or (
-            reduce_to_scalar and getattr(aesara_type, "ndim", None) == 0
-        ):
-            return numba_dtype
-        return numba.types.Array(numba_dtype, aesara_type.ndim, layout)
-    elif isinstance(aesara_type, ScalarType):
-        dtype = np.dtype(aesara_type.dtype)
-        numba_dtype = numba.from_dtype(dtype)
+    dtype = aesara_type.numpy_dtype
+    numba_dtype = numba.from_dtype(dtype)
+    if force_scalar or (reduce_to_scalar and getattr(aesara_type, "ndim", None) == 0):
         return numba_dtype
-    else:
-        raise NotImplementedError(f"Numba type not implemented for {aesara_type}")
+    return numba.types.Array(numba_dtype, aesara_type.ndim, layout)
 
 
 def create_numba_signature(
-    node_or_fgraph: Union[FunctionGraph, Apply],
-    force_scalar: bool = False,
-    reduce_to_scalar: bool = False,
+    node_or_fgraph: Union[FunctionGraph, Apply], **kwargs
 ) -> numba.types.Type:
     """Create a Numba type for the signature of an `Apply` node or `FunctionGraph`."""
     input_types = []
     for inp in node_or_fgraph.inputs:
-        input_types.append(
-            get_numba_type(
-                inp.type, force_scalar=force_scalar, reduce_to_scalar=reduce_to_scalar
-            )
-        )
+        input_types.append(get_numba_type(inp.type, **kwargs))
 
     output_types = []
     for out in node_or_fgraph.outputs:
-        output_types.append(
-            get_numba_type(
-                out.type, force_scalar=force_scalar, reduce_to_scalar=reduce_to_scalar
-            )
-        )
+        output_types.append(get_numba_type(out.type, **kwargs))
+
+    if isinstance(node_or_fgraph, FunctionGraph):
+        return numba.types.Tuple(output_types)(*input_types)
 
     if len(output_types) > 1:
         return numba.types.Tuple(output_types)(*input_types)
