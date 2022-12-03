@@ -124,6 +124,22 @@ def test_random_updates(rng_ctor):
             lambda a, b: (a, 0.0, b),
         ),
         (
+            aer.gumbel,
+            [
+                set_test_value(
+                    at.lvector(),
+                    np.array([1, 2], dtype=np.int64),
+                ),
+                set_test_value(
+                    at.dscalar(),
+                    np.array(1.0, dtype=np.float64),
+                ),
+            ],
+            (2,),
+            "gumbel_r",
+            lambda *args: args,
+        ),
+        (
             aer.laplace,
             [
                 set_test_value(at.dvector(), np.array([1.0, 2.0], dtype=np.float64)),

@@ -110,6 +110,7 @@ def jax_sample_fn_generic(op):
 
 
 @jax_sample_fn.register(aer.CauchyRV)
+@jax_sample_fn.register(aer.GumbelRV)
 @jax_sample_fn.register(aer.LaplaceRV)
 @jax_sample_fn.register(aer.LogisticRV)
 @jax_sample_fn.register(aer.NormalRV)
