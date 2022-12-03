@@ -207,3 +207,8 @@ def test_jax_checkandraise():
 
     with pytest.warns(UserWarning):
         function((p,), res, mode=jax_mode)
+
+
+def set_test_value(x, v):
+    x.tag.test_value = v
+    return x
