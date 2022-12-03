@@ -208,6 +208,24 @@ def jax_sample_fn_exponential(op):
     return sample_fn
 
 
+@jax_sample_fn.register(aer.StudentTRV)
+def jax_sample_fn_t(op):
+    """JAX implementation of `StudentTRV`."""
+
+    def sample_fn(rng, size, dtype, *parameters):
+        rng_key = rng["jax_state"]
+        (
+            df,
+            loc,
+            scale,
+        ) = parameters
+        sample = loc + jax.random.t(rng_key, df, size, dtype) * scale
+        rng["jax_state"] = jax.random.split(rng_key, num=1)[0]
+        return (rng, sample)
+
+    return sample_fn
+
+
 @jax_sample_fn.register(aer.ChoiceRV)
 def jax_funcify_choice(op):
     """JAX implementation of `ChoiceRV`."""
