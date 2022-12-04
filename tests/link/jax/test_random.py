@@ -222,6 +222,13 @@ def test_random_updates(rng_ctor):
             lambda *args: args,
         ),
         (
+            aer.standard_normal,
+            [],
+            (2,),
+            "norm",
+            lambda *args: args,
+        ),
+        (
             aer.t,
             [
                 set_test_value(
