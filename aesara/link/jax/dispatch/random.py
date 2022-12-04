@@ -114,6 +114,7 @@ def jax_sample_fn_generic(op):
 @jax_sample_fn.register(aer.LaplaceRV)
 @jax_sample_fn.register(aer.LogisticRV)
 @jax_sample_fn.register(aer.NormalRV)
+@jax_sample_fn.register(aer.StandardNormalRV)
 def jax_sample_fn_loc_scale(op):
     """JAX implementation of random variables in the loc-scale families.
 
