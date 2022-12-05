@@ -449,14 +449,33 @@ def test_random_concrete_shape():
     """
     rng = shared(np.random.RandomState(123))
     x_at = at.dmatrix()
-    f = at.random.normal(0, 1, size=(3,), rng=rng)
-    g = at.random.normal(f, 1, size=x_at.shape, rng=rng)
-    g_fn = function([x_at], g, mode=jax_mode)
-    _ = g_fn(np.ones((2, 3)))
+    out = at.random.normal(0, 1, size=x_at.shape, rng=rng)
+    jax_fn = function([x_at], out, mode=jax_mode)
+    assert jax_fn(np.ones((2, 3))).shape == (2, 3)
 
-    # This should compile, and `size_at` be passed to the list of `static_argnums`.
-    with pytest.raises(NotImplementedError):
-        size_at = at.scalar()
-        g = at.random.normal(f, 1, size=size_at, rng=rng)
-        g_fn = function([size_at], g, mode=jax_mode)
-        _ = g_fn(10)
+
+@pytest.mark.xfail(reason="size argument specified as a tuple is a `DimShuffle` node")
+def test_random_concrete_shape_subtensor():
+    rng = shared(np.random.RandomState(123))
+    x_at = at.dmatrix()
+    out = at.random.normal(0, 1, size=x_at.shape[1], rng=rng)
+    jax_fn = function([x_at], out, mode=jax_mode)
+    assert jax_fn(np.ones((2, 3))).shape == (3,)
+
+
+@pytest.mark.xfail(reason="size argument specified as a tuple is a `MakeVector` node")
+def test_random_concrete_shape_subtensor_tuple():
+    rng = shared(np.random.RandomState(123))
+    x_at = at.dmatrix()
+    out = at.random.normal(0, 1, size=(x_at.shape[0],), rng=rng)
+    jax_fn = function([x_at], out, mode=jax_mode)
+    assert jax_fn(np.ones((2, 3))).shape == (2,)
+
+
+@pytest.mark.xfail(reason="`size_at` should be specified as a static argument")
+def test_random_concrete_shape_graph_input():
+    rng = shared(np.random.RandomState(123))
+    size_at = at.scalar()
+    out = at.random.normal(0, 1, size=size_at, rng=rng)
+    jax_fn = function([size_at], out, mode=jax_mode)
+    assert jax_fn(10).shape == (10,)
