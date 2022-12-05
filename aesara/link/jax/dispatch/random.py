@@ -8,10 +8,37 @@ from numpy.random.bit_generator import (  # type: ignore[attr-defined]
 
 import aesara.tensor.random.basic as aer
 from aesara.link.jax.dispatch.basic import jax_funcify, jax_typify
-from aesara.tensor.shape import Shape
+from aesara.tensor.shape import Shape, Shape_i
 
 
 numpy_bit_gens = {"MT19937": 0, "PCG64": 1, "Philox": 2, "SFC64": 3}
+
+
+SIZE_NOT_COMPATIBLE = """JAX random variables require concrete values for the `size` parameter of the distributions.
+Concrete values are either constants:
+
+>>> import aesara.tensor as at
+>>> x_rv = at.random.normal(0, 1, size=(3, 2))
+
+or the shape of an array:
+
+>>> m = at.matrix()
+>>> x_rv = at.random.normal(0, 1, size=m.shape)
+"""
+
+
+def assert_size_argument_jax_compatible(node):
+    """Assert whether the current node can be compiled.
+
+    JAX can JIT-compile `jax.random` functions when the `size` argument
+    is a concrete value, i.e. either a constant or the shape of any
+    traced value.
+
+    """
+    size = node.inputs[1]
+    size_op = size.owner.op
+    if not isinstance(size_op, (Shape, Shape_i)):
+        raise NotImplementedError(SIZE_NOT_COMPATIBLE)
 
 
 @jax_typify.register(RandomState)
@@ -65,12 +92,7 @@ def jax_funcify_RandomVariable(op, node, **kwargs):
     # by a `Shape` operator in which case JAX will compile, or it is
     # not and we fail gracefully.
     if None in out_size:
-        if not isinstance(node.inputs[1].owner.op, Shape):
-            raise NotImplementedError(
-                """JAX random variables require concrete values for the `size` parameter of the distributions.
-                Concrete values are either constants, or the shape of an array.
-                """
-            )
+        assert_size_argument_jax_compatible(node)
 
         def sample_fn(rng, size, dtype, *parameters):
             return jax_sample_fn(op)(rng, size, out_dtype, *parameters)
