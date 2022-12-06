@@ -371,6 +371,7 @@ def _numba_funcify(
     A `Callable` that can be JIT-compiled in Numba using `numba.jit`.
 
     """
+    raise NotImplementedError()
 
 
 @_numba_funcify.register(Op)

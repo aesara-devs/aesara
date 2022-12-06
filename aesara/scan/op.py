@@ -54,6 +54,7 @@ from typing import Callable, List, Optional, Union
 import numpy as np
 
 import aesara
+import aesara.link.utils as link_utils
 from aesara import tensor as at
 from aesara.compile.builders import construct_nominal_fgraph, infer_shape
 from aesara.compile.function.pfunc import pfunc
@@ -75,7 +76,6 @@ from aesara.graph.op import HasInnerGraph, Op
 from aesara.graph.utils import InconsistencyError, MissingInputError
 from aesara.link.c.basic import CLinker
 from aesara.link.c.exceptions import MissingGXX
-from aesara.link.utils import raise_with_op
 from aesara.printing import op_debug_information
 from aesara.scan.utils import ScanProfileStats, Validator, forced_replace, safe_new
 from aesara.tensor.basic import as_tensor_variable
@@ -1629,7 +1629,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                     if hasattr(self.fn.vm, "position_of_error") and hasattr(
                         self.fn.vm, "thunks"
                     ):
-                        raise_with_op(
+                        link_utils.raise_with_op(
                             self.fn.maker.fgraph,
                             self.fn.vm.nodes[self.fn.vm.position_of_error],
                             self.fn.vm.thunks[self.fn.vm.position_of_error],
@@ -1932,7 +1932,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                     # done by raise_with_op is not implemented in C.
                     if hasattr(vm, "thunks"):
                         # For the CVM
-                        raise_with_op(
+                        link_utils.raise_with_op(
                             self.fn.maker.fgraph,
                             vm.nodes[vm.position_of_error],
                             vm.thunks[vm.position_of_error],
@@ -1942,7 +1942,7 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
                         # We don't have access from python to all the
                         # temps values So for now, we just don't print
                         # the extra shapes/strides info
-                        raise_with_op(
+                        link_utils.raise_with_op(
                             self.fn.maker.fgraph, vm.nodes[vm.position_of_error]
                         )
                 else:
@@ -3427,7 +3427,7 @@ def profile_printer(
             )
 
 
-@op_debug_information.register(Scan)  # type: ignore[has-type]
+@op_debug_information.register(Scan)
 def _op_debug_information_Scan(op, node):
     from typing import Sequence
 
