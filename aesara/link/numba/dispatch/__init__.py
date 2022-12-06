@@ -13,5 +13,6 @@ import aesara.link.numba.dispatch.nlinalg
 import aesara.link.numba.dispatch.random
 import aesara.link.numba.dispatch.elemwise
 import aesara.link.numba.dispatch.scan
+import aesara.link.numba.dispatch.sparse
 
 # isort: on
