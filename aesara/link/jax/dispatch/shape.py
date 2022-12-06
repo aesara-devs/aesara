@@ -1,8 +1,31 @@
 import jax.numpy as jnp
 
 from aesara.graph import Constant
+from aesara.graph.basic import Apply
+from aesara.graph.op import Op
 from aesara.link.jax.dispatch.basic import jax_funcify
 from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape, Unbroadcast
+from aesara.tensor.type import TensorType
+
+
+class JAXShapeTuple(Op):
+    """Dummy Op that represents a `size` specified as a tuple."""
+
+    def make_node(self, *inputs):
+        dtype = inputs[0].type.dtype
+        otype = TensorType(dtype, shape=(len(inputs),))
+        return Apply(self, inputs, [otype()])
+
+    def perform(self, *inputs):
+        return tuple(inputs)
+
+
+@jax_funcify.register(JAXShapeTuple)
+def jax_funcify_JAXShapeTuple(op, **kwargs):
+    def shape_tuple_fn(*x):
+        return tuple(x)
+
+    return shape_tuple_fn
 
 
 @jax_funcify.register(Reshape)

@@ -8,6 +8,7 @@ from numpy.random.bit_generator import (  # type: ignore[attr-defined]
 
 import aesara.tensor.random.basic as aer
 from aesara.link.jax.dispatch.basic import jax_funcify, jax_typify
+from aesara.link.jax.dispatch.shape import JAXShapeTuple
 from aesara.tensor.shape import Shape, Shape_i
 
 
@@ -28,7 +29,7 @@ or the shape of an array:
 
 
 def assert_size_argument_jax_compatible(node):
-    """Assert whether the current node can be compiled.
+    """Assert whether the current node can be JIT-compiled by JAX.
 
     JAX can JIT-compile `jax.random` functions when the `size` argument
     is a concrete value, i.e. either a constant or the shape of any
@@ -37,7 +38,7 @@ def assert_size_argument_jax_compatible(node):
     """
     size = node.inputs[1]
     size_op = size.owner.op
-    if not isinstance(size_op, (Shape, Shape_i)):
+    if not isinstance(size_op, (Shape, Shape_i, JAXShapeTuple)):
         raise NotImplementedError(SIZE_NOT_COMPATIBLE)
 
 

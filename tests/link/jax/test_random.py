@@ -454,8 +454,18 @@ def test_random_concrete_shape():
     assert jax_fn(np.ones((2, 3))).shape == (2, 3)
 
 
-@pytest.mark.xfail(reason="size argument specified as a tuple is a `DimShuffle` node")
 def test_random_concrete_shape_subtensor():
+    """JAX should compile when a concrete value is passed for the `size` parameter.
+
+    This test ensures that the `DimShuffle` `Op` used by Aesara to turn scalar
+    inputs into 1d vectors is replaced by an `Op` that turns concrete scalar
+    inputs into tuples of concrete values using the `jax_size_parameter_as_tuple`
+    rewrite.
+
+    JAX does not accept scalars as `size` or `shape` arguments, so this is a
+    slight improvement over their API.
+
+    """
     rng = shared(np.random.RandomState(123))
     x_at = at.dmatrix()
     out = at.random.normal(0, 1, size=x_at.shape[1], rng=rng)
@@ -463,8 +473,15 @@ def test_random_concrete_shape_subtensor():
     assert jax_fn(np.ones((2, 3))).shape == (3,)
 
 
-@pytest.mark.xfail(reason="size argument specified as a tuple is a `MakeVector` node")
 def test_random_concrete_shape_subtensor_tuple():
+    """JAX should compile when a tuple of concrete values is passed for the `size` parameter.
+
+    This test ensures that the `MakeVector` `Op` used by Aesara to turn tuple
+    inputs into 1d vectors is replaced by an `Op` that turns a tuple of concrete
+    scalar inputs into tuples of concrete values using the
+    `jax_size_parameter_as_tuple` rewrite.
+
+    """
     rng = shared(np.random.RandomState(123))
     x_at = at.dmatrix()
     out = at.random.normal(0, 1, size=(x_at.shape[0],), rng=rng)
@@ -472,7 +489,9 @@ def test_random_concrete_shape_subtensor_tuple():
     assert jax_fn(np.ones((2, 3))).shape == (2,)
 
 
-@pytest.mark.xfail(reason="`size_at` should be specified as a static argument")
+@pytest.mark.xfail(
+    reason="`size_at` should be specified as a static argument", strict=True
+)
 def test_random_concrete_shape_graph_input():
     rng = shared(np.random.RandomState(123))
     size_at = at.scalar()
