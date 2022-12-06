@@ -1056,7 +1056,7 @@ class VMLinker(LocalLinker):
                 callback=self.callback,
                 callback_input=self.callback_input,
             )
-        elif self.use_cloop and CVM:
+        elif self.use_cloop and CVM is not None:
 
             # create a map from nodes to ints and vars to ints
             nodes_idx = {}
