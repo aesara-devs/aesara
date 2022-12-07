@@ -82,26 +82,10 @@ def jax_funcify_CheckAndRaise(op, **kwargs):
     return assert_fn
 
 
-def jnp_safe_copy(x):
-    try:
-        res = jnp.copy(x)
-    except NotImplementedError:
-        warnings.warn(
-            "`jnp.copy` is not implemented yet. " "Using the object's `copy` method."
-        )
-        if hasattr(x, "copy"):
-            res = jnp.array(x.copy())
-        else:
-            warnings.warn(f"Object has no `copy` method: {x}")
-            res = x
-
-    return res
-
-
 @jax_funcify.register(DeepCopyOp)
 def jax_funcify_DeepCopyOp(op, **kwargs):
     def deepcopyop(x):
-        return jnp_safe_copy(x)
+        return jnp.copy(x)
 
     return deepcopyop
 
