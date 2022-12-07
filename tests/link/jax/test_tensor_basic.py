@@ -52,15 +52,22 @@ def test_jax_MakeVector():
     compare_jax_and_py(x_fg, [])
 
 
-@pytest.mark.xfail(reason="jax.numpy.arange requires concrete inputs")
+def test_arange():
+    out = at.arange(1, 10, 2)
+    fgraph = FunctionGraph([], [out])
+    compare_jax_and_py(fgraph, [])
+
+
 def test_arange_nonconcrete():
+    """JAX cannot JIT-compile `jax.numpy.arange` when arguments are not concrete values."""
 
     a = scalar("a")
     a.tag.test_value = 10
-
     out = at.arange(a)
-    fgraph = FunctionGraph([a], [out])
-    compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+    with pytest.raises(NotImplementedError):
+        fgraph = FunctionGraph([a], [out])
+        compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
 
 
 def test_jax_Join():
