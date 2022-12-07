@@ -1,3 +1,4 @@
+import numpy as np
 import scipy as sp
 import scipy.sparse
 from numba.core import cgutils, types
@@ -6,6 +7,8 @@ from numba.extending import (
     box,
     make_attribute_wrapper,
     models,
+    overload,
+    overload_attribute,
     register_model,
     typeof_impl,
     unbox,
@@ -140,3 +143,21 @@ def box_matrix(typ, val, c):
     c.pyapi.decref(shape_obj)
 
     return obj
+
+
+@overload(np.shape)
+def overload_sparse_shape(x):
+    if isinstance(x, CSMatrixType):
+        return lambda x: x.shape
+
+
+@overload_attribute(CSMatrixType, "ndim")
+def overload_sparse_ndim(inst):
+
+    if not isinstance(inst, CSMatrixType):
+        return
+
+    def ndim(inst):
+        return 2
+
+    return ndim
