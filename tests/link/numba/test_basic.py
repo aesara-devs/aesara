@@ -25,6 +25,7 @@ from aesara.graph.type import Type
 from aesara.ifelse import ifelse
 from aesara.link.numba.dispatch import basic as numba_basic
 from aesara.link.numba.dispatch import numba_const_convert
+from aesara.link.numba.dispatch.sparse import CSCMatrixType, CSRMatrixType
 from aesara.link.numba.linker import NumbaLinker
 from aesara.raise_op import assert_op
 from aesara.sparse.type import SparseTensorType
@@ -250,7 +251,16 @@ def compare_numba_and_py(
     "v, expected, force_scalar",
     [
         (MyType(), numba.types.pyobject, False),
-        (SparseTensorType("csc", dtype=np.float64), numba.types.pyobject, False),
+        (
+            SparseTensorType("csc", dtype=np.float64),
+            CSCMatrixType(numba.types.float64),
+            False,
+        ),
+        (
+            SparseTensorType("csr", dtype=np.float64),
+            CSRMatrixType(numba.types.float64),
+            False,
+        ),
         (aes.float32, numba.types.float32, False),
         (at.fscalar, numba.types.Array(numba.types.float32, 0, "A"), False),
         (at.fscalar, numba.types.float32, True),

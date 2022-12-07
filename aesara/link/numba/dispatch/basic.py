@@ -32,7 +32,6 @@ from aesara.link.utils import (
 )
 from aesara.scalar.basic import ScalarType
 from aesara.scalar.math import Softplus
-from aesara.sparse.type import SparseTensorType
 from aesara.tensor.blas import BatchedDot
 from aesara.tensor.math import Dot
 from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape
@@ -82,12 +81,6 @@ generated_jit = _jit(
 @singledispatch
 def get_numba_type(aesara_type: Type, **kwargs) -> numba.types.Type:
     r"""Create a Numba type object for a :class:`Type`."""
-    return numba.types.pyobject
-
-
-@get_numba_type.register(SparseTensorType)
-def get_numba_type_SparseType(aesara_type, **kwargs):
-    # This is needed to differentiate `SparseTensorType` from `TensorType`
     return numba.types.pyobject
 
 
