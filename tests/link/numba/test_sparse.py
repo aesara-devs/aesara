@@ -1,9 +1,16 @@
 import numba
 import numpy as np
+import pytest
 import scipy as sp
 
-# Load Numba customizations
+# Make sure the Numba customizations are loaded
 import aesara.link.numba.dispatch.sparse  # noqa: F401
+from aesara import config
+from aesara.sparse import Dot, SparseTensorType
+from tests.link.numba.test_basic import compare_numba_and_py
+
+
+pytestmark = pytest.mark.filterwarnings("error")
 
 
 def test_sparse_unboxing():
@@ -62,3 +69,17 @@ def test_sparse_ndim():
     res = test_fn(x_val)
 
     assert res == 2
+
+
+def test_sparse_objmode():
+
+    x = SparseTensorType("csc", dtype=config.floatX)()
+    y = SparseTensorType("csc", dtype=config.floatX)()
+
+    out = Dot()(x, y)
+
+    x_val = sp.sparse.random(2, 2, density=0.25, dtype=config.floatX)
+    y_val = sp.sparse.random(2, 2, density=0.25, dtype=config.floatX)
+
+    with pytest.warns(UserWarning):
+        compare_numba_and_py(((x, y), (out,)), [x_val, y_val])
