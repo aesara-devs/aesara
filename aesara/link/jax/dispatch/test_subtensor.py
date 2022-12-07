@@ -47,16 +47,24 @@ def test_jax_Subtensors():
     compare_jax_and_py(out_fg, [])
 
 
-@pytest.mark.xfail(
-    version_parse(jax.__version__) >= version_parse("0.2.12"),
-    reason="Omnistaging cannot be disabled",
-)
-def test_jax_Subtensors_omni():
-    x_at = at.arange(3 * 4 * 5).reshape((3, 4, 5))
-
-    # Boolean indices
+def test_jax_Subtensor_boolean_mask():
+    """JAX does not support resizing arrays with boolean masks."""
+    x_at = at.arange(-5, 5)
     out_at = x_at[x_at < 0]
     assert isinstance(out_at.owner.op, at_subtensor.AdvancedSubtensor)
+
+    with pytest.raises(NotImplementedError):
+        out_fg = FunctionGraph([], [out_at])
+        compare_jax_and_py(out_fg, [])
+
+
+@pytest.mark.xfail(
+    reason="Re-expressible boolean logic. We need a rewrite Aesara-side."
+)
+def test_jax_Subtensor_boolean_mask_reexpressible():
+    """Some boolean logic can be re-expressed and JIT-compiled"""
+    x_at = at.arange(-5, 5)
+    out_at = x_at[x_at < 0].sum()
     out_fg = FunctionGraph([], [out_at])
     compare_jax_and_py(out_fg, [])
 

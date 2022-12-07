@@ -13,10 +13,33 @@ from aesara.tensor.subtensor import (
 from aesara.tensor.type_other import MakeSlice
 
 
+BOOLEAN_MASK_ERROR = """JAX does not support resizing arrays with boolean
+masks. In some cases, however, it is possible to re-express your model
+in a form that JAX can compile:
+
+>>> import aesara.tensor as at
+>>> x_at = at.vector('x')
+>>> y_at = x_at[x_at > 0].sum()
+
+can be re-expressed as:
+
+>>> import aesara.tensor as at
+>>> x_at = at.vector('x')
+>>> y_at = at.where(x_at > 0, x_at, 0).sum()
+"""
+
+
+def assert_indices_jax_compatible(node):
+    ilist = node.inputs[1]
+    if ilist.type.dtype == "bool":
+        raise NotImplementedError(BOOLEAN_MASK_ERROR)
+
+
 @jax_funcify.register(Subtensor)
 @jax_funcify.register(AdvancedSubtensor)
 @jax_funcify.register(AdvancedSubtensor1)
-def jax_funcify_Subtensor(op, **kwargs):
+def jax_funcify_Subtensor(op, node, **kwargs):
+    assert_indices_jax_compatible(node)
 
     idx_list = getattr(op, "idx_list", None)
 
