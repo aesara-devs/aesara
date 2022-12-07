@@ -1,8 +1,6 @@
-import jax
 import numpy as np
 import pytest
 from jax._src.errors import NonConcreteBooleanIndexError
-from packaging.version import parse as version_parse
 
 import aesara.tensor as at
 from aesara.configdefaults import config
@@ -11,10 +9,20 @@ from aesara.tensor import subtensor as at_subtensor
 from tests.link.jax.test_basic import compare_jax_and_py
 
 
-def test_jax_Subtensors():
+def test_jax_Subtensor_constant():
     # Basic indices
     x_at = at.as_tensor(np.arange(3 * 4 * 5).reshape((3, 4, 5)))
     out_at = x_at[1, 2, 0]
+    assert isinstance(out_at.owner.op, at_subtensor.Subtensor)
+    out_fg = FunctionGraph([], [out_at])
+    compare_jax_and_py(out_fg, [])
+
+    out_at = x_at[1:, 1, :]
+    assert isinstance(out_at.owner.op, at_subtensor.Subtensor)
+    out_fg = FunctionGraph([], [out_at])
+    compare_jax_and_py(out_fg, [])
+
+    out_at = x_at[:2, 1, :]
     assert isinstance(out_at.owner.op, at_subtensor.Subtensor)
     out_fg = FunctionGraph([], [out_at])
     compare_jax_and_py(out_fg, [])
@@ -46,6 +54,21 @@ def test_jax_Subtensors():
     out_fg = FunctionGraph([], [out_at])
     compare_jax_and_py(out_fg, [])
 
+    # Flipping
+    out_at = x_at[::-1]
+    out_fg = FunctionGraph([], [out_at])
+    compare_jax_and_py(out_fg, [])
+
+
+@pytest.mark.xfail(reason="`a` should be specified as static when JIT-compiling")
+def test_jax_Subtensor_dynamic():
+    a = at.iscalar("a")
+    x = at.arange(3)
+    out_at = x[:a]
+    assert isinstance(out_at.owner.op, at_subtensor.Subtensor)
+    out_fg = FunctionGraph([a], [out_at])
+    compare_jax_and_py(out_fg, [1])
+
 
 def test_jax_Subtensor_boolean_mask():
     """JAX does not support resizing arrays with boolean masks."""
@@ -53,7 +76,7 @@ def test_jax_Subtensor_boolean_mask():
     out_at = x_at[x_at < 0]
     assert isinstance(out_at.owner.op, at_subtensor.AdvancedSubtensor)
 
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(NotImplementedError, match="resizing arrays with boolean"):
         out_fg = FunctionGraph([], [out_at])
         compare_jax_and_py(out_fg, [])
 
