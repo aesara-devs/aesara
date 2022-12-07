@@ -38,3 +38,27 @@ def test_sparse_boxing():
     assert np.array_equal(res_y_val.indices, y_val.indices)
     assert np.array_equal(res_y_val.indptr, y_val.indptr)
     assert res_y_val.shape == y_val.shape
+
+
+def test_sparse_shape():
+    @numba.njit
+    def test_fn(x):
+        return np.shape(x)
+
+    x_val = sp.sparse.csr_matrix(np.eye(100))
+
+    res = test_fn(x_val)
+
+    assert res == (100, 100)
+
+
+def test_sparse_ndim():
+    @numba.njit
+    def test_fn(x):
+        return x.ndim
+
+    x_val = sp.sparse.csr_matrix(np.eye(100))
+
+    res = test_fn(x_val)
+
+    assert res == 2
