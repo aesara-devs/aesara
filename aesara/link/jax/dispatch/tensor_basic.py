@@ -128,7 +128,7 @@ def jax_funcify_MakeVector(op, **kwargs):
 @jax_funcify.register(TensorFromScalar)
 def jax_funcify_TensorFromScalar(op, **kwargs):
     def tensor_from_scalar(x):
-        return jnp.array(x)
+        return x
 
     return tensor_from_scalar
 
