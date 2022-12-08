@@ -56,6 +56,14 @@ def jax_funcify_Identity(op, **kwargs):
 
 @jax_funcify.register(Clip)
 def jax_funcify_Clip(op, **kwargs):
+    """Register the translation for the `Clip` `Op`.
+
+    Aesara's `Clip` operator operates differently from NumPy's when the
+    specified `min` is larger than the `max` so we cannot reuse `jax.numpy.clip`
+    to maintain consistency with Aesara.
+
+    """
+
     def clip(x, min, max):
         return jnp.where(x < min, min, jnp.where(x > max, max, x))
 
