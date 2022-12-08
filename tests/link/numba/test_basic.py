@@ -102,8 +102,6 @@ def set_test_value(x, v):
 
 
 def compare_shape_dtype(x, y):
-    (x,) = x
-    (y,) = y
     return x.shape == y.shape and x.dtype == y.dtype
 
 
@@ -242,7 +240,7 @@ def compare_numba_and_py(
         for j, p in zip(numba_res, py_res):
             assert_fn(j, p)
     else:
-        assert_fn(numba_res, py_res)
+        assert_fn(numba_res[0], py_res[0])
 
     return numba_res
 
