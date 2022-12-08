@@ -71,6 +71,19 @@ def test_sparse_ndim():
     assert res == 2
 
 
+def test_sparse_copy():
+    @numba.njit
+    def test_fn(x):
+        y = x.copy()
+        return (
+            y is not x and np.all(x.data == y.data) and np.all(x.indices == y.indices)
+        )
+
+    x_val = sp.sparse.csr_matrix(np.eye(100))
+
+    assert test_fn(x_val)
+
+
 def test_sparse_objmode():
 
     x = SparseTensorType("csc", dtype=config.floatX)()
