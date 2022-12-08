@@ -5,13 +5,56 @@ import jax.numpy as jnp
 
 from aesara.link.jax.dispatch.basic import jax_funcify
 from aesara.scalar import Softplus
-from aesara.scalar.basic import Cast, Clip, Composite, Identity, ScalarOp, Second
+from aesara.scalar.basic import (
+    Add,
+    Cast,
+    Clip,
+    Composite,
+    Identity,
+    IntDiv,
+    Mod,
+    Mul,
+    ScalarOp,
+    Second,
+    Sub,
+)
 from aesara.scalar.math import Erf, Erfc, Erfinv, Log1mexp, Psi
 
 
+def check_if_inputs_scalars(node):
+    """Check whether all the inputs of an `Elemwise` are scalar values.
+
+    `jax.lax` or `jax.numpy` functions systematically return `TracedArrays`,
+    while the corresponding Python operators return concrete values when passed
+    concrete values. In order to be able to compile the largest number of graphs
+    possible we need to preserve concrete values whenever we can. We thus need
+    to dispatch differently the Aesara operators depending on whether the inputs
+    are scalars.
+
+    """
+    ndims_input = [inp.type.ndim for inp in node.inputs]
+    are_inputs_scalars = True
+    for ndim in ndims_input:
+        try:
+            if ndim > 0:
+                are_inputs_scalars = False
+        except TypeError:
+            are_inputs_scalars = False
+
+    return are_inputs_scalars
+
+
 @jax_funcify.register(ScalarOp)
-def jax_funcify_ScalarOp(op, **kwargs):
+def jax_funcify_ScalarOp(op, node, **kwargs):
     func_name = op.nfunc_spec[0]
+
+    # We dispatch some Aesara operators to Python operators
+    # whenever the inputs are all scalars.
+    are_inputs_scalars = check_if_inputs_scalars(node)
+    if are_inputs_scalars:
+        elemwise = elemwise_scalar(op)
+        if elemwise is not None:
+            return elemwise
 
     if "." in func_name:
         jnp_func = functools.reduce(getattr, [jax] + func_name.split("."))
@@ -36,6 +79,54 @@ def jax_funcify_ScalarOp(op, **kwargs):
         return elemwise
     else:
         return jnp_func
+
+
+@functools.singledispatch
+def elemwise_scalar(op):
+    return None
+
+
+@elemwise_scalar.register(Add)
+def elemwise_scalar_add(op):
+    def elemwise(*inputs):
+        return sum(inputs)
+
+    return elemwise
+
+
+@elemwise_scalar.register(Mul)
+def elemwise_scalar_mul(op):
+    import operator
+    from functools import reduce
+
+    def elemwise(*inputs):
+        return reduce(operator.mul, inputs, 1)
+
+    return elemwise
+
+
+@elemwise_scalar.register(Sub)
+def elemwise_scalar_sub(op):
+    def elemwise(x, y):
+        return x - y
+
+    return elemwise
+
+
+@elemwise_scalar.register(IntDiv)
+def elemwise_scalar_intdiv(op):
+    def elemwise(x, y):
+        return x // y
+
+    return elemwise
+
+
+@elemwise_scalar.register(Mod)
+def elemwise_scalar_mod(op):
+    def elemwise(x, y):
+        return x % y
+
+    return elemwise
 
 
 @jax_funcify.register(Cast)

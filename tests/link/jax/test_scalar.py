@@ -151,6 +151,42 @@ def test_jax_variadic_Scalar():
     compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
 
 
+def test_add_scalars():
+    x = at.matrix("x")
+    size = x.shape[0] + x.shape[0] + x.shape[1]
+    out = at.ones(size).astype(config.floatX)
+
+    out_fg = FunctionGraph([x], [out])
+    compare_jax_and_py(out_fg, [np.ones((2, 3)).astype(config.floatX)])
+
+
+def test_mul_scalars():
+    x = at.matrix("x")
+    size = x.shape[0] * x.shape[0] * x.shape[1]
+    out = at.ones(size).astype(config.floatX)
+
+    out_fg = FunctionGraph([x], [out])
+    compare_jax_and_py(out_fg, [np.ones((2, 3)).astype(config.floatX)])
+
+
+def test_div_scalars():
+    x = at.matrix("x")
+    size = x.shape[0] // x.shape[1]
+    out = at.ones(size).astype(config.floatX)
+
+    out_fg = FunctionGraph([x], [out])
+    compare_jax_and_py(out_fg, [np.ones((12, 3)).astype(config.floatX)])
+
+
+def test_mod_scalars():
+    x = at.matrix("x")
+    size = x.shape[0] % x.shape[1]
+    out = at.ones(size).astype(config.floatX)
+
+    out_fg = FunctionGraph([x], [out])
+    compare_jax_and_py(out_fg, [np.ones((12, 3)).astype(config.floatX)])
+
+
 def test_jax_multioutput():
     x = vector("x")
     x.tag.test_value = np.r_[1.0, 2.0].astype(config.floatX)
