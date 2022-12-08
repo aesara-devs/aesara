@@ -3,7 +3,7 @@ import pytest
 from packaging.version import parse as version_parse
 
 import aesara.tensor as at
-from aesara import function
+from aesara import function, grad
 from aesara.compile.mode import Mode
 from aesara.configdefaults import config
 from aesara.graph.fg import FunctionGraph
@@ -27,11 +27,10 @@ py_no_opts = Mode("py", opts)
 
 
 def test_while_cannnot_use_all_outputs():
-    """The JAX backend cannot return all the outputs of a while loop.
+    """The JAX backend cannot use all the outputs of a while loop.
 
     Indeed, JAX has fundamental limitations that prevent it from returning
     all the intermediate results computed in a `jax.lax.while_loop` loop.
-
     """
     res, updates = scan(
         fn=lambda a_tm1: (a_tm1 + 1, until(a_tm1 > 2)),
@@ -230,6 +229,16 @@ def test_sequence_opt():
         #     lambda a_tm1: 2 * a_tm1,
         #     [],
         #     [{"initial": at.as_tensor(0.0, dtype="floatX"), "taps": [-1]}],
+        #     [],
+        #     3,
+        #     [],
+        #     lambda op: op.info.n_sit_sot > 0,
+        # ),
+        # # sit-sot, while
+        # (
+        #     lambda a_tm1: (a_tm1 + 1, until(a_tm1 > 2)),
+        #     [],
+        #     [{"initial": at.as_tensor(1, dtype=np.int64), "taps": [-1]}],
         #     [],
         #     3,
         #     [],
@@ -478,3 +487,30 @@ def test_scan_multiple_none_output():
 
     for output_jax, output in zip(jax_res, res):
         assert np.allclose(jax_res, res)
+
+
+@pytest.mark.xfail(reason="Fails for reasons unrelated to `Scan`")
+def test_mitmots_basic():
+
+    init_x = at.dvector()
+    seq = at.dvector()
+
+    def inner_fct(seq, state_old, state_current):
+        return state_old * 2 + state_current + seq
+
+    out, _ = scan(
+        inner_fct, sequences=seq, outputs_info={"initial": init_x, "taps": [-2, -1]}
+    )
+
+    g_outs = grad(out.sum(), [seq, init_x])
+
+    out_fg = FunctionGraph([seq, init_x], g_outs)
+
+    seq_val = np.arange(3)
+    init_x_val = np.r_[-2, -1]
+    (seq_val, init_x_val)
+
+    fn = function(out_fg.inputs, out_fg.outputs)
+    jax_fn = function(out_fg.inputs, out_fg.outputs, mode="JAX")
+    print(fn(seq_val, init_x_val))
+    print(jax_fn(seq_val, init_x_val))

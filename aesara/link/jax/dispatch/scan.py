@@ -57,6 +57,7 @@ def assert_while_returns_last_output(fgraph, node):
 def jax_funcify_Scan(op, node, **kwargs):
     scan_inner_fn = jax_funcify(op.fgraph)
     input_taps = {
+        "mit_mot": op.info.mit_mot_in_slices,
         "mit_sot": op.info.mit_sot_in_slices,
         "sit_sot": op.info.sit_sot_in_slices,
         "nit_sot": op.info.sit_sot_in_slices,
@@ -76,9 +77,6 @@ def jax_funcify_Scan(op, node, **kwargs):
             "shared": list(op.outer_shared(outer_inputs)),
             "non_sequences": list(op.outer_non_seqs(outer_inputs)),
         }
-        if len(outer_in["mit_mot"]) > 0:
-            raise NotImplementedError("mit-mot not supported")
-
         return outer_in
 
     if op.info.as_while:
@@ -364,7 +362,7 @@ def make_jax_scan_fn(
         sequences = outer_in["sequences"]
         init_carry = {
             name: outer_in[name]
-            for name in ["mit_sot", "sit_sot", "shared", "non_sequences"]
+            for name in ["mit_mot", "mit_sot", "sit_sot", "shared", "non_sequences"]
         }
         init_carry["step"] = 0
         return n_steps, sequences, init_carry
@@ -381,7 +379,7 @@ def make_jax_scan_fn(
         [+ while-condition]
 
         """
-        inner_outputs_names = ["mit_sot", "sit_sot", "nit_sot", "shared"]
+        inner_outputs_names = ["mit_mot", "mit_sot", "sit_sot", "nit_sot", "shared"]
 
         offset = 0
         inner_output_idx = defaultdict(list)
@@ -456,6 +454,9 @@ def make_jax_scan_fn(
             current_step = carry["step"]
 
             inner_in_seqs = x
+            inner_in_mit_mot = from_carry_storage(
+                carry["mit_mot"], current_step, input_taps["mit_mot"]
+            )
             inner_in_mit_sot = from_carry_storage(
                 carry["mit_sot"], current_step, input_taps["mit_sot"]
             )
@@ -468,6 +469,7 @@ def make_jax_scan_fn(
             return sum(
                 [
                     inner_in_seqs,
+                    inner_in_mit_mot,
                     inner_in_mit_sot,
                     inner_in_sit_sot,
                     inner_in_shared,
@@ -480,6 +482,7 @@ def make_jax_scan_fn(
             """Create a new carry value from the values returned by the inner function (inner-outputs)."""
             step = carry["step"]
             new_carry = {
+                "mit_mot": [],
                 "mit_sot": [],
                 "sit_sot": [],
                 "shared": [],
@@ -492,6 +495,14 @@ def make_jax_scan_fn(
                     inner_outputs[idx] for idx in inner_output_idx["shared"]
                 ]
                 new_carry["shared"] = shared_inner_outputs
+
+            if "mit_mot" in inner_output_idx:
+                mit_mot_inner_outputs = [
+                    inner_outputs[idx] for idx in inner_output_idx["mit_mot"]
+                ]
+                new_carry["mit_mot"] = to_carry_storage(
+                    mit_mot_inner_outputs, carry["mit_mot"], step, input_taps["mit_mot"]
+                )
 
             if "mit_sot" in inner_output_idx:
                 mit_sot_inner_outputs = [
@@ -527,6 +538,10 @@ def make_jax_scan_fn(
 
             """
             outer_outputs = []
+            if "mit_mot" in inner_output_idx:
+                outer_outputs.append(
+                    [inner_outputs[idx] for idx in inner_output_idx["mit_mot"]]
+                )
             if "mit_sot" in inner_output_idx:
                 outer_outputs.append(
                     [inner_outputs[idx] for idx in inner_output_idx["mit_sot"]]
