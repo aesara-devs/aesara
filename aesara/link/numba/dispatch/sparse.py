@@ -2,13 +2,16 @@ import numpy as np
 import scipy as sp
 import scipy.sparse
 from numba.core import cgutils, types
+from numba.core.imputils import impl_ret_borrowed
 from numba.extending import (
     NativeValue,
     box,
+    intrinsic,
     make_attribute_wrapper,
     models,
     overload,
     overload_attribute,
+    overload_method,
     register_model,
     typeof_impl,
     unbox,
@@ -172,6 +175,42 @@ def overload_sparse_ndim(inst):
         return 2
 
     return ndim
+
+
+@intrinsic
+def _sparse_copy(typingctx, inst, data, indices, indptr, shape):
+    def _construct(context, builder, sig, args):
+        typ = sig.return_type
+        struct = cgutils.create_struct_proxy(typ)(context, builder)
+        _, data, indices, indptr, shape = args
+        struct.data = data
+        struct.indices = indices
+        struct.indptr = indptr
+        struct.shape = shape
+        return impl_ret_borrowed(
+            context,
+            builder,
+            sig.return_type,
+            struct._getvalue(),
+        )
+
+    sig = inst(inst, inst.data, inst.indices, inst.indptr, inst.shape)
+
+    return sig, _construct
+
+
+@overload_method(CSMatrixType, "copy")
+def overload_sparse_copy(inst):
+
+    if not isinstance(inst, CSMatrixType):
+        return
+
+    def copy(inst):
+        return _sparse_copy(
+            inst, inst.data.copy(), inst.indices.copy(), inst.indptr.copy(), inst.shape
+        )
+
+    return copy
 
 
 @get_numba_type.register(SparseTensorType)
