@@ -17,7 +17,7 @@ class NumbaLinker(JITLinker):
         if not isinstance(var, np.ndarray) and isinstance(
             var.type, aesara.tensor.TensorType
         ):
-            return np.asarray(out, dtype=var.type.dtype)
+            return var.type.filter(out, allow_downcast=True)
 
         return out
 
