@@ -1,5 +1,3 @@
-import jax
-
 from aesara.link.jax.dispatch.basic import jax_funcify
 from aesara.tensor.subtensor import (
     AdvancedIncSubtensor,
@@ -33,7 +31,7 @@ slice length.
 """
 
 
-def assert_indices_jax_compatible(node, idx_list):
+def subtensor_assert_indices_jax_compatible(node, idx_list):
     from aesara.graph.basic import Constant
     from aesara.tensor.var import TensorVariable
 
@@ -55,7 +53,7 @@ def assert_indices_jax_compatible(node, idx_list):
 def jax_funcify_Subtensor(op, node, **kwargs):
 
     idx_list = getattr(op, "idx_list", None)
-    assert_indices_jax_compatible(node, idx_list)
+    subtensor_assert_indices_jax_compatible(node, idx_list)
 
     def subtensor_constant(x, *ilists):
         indices = indices_from_subtensor(ilists, idx_list)
@@ -69,25 +67,19 @@ def jax_funcify_Subtensor(op, node, **kwargs):
 
 @jax_funcify.register(IncSubtensor)
 @jax_funcify.register(AdvancedIncSubtensor1)
-def jax_funcify_IncSubtensor(op, **kwargs):
+def jax_funcify_IncSubtensor(op, node, **kwargs):
 
     idx_list = getattr(op, "idx_list", None)
 
     if getattr(op, "set_instead_of_inc", False):
-        jax_fn = getattr(jax.ops, "index_update", None)
 
-        if jax_fn is None:
-
-            def jax_fn(x, indices, y):
-                return x.at[indices].set(y)
+        def jax_fn(x, indices, y):
+            return x.at[indices].set(y)
 
     else:
-        jax_fn = getattr(jax.ops, "index_add", None)
 
-        if jax_fn is None:
-
-            def jax_fn(x, indices, y):
-                return x.at[indices].add(y)
+        def jax_fn(x, indices, y):
+            return x.at[indices].add(y)
 
     def incsubtensor(x, y, *ilist, jax_fn=jax_fn, idx_list=idx_list):
         indices = indices_from_subtensor(ilist, idx_list)
@@ -100,23 +92,17 @@ def jax_funcify_IncSubtensor(op, **kwargs):
 
 
 @jax_funcify.register(AdvancedIncSubtensor)
-def jax_funcify_AdvancedIncSubtensor(op, **kwargs):
+def jax_funcify_AdvancedIncSubtensor(op, node, **kwargs):
 
     if getattr(op, "set_instead_of_inc", False):
-        jax_fn = getattr(jax.ops, "index_update", None)
 
-        if jax_fn is None:
-
-            def jax_fn(x, indices, y):
-                return x.at[indices].set(y)
+        def jax_fn(x, indices, y):
+            return x.at[indices].set(y)
 
     else:
-        jax_fn = getattr(jax.ops, "index_add", None)
 
-        if jax_fn is None:
-
-            def jax_fn(x, indices, y):
-                return x.at[indices].add(y)
+        def jax_fn(x, indices, y):
+            return x.at[indices].add(y)
 
     def advancedincsubtensor(x, y, *ilist, jax_fn=jax_fn):
         return jax_fn(x, ilist, y)

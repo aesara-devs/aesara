@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-from jax._src.errors import NonConcreteBooleanIndexError
 
 import aesara.tensor as at
 from aesara.configdefaults import config
@@ -179,7 +178,11 @@ def test_jax_IncSubtensor():
     compare_jax_and_py(out_fg, [])
 
 
-def test_jax_IncSubtensors_unsupported():
+@pytest.mark.xfail(
+    reason="Re-expressible boolean logic. We need a rewrite Aesara-side to remove the DimShuffle."
+)
+def test_jax_IncSubtensor_boolean_mask_reexpressible():
+    """Some boolean logic can be re-expressed and JIT-compiled"""
     rng = np.random.default_rng(213234)
     x_np = rng.uniform(-1, 1, size=(3, 4, 5)).astype(config.floatX)
     x_at = at.constant(np.arange(3 * 4 * 5).reshape((3, 4, 5)).astype(config.floatX))
@@ -188,30 +191,28 @@ def test_jax_IncSubtensors_unsupported():
     out_at = at_subtensor.set_subtensor(x_at[mask_at], 0.0)
     assert isinstance(out_at.owner.op, at_subtensor.AdvancedIncSubtensor)
     out_fg = FunctionGraph([], [out_at])
-    with pytest.raises(
-        NonConcreteBooleanIndexError, match="Array boolean indices must be concrete"
-    ):
-        compare_jax_and_py(out_fg, [])
+    compare_jax_and_py(out_fg, [])
 
-    mask_at = at.as_tensor_variable(x_np) > 0
-    out_at = at_subtensor.set_subtensor(x_at[mask_at], 1.0)
+    mask_at = at.as_tensor(x_np) > 0
+    out_at = at_subtensor.inc_subtensor(x_at[mask_at], 1.0)
     assert isinstance(out_at.owner.op, at_subtensor.AdvancedIncSubtensor)
     out_fg = FunctionGraph([], [out_at])
-    with pytest.raises(
-        NonConcreteBooleanIndexError, match="Array boolean indices must be concrete"
-    ):
-        compare_jax_and_py(out_fg, [])
+    compare_jax_and_py(out_fg, [])
+
+
+def test_jax_IncSubtensors_unsupported():
+    rng = np.random.default_rng(213234)
+    x_np = rng.uniform(-1, 1, size=(3, 4, 5)).astype(config.floatX)
+    x_at = at.constant(np.arange(3 * 4 * 5).reshape((3, 4, 5)).astype(config.floatX))
 
     st_at = at.as_tensor_variable(x_np[[0, 2], 0, :3])
     out_at = at_subtensor.set_subtensor(x_at[[0, 2], 0, :3], st_at)
     assert isinstance(out_at.owner.op, at_subtensor.AdvancedIncSubtensor)
     out_fg = FunctionGraph([], [out_at])
-    with pytest.raises(IndexError, match="Array slice indices must have static"):
-        compare_jax_and_py(out_fg, [])
+    compare_jax_and_py(out_fg, [])
 
     st_at = at.as_tensor_variable(x_np[[0, 2], 0, :3])
     out_at = at_subtensor.inc_subtensor(x_at[[0, 2], 0, :3], st_at)
     assert isinstance(out_at.owner.op, at_subtensor.AdvancedIncSubtensor)
     out_fg = FunctionGraph([], [out_at])
-    with pytest.raises(IndexError, match="Array slice indices must have static"):
-        compare_jax_and_py(out_fg, [])
+    compare_jax_and_py(out_fg, [])
