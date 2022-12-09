@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - checks
   pull_request:
     branches:
       - main
@@ -148,6 +147,60 @@ jobs:
         with:
           name: coverage
           path: coverage/coverage-${{ steps.matrix-id.outputs.id }}.xml
+
+  benchmarks:
+    name: "Benchmarks"
+    needs:
+      - changes
+      - style
+    runs-on: ubuntu-latest
+    if: ${{ needs.changes.outputs.changes == 'true' && needs.style.result == 'success' }}
+    strategy:
+      fail-fast: true
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up Python 3.9
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          mamba-version: "*"
+          channels: conda-forge,defaults
+          channel-priority: true
+          python-version: 3.9
+          auto-update-conda: true
+      - name: Install dependencies
+        shell: bash -l {0}
+        run: |
+          mamba install --yes -q -c conda-forge "python~=${PYTHON_VERSION}=*_cpython" mkl numpy scipy pip mkl-service cython pytest "numba>=0.55" numba-scipy jax jaxlib pytest-benchmark
+          pip install -e ./
+          mamba list && pip freeze
+          python -c 'import aesara; print(aesara.config.__str__(print_doc=False))'
+          python -c 'import aesara; assert(aesara.config.blas__ldflags != "")'
+        env:
+          PYTHON_VERSION: 3.9
+      - name: Download previous benchmark data
+        uses: actions/cache@v1
+        with:
+          path: ./cache
+          key: ${{ runner.os }}-benchmark
+      - name: Run benchmarks
+        shell: bash -l {0}
+        run: |
+          export AESARA_FLAGS=mode=FAST_COMPILE,warn__ignore_bug_before=all,on_opt_error=raise,on_shape_error=raise,gcc__cxxflags=-pipe
+          python -m pytest --benchmark-only --benchmark-json output.json
+      - name: Store benchmark result
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: Python Benchmark with pytest-benchmark
+          tool: 'pytest'
+          output-file-path: output.json
+          external-data-json-path: ./cache/benchmark-data.json
+          alert-threshold: '200%'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          comment-on-alert: ${{ github.event_name == 'push' }}
+          fail-on-alert: true
+          auto-push: ${{ github.event_name == 'push' }}
 
   all-checks:
     if: ${{ always() }}
