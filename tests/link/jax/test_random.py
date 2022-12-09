@@ -166,6 +166,22 @@ def test_random_updates(rng_ctor):
             lambda *args: args,
         ),
         (
+            aer.lognormal,
+            [
+                set_test_value(
+                    at.lvector(),
+                    np.array([0, 0], dtype=np.int64),
+                ),
+                set_test_value(
+                    at.dscalar(),
+                    np.array(1.0, dtype=np.float64),
+                ),
+            ],
+            (2,),
+            "lognorm",
+            lambda *args: args,
+        ),
+        (
             aer.normal,
             [
                 set_test_value(
