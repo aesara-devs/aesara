@@ -507,3 +507,13 @@ def test_MaxAndArgmax(x, axes, exc):
                 if not isinstance(i, (SharedVariable, Constant))
             ],
         )
+
+
+def test_sum_broadcast_to():
+    """Make sure that we handle the writability of `BroadcastTo` results correctly."""
+
+    x = at.vector("x")
+    out = at.broadcast_to(x, (2, 2)).sum()
+
+    x_val = np.array([1, 2], dtype=config.floatX)
+    compare_numba_and_py(((x,), (out,)), [x_val])

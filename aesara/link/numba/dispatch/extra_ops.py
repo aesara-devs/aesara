@@ -184,7 +184,7 @@ def numba_funcify_Repeat(op, node, **kwargs):
             UserWarning,
         )
 
-        ret_sig = get_numba_type(node.outputs[0].type)
+        ret_sig = get_numba_type(node.outputs[0].type, node.outputs[0])
 
         @numba_basic.numba_njit
         def repeatop(x, repeats):
@@ -243,9 +243,11 @@ def numba_funcify_Unique(op, node, **kwargs):
         )
 
         if returns_multi:
-            ret_sig = numba.types.Tuple([get_numba_type(o.type) for o in node.outputs])
+            ret_sig = numba.types.Tuple(
+                [get_numba_type(o.type, o) for o in node.outputs]
+            )
         else:
-            ret_sig = get_numba_type(node.outputs[0].type)
+            ret_sig = get_numba_type(node.outputs[0].type, node.outputs[0])
 
         @numba_basic.numba_njit
         def unique(x):
@@ -308,7 +310,7 @@ def numba_funcify_Searchsorted(op, node, **kwargs):
             UserWarning,
         )
 
-        ret_sig = get_numba_type(node.outputs[0].type)
+        ret_sig = get_numba_type(node.outputs[0].type, node.outputs[0])
 
         @numba_basic.numba_njit
         def searchsorted(a, v, sorter):
