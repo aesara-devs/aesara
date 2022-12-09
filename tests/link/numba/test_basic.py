@@ -246,7 +246,7 @@ def compare_numba_and_py(
 
 
 @pytest.mark.parametrize(
-    "v, expected, force_scalar",
+    "typ, expected, force_scalar",
     [
         (MyType(), numba.types.pyobject, False),
         (
@@ -267,9 +267,17 @@ def compare_numba_and_py(
         (at.dmatrix, numba.types.float64, True),
     ],
 )
-def test_get_numba_type(v, expected, force_scalar):
-    res = numba_basic.get_numba_type(v, force_scalar=force_scalar)
+def test_get_numba_type(typ, expected, force_scalar):
+    res = numba_basic.get_numba_type(typ, typ(), force_scalar=force_scalar)
     assert res == expected
+
+
+def test_get_numba_type_readonly():
+    typ = at.dmatrix
+    var = typ()
+    var.tag.indestructible = True
+    res = numba_basic.get_numba_type(typ, var)
+    assert not res.mutable
 
 
 @pytest.mark.parametrize(

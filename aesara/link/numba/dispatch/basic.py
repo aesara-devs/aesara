@@ -49,6 +49,7 @@ from aesara.tensor.type_other import MakeSlice, NoneConst
 
 
 if TYPE_CHECKING:
+    from aesara.graph.basic import Variable
     from aesara.graph.op import StorageMapType
 
 
@@ -79,13 +80,21 @@ generated_jit = _jit(
 
 
 @singledispatch
-def get_numba_type(aesara_type: Type, **kwargs) -> numba.types.Type:
-    r"""Create a Numba type object for a :class:`Type`."""
+def get_numba_type(aesara_type: Type, var: "Variable", **kwargs) -> numba.types.Type:
+    r"""Create a Numba type object for a :class:`Type`.
+
+    Parameters
+    ----------
+    aesara_type
+        The :class:`Type` to convert.
+    var
+        The :class:`Variable` corresponding to `aesara_type`.
+    """
     return numba.types.pyobject
 
 
 @get_numba_type.register(ScalarType)
-def get_numba_type_ScalarType(aesara_type, **kwargs):
+def get_numba_type_ScalarType(aesara_type, var, **kwargs):
     dtype = np.dtype(aesara_type.dtype)
     numba_dtype = numba.from_dtype(dtype)
     return numba_dtype
@@ -94,6 +103,7 @@ def get_numba_type_ScalarType(aesara_type, **kwargs):
 @get_numba_type.register(TensorType)
 def get_numba_type_TensorType(
     aesara_type,
+    var: "Variable",
     layout: str = "A",
     force_scalar: bool = False,
     reduce_to_scalar: bool = False,
@@ -103,6 +113,8 @@ def get_numba_type_TensorType(
     ----------
     aesara_type
         The :class:`Type` to convert.
+    var
+        The :class:`Variable` corresponding to `aesara_type`.
     layout
         The :class:`numpy.ndarray` layout to use.
     force_scalar
@@ -114,7 +126,10 @@ def get_numba_type_TensorType(
     numba_dtype = numba.from_dtype(dtype)
     if force_scalar or (reduce_to_scalar and getattr(aesara_type, "ndim", None) == 0):
         return numba_dtype
-    return numba.types.Array(numba_dtype, aesara_type.ndim, layout)
+
+    readonly = getattr(var.tag, "indestructible", False)
+
+    return numba.types.Array(numba_dtype, aesara_type.ndim, layout, readonly=readonly)
 
 
 def create_numba_signature(
@@ -123,11 +138,11 @@ def create_numba_signature(
     """Create a Numba type for the signature of an `Apply` node or `FunctionGraph`."""
     input_types = []
     for inp in node_or_fgraph.inputs:
-        input_types.append(get_numba_type(inp.type, **kwargs))
+        input_types.append(get_numba_type(inp.type, inp, **kwargs))
 
     output_types = []
     for out in node_or_fgraph.outputs:
-        output_types.append(get_numba_type(out.type, **kwargs))
+        output_types.append(get_numba_type(out.type, inp, **kwargs))
 
     if isinstance(node_or_fgraph, FunctionGraph):
         return numba.types.Tuple(output_types)(*input_types)
@@ -379,9 +394,9 @@ def numba_funcify_perform(op, node, storage_map=None, **kwargs) -> Callable:
     n_outputs = len(node.outputs)
 
     if n_outputs > 1:
-        ret_sig = numba.types.Tuple([get_numba_type(o.type) for o in node.outputs])
+        ret_sig = numba.types.Tuple([get_numba_type(o.type, o) for o in node.outputs])
     else:
-        ret_sig = get_numba_type(node.outputs[0].type)
+        ret_sig = get_numba_type(node.outputs[0].type, node.outputs[0])
 
     output_types = tuple(out.type for out in node.outputs)
     params = node.run_params()
@@ -821,7 +836,7 @@ def numba_funcify_Cholesky(op, node, **kwargs):
             UserWarning,
         )
 
-        ret_sig = get_numba_type(node.outputs[0].type)
+        ret_sig = get_numba_type(node.outputs[0].type, node.outputs[0])
 
         @numba_njit
         def cholesky(a):
@@ -850,7 +865,7 @@ def numba_funcify_Solve(op, node, **kwargs):
             UserWarning,
         )
 
-        ret_sig = get_numba_type(node.outputs[0].type)
+        ret_sig = get_numba_type(node.outputs[0].type, node.outputs[0])
 
         @numba_njit
         def solve(a, b):

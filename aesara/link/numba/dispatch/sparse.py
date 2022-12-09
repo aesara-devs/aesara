@@ -214,7 +214,7 @@ def overload_sparse_copy(inst):
 
 
 @get_numba_type.register(SparseTensorType)
-def get_numba_type_SparseType(aesara_type, **kwargs):
+def get_numba_type_SparseType(aesara_type, var, **kwargs):
     dtype = from_dtype(np.dtype(aesara_type.dtype))
 
     if aesara_type.format == "csr":

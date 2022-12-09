@@ -36,7 +36,7 @@ def numba_funcify_SVD(op, node, **kwargs):
             UserWarning,
         )
 
-        ret_sig = get_numba_type(node.outputs[0].type)
+        ret_sig = get_numba_type(node.outputs[0].type, node.outputs[0])
 
         @numba_basic.numba_njit
         def svd(x):
@@ -101,7 +101,10 @@ def numba_funcify_Eigh(op, node, **kwargs):
 
         out_dtypes = tuple(o.type.numpy_dtype for o in node.outputs)
         ret_sig = numba.types.Tuple(
-            [get_numba_type(node.outputs[0].type), get_numba_type(node.outputs[1].type)]
+            [
+                get_numba_type(node.outputs[0].type, node.outputs[0]),
+                get_numba_type(node.outputs[1].type, node.outputs[1]),
+            ]
         )
 
         @numba_basic.numba_njit
@@ -173,9 +176,11 @@ def numba_funcify_QRFull(op, node, **kwargs):
         )
 
         if len(node.outputs) > 1:
-            ret_sig = numba.types.Tuple([get_numba_type(o.type) for o in node.outputs])
+            ret_sig = numba.types.Tuple(
+                [get_numba_type(o.type, o) for o in node.outputs]
+            )
         else:
-            ret_sig = get_numba_type(node.outputs[0].type)
+            ret_sig = get_numba_type(node.outputs[0].type, node.outputs[0])
 
         @numba_basic.numba_njit
         def qr_full(x):
