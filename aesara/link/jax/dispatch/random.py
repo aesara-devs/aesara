@@ -277,3 +277,18 @@ def jax_sample_fn_permutation(op):
         return (rng, sample)
 
     return sample_fn
+
+
+@jax_sample_fn.register(aer.LogNormalRV)
+def jax_sample_fn_lognormal(op):
+    """JAX implementation of `LogNormalRV`."""
+
+    def sample_fn(rng, size, dtype, *parameters):
+        rng_key = rng["jax_state"]
+        loc, scale = parameters
+        sample = loc + jax.random.normal(rng_key, size, dtype) * scale
+        sample_exp = jax.numpy.exp(sample)
+        rng["jax_state"] = jax.random.split(rng_key, num=1)[0]
+        return (rng, sample_exp)
+
+    return sample_fn
