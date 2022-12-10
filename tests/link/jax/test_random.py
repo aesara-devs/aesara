@@ -417,6 +417,33 @@ def test_random_RandomVariable(
         assert test_res.pvalue > 0.1
 
 
+def test_multinomial():
+    srng = at.random.RandomStream(123)
+    g = srng.multinomial(
+        10, np.array([0.9999, 0.0001], dtype=aesara.config.floatX), size=(1000,)
+    )
+    g_fn = function([], g, mode=jax_mode)
+    samples = g_fn()
+
+    assert samples.shape == (1000, 2)
+
+    exp_res = np.array([10.0, 0.0], dtype=aesara.config.floatX)
+    np.testing.assert_allclose(samples.mean(axis=0), exp_res, 1e-2)
+
+    g = srng.multinomial(
+        np.array([10, 20], dtype=np.int64),
+        np.array([[0.999, 0.001], [0.001, 0.999]], dtype=aesara.config.floatX),
+        size=(3, 2),
+    )
+    g_fn = function([], g, mode=jax_mode)
+    samples = g_fn()
+
+    assert samples.shape == (3, 2, 2)
+
+    exp_res = np.stack([np.array([[10, 0], [0, 20]], dtype=aesara.config.floatX)] * 3)
+    np.testing.assert_allclose(samples, exp_res, 1e-2)
+
+
 @pytest.mark.parametrize("size", [(), (4,)])
 def test_random_bernoulli(size):
     rng = shared(np.random.RandomState(123))
@@ -468,7 +495,6 @@ def test_random_dirichlet(parameter, size):
 
 
 def test_random_choice():
-
     # Elements are picked at equal frequency
     num_samples = 10000
     rng = shared(np.random.RandomState(123))

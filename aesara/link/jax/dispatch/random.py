@@ -458,3 +458,33 @@ def jax_sample_fn_gengamma(op):
         return (rng, samples)
 
     return sample_fn
+
+
+@jax_sample_fn.register(aer.MultinomialRV)
+def jax_sample_fn_multinomial(op):
+    """JAX implementation of `MultinomialRV`."""
+
+    def _categorical(key, p, shape):
+        s = jax.numpy.cumsum(p, axis=-1)
+        r = jax.random.uniform(key, shape=shape + (1,))
+        return jax.numpy.sum(s < r, axis=-1)
+
+    def sample_fn(rng, size, dtype, *parameters):
+        rng_key = rng["jax_state"]
+        rng_key, sampling_key = jax.random.split(rng_key, 2)
+
+        # TODO: These parameters probably need to be broadcasted to
+        # complementary shapes (in accordance with `size`, as well).
+        n, p = parameters
+        size = tuple(size or p.shape[:-1])
+
+        outcomes = _categorical(sampling_key, p, (n,) + size)
+
+        one_hot = jax.nn.one_hot(outcomes, num_classes=p.shape[0])
+        sample = jax.numpy.sum(one_hot, axis=0, dtype=dtype)
+
+        rng["jax_state"] = rng_key
+
+        return (rng, sample)
+
+    return sample_fn
