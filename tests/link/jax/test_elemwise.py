@@ -1,6 +1,9 @@
 import numpy as np
 import pytest
+import scipy.special
 
+import aesara
+import aesara.tensor as at
 from aesara.configdefaults import config
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import get_test_value
@@ -98,3 +101,24 @@ def test_softmax_grad(axis):
     out = SoftmaxGrad(axis=axis)(dy, sm)
     fgraph = FunctionGraph([dy, sm], [out])
     compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
+
+
+@pytest.mark.parametrize("size", [(10, 10), (1000, 1000), (10000, 10000)])
+@pytest.mark.parametrize("axis", [0, 1])
+def test_logsumexp_benchmark(size, axis, benchmark):
+    X = at.matrix("X")
+    X_max = at.max(X, axis=axis, keepdims=True)
+    X_max = at.switch(at.isinf(X_max), 0, X_max)
+    X_lse = at.log(at.sum(at.exp(X - X_max), axis=axis, keepdims=True)) + X_max
+
+    X_val = np.random.normal(size=size)
+
+    X_lse_fn = aesara.function([X], X_lse, mode="JAX")
+
+    # JIT compile first
+    _ = X_lse_fn(X_val)
+
+    res = benchmark(X_lse_fn, X_val)
+
+    exp_res = scipy.special.logsumexp(X_val, axis=axis, keepdims=True)
+    np.testing.assert_array_almost_equal(res, exp_res)

@@ -1,6 +1,6 @@
 import contextlib
 import inspect
-from typing import TYPE_CHECKING, Callable, Optional, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Sequence, Tuple, Union
 from unittest import mock
 
 import numba
@@ -184,7 +184,7 @@ def compare_numba_and_py(
     numba_mode=numba_mode,
     py_mode=py_mode,
     updates=None,
-):
+) -> Tuple[Callable, Any]:
     """Function to compare python graph output and Numba compiled output for testing equality
 
     In the tests below computational graphs are defined in Aesara. These graphs are then passed to
@@ -202,6 +202,10 @@ def compare_numba_and_py(
         provided uses `np.testing.assert_allclose`.
     updates
         Updates to be passed to `aesara.function`.
+
+    Returns
+    -------
+    The compiled Aesara function and its last computed result.
 
     """
     if assert_fn is None:
@@ -242,7 +246,7 @@ def compare_numba_and_py(
     else:
         assert_fn(numba_res[0], py_res[0])
 
-    return numba_res
+    return aesara_numba_fn, numba_res
 
 
 @pytest.mark.parametrize(

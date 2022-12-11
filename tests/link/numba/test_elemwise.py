@@ -2,7 +2,9 @@ import contextlib
 
 import numpy as np
 import pytest
+import scipy.special
 
+import aesara
 import aesara.tensor as at
 import aesara.tensor.inplace as ati
 import aesara.tensor.math as aem
@@ -517,3 +519,24 @@ def test_sum_broadcast_to():
 
     x_val = np.array([1, 2], dtype=config.floatX)
     compare_numba_and_py(((x,), (out,)), [x_val])
+
+
+@pytest.mark.parametrize("size", [(10, 10), (1000, 1000), (10000, 10000)])
+@pytest.mark.parametrize("axis", [0, 1])
+def test_logsumexp_benchmark(size, axis, benchmark):
+    X = at.matrix("X")
+    X_max = at.max(X, axis=axis, keepdims=True)
+    X_max = at.switch(at.isinf(X_max), 0, X_max)
+    X_lse = at.log(at.sum(at.exp(X - X_max), axis=axis, keepdims=True)) + X_max
+
+    X_val = np.random.normal(size=size)
+
+    X_lse_fn = aesara.function([X], X_lse, mode="NUMBA")
+
+    # JIT compile first
+    _ = X_lse_fn(X_val)
+
+    res = benchmark(X_lse_fn, X_val)
+
+    exp_res = scipy.special.logsumexp(X_val, axis=axis, keepdims=True)
+    np.testing.assert_array_almost_equal(res, exp_res)

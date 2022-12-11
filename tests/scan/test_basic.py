@@ -13,7 +13,6 @@ import os
 import pickle
 import shutil
 import sys
-import timeit
 from collections import OrderedDict
 from tempfile import mkdtemp
 
@@ -2179,15 +2178,13 @@ def test_cvm_exception_handling(mode):
 @pytest.mark.skipif(
     not config.cxx, reason="G++ not available, so we need to skip this test."
 )
-def test_cython_performance():
+def test_cython_performance(benchmark):
 
     # This implicitly confirms that the Cython version is being used
     from aesara.scan import scan_perform_ext  # noqa: F401
 
     # Python usually out-performs Aesara below 100 iterations
     N = 200
-    n_timeit = 50
-
     M = -1 / np.arange(1, 11).astype(config.floatX)
     r = np.arange(N * 10).astype(config.floatX).reshape(N, 10)
 
@@ -2216,16 +2213,10 @@ def test_cython_performance():
     # Make sure we're actually computing a `Scan`
     assert any(isinstance(node.op, Scan) for node in f_cvm.maker.fgraph.apply_nodes)
 
-    cvm_res = f_cvm()
+    cvm_res = benchmark(f_cvm)
 
     # Make sure the results are the same between the two implementations
     assert np.allclose(cvm_res, py_res)
-
-    python_duration = timeit.timeit(lambda: f_py(), number=n_timeit)
-    cvm_duration = timeit.timeit(lambda: f_cvm(), number=n_timeit)
-    print(f"python={python_duration}, cvm={cvm_duration}")
-
-    assert cvm_duration <= python_duration
 
 
 @config.change_flags(mode="FAST_COMPILE", compute_test_value="raise")
@@ -2662,7 +2653,7 @@ class TestExamples:
         n_result = numpy_implementation(v_vsample)
         utt.assert_allclose(t_result, n_result)
 
-    def test_reordering(self):
+    def test_reordering(self, benchmark):
         """Test re-ordering of inputs.
 
         some rnn with multiple outputs and multiple inputs; other
@@ -2722,14 +2713,14 @@ class TestExamples:
             v_x[i] = np.dot(v_u1[i], vW_in1) + v_u2[i] * vW_in2 + np.dot(v_x[i - 1], vW)
             v_y[i] = np.dot(v_x[i - 1], vWout) + v_y[i - 1]
 
-        (aesara_dump1, aesara_dump2, aesara_x, aesara_y) = f4(
-            v_u1, v_u2, v_x0, v_y0, vW_in1
+        (aesara_dump1, aesara_dump2, aesara_x, aesara_y) = benchmark(
+            f4, v_u1, v_u2, v_x0, v_y0, vW_in1
         )
 
         utt.assert_allclose(aesara_x, v_x)
         utt.assert_allclose(aesara_y, v_y)
 
-    def test_scan_as_tensor_on_gradients(self):
+    def test_scan_as_tensor_on_gradients(self, benchmark):
         to_scan = dvector("to_scan")
         seq = dmatrix("seq")
         f1 = dscalar("f1")
@@ -2743,7 +2734,12 @@ class TestExamples:
         function(inputs=[to_scan, seq, f1], outputs=scanned, allow_input_downcast=True)
 
         t_grad = grad(scanned.sum(), wrt=[to_scan, f1], consider_constant=[seq])
-        function(inputs=[to_scan, seq, f1], outputs=t_grad, allow_input_downcast=True)
+        benchmark(
+            function,
+            inputs=[to_scan, seq, f1],
+            outputs=t_grad,
+            allow_input_downcast=True,
+        )
 
     def caching_nsteps_by_scan_op(self):
         W = matrix("weights")
@@ -3060,7 +3056,7 @@ class TestExamples:
         utt.assert_allclose(outputs, expected_outputs)
 
     @pytest.mark.slow
-    def test_hessian_bug_grad_grad_two_scans(self):
+    def test_hessian_bug_grad_grad_two_scans(self, benchmark):
         # Bug reported by Bitton Tenessi
         # NOTE : The test to reproduce the bug reported by Bitton Tenessi
         # was modified from its original version to be faster to run.
@@ -3094,7 +3090,7 @@ class TestExamples:
         H = hessian(cost, W)
         print(".", file=sys.stderr)
         f = function([W, n_steps], H)
-        f(np.ones((8,), dtype="float32"), 1)
+        benchmark(f, np.ones((8,), dtype="float32"), 1)
 
     def test_grad_connectivity_matrix(self):
         def inner_fn(x_tm1, y_tm1, z_tm1):
@@ -3710,7 +3706,7 @@ class TestExamples:
         utt.assert_allclose(aesara_x, v_x)
         utt.assert_allclose(aesara_y, v_y)
 
-    def test_multiple_outs_taps(self):
+    def test_multiple_outs_taps(self, benchmark):
         l = 5
         rng = np.random.default_rng(utt.fetch_seed())
 
@@ -3753,56 +3749,55 @@ class TestExamples:
             [u1, u2, x0, y0, W_in1], outputs, updates=updates, allow_input_downcast=True
         )
 
-        f(v_u1, v_u2, v_x0, v_y0, vW_in1)
-
-        ny0 = np.zeros((5, 2))
-        ny1 = np.zeros((5,))
-        ny2 = np.zeros((5, 2))
-        ny0[0] = (
-            np.dot(v_u1[0], vW_in1)
-            + (v_u2[1] + v_u2[0] * v_u2[2]) * vW_in2
-            + np.dot(v_x0, vW)
-        )
-
-        ny1[0] = (v_y0[2] + v_y0[0]) * np.dot(v_x0, vWout)
-        ny2[0] = np.dot(v_u1[0], vW_in1)
-
-        ny0[1] = (
-            np.dot(v_u1[1], vW_in1)
-            + (v_u2[2] + v_u2[1] * v_u2[3]) * vW_in2
-            + np.dot(ny0[0], vW)
-        )
-
-        ny1[1] = (ny1[0] + v_y0[1]) * np.dot(ny0[0], vWout)
-        ny2[1] = np.dot(v_u1[1], vW_in1)
-
-        ny0[2] = (
-            np.dot(v_u1[2], vW_in1)
-            + (v_u2[3] + v_u2[2] * v_u2[4]) * vW_in2
-            + np.dot(ny0[1], vW)
-        )
-        ny1[2] = (ny1[1] + v_y0[2]) * np.dot(ny0[1], vWout)
-        ny2[2] = np.dot(v_u1[2], vW_in1)
-
-        ny0[3] = (
-            np.dot(v_u1[3], vW_in1)
-            + (v_u2[4] + v_u2[3] * v_u2[5]) * vW_in2
-            + np.dot(ny0[2], vW)
-        )
-
-        ny1[3] = (ny1[2] + ny1[0]) * np.dot(ny0[2], vWout)
-        ny2[3] = np.dot(v_u1[3], vW_in1)
-
-        ny0[4] = (
-            np.dot(v_u1[4], vW_in1)
-            + (v_u2[5] + v_u2[4] * v_u2[6]) * vW_in2
-            + np.dot(ny0[3], vW)
-        )
-
-        ny1[4] = (ny1[3] + ny1[1]) * np.dot(ny0[3], vWout)
-        ny2[4] = np.dot(v_u1[4], vW_in1)
+        # ny0 = np.zeros((5, 2))
+        # ny1 = np.zeros((5,))
+        # ny2 = np.zeros((5, 2))
+        # ny0[0] = (
+        #     np.dot(v_u1[0], vW_in1)
+        #     + (v_u2[1] + v_u2[0] * v_u2[2]) * vW_in2
+        #     + np.dot(v_x0, vW)
+        # )
+        #
+        # ny1[0] = (v_y0[2] + v_y0[0]) * np.dot(v_x0, vWout)
+        # ny2[0] = np.dot(v_u1[0], vW_in1)
+        #
+        # ny0[1] = (
+        #     np.dot(v_u1[1], vW_in1)
+        #     + (v_u2[2] + v_u2[1] * v_u2[3]) * vW_in2
+        #     + np.dot(ny0[0], vW)
+        # )
+        #
+        # ny1[1] = (ny1[0] + v_y0[1]) * np.dot(ny0[0], vWout)
+        # ny2[1] = np.dot(v_u1[1], vW_in1)
+        #
+        # ny0[2] = (
+        #     np.dot(v_u1[2], vW_in1)
+        #     + (v_u2[3] + v_u2[2] * v_u2[4]) * vW_in2
+        #     + np.dot(ny0[1], vW)
+        # )
+        # ny1[2] = (ny1[1] + v_y0[2]) * np.dot(ny0[1], vWout)
+        # ny2[2] = np.dot(v_u1[2], vW_in1)
+        #
+        # ny0[3] = (
+        #     np.dot(v_u1[3], vW_in1)
+        #     + (v_u2[4] + v_u2[3] * v_u2[5]) * vW_in2
+        #     + np.dot(ny0[2], vW)
+        # )
+        #
+        # ny1[3] = (ny1[2] + ny1[0]) * np.dot(ny0[2], vWout)
+        # ny2[3] = np.dot(v_u1[3], vW_in1)
+        #
+        # ny0[4] = (
+        #     np.dot(v_u1[4], vW_in1)
+        #     + (v_u2[5] + v_u2[4] * v_u2[6]) * vW_in2
+        #     + np.dot(ny0[3], vW)
+        # )
+        #
+        # ny1[4] = (ny1[3] + ny1[1]) * np.dot(ny0[3], vWout)
+        # ny2[4] = np.dot(v_u1[4], vW_in1)
 
         # TODO FIXME: What is this testing?  At least assert something.
+        benchmark(f, v_u1, v_u2, v_x0, v_y0, vW_in1)
 
     def _grad_mout_helper(self, n_iters, mode):
         rng = np.random.default_rng(utt.fetch_seed())

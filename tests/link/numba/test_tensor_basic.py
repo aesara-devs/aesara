@@ -32,7 +32,7 @@ def test_Alloc(v, shape):
     g = at.alloc(v, *shape)
     g_fg = FunctionGraph(outputs=[g])
 
-    (numba_res,) = compare_numba_and_py(
+    (_, numba_res) = compare_numba_and_py(
         g_fg,
         [
             i.tag.test_value
@@ -41,7 +41,7 @@ def test_Alloc(v, shape):
         ],
     )
 
-    assert numba_res.shape == shape
+    assert numba_res[0].shape == shape
 
 
 def test_AllocEmpty():

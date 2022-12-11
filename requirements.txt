@@ -19,3 +19,4 @@ pre-commit
 isort
 packaging
 typing_extensions
+pytest-benchmark

@@ -156,7 +156,7 @@ def test_xit_xot_types(
         assert np.allclose(res_val, output_vals)
 
 
-def test_scan_multiple_output():
+def test_scan_multiple_output(benchmark):
     """Test a scan implementation of a SEIR model.
 
     SEIR model definition:
@@ -241,7 +241,9 @@ def test_scan_multiple_output():
         gamma_val,
         delta_val,
     ]
-    compare_numba_and_py(out_fg, test_input_vals)
+    scan_fn, _ = compare_numba_and_py(out_fg, test_input_vals)
+
+    benchmark(scan_fn, *test_input_vals)
 
 
 @config.change_flags(compute_test_value="raise")
