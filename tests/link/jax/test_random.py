@@ -98,6 +98,19 @@ def test_random_updates(rng_ctor):
             None,
         ),
         (
+            aer.chisquare,
+            [
+                set_test_value(
+                    at.dvector(),
+                    np.array([1.0, 2.0], dtype=np.float64),
+                )
+            ],
+            (2,),
+            "chi2",
+            lambda *args: args,
+            50_000,
+        ),
+        (
             aer.exponential,
             [
                 set_test_value(

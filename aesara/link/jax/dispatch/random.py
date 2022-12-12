@@ -369,7 +369,6 @@ def jax_sample_fn_wald(op):
     def sample_fn(rng, size, dtype, *parameters):
         rng_key = rng["jax_state"]
         rng_key, sampling_key = jax.random.split(rng_key, 2)
-
         mean, scale = parameters
 
         key1, key2 = jax.random.split(sampling_key, 2)
@@ -386,6 +385,21 @@ def jax_sample_fn_wald(op):
 
         rng["jax_state"] = rng_key
         return (rng, samples)
+
+    return sample_fn
+
+
+@jax_sample_fn.register(aer.ChiSquareRV)
+def jax_sample_fn_chisquare(op):
+    """JAX implementation of `ChiSquareRV`"""
+
+    def sample_fn(rng, size, dtype, *parameters):
+        rng_key = rng["jax_state"]
+        rng_key, sampling_key = jax.random.split(rng_key, 2)
+        (df,) = parameters
+        sample = jax.random.gamma(sampling_key, df / 2, size, dtype) * 2
+        rng["jax_state"] = rng_key
+        return (rng, sample)
 
     return sample_fn
 
