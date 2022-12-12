@@ -80,15 +80,21 @@ def test_jax_Subtensor_boolean_mask():
         compare_jax_and_py(out_fg, [])
 
 
-@pytest.mark.xfail(
-    reason="Re-expressible boolean logic. We need a rewrite Aesara-side."
-)
 def test_jax_Subtensor_boolean_mask_reexpressible():
-    """Some boolean logic can be re-expressed and JIT-compiled"""
-    x_at = at.arange(-5, 5)
+    """Summing values with boolean indexing.
+
+    This test ensures that the sum of an `AdvancedSubtensor` `Op`s with boolean
+    indexing is replaced with the sum of an equivalent `Switch` `Op`, using the
+    `jax_boolean_indexing_sum` rewrite.
+
+    JAX forces users to re-express this logic manually, so this is an
+    improvement over its user interface.
+
+    """
+    x_at = at.vector("x")
     out_at = x_at[x_at < 0].sum()
-    out_fg = FunctionGraph([], [out_at])
-    compare_jax_and_py(out_fg, [])
+    out_fg = FunctionGraph([x_at], [out_at])
+    compare_jax_and_py(out_fg, [np.arange(-5, 5).astype(config.floatX)])
 
 
 def test_jax_IncSubtensor():
@@ -177,34 +183,6 @@ def test_jax_IncSubtensor():
     out_fg = FunctionGraph([], [out_at])
     compare_jax_and_py(out_fg, [])
 
-
-@pytest.mark.xfail(
-    reason="Re-expressible boolean logic. We need a rewrite Aesara-side to remove the DimShuffle."
-)
-def test_jax_IncSubtensor_boolean_mask_reexpressible():
-    """Some boolean logic can be re-expressed and JIT-compiled"""
-    rng = np.random.default_rng(213234)
-    x_np = rng.uniform(-1, 1, size=(3, 4, 5)).astype(config.floatX)
-    x_at = at.constant(np.arange(3 * 4 * 5).reshape((3, 4, 5)).astype(config.floatX))
-
-    mask_at = at.as_tensor(x_np) > 0
-    out_at = at_subtensor.set_subtensor(x_at[mask_at], 0.0)
-    assert isinstance(out_at.owner.op, at_subtensor.AdvancedIncSubtensor)
-    out_fg = FunctionGraph([], [out_at])
-    compare_jax_and_py(out_fg, [])
-
-    mask_at = at.as_tensor(x_np) > 0
-    out_at = at_subtensor.inc_subtensor(x_at[mask_at], 1.0)
-    assert isinstance(out_at.owner.op, at_subtensor.AdvancedIncSubtensor)
-    out_fg = FunctionGraph([], [out_at])
-    compare_jax_and_py(out_fg, [])
-
-
-def test_jax_IncSubtensors_unsupported():
-    rng = np.random.default_rng(213234)
-    x_np = rng.uniform(-1, 1, size=(3, 4, 5)).astype(config.floatX)
-    x_at = at.constant(np.arange(3 * 4 * 5).reshape((3, 4, 5)).astype(config.floatX))
-
     st_at = at.as_tensor_variable(x_np[[0, 2], 0, :3])
     out_at = at_subtensor.set_subtensor(x_at[[0, 2], 0, :3], st_at)
     assert isinstance(out_at.owner.op, at_subtensor.AdvancedIncSubtensor)
@@ -216,3 +194,31 @@ def test_jax_IncSubtensors_unsupported():
     assert isinstance(out_at.owner.op, at_subtensor.AdvancedIncSubtensor)
     out_fg = FunctionGraph([], [out_at])
     compare_jax_and_py(out_fg, [])
+
+
+def test_jax_IncSubtensor_boolean_indexing_reexpressible():
+    """Setting or incrementing values with boolean indexing.
+
+    This test ensures that `AdvancedIncSubtensor` `Op`s with boolean indexing is
+    replaced with an equivalent `Switch` `Op`, using the
+    `jax_boolean_indexing_set_of_inc` rewrite.
+
+    JAX forces users to re-express this logic manually, so this is an
+    improvement over its user interface.
+
+    """
+    rng = np.random.default_rng(213234)
+    x_np = rng.uniform(-1, 1, size=(4, 5)).astype(config.floatX)
+
+    x_at = at.matrix("x")
+    mask_at = at.as_tensor(x_at) > 0
+    out_at = at_subtensor.set_subtensor(x_at[mask_at], 0.0)
+    assert isinstance(out_at.owner.op, at_subtensor.AdvancedIncSubtensor)
+    out_fg = FunctionGraph([x_at], [out_at])
+    compare_jax_and_py(out_fg, [x_np])
+
+    mask_at = at.as_tensor(x_at) > 0
+    out_at = at_subtensor.inc_subtensor(x_at[mask_at], 1.0)
+    assert isinstance(out_at.owner.op, at_subtensor.AdvancedIncSubtensor)
+    out_fg = FunctionGraph([x_at], [out_at])
+    compare_jax_and_py(out_fg, [x_np])
