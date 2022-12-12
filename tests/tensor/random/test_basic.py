@@ -47,6 +47,7 @@ from aesara.tensor.random.basic import (
     permutation,
     poisson,
     randint,
+    random,
     standard_normal,
     t,
     triangular,
@@ -301,6 +302,10 @@ def test_normal_samples(mean, sigma, size):
 
 def test_normal_default_args():
     compare_sample_values(standard_normal)
+
+
+def test_random_default_args():
+    compare_sample_values(random)
 
 
 @pytest.mark.parametrize(

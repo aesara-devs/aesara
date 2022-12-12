@@ -2086,6 +2086,9 @@ class PermutationRV(RandomVariable):
 permutation = PermutationRV()
 
 
+random = uniform
+
+
 __all__ = [
     "permutation",
     "choice",
@@ -2126,4 +2129,5 @@ __all__ = [
     "negative_binomial",
     "gengamma",
     "t",
+    "random",
 ]
