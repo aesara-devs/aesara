@@ -200,7 +200,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           comment-on-alert: ${{ github.event_name == 'push' }}
           fail-on-alert: true
-          auto-push: ${{ github.event_name == 'push' }}
+          auto-push: false
 
   all-checks:
     if: ${{ always() }}
