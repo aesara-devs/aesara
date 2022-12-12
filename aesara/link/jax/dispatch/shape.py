@@ -94,10 +94,10 @@ def jax_funcify_Shape_i(op, **kwargs):
 
 
 @jax_funcify.register(SpecifyShape)
-def jax_funcify_SpecifyShape(op, **kwargs):
+def jax_funcify_SpecifyShape(op, node, **kwargs):
     def specifyshape(x, *shape):
         assert x.ndim == len(shape)
-        assert jnp.all(x.shape == tuple(shape)), (
+        assert x.shape == tuple(shape), (
             "got shape",
             x.shape,
             "expected",
