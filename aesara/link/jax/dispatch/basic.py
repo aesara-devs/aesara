@@ -30,6 +30,8 @@ def jax_typify(data, dtype=None, **kwargs):
 
 @jax_typify.register(np.ndarray)
 def jax_typify_ndarray(data, dtype=None, **kwargs):
+    if len(data.shape) == 0:
+        return data.item()
     return jnp.array(data, dtype=dtype)
 
 
