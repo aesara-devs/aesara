@@ -28,11 +28,38 @@ def jax_funcify_JAXShapeTuple(op, **kwargs):
     return shape_tuple_fn
 
 
+SHAPE_NOT_COMPATIBLE = """JAX requires concrete values for the `shape` parameter of `jax.numpy.reshape`.
+Concrete values are either constants:
+
+>>> import aesara.tensor as at
+>>> x = at.ones(6)
+>>> y = x.reshape((2, 3))
+
+Or the shape of an array:
+
+>>> mat = at.matrix('mat')
+>>> y = x.reshape(mat.shape)
+"""
+
+
+def assert_shape_argument_jax_compatible(shape):
+    """Assert whether the current node can be JIT-compiled by JAX.
+
+    JAX can JIT-compile functions with a `shape` or `size` argument if it is
+    given a concrete value, i.e. either a constant or the shape of any traced
+    value.
+
+    """
+    shape_op = shape.owner.op
+    if not isinstance(shape_op, (Shape, Shape_i, JAXShapeTuple)):
+        raise NotImplementedError(SHAPE_NOT_COMPATIBLE)
+
+
 @jax_funcify.register(Reshape)
 def jax_funcify_Reshape(op, node, **kwargs):
 
-    # JAX reshape only works with constant inputs, otherwise JIT fails
     shape = node.inputs[1]
+
     if isinstance(shape, Constant):
         constant_shape = shape.data
 
@@ -40,6 +67,7 @@ def jax_funcify_Reshape(op, node, **kwargs):
             return jnp.reshape(x, constant_shape)
 
     else:
+        assert_shape_argument_jax_compatible(shape)
 
         def reshape(x, shape):
             return jnp.reshape(x, shape)

@@ -45,30 +45,34 @@ def test_jax_specify_shape():
             compare_jax_and_py(x_fg, [])
 
 
-def test_jax_Reshape():
+def test_jax_Reshape_constant():
     a = vector("a")
     x = reshape(a, (2, 2))
     x_fg = FunctionGraph([a], [x])
     compare_jax_and_py(x_fg, [np.r_[1.0, 2.0, 3.0, 4.0].astype(config.floatX)])
 
-    # Test breaking "omnistaging" changes in JAX.
-    # See https://github.com/tensorflow/probability/commit/782d0c64eb774b9aac54a1c8488e4f1f96fbbc68
+
+def test_jax_Reshape_concrete_shape():
+    """JAX should compile when a concrete value is passed for the `shape` parameter."""
+    a = vector("a")
+    x = reshape(a, a.shape)
+    x_fg = FunctionGraph([a], [x])
+    compare_jax_and_py(x_fg, [np.r_[1.0, 2.0, 3.0, 4.0].astype(config.floatX)])
+
     x = reshape(a, (a.shape[0] // 2, a.shape[0] // 2))
     x_fg = FunctionGraph([a], [x])
-    with pytest.raises(
-        TypeError,
-        match="Shapes must be 1D sequences of concrete values of integer type",
-    ):
-        compare_jax_and_py(x_fg, [np.r_[1.0, 2.0, 3.0, 4.0].astype(config.floatX)])
+    compare_jax_and_py(x_fg, [np.r_[1.0, 2.0, 3.0, 4.0].astype(config.floatX)])
 
-    b = iscalar("b")
-    x = reshape(a, (b, b))
-    x_fg = FunctionGraph([a, b], [x])
-    with pytest.raises(
-        TypeError,
-        match="Shapes must be 1D sequences of concrete values of integer type",
-    ):
-        compare_jax_and_py(x_fg, [np.r_[1.0, 2.0, 3.0, 4.0].astype(config.floatX), 2])
+
+@pytest.mark.xfail(
+    reason="`shape_at` should be specified as a static argument", strict=True
+)
+def test_jax_Reshape_shape_graph_input():
+    a = vector("a")
+    shape_at = iscalar("b")
+    x = reshape(a, (shape_at, shape_at))
+    x_fg = FunctionGraph([a, shape_at], [x])
+    compare_jax_and_py(x_fg, [np.r_[1.0, 2.0, 3.0, 4.0].astype(config.floatX), 2])
 
 
 def test_jax_compile_ops():
