@@ -55,7 +55,7 @@ jobs:
     - uses: actions/setup-python@v3
       with:
         python-version: '3.9'
-    - uses: pre-commit/action@v2.0.0
+    - uses: pre-commit/action@v3.0.0
 
   test:
     name: "Test py${{ matrix.python-version }}: ${{ matrix.part }}"
