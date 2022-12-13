@@ -214,7 +214,7 @@ def test_random_updates(rng_ctor):
             [
                 set_test_value(
                     at.dvector(),
-                    np.array([1000.0, 2000.0], dtype=np.float64),
+                    np.array([100000.0, 200000.0], dtype=np.float64),
                 ),
             ],
             (2,),
