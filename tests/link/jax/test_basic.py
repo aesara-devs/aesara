@@ -27,9 +27,12 @@ def set_aesara_flags():
 jax = pytest.importorskip("jax")
 
 
-opts = RewriteDatabaseQuery(include=["jax"], exclude=["cxx_only", "BlasOpt"])
-jax_mode = Mode(JAXLinker(), opts)
-py_mode = Mode("py", opts)
+jax_mode = Mode(
+    JAXLinker(), RewriteDatabaseQuery(include=["jax"], exclude=["cxx_only", "BlasOpt"])
+)
+py_mode = Mode(
+    "py", RewriteDatabaseQuery(include=[None], exclude=["cxx_only", "BlasOpt"])
+)
 
 
 def compare_jax_and_py(
