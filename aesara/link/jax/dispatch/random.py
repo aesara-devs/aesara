@@ -282,6 +282,26 @@ def jax_sample_fn_halfnormal(op):
     return sample_fn
 
 
+@jax_sample_fn.register(aer.HalfCauchyRV)
+def jax_sample_fn_halfcauchy(op):
+    """JAX implementation of `HalfCauchyRV`."""
+
+    def sample_fn(rng, size, dtype, *parameters):
+        rng_key = rng["jax_state"]
+        rng_key, sampling_key = jax.random.split(rng_key, 2)
+        (
+            loc,
+            scale,
+        ) = parameters
+        sample = loc + jax.numpy.abs(
+            jax.random.cauchy(sampling_key, size, dtype) * scale
+        )
+        rng["jax_state"] = rng_key
+        return (rng, sample)
+
+    return sample_fn
+
+
 @jax_sample_fn.register(aer.ChoiceRV)
 def jax_funcify_choice(op):
     """JAX implementation of `ChoiceRV`."""
