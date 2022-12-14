@@ -1,0 +1,419 @@
+[build-system]
+requires = ["setuptools>=61.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aesara"
+authors = [{name = "aesara-devs", email = "aesara.devs@gmail.com"}]
+description = "Optimizing compiler for evaluating mathematical expressions on CPUs and GPUs."
+license = {text = "BSD"}
+classifiers = [
+    "Development Status :: 6 - Mature",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python",
+    "Topic :: Software Development :: Code Generators",
+    "Topic :: Software Development :: Compilers",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+]
+keywords = [
+    "aesara",
+    "math",
+    "numerical",
+    "symbolic",
+    "blas",
+    "numpy",
+    "autodiff",
+    "differentiation",
+]
+urls = {Homepage = "https://github.com/aesara-devs/aesara"}
+requires-python = ">=3.7"
+dependencies = [
+    "numpy >=1.17.0",
+    "scipy >=0.14",
+    "filelock",
+    "etuples",
+    "logical-unification",
+    "miniKanren",
+    "cons",
+    "typing_extensions",
+    "setuptools >=48.0.0",
+]
+dynamic = ["version"]
+
+[project.readme]
+file = "DESCRIPTION.txt"
+content-type = "text/x-rst"
+
+[project.scripts]
+aesara-cache = "bin.aesara_cache:main"
+
+[tool.setuptools]
+platforms = [
+    "Windows",
+    "Linux",
+    "Solaris",
+    "Mac OS-X",
+    "Unix",
+]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+exclude = [
+    "tests",
+    "tests.*",
+]
+namespaces = false
+
+[tool.setuptools.package-data]
+aesara = [
+    "*.txt",
+    "*.rst",
+    "*.txt",
+    "*.rst",
+    "*.cu",
+    "*.cuh",
+    "*.c",
+    "*.sh",
+    "*.pkl",
+    "*.h",
+    "*.cpp",
+    "ChangeLog",
+    "c_code/*",
+    "py.typed",
+]
+"aesara.misc" = ["*.sh"]
+"aesara.d3viz" = [
+    "html/*",
+    "css/*",
+    "js/*",
+]
+
+[tool.flake8]
+select = "C,E,F,W"
+ignore = "E203,E231,E501,E741,W503,W504,C901"
+max-line-length = "88"
+per-file-ignores = """
+**/__init__.py:F401,E402,F403
+aesara/tensor/linalg.py:F401,F403
+aesara/scalar/basic_scipy.py:E402,F403,F401
+aesara/graph/toolbox.py:E402,F403,F401
+aesara/link/jax/jax_dispatch.py:E402,F403,F401
+aesara/link/jax/jax_linker.py:E402,F403,F401
+aesara/sparse/sandbox/sp2.py:F401
+tests/tensor/test_math_scipy.py:E402
+tests/sparse/test_basic.py:E402
+tests/sparse/test_opt.py:E402
+tests/sparse/test_sp2.py:E402
+tests/sparse/test_utils.py:E402,F401
+tests/sparse/sandbox/test_sp.py:E402,F401
+tests/scalar/test_basic_sympy.py:E402
+aesara/graph/rewriting/unify.py:F811"""
+exclude = """
+versioneer.py
+doc/
+aesara/_version.py"""
+
+[tool.coverage.run]
+omit = [
+    "aesara/_version.py",
+    "tests/*",
+    "aesara/assert_op.py",
+    "aesara/graph/opt.py",
+    "aesara/graph/opt_utils.py",
+    "aesara/graph/optdb.py",
+    "aesara/graph/kanren.py",
+    "aesara/graph/unify.py",
+    "aesara/link/jax/jax_linker.py",
+    "aesara/link/jax/jax_dispatch.py",
+    "aesara/graph/toolbox.py",
+    "aesara/scalar/basic_scipy.py",
+]
+branch = true
+relative_files = true
+
+[tool.coverage.report]
+omit = [
+    "aesara/_version.py",
+    "tests/*",
+]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+]
+show_missing = 1
+
+[tool.versioneer]
+vcs = "git"
+style = "pep440"
+versionfile_source = "aesara/_version.py"
+versionfile_build = "aesara/_version.py"
+tag_prefix = "rel-"
+
+[tool.pytest.ini_options]
+addopts = "--durations=50"
+testpaths = ["tests/"]
+
+[tool.pylint]
+max-line-length = "88"
+
+[tool."pylint.messages_control"]
+disable = "C0330, C0326"
+
+[tool.isort]
+profile = "black"
+lines_after_imports = 2
+lines_between_sections = 1
+honor_noqa = true
+skip_gitignore = true
+skip = ["aesara/version.py", "**/__init__.py"]
+
+[tool.mypy]
+ignore_missing_imports = true
+no_implicit_optional = true
+check_untyped_defs = false
+strict_equality = true
+warn_redundant_casts = true
+warn_unused_configs = true
+warn_unused_ignores = true
+warn_return_any = true
+warn_no_return = false
+warn_unreachable = true
+show_error_codes = true
+allow_redefinition = false
+files = ["aesara", "tests"]
+plugins = ["numpy.typing.mypy_plugin"]
+
+[[tool.mypy.overrides]]
+module = ["versioneer"]
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["doc.*"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["setup"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara._version"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.compile.mode"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.compile.builders"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.compile.sharedvalue"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.compile.compilelock"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.compile.function.pfunc"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.compile.function.types"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.compile.debugmode"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.tensor.type"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.tensor.var"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.tensor.basic"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.tensor.elemwise"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.tensor.math"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.tensor.rewriting.basic"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.tensor.subtensor"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.tensor.shape"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.tensor.extra_ops"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.tensor.type_other"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.tensor.blas"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.tensor.blas_headers"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.tensor.slinalg"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.tensor.sharedvar"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.tensor.rewriting.math"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.tensor.blas_c"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.tensor.random.op"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.tensor.random.basic"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.tensor.random.utils"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.link.numba.dispatch.extra_ops"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.link.numba.dispatch.elemwise"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.link.numba.dispatch.random"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.link.jax.dispatch"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.raise_op"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.tensor.nnet.conv3d2d"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.tensor.nnet.neighbours"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.tensor.nnet.abstract_conv"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.tensor.nnet.ctc"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.sandbox.*"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.ifelse"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.typed_list.*"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.sparse.basic"]
+ignore_errors = true
+check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.sparse.sharedvar"]
+ignore_errors = true
+check_untyped_defs = false
