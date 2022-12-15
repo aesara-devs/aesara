@@ -10,8 +10,8 @@ pytest
 cython
 sympy
 versioneer
-jax
-jaxlib
+jax>=0.4.1
+jaxlib>=0.4.1
 numba>=0.55
 numba-scipy>=0.3.0
 diff-cover
