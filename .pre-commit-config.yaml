@@ -25,10 +25,11 @@ repos:
       - id: black
         language_version: python3
   - repo: https://github.com/pycqa/flake8
-    rev: 6.0.0
+    # NOTE: flake8 v6 requires python >=3.8.1 but
+    # Aesara still supports python 3.7.
+    rev: 5.0.4
     hooks:
       - id: flake8
-        language_version: python39
   - repo: https://github.com/pycqa/isort
     rev: 5.10.1
     hooks:
