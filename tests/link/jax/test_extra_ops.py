@@ -58,9 +58,7 @@ def test_extra_ops():
     indices = np.arange(np.product((3, 4)))
     out = at_extra_ops.unravel_index(indices, (3, 4), order="C")
     fgraph = FunctionGraph([], out)
-    compare_jax_and_py(
-        fgraph, [get_test_value(i) for i in fgraph.inputs], must_be_device_array=False
-    )
+    compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
 
 
 @pytest.mark.parametrize(

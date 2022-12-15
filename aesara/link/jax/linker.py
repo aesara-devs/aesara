@@ -50,7 +50,11 @@ class JAXLinker(JITLinker):
                 )
 
         return jax_funcify(
-            fgraph, input_storage=input_storage, storage_map=storage_map, **kwargs
+            fgraph,
+            input_storage=input_storage,
+            storage_map=storage_map,
+            global_fgraph=fgraph,
+            **kwargs,
         )
 
     def jit_compile(self, fn):

@@ -15,12 +15,12 @@ def test_jax_shape_ops():
     x = Shape()(at.as_tensor_variable(x_np))
     x_fg = FunctionGraph([], [x])
 
-    compare_jax_and_py(x_fg, [], must_be_device_array=False)
+    compare_jax_and_py(x_fg, [])
 
     x = Shape_i(1)(at.as_tensor_variable(x_np))
     x_fg = FunctionGraph([], [x])
 
-    compare_jax_and_py(x_fg, [], must_be_device_array=False)
+    compare_jax_and_py(x_fg, [])
 
 
 def test_jax_specify_shape():

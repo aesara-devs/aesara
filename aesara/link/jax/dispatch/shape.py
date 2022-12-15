@@ -84,7 +84,7 @@ def jax_funcify_Shape(op, **kwargs):
 
 
 @jax_funcify.register(Shape_i)
-def jax_funcify_Shape_i(op, **kwargs):
+def jax_funcify_Shape_i(op, node, **kwargs):
     i = op.i
 
     def shape_i(x):
