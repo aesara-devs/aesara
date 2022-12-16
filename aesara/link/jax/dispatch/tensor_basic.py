@@ -136,6 +136,8 @@ def jax_funcify_TensorFromScalar(op, **kwargs):
 @jax_funcify.register(ScalarFromTensor)
 def jax_funcify_ScalarFromTensor(op, **kwargs):
     def scalar_from_tensor(x):
+        if isinstance(x, (float, int)):
+            return x
         return jnp.array(x).flatten()[0]
 
     return scalar_from_tensor
