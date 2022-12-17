@@ -1,7 +1,5 @@
 exclude: |
     (?x)^(
-        versioneer\.py|
-        aesara/_version\.py|
         doc/.*|
         bin/.*
     )$

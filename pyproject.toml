@@ -1,7 +1,6 @@
 [build-system]
 requires = [
     "setuptools>=61.2",
-    "versioneer[toml]",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -58,7 +57,6 @@ dependencies = [
     "typing_extensions",
     "setuptools >=48.0.0",
 ]
-dynamic = ["version"]
 
 [project.readme]
 file = "DESCRIPTION.txt"
@@ -112,7 +110,6 @@ namespaces = false
 
 [tool.coverage.run]
 omit = [
-    "aesara/_version.py",
     "tests/*",
     "aesara/assert_op.py",
     "aesara/bin/aesara_cache.py",
@@ -132,7 +129,6 @@ relative_files = true
 
 [tool.coverage.report]
 omit = [
-    "aesara/_version.py",
     "tests/*",
 ]
 exclude_lines = [
@@ -177,10 +173,6 @@ files = ["aesara", "tests"]
 plugins = ["numpy.typing.mypy_plugin"]
 
 [[tool.mypy.overrides]]
-module = ["versioneer"]
-check_untyped_defs = false
-
-[[tool.mypy.overrides]]
 module = ["doc.*"]
 ignore_errors = true
 check_untyped_defs = false
@@ -192,11 +184,6 @@ check_untyped_defs = false
 
 [[tool.mypy.overrides]]
 module = ["tests.*"]
-ignore_errors = true
-check_untyped_defs = false
-
-[[tool.mypy.overrides]]
-module = ["aesara._version"]
 ignore_errors = true
 check_untyped_defs = false
 

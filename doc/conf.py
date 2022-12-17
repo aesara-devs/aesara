@@ -25,7 +25,6 @@ import aesara
 
 aesara_path = os.path.join(os.path.dirname(__file__), os.pardir)
 sys.path.append(os.path.abspath(aesara_path))
-import versioneer
 
 # General configuration
 # ---------------------
@@ -76,16 +75,10 @@ copyright = "Aesara Developers, 2021-2023; PyMC Developers, 2020-2021; 2008--201
 # other places throughout the built documents.
 #
 
-# We need this hokey-pokey because versioneer needs the current
-# directory to be the root of the project to work.
-_curpath = os.getcwd()
-os.chdir(os.path.dirname(os.path.dirname(__file__)))
 # The full version, including alpha/beta/rc tags.
-release = versioneer.get_version()
+release = aesara.__version__
 # The short X.Y version.
 version = ".".join(release.split(".")[:2])
-os.chdir(_curpath)
-del _curpath
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:

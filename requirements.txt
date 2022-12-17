@@ -9,7 +9,6 @@ coverage>=5.1
 pytest
 cython
 sympy
-versioneer
 jax>=0.4.1
 jaxlib>=0.4.1
 numba>=0.55

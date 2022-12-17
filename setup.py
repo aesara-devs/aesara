@@ -1,32 +1,21 @@
 #!/usr/bin/env python
 import os
+from datetime import datetime, timezone
 
 from setuptools import setup
 from setuptools.dist import Distribution
-
-import versioneer
 
 
 dist = Distribution()
 dist.parse_config_files()
 
 # Handle builds of nightly release
-if "BUILD_AESARA_NIGHTLY" in os.environ:
-    from versioneer import get_versions as original_get_versions
+is_nightly = "BUILD_AESARA_NIGHTLY" in os.environ
+version = "TODO"
 
-    def get_versions():
-        from datetime import datetime, timezone
-
-        suffix = datetime.now(timezone.utc).strftime(r".dev%Y%m%d")
-        versions = original_get_versions()
-        versions["version"] = versions["version"].split("+")[0] + suffix
-        return versions
-
-    versioneer.get_versions = get_versions
-
+if is_nightly:
+    suffix = datetime.now(timezone.utc).strftime(r".dev%Y%m%d")
+    version = version.split("+")[0] + suffix
 
 if __name__ == "__main__":
-    setup(
-        version=versioneer.get_version(),
-        cmdclass=versioneer.get_cmdclass(),
-    )
+    setup(version=version)
