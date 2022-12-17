@@ -7,5 +7,3 @@ global-include *.h
 global-include *.sh
 recursive-include doc *
 include bin/aesara-cache
-include versioneer.py
-include aesara/_version.py

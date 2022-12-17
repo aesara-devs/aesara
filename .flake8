@@ -19,6 +19,4 @@ per-file-ignores =
     tests/scalar/test_basic_sympy.py:E402
     aesara/graph/rewriting/unify.py:F811
 exclude =
-    versioneer.py
     doc/
-    aesara/_version.py
