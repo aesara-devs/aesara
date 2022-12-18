@@ -1,9 +1,8 @@
-global-include *.txt
-global-include *.c
-global-include *.cu
-global-include *.cuh
-global-include *.cpp
-global-include *.h
-global-include *.sh
-recursive-include doc *
 include bin/aesara-cache
+prune .github
+prune html
+prune tests
+prune dist
+exclude .flake8 .gitignore .pre-commit-config.yaml CODE_OF_CONDUCT.md
+exclude CONTRIBUTING.md Makefile codecov.yml conftest.py environment.yml
+exclude environment-arm.yml readthedocs.yml

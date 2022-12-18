@@ -55,3 +55,4 @@ aesara-venv/
 testing-report.html
 coverage.xml
 .coverage.*
+aesara/_version.py

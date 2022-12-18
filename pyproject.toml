@@ -1,6 +1,7 @@
 [build-system]
 requires = [
     "setuptools>=61.2",
+    "setuptools_scm[toml]>=6.2",
 ]
 build-backend = "setuptools.build_meta"
 
@@ -57,6 +58,7 @@ dependencies = [
     "typing_extensions",
     "setuptools >=48.0.0",
 ]
+dynamic = ["version"]
 
 [project.readme]
 file = "DESCRIPTION.txt"
@@ -64,6 +66,11 @@ content-type = "text/x-rst"
 
 [project.scripts]
 aesara-cache = "aesara.bin.aesara_cache:main"
+
+[tool.setuptools_scm]
+write_to = "aesara/_version.py"
+# Restrict the default regex to only match tags that start with "rel-".
+tag_regex = '^rel-(?P<version>[vV]?\d+(?:\.\d+){0,2}[^\+]*)(?:\+.*)?$'
 
 [tool.setuptools]
 platforms = [
@@ -95,6 +102,7 @@ namespaces = false
     "*.pkl",
     "*.h",
     "*.cpp",
+    "*.pyx",
     "ChangeLog",
     "c_code/*",
 ]
@@ -112,6 +120,7 @@ namespaces = false
 omit = [
     "tests/*",
     "aesara/assert_op.py",
+    "aesara/version.py",
     "aesara/bin/aesara_cache.py",
     "aesara/graph/opt.py",
     "aesara/graph/opt_utils.py",
