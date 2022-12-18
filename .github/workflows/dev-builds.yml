@@ -1,8 +1,8 @@
 name: Development builds
 on:
-  workflow_dispatch:
-  schedule:
-    - cron: "0 0 * * *"
+  push:
+    branches:
+      - main
 
 jobs:
   build_and_publish:
@@ -22,14 +22,16 @@ jobs:
           curl -sSLf https://github.com/TomWright/dasel/releases/download/v2.0.2/dasel_linux_amd64 \
             -L -o /tmp/dasel && chmod +x /tmp/dasel
 
+          # Modify pyproject.toml to set the nightly version in the form of
+          # x.y.z.postN, where N is the number of commits since the last release
           /tmp/dasel put -f pyproject.toml project.name -v aesara-nightly
+          /tmp/dasel put -f pyproject.toml tool.setuptools_scm.version_scheme -v post-release
+          /tmp/dasel put -f pyproject.toml tool.setuptools_scm.local_scheme -v no-local-version
 
           # Install build prerequisites
           python -m pip install -U pip build
       - name: Build the sdist
         run: python -m build --sdist .
-        env:
-          BUILD_AESARA_NIGHTLY: true
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.nightly_pypi_secret }}
