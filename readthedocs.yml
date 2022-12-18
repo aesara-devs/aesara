@@ -7,3 +7,10 @@ build:
   os: "ubuntu-20.04"
   tools:
     python: "mambaforge-4.10"
+  jobs:
+    post_checkout:
+      # This is necessary for setuptools_scm to properly read the tags. The default
+      # depth of 50 often leads to 'assert version is not None' AssertionError during
+      # the pip install build process. Alternatively, we could use
+      # 'git fetch --unshallow', but that is rather intensive.
+      - git fetch --depth 1000
