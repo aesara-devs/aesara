@@ -1,0 +1,24 @@
+[flake8]
+select = C,E,F,W
+ignore = E203,E231,E501,E741,W503,W504,C901
+max-line-length = 88
+per-file-ignores =
+    **/__init__.py:F401,E402,F403
+    aesara/tensor/linalg.py:F401,F403
+    aesara/scalar/basic_scipy.py:E402,F403,F401
+    aesara/graph/toolbox.py:E402,F403,F401
+    aesara/link/jax/jax_dispatch.py:E402,F403,F401
+    aesara/link/jax/jax_linker.py:E402,F403,F401
+    aesara/sparse/sandbox/sp2.py:F401
+    tests/tensor/test_math_scipy.py:E402
+    tests/sparse/test_basic.py:E402
+    tests/sparse/test_opt.py:E402
+    tests/sparse/test_sp2.py:E402
+    tests/sparse/test_utils.py:E402,F401
+    tests/sparse/sandbox/test_sp.py:E402,F401
+    tests/scalar/test_basic_sympy.py:E402
+    aesara/graph/rewriting/unify.py:F811
+exclude =
+    versioneer.py
+    doc/
+    aesara/_version.py
