@@ -66,6 +66,7 @@ platforms = [
     "Mac OS-X",
     "Unix",
 ]
+# Not from setup.cfg
 include-package-data = false
 
 [tool.setuptools.packages.find]
@@ -73,12 +74,11 @@ exclude = [
     "tests",
     "tests.*",
 ]
+# Not from setup.cfg:
 namespaces = false
 
 [tool.setuptools.package-data]
-aesara = [
-    "*.txt",
-    "*.rst",
+"*" = [
     "*.txt",
     "*.rst",
     "*.cu",
@@ -90,6 +90,8 @@ aesara = [
     "*.cpp",
     "ChangeLog",
     "c_code/*",
+]
+"aesara" = [
     "py.typed",
 ]
 "aesara.misc" = ["*.sh"]
@@ -176,7 +178,8 @@ lines_after_imports = 2
 lines_between_sections = 1
 honor_noqa = true
 skip_gitignore = true
-skip = ["aesara/version.py", "**/__init__.py"]
+skip = ["aesara/version.py"]
+skip_glob = ["**/*.pyx"]
 
 [tool.mypy]
 ignore_missing_imports = true
@@ -284,6 +287,14 @@ ignore_errors = true
 check_untyped_defs = false
 
 [[tool.mypy.overrides]]
+module = ["aesara.tensor.rewriting.shape"]
+warn_unused_ignores = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.tensor.rewriting.elemwise"]
+warn_unused_ignores = false
+
+[[tool.mypy.overrides]]
 module = ["aesara.tensor.subtensor"]
 ignore_errors = true
 check_untyped_defs = false
@@ -347,6 +358,10 @@ check_untyped_defs = false
 module = ["aesara.tensor.random.utils"]
 ignore_errors = true
 check_untyped_defs = false
+
+[[tool.mypy.overrides]]
+module = ["aesara.scan.op"]
+warn_unused_ignores = false
 
 [[tool.mypy.overrides]]
 module = ["aesara.link.numba.dispatch.extra_ops"]
