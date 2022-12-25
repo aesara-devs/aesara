@@ -8,8 +8,14 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "aesara"
 authors = [{name = "aesara-devs", email = "aesara.devs@gmail.com"}]
-description = "Optimizing compiler for evaluating mathematical expressions on CPUs and GPUs."
-license = {text = "BSD"}
+description = "A library for defining, optimizing, and efficiently evaluating mathematical expressions involving multi-dimensional arrays."
+license.text = "BSD-3-Clause"
+license.files = ["LICENSE.txt"]
+# # Setuptools isn't yet PEP 639 (draft) compliant.
+# # See <https://github.com/pypa/setuptools/issues/3596>
+# # If accepted, then the previous two lines will change to:
+# license = "BSD-3-Clause"
+# license-files.paths = ["LICENSE.txt"]
 classifiers = [
     "Development Status :: 6 - Mature",
     "Intended Audience :: Education",
