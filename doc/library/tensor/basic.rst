@@ -667,12 +667,6 @@ dimensions, see :meth:`_tensor_py_operators.dimshuffle`.
     >>> aesara.tensor.shape_padaxis(tensor, axis=-1)
     InplaceDimShuffle{0,1,2,x}.0
 
-.. autofunction:: unbroadcast(x, *axes)
-
-.. autofunction:: addbroadcast(x, *axes)
-
-.. autofunction:: patternbroadcast(x, broadcastable)
-
 .. function:: flatten(x, ndim=1)
 
     Similar to :func:`reshape`, but the shape is inferred from the shape of `x`.
