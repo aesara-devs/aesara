@@ -40,7 +40,7 @@ from aesara.tensor.type import (
 )
 from aesara.tensor.type_other import NoneConst
 from aesara.tensor.utils import as_list
-from aesara.tensor.var import TensorConstant, _tensor_py_operators
+from aesara.tensor.var import TensorConstant
 
 
 if TYPE_CHECKING:
@@ -1447,15 +1447,9 @@ def real(z):
     """Return real component of complex-valued tensor `z`"""
 
 
-_tensor_py_operators.real = property(real)
-
-
 @scalar_elemwise
 def imag(z):
     """Return imaginary component of complex-valued tensor `z`"""
-
-
-_tensor_py_operators.imag = property(imag)
 
 
 @scalar_elemwise

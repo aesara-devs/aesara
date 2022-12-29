@@ -814,6 +814,14 @@ class _tensor_py_operators:
         """Return selected slices only."""
         return at.extra_ops.compress(self, a, axis=axis)
 
+    @property
+    def real(self):
+        return at.math.real(self)
+
+    @property
+    def imag(self):
+        return at.math.imag(self)
+
 
 class TensorVariable(
     _tensor_py_operators, Variable[_TensorTypeType, OptionalApplyType]
