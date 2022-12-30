@@ -1,21 +1,16 @@
 [build-system]
 requires = [
-    "setuptools>=61.2",
-    "setuptools_scm[toml]>=6.2",
+    "hatchling >=1.11.1,<2.0.0",
+    "hatch-vcs >=0.3.0,<0.4.0",
 ]
-build-backend = "setuptools.build_meta"
+build-backend = "hatchling.build"
 
 [project]
 name = "aesara"
 authors = [{name = "aesara-devs", email = "aesara.devs@gmail.com"}]
 description = "A library for defining, optimizing, and efficiently evaluating mathematical expressions involving multi-dimensional arrays."
 license.text = "BSD-3-Clause"
-license.files = ["LICENSE.txt"]
-# # Setuptools isn't yet PEP 639 (draft) compliant.
-# # See <https://github.com/pypa/setuptools/issues/3596>
-# # If accepted, then the previous two lines will change to:
-# license = "BSD-3-Clause"
-# license-files.paths = ["LICENSE.txt"]
+license-files.paths = ["LICENSE.txt"]
 classifiers = [
     "Development Status :: 6 - Mature",
     "Intended Audience :: Education",
@@ -28,12 +23,17 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Mathematics",
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: POSIX :: SunOS/Solaris",
     "Operating System :: Unix",
     "Operating System :: MacOS",
+    "Operating System :: MacOS :: MacOS X",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
 ]
 keywords = [
     "aesara",
@@ -67,54 +67,34 @@ content-type = "text/x-rst"
 [project.scripts]
 aesara-cache = "aesara.bin.aesara_cache:main"
 
-[tool.setuptools_scm]
-write_to = "aesara/_version.py"
+[tool.hatch.version]
+source = "vcs"
 # Restrict the default regex to only match tags that start with "rel-".
-tag_regex = '^rel-(?P<version>[vV]?\d+(?:\.\d+){0,2}[^\+]*)(?:\+.*)?$'
+tag-pattern = '^rel-(?P<version>[vV]?\d+(?:\.\d+){0,2}[^\+]*)(?:\+.*)?$'
 
-[tool.setuptools]
-platforms = [
-    "Windows",
-    "Linux",
-    "Solaris",
-    "Mac OS-X",
-    "Unix",
-]
-# Not from setup.cfg
-include-package-data = false
+[tool.hatch.build.hooks.vcs]
+version-file = "aesara/_version.py"
 
-[tool.setuptools.packages.find]
+[tool.hatch.build]
 exclude = [
-    "tests",
-    "tests.*",
+    "/tests",
+    "/.github",
+    "/.flake8",
+    "/.gitignore",
+    "/.hgignore",
+    "/.pre-commit-config.yaml",
+    "/CODE_OF_CONDUCT.md",
+    "/CONTRIBUTING.md",
+    "Makefile",
+    "codecov.yml",
+    "conftest.py",
+    "environment-arm.yml",
+    "environment.yml",
+    "readthedocs.yml",
 ]
-# Not from setup.cfg:
-namespaces = false
 
-[tool.setuptools.package-data]
-"*" = [
-    "*.txt",
-    "*.rst",
-    "*.cu",
-    "*.cuh",
-    "*.c",
-    "*.sh",
-    "*.pkl",
-    "*.h",
-    "*.cpp",
-    "*.pyx",
-    "ChangeLog",
-    "c_code/*",
-]
-"aesara" = [
-    "py.typed",
-]
-"aesara.misc" = ["*.sh"]
-"aesara.d3viz" = [
-    "html/*",
-    "css/*",
-    "js/*",
-]
+[tool.hatch.build.targets.wheel]
+packages = ["aesara", "bin"]
 
 [tool.coverage.run]
 omit = [
