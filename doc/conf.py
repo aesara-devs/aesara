@@ -70,7 +70,7 @@ master_doc = "index"
 
 # General substitutions.
 project = "Aesara"
-copyright = "Aesara Developers, 2021; PyMC Developers, 2020-2021; 2008--2019, LISA lab"
+copyright = "Aesara Developers, 2021-2023; PyMC Developers, 2020-2021; 2008--2019, LISA lab"
 
 # The default replacements for |version| and |release|, also used in various
 # other places throughout the built documents.
