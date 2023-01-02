@@ -1,0 +1,30 @@
+name: GitHub Actions Version Updater
+# <https://github.com/marketplace/actions/github-actions-version-updater>
+
+# Controls when the action will run.
+on:
+  # can be used to run workflow manually
+  workflow_dispatch:
+  schedule:
+    # Automatically run on 07:26 UTC every Monday
+    - cron:  '26 7 * * 1'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          # [Required] Access token with `workflow` scope.
+          token: ${{ secrets.WORKFLOW_SECRET }}
+
+      - name: Run GitHub Actions Version Updater
+        uses: saadmk11/github-actions-version-updater@v0.7.2
+        with:
+          # [Required] Access token with `workflow` scope.
+          token: ${{ secrets.WORKFLOW_SECRET }}
+          committer_username: 'Aesara Bot'
+          committer_email: 'aesarabot@users.noreply.github.com'
+          update_version_with: 'release-tag'
+          release_types: "major, minor, patch"
