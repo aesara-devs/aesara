@@ -65,7 +65,7 @@ file = "DESCRIPTION.txt"
 content-type = "text/x-rst"
 
 [project.scripts]
-aesara-cache = "bin.aesara_cache:main"
+aesara-cache = "aesara.bin.aesara_cache:main"
 
 [tool.setuptools]
 platforms = [
