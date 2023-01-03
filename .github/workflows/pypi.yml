@@ -39,7 +39,8 @@ jobs:
           python -m venv venv-sdist
           venv-sdist/bin/python -m pip install ../dist/aesara-*.tar.gz
           venv-sdist/bin/python -c "import aesara;print(aesara.__version__)"
-          test -n "$(find . -name lazylinker_c.c)"
+          echo "Checking for lazylinker_c.c..."
+          test -n "$(find . -name lazylinker_c.c)" && echo "Found lazylinker_c.c"
       - name: Check the wheel installs and imports
         run: |
           mkdir -p test-wheel
@@ -47,7 +48,8 @@ jobs:
           python -m venv venv-wheel
           venv-wheel/bin/python -m pip install ../dist/aesara-*.whl
           venv-wheel/bin/python -c "import aesara;print(aesara.__version__)"
-          test -n "$(find . -name lazylinker_c.c)"
+          echo "Checking for lazylinker_c.c..."
+          test -n "$(find . -name lazylinker_c.c)" && echo "Found lazylinker_c.c"
       - uses: actions/upload-artifact@v2
         with:
           name: artifact
