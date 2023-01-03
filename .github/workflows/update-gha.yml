@@ -24,7 +24,7 @@ jobs:
         with:
           # [Required] Access token with `workflow` scope.
           token: ${{ secrets.WORKFLOW_SECRET }}
-          committer_username: 'Aesara Bot'
-          committer_email: 'aesarabot@users.noreply.github.com'
+          committer_username: 'aesara-machine-user'
+          committer_email: 'aesara-machine-user@users.noreply.github.com'
           update_version_with: 'release-tag'
           release_types: "major, minor, patch"
