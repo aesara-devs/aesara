@@ -50,7 +50,7 @@ jobs:
           venv-wheel/bin/python -c "import aesara;print(aesara.__version__)"
           echo "Checking for lazylinker_c.c..."
           test -n "$(find . -name lazylinker_c.c)" && echo "Found lazylinker_c.c"
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: artifact
           path: dist/*
