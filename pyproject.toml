@@ -132,6 +132,8 @@ relative_files = true
 omit = [
     "aesara/_version.py",
     "tests/*",
+    "bin/aesara_cache.py",
+    "aesara/bin/aesara_cache.py",
 ]
 exclude_lines = [
     "pragma: no cover",
