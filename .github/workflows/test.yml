@@ -230,7 +230,7 @@ jobs:
           python -m pip install -U coverage>=5.1 coveralls
 
       - name: Download coverage file
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: coverage
           path: coverage
