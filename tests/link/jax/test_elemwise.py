@@ -111,7 +111,8 @@ def test_logsumexp_benchmark(size, axis, benchmark):
     X_max = at.switch(at.isinf(X_max), 0, X_max)
     X_lse = at.log(at.sum(at.exp(X - X_max), axis=axis, keepdims=True)) + X_max
 
-    X_val = np.random.normal(size=size)
+    rng = np.random.default_rng(23920)
+    X_val = rng.normal(size=size)
 
     X_lse_fn = aesara.function([X], X_lse, mode="JAX")
 
