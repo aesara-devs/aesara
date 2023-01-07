@@ -129,7 +129,7 @@ def _is_dense(x):
     return isinstance(x, np.ndarray)
 
 
-@_as_symbolic.register(scipy.sparse.base.spmatrix)
+@_as_symbolic.register(scipy.sparse.spmatrix)
 def as_symbolic_sparse(x, **kwargs):
     return as_sparse_variable(x, **kwargs)
 
