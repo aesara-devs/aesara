@@ -1,3 +1,12 @@
 #!/usr/bin/env python
-import aesara_cache
-aesara_cache.main()
+import warnings
+
+from aesara.bin.aesara_cache import main
+
+
+warnings.warn(
+    message= "Using this bin/aesara-cache script is deprecated. Use the plain "
+    "aesara-cache command which is installed along with aesara.",
+    category=DeprecationWarning,
+)
+main()
