@@ -20,18 +20,18 @@ repos:
           )$
       - id: check-merge-conflict
   - repo: https://github.com/psf/black
-    rev: 22.10.0
+    rev: 22.12.0
     hooks:
       - id: black
         language_version: python3
   - repo: https://github.com/pycqa/flake8
     # NOTE: flake8 v6 requires python >=3.8.1 but
     # Aesara still supports python 3.7.
-    rev: 5.0.4
+    rev: 6.0.0
     hooks:
       - id: flake8
   - repo: https://github.com/pycqa/isort
-    rev: 5.10.1
+    rev: 5.11.4
     hooks:
       - id: isort
   - repo: https://github.com/humitos/mirrors-autoflake.git
