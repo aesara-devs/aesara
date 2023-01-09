@@ -115,6 +115,7 @@ omit = [
     "aesara/_version.py",
     "tests/*",
     "aesara/assert_op.py",
+    "aesara/bin/aesara_cache.py",
     "aesara/graph/opt.py",
     "aesara/graph/opt_utils.py",
     "aesara/graph/optdb.py",
@@ -124,16 +125,15 @@ omit = [
     "aesara/link/jax/jax_dispatch.py",
     "aesara/graph/toolbox.py",
     "aesara/scalar/basic_scipy.py",
+    "bin/aesara_cache.py",
 ]
 branch = true
 relative_files = true
 
 [tool.coverage.report]
 omit = [
-    "aesara/bin/aesara_cache.py",
     "aesara/_version.py",
     "tests/*",
-    "bin/aesara_cache.py",
 ]
 exclude_lines = [
     "pragma: no cover",
