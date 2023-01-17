@@ -44,7 +44,8 @@ class Cholesky(Op):
     # TODO: inplace
     # TODO: for specific dtypes
     # TODO: LAPACK wrapper with in-place behavior, for solve also
-    __props__ = ("lower", "destructive", "on_error")
+    gufunc_sig = ((("m", "m"),), (("m", "m"),))
+    __props__ = ("lower", "destructive", "on_error", "gufunc_sig")
 
     def __init__(self, lower=True, on_error="raise"):
         self.lower = lower
@@ -281,11 +282,19 @@ class SolveBase(Op):
 class SolveTriangular(SolveBase):
     """Solve a system of linear equations."""
 
+    gufunc_sig = (
+        (
+            ("m", "m"),
+            ("m", "k"),
+        ),
+        (("m", "k"),),
+    )
     __props__ = (
         "lower",
         "trans",
         "unit_diagonal",
         "check_finite",
+        "gufunc_sig",
     )
 
     def __init__(
