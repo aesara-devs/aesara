@@ -327,7 +327,7 @@ class Blockwise(Op):
 
     def perform(self, node, inputs, outputs):
         def py_func(*inner_inputs):
-            res = [[None]] * len(outputs)
+            res = [[None] for i in range(len(outputs))]
             # TODO:This can be avoided by making a single dummy node
             # But will that cover all cases?
             inner_node = self.op.make_node(*inner_inputs)
