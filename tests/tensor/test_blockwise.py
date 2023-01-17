@@ -13,7 +13,7 @@ from aesara.tensor.blockwise import (
 )
 from aesara.tensor.math import Dot
 from aesara.tensor.nlinalg import Det
-from aesara.tensor.slinalg import Solve
+from aesara.tensor.slinalg import Cholesky, Solve
 from aesara.tensor.type import TensorType
 from tests import unittest_tools as utt
 from tests.unittest_tools import check_infer_shape, verify_grad
@@ -215,3 +215,13 @@ def test_blockwise_det_grad(shape):
 
     det_op = Blockwise(Det())
     verify_grad(det_op, [r], rng=np.random)
+
+
+@pytest.mark.parametrize(
+    "shape",
+    [(3, 3), (5, 3, 3)],
+)
+def test_blockwise_cholesky_grad(shape):
+    r = np.full(shape, np.eye(shape[-1]))
+    cholesky = Blockwise(Cholesky())
+    utt.verify_grad(lambda r: cholesky(r), [r], 3)
