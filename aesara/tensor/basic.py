@@ -986,7 +986,15 @@ def nonzero_values(a):
 
 class Tri(Op):
 
-    __props__ = ("dtype",)
+    gufunc_sig = (
+        (
+            ("n",),
+            ("m",),
+            ("k",),
+        ),
+        (("n", "m"),),
+    )
+    __props__ = ("dtype", "gufunc_sig")
 
     def __init__(self, dtype=None):
         if dtype is None:
@@ -3502,7 +3510,8 @@ class AllocDiag(Op):
     It does the inverse of `ExtractDiag`.
     """
 
-    __props__ = ("offset", "axis1", "axis2")
+    gufunc_sig = ((("m",),), (("m", "m"),))
+    __props__ = ("offset", "axis1", "axis2", "gufunc_sig")
 
     def __init__(self, offset=0, axis1=0, axis2=1):
         """
