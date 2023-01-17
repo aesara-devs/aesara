@@ -9,12 +9,13 @@ from aesara.graph.null_type import NullType
 from aesara.graph.op import Op
 from aesara.scalar.basic import constant as scalar_constant
 from aesara.tensor import get_scalar_constant_value
-from aesara.tensor.basic import atleast_Nd
+from aesara.tensor.basic import ExtractDiag, atleast_Nd
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.extra_ops import broadcast_shape
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.shape import shape_tuple
+from aesara.tensor.subtensor import Subtensor
 from aesara.tensor.type import TensorType
 
 
@@ -290,6 +291,9 @@ class Blockwise(Op):
                 nd = inputs[0].type.ndim
 
                 return atleast_Nd(res, n=nd)
+
+            if isinstance(node.op, (Subtensor, ExtractDiag)):
+                return var
 
             blocked_inputs = [transform(ipt, node) for ipt in node.inputs]
             grad_signature = getattr(node.op, "gufunc_sig", None)
