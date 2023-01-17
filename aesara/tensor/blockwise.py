@@ -289,7 +289,7 @@ class Blockwise(Op):
                 # What exactly are those in this case?
                 nd = inputs[0].type.ndim
 
-                return atleast_Nd(res, nd)
+                return atleast_Nd(res, n=nd)
 
             blocked_inputs = [transform(ipt, node) for ipt in node.inputs]
             grad_signature = getattr(node.op, "gufunc_sig", None)
