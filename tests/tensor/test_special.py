@@ -1,13 +1,24 @@
 import numpy as np
 import pytest
+from scipy.special import factorial as scipy_factorial
 from scipy.special import log_softmax as scipy_log_softmax
+from scipy.special import poch as scipy_poch
 from scipy.special import softmax as scipy_softmax
 
 from aesara.compile.function import function
 from aesara.configdefaults import config
-from aesara.tensor.special import LogSoftmax, Softmax, SoftmaxGrad, log_softmax, softmax
-from aesara.tensor.type import matrix, tensor3, tensor4, vector
+from aesara.tensor.special import (
+    LogSoftmax,
+    Softmax,
+    SoftmaxGrad,
+    factorial,
+    log_softmax,
+    poch,
+    softmax,
+)
+from aesara.tensor.type import matrix, tensor3, tensor4, vector, vectors
 from tests import unittest_tools as utt
+from tests.tensor.utils import random_ranged
 
 
 class TestSoftmax(utt.InferShapeTester):
@@ -134,3 +145,29 @@ class TestSoftmaxGrad(utt.InferShapeTester):
 
         with pytest.raises(ValueError):
             SoftmaxGrad(-4)(*x)
+
+
+def test_poch():
+    _z, _m = vectors("z", "m")
+    actual_fn = function([_z, _m], poch(_z, _m))
+
+    z = random_ranged(0, 5, (2,))
+    m = random_ranged(0, 5, (2,))
+    actual = actual_fn(z, m)
+    expected = scipy_poch(z, m)
+    np.testing.assert_allclose(
+        actual, expected, rtol=1e-7 if config.floatX == "float64" else 1e-5
+    )
+
+
+@pytest.mark.parametrize("n", random_ranged(0, 5, (1,)))
+def test_factorial(n):
+    _n = vector("n")
+    actual_fn = function([_n], factorial(_n))
+
+    n = random_ranged(0, 5, (2,))
+    actual = actual_fn(n)
+    expected = scipy_factorial(n)
+    np.testing.assert_allclose(
+        actual, expected, rtol=1e-7 if config.floatX == "float64" else 1e-5
+    )
