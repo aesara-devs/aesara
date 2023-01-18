@@ -1,3 +1,5 @@
+from contextlib import ExitStack as does_not_warn
+
 import numpy as np
 import pytest
 
@@ -71,6 +73,7 @@ expected_i1 = scipy.special.i1
 expected_iv = scipy.special.iv
 expected_erfcx = scipy.special.erfcx
 expected_sigmoid = scipy.special.expit
+expected_hyp2f1 = scipy.special.hyp2f1
 
 TestErfBroadcast = makeBroadcastTester(
     op=at.erf,
@@ -752,6 +755,202 @@ TestBetaincInplaceBroadcast = makeBroadcastTester(
     grad=_good_broadcast_ternary_betainc,
     inplace=True,
 )
+
+_good_broadcast_quaternary_hyp2f1 = dict(
+    normal=(
+        random_ranged(0, 20, (2, 3)),
+        random_ranged(0, 20, (2, 3)),
+        random_ranged(0, 20, (2, 3)),
+        random_ranged(-0.9, 0.9, (2, 3)),
+    ),
+)
+
+TestHyp2F1Broadcast = makeBroadcastTester(
+    op=at.hyp2f1,
+    expected=expected_hyp2f1,
+    good=_good_broadcast_quaternary_hyp2f1,
+    grad=_good_broadcast_quaternary_hyp2f1,
+)
+
+TestHyp2F1InplaceBroadcast = makeBroadcastTester(
+    op=inplace.hyp2f1_inplace,
+    expected=expected_hyp2f1,
+    good=_good_broadcast_quaternary_hyp2f1,
+    inplace=True,
+)
+
+
+@pytest.mark.parametrize(
+    "test_a1, test_a2, test_b1, test_z, expected_dda1, expected_dda2, expected_ddb1, expected_ddz",
+    [
+        (
+            3.70975,
+            1.0,
+            2.70975,
+            -0.2,
+            -0.0488658806159776,
+            -0.193844936204681,
+            0.0677809985598383,
+            0.8652952472723672,
+        ),
+        (3.70975, 1.0, 2.70975, 0, 0, 0, 0, 1.369037734108313),
+        (
+            1.0,
+            1.0,
+            1.0,
+            0.6,
+            2.290726829685388,
+            2.290726829685388,
+            -2.290726829685388,
+            6.25,
+        ),
+        (
+            1.0,
+            31.0,
+            41.0,
+            1.0,
+            6.825270649241036,
+            0.4938271604938271,
+            -0.382716049382716,
+            17.22222222222223,
+        ),
+        (
+            1.0,
+            -2.1,
+            41.0,
+            1.0,
+            -0.04921317604093563,
+            0.02256814168279349,
+            0.00118482743834665,
+            -0.04854621426218426,
+        ),
+        (
+            1.0,
+            -0.5,
+            10.6,
+            0.3,
+            -0.01443822031245647,
+            0.02829710651967078,
+            0.00136986255602642,
+            -0.04846036062115473,
+        ),
+        (
+            1.0,
+            -0.5,
+            10.0,
+            0.3,
+            -0.0153218866216130,
+            0.02999436412836072,
+            0.0015413242328729,
+            -0.05144686244336445,
+        ),
+        (
+            -0.5,
+            -4.5,
+            11.0,
+            0.3,
+            -0.1227022810085707,
+            -0.01298849638043795,
+            -0.0053540982315572,
+            0.1959735211840362,
+        ),
+        (
+            -0.5,
+            -4.5,
+            -3.2,
+            0.9,
+            0.85880025358111,
+            0.4677704416159314,
+            -4.19010422485256,
+            -2.959196647856408,
+        ),
+        (
+            3.70975,
+            1.0,
+            2.70975,
+            -0.2,
+            -0.0488658806159776,
+            -0.193844936204681,
+            0.0677809985598383,
+            0.865295247272367,
+        ),
+        (
+            2.0,
+            1.0,
+            2.0,
+            0.4,
+            0.4617734323582945,
+            0.851376039609984,
+            -0.4617734323582945,
+            2.777777777777778,
+        ),
+        (
+            3.70975,
+            1.0,
+            2.70975,
+            0.999696,
+            29369830.002773938200417693317785,
+            36347869.41885337,
+            -30843032.10697079073015067426929807,
+            26278034019.28811,
+        ),
+        # Cases where series does not converge
+        (1.0, 12.0, 10.0, 1.0, np.nan, np.nan, np.nan, np.inf),
+        (1.0, 12.0, 20.0, 1.2, np.nan, np.nan, np.nan, np.inf),
+        # Case where series converges under Euler transform (not implemented!)
+        # (1.0, 1.0, 2.0, -5.0, -0.321040199556840, -0.321040199556840, 0.129536268190289, 0.0383370454357889),
+        (1.0, 1.0, 2.0, -5.0, np.nan, np.nan, np.nan, 0.0383370454357889),
+    ],
+)
+@pytest.mark.filterwarnings("error")
+def test_hyp2f1_grad_stan_cases(
+    test_a1,
+    test_a2,
+    test_b1,
+    test_z,
+    expected_dda1,
+    expected_dda2,
+    expected_ddb1,
+    expected_ddz,
+):
+    """
+
+    This test uses the test cases in
+    https://github.com/stan-dev/math/blob/master/test/unit/math/prim/fun/grad_2F1_test.cpp and
+    https://github.com/andrjohns/math/blob/develop/test/unit/math/prim/fun/hypergeometric_2F1_test.cpp
+
+    Note: The `expected_ddz` was computed from the perform method, as it is not part of all Stan tests.
+
+    """
+    a1, a2, b1, z = at.scalars("a1", "a2", "b1", "z")
+    betainc_out = at.hyp2f1(a1, a2, b1, z)
+    betainc_grad = at.grad(betainc_out, [a1, a2, b1, z])
+
+    cm = (
+        pytest.warns(UserWarning)
+        if "FAST_RUN" in get_default_mode().optimizer.name
+        else does_not_warn()
+    )
+    with cm:
+        f_grad = function([a1, a2, b1, z], betainc_grad)
+
+    rtol = 1e-9 if config.floatX == "float64" else 1e-3
+
+    expectation = (
+        pytest.warns(
+            RuntimeWarning, match="Hyp2F1 does not meet convergence conditions"
+        )
+        if np.any(np.isnan([expected_dda1, expected_dda2, expected_ddb1, expected_ddz]))
+        else does_not_warn()
+    )
+    with expectation, np.errstate(divide="ignore"):
+        result = np.array(f_grad(test_a1, test_a2, test_b1, test_z))
+
+    np.testing.assert_allclose(
+        result,
+        np.array([expected_dda1, expected_dda2, expected_ddb1, expected_ddz]),
+        rtol=rtol,
+    )
 
 
 class TestBetaIncGrad:

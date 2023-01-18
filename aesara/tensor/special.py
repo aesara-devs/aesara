@@ -7,7 +7,7 @@ import scipy
 from aesara.graph.basic import Apply
 from aesara.link.c.op import COp
 from aesara.tensor.basic import as_tensor_variable
-from aesara.tensor.math import neg, sum
+from aesara.tensor.math import gamma, neg, sum
 
 
 class SoftmaxGrad(COp):
@@ -768,7 +768,19 @@ def log_softmax(c, axis=UNSET_AXIS):
     return LogSoftmax(axis=axis)(c)
 
 
+def poch(z, m):
+    """Compute the Pochhammer/rising factorial."""
+    return gamma(z + m) / gamma(z)
+
+
+def factorial(n):
+    """Compute the factorial."""
+    return gamma(n + 1)
+
+
 __all__ = [
     "softmax",
     "log_softmax",
+    "poch",
+    "factorial",
 ]
