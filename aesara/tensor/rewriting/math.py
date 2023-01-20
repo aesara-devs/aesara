@@ -313,6 +313,35 @@ def local_exp_log(fgraph, node):
 
 @register_specialize
 @node_rewriter([Elemwise])
+def log_diff_exp(fgraph, node):
+    # Case for log(exp(a) - exp(b)) -> a + log1mexp(b - a)
+    x = node.inputs[0]
+
+    if not isinstance(node.op, Elemwise):
+        return
+    if not x.owner or not isinstance(x.owner.op, Elemwise):
+        return
+
+    prev_op = x.owner.op.scalar_op
+    node_op = node.op.scalar_op
+
+    if isinstance(prev_op, aes.Sub) and isinstance(node_op, aes.Log):
+        a, b = x.owner.inputs
+        if not a.owner or not b.owner:
+            return
+        a_op, b_op =  a.owner.op.scalar_op, b.owner.op.scalar_op
+        if isinstance(a_op, aes.Exp) and isinstance(b_op, aes.Exp):
+            a = a.owner.inputs[0]
+            b = b.owner.inputs[0]
+            new_out = add(a, log1mexp(sub(b, a)))
+            old_out = node.outputs[0]
+            if new_out.dtype != old_out.dtype:
+                new_out = cast(new_out, old_out.dtype)
+            return [new_out]
+
+
+@register_specialize
+@node_rewriter([Elemwise])
 def local_exp_log_nan_switch(fgraph, node):
     # Rewrites of the kind exp(log...(x)) that require a `nan` switch
     x = node.inputs[0]
