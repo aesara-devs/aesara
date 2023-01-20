@@ -3522,6 +3522,7 @@ class TestMatMul(utt.InferShapeTester):
                 self.op_class,
             )
 
+
 def test_logdiffexp():
     x = fmatrix()
     y = fmatrix()
@@ -3530,7 +3531,6 @@ def test_logdiffexp():
     ops_graph = [
         node
         for node in graph
-        if isinstance(node.op, Elemwise)
-        and isinstance(node.op.scalar_op, aes.Exp)
+        if isinstance(node.op, Elemwise) and isinstance(node.op.scalar_op, aes.Exp)
     ]
     assert len(ops_graph) == 0

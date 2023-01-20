@@ -329,7 +329,7 @@ def log_diff_exp(fgraph, node):
         a, b = x.owner.inputs
         if not a.owner or not b.owner:
             return
-        a_op, b_op =  a.owner.op.scalar_op, b.owner.op.scalar_op
+        a_op, b_op = a.owner.op.scalar_op, b.owner.op.scalar_op
         if isinstance(a_op, aes.Exp) and isinstance(b_op, aes.Exp):
             a = a.owner.inputs[0]
             b = b.owner.inputs[0]
