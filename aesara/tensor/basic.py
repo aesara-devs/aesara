@@ -38,6 +38,7 @@ from aesara.scalar import int32
 from aesara.scalar.basic import ScalarConstant, ScalarVariable
 from aesara.tensor import (
     _as_tensor_variable,
+    _get_gufunc_signature,
     _get_vector_length,
     as_tensor_variable,
     get_vector_length,
@@ -3476,6 +3477,12 @@ class ExtractDiag(Op):
             self.axis1 = 0
         if "axis2" not in state:
             self.axis2 = 1
+
+
+@_get_gufunc_signature.register(ExtractDiag)
+def _get_gufunc_signature_ExtractDiag(op, blocked_inputs):
+    # TODO:
+    raise NotImplementedError()
 
 
 extract_diag = ExtractDiag()

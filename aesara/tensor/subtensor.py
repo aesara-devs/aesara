@@ -19,7 +19,12 @@ from aesara.link.c.params_type import ParamsType
 from aesara.misc.safe_asarray import _asarray
 from aesara.printing import Printer, pprint, set_precedence
 from aesara.scalar.basic import ScalarConstant
-from aesara.tensor import _get_vector_length, as_tensor_variable, get_vector_length
+from aesara.tensor import (
+    _get_gufunc_signature,
+    _get_vector_length,
+    as_tensor_variable,
+    get_vector_length,
+)
 from aesara.tensor.basic import alloc, get_scalar_constant_value
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.exceptions import (
@@ -1198,6 +1203,29 @@ class Subtensor(COp):
         if eval_points[0] is None:
             return [None]
         return self(eval_points[0], *inputs[1:], return_list=True)
+
+
+@_get_gufunc_signature.register(Subtensor)
+def _get_gufunc_signature_Subtensor(op, blocked_inputs):
+    min_base_dims = len(op.idx_list)
+    index_input_types = get_slice_elements(
+        op.idx_list, lambda entry: isinstance(entry, Type)
+    )
+
+    indexed_input_sig = tuple(f"a{i}" for i in range(min_base_dims))
+    index_input_sig = tuple(
+        ("1",) if typ.ndim == 0 else tuple(f"b{i}{j}" for j in range(typ.ndim))
+        for i, typ in enumerate(index_input_types)
+    )
+
+    # TODO: Compute the number of output dimensions
+    out_ndim = 1
+    output_sig = tuple(f"d{i}" for i in range(out_ndim))
+
+    input_signature: Tuple[str, ...] = (indexed_input_sig,) + index_input_sig
+    output_signature: Tuple[str, ...] = (output_sig,)
+
+    return (input_signature, output_signature)
 
 
 class SubtensorPrinter(Printer):

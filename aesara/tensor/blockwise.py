@@ -8,14 +8,14 @@ from aesara.graph.basic import Apply, Variable
 from aesara.graph.null_type import NullType
 from aesara.graph.op import Op
 from aesara.scalar.basic import constant as scalar_constant
-from aesara.tensor import get_scalar_constant_value
-from aesara.tensor.basic import ExtractDiag, atleast_Nd
-from aesara.tensor.elemwise import DimShuffle, Elemwise
+from aesara.scalar.basic import int64
+from aesara.tensor import get_gufunc_signature, get_scalar_constant_value
+from aesara.tensor.basic import atleast_Nd
+from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.extra_ops import broadcast_shape
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.shape import shape_tuple
-from aesara.tensor.subtensor import Subtensor
 from aesara.tensor.type import TensorType
 
 
@@ -110,7 +110,15 @@ def _calculate_shapes(
         res = dim_sizes.get(x)
 
         if res is None:
-            return scalar_constant(int(x))
+            try:
+                return scalar_constant(int(x))
+            except (ValueError, TypeError):
+                # Return a symbolic placeholder for new dimension references
+                # For example, a signature like `("m", "n") -> ("p",)` means
+                # that there will be no `"p"` label to reference in `dim_sizes`
+                # (i.e. pre-existing dimension labels that already have values
+                # assigned to them).
+                return int64(name=x)
 
         return res
 
@@ -292,35 +300,12 @@ class Blockwise(Op):
 
                 return atleast_Nd(res, n=nd)
 
-            if isinstance(node.op, (Subtensor, ExtractDiag)):
-                return var
-
             blocked_inputs = [transform(ipt, node) for ipt in node.inputs]
-            grad_signature = getattr(node.op, "gufunc_sig", None)
-            op = node.op
+            grad_signature = get_gufunc_signature(node.op, blocked_inputs)
+            new_r = Blockwise(node.op, signature=grad_signature)(*blocked_inputs)
 
-            if grad_signature is None:
-                if isinstance(op, DimShuffle):
-                    # remove the extra dimensions that
-                    # we have added during op creation
-                    new_order = [i for i in op.new_order if i != "x"]
-
-                    # derive gufunc signature for DimShuffle
-                    input_signature: Tuple[str, ...] = tuple(
-                        f"a{i}" for i in range(len(new_order))
-                    )
-                    output_signature: Tuple[str, ...] = tuple(
-                        f"a{i}" if i != "x" else "1" for i in op.new_order
-                    )
-                    grad_signature = ((input_signature,), (output_signature,))
-                elif isinstance(op, Elemwise):
-                    op = op.scalar_op
-                    grad_signature = (((),) * len(blocked_inputs), ((),))
-                else:
-                    raise ValueError(f"'{op}' object has no attribute 'gufunc_sig'")
-
-            new_r = Blockwise(op, signature=grad_signature)(*blocked_inputs)
             assert isinstance(new_r, Variable)
+
             return new_r
 
         ret = []
