@@ -7,6 +7,7 @@ from aesara.gradient import DisconnectedType
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.null_type import NullType
 from aesara.graph.op import Op
+from aesara.graph.rewriting.utils import rewrite_graph
 from aesara.scalar.basic import constant as scalar_constant
 from aesara.scalar.basic import int64
 from aesara.tensor import get_gufunc_signature, get_scalar_constant_value
@@ -16,10 +17,11 @@ from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.extra_ops import broadcast_shape
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.shape import shape_tuple
-from aesara.tensor.type import TensorType
+from aesara.tensor.type import TensorType, lscalar
 
 
 if TYPE_CHECKING:
+    from aesara.graph.fg import FunctionGraph
     from aesara.tensor.var import TensorVariable
 
 
@@ -132,6 +134,52 @@ def gufunc_sign_to_str(sign):
     in_sign = [f"({','.join(_sign)})" for _sign in sign[0]]
     out_sign = [f"({','.join(_sign)})" for _sign in sign[1]]
     return f"{','.join(in_sign)}->{','.join(out_sign)}"
+
+
+def infer_shape_to_gufunc_sig(node: Apply, fgraph: Optional["FunctionGraph"] = None):
+    """Derive a gufunc signature from an `Op.infer_shape`.
+
+    Parameters
+    ==========
+    node
+        The `Apply` node with the `Op.infer_shape` we want to use.
+    fgraph
+        A `FunctionGraph` containing `node`.
+
+    """
+    op = node.op
+    in_shapes = tuple(
+        tuple(lscalar(f"i{s}") for s in range(inp.type.ndim)) for inp in node.inputs
+    )
+    out_shapes = op.infer_shape(fgraph, node, in_shapes)
+
+    # We need to canonicalize in order to match output shape labels with input
+    # shape labels
+    flat_out_shapes = rewrite_graph(list(sum(out_shapes, ())), clone=False)
+    assert isinstance(flat_out_shapes, list)
+
+    # Unflatten the canonicalized shape-graph outputs
+    shape_sizes = tuple(len(x) for x in out_shapes)
+    out_shapes = [()] * len(out_shapes)
+    for i, shape_size in enumerate(shape_sizes):
+        for j in range(shape_size):
+            out_shapes[i] += (flat_out_shapes.pop(0),)
+
+    out_shapes = tuple(out_shapes)
+
+    gufunc_inputs_sig = tuple(tuple(s.name for s in in_shape) for in_shape in in_shapes)
+
+    all_input_names = sum(gufunc_inputs_sig, ())
+
+    gufunc_outputs_sig = tuple(
+        # If an output label doesn't match an input label, create a new label
+        # for the output
+        tuple(
+            s.name if s.name in all_input_names else f"o{output_idx}" for s in out_shape
+        )
+        for output_idx, out_shape in enumerate(out_shapes)
+    )
+    return (gufunc_inputs_sig, gufunc_outputs_sig)
 
 
 class Blockwise(Op):

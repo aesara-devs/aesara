@@ -10,6 +10,7 @@ from aesara.tensor.blockwise import (
     _parse_input_dimensions,
     _update_dim_sizes,
     gufunc_sign_to_str,
+    infer_shape_to_gufunc_sig,
 )
 from aesara.tensor.math import Dot
 from aesara.tensor.nlinalg import Det
@@ -225,3 +226,13 @@ def test_blockwise_cholesky_grad(shape):
     r = np.full(shape, np.eye(shape[-1]))
     cholesky = Blockwise(Cholesky())
     utt.verify_grad(lambda r: cholesky(r), [r], 3)
+
+
+def test_infer_shape_to_gufunc_sig():
+    y = at.extract_diag(at.matrix("x"))
+    res = infer_shape_to_gufunc_sig(y.owner)
+    assert res == ((("i0", "i1"),), (("o0",),))
+
+    y = at.diag(at.vector("x"))
+    res = infer_shape_to_gufunc_sig(y.owner)
+    assert res == ((("i0",),), (("i0", "i0"),))
