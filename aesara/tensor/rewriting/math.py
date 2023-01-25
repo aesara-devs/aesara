@@ -312,13 +312,13 @@ def local_exp_log(fgraph, node):
 
 
 @register_specialize
-@node_rewriter([Elemwise])
+@node_rewriter([log])
 def log_diff_exp(fgraph, node):
-    # Case for log(exp(a) - exp(b)) -> a + log1mexp(b - a)
+    r"""
+    Rewrite that changes ``log(exp(a) - exp(b))`` to ``a + log1mexp(b - a)``.
+    """
     x = node.inputs[0]
 
-    if not isinstance(node.op, Elemwise):
-        return
     if not x.owner or not isinstance(x.owner.op, Elemwise):
         return
 

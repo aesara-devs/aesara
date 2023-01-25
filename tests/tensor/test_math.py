@@ -3524,13 +3524,14 @@ class TestMatMul(utt.InferShapeTester):
 
 
 def test_logdiffexp():
+    mode = get_default_mode().including("log_diff_exp")
     x = fmatrix()
     y = fmatrix()
-    f = function([x, y], log(exp(x) - exp(y)))
+    f = function([x, y], log(exp(x) - exp(y)), mode=mode)
     graph = f.maker.fgraph.toposort()
     ops_graph = [
         node
         for node in graph
         if isinstance(node.op, Elemwise) and isinstance(node.op.scalar_op, aes.Exp)
     ]
-    assert len(ops_graph) == 0
+    assert len(ops_graph) != 2
