@@ -1090,7 +1090,7 @@ i0 = I0(upgrade_to_float, name="i0")
 
 class Sigmoid(UnaryScalarOp):
     """
-    Logistic sigmoid function (1 / (1 + exp(x)), also known as expit or inverse logit
+    Logistic sigmoid function (1 / (1 + exp(-x)), also known as expit or inverse logit
     """
 
     nfunc_spec = ("scipy.special.expit", 1, 1)
