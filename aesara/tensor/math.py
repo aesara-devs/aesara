@@ -1418,7 +1418,7 @@ def iv(v, x):
 
 @scalar_elemwise
 def sigmoid(x):
-    """Logistic sigmoid function (1 / (1 + exp(x)), also known as expit or inverse logit"""
+    """Logistic sigmoid function (1 / (1 + exp(-x)), also known as expit or inverse logit"""
 
 
 expit = sigmoid
