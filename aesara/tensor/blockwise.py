@@ -153,9 +153,16 @@ def infer_shape_to_gufunc_sig(node: Apply, fgraph: Optional["FunctionGraph"] = N
     )
     out_shapes = op.infer_shape(fgraph, node, in_shapes)
 
+    flat_shape = []
+    for out_shape in out_shapes:
+        for shape in out_shape:
+            if isinstance(shape, int):
+                shape = scalar_constant(shape)
+            flat_shape.append(shape)
+
     # We need to canonicalize in order to match output shape labels with input
     # shape labels
-    flat_out_shapes = rewrite_graph(list(sum(out_shapes, ())), clone=False)
+    flat_out_shapes = rewrite_graph(flat_shape, clone=False)
     assert isinstance(flat_out_shapes, list)
 
     # Unflatten the canonicalized shape-graph outputs
@@ -349,7 +356,8 @@ class Blockwise(Op):
                 return atleast_Nd(res, n=nd)
 
             blocked_inputs = [transform(ipt, node) for ipt in node.inputs]
-            grad_signature = get_gufunc_signature(node.op, blocked_inputs)
+            # grad_signature = get_gufunc_signature(node.op, blocked_inputs)
+            grad_signature = infer_shape_to_gufunc_sig(node)
             new_r = Blockwise(node.op, signature=grad_signature)(*blocked_inputs)
 
             assert isinstance(new_r, Variable)
