@@ -29,7 +29,7 @@ repos:
     hooks:
       - id: flake8
   - repo: https://github.com/pycqa/isort
-    rev: 5.11.4
+    rev: 5.11.5
     hooks:
       - id: isort
   - repo: https://github.com/humitos/mirrors-autoflake.git
