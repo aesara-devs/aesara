@@ -29,10 +29,11 @@ compiled/*.cpp
 core.*
 cutils_ext.cpp
 dist
-doc/.build/
+doc/.build/*
+!doc/.build/PLACEHOLDER
 doc/indexes/oplist.txt
 doc/indexes/typelist.txt
-html
+/html
 pdf
 setuptools-*.egg
 aesara/generated_version.py
@@ -47,6 +48,7 @@ core
 .idea
 .vs
 .mypy_cache/
+.pytest_cache/
 /htmlcov/
 
 aesara-venv/

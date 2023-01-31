@@ -41,6 +41,8 @@ jobs:
           venv-sdist/bin/python -c "import aesara;print(aesara.__version__)"
           echo "Checking for lazylinker_c.c..."
           test -n "$(find . -name lazylinker_c.c)" && echo "Found lazylinker_c.c"
+          echo "Checking for d3viz template.html..."
+          test -n "$(find . -name template.html | grep d3viz)" && echo "Found template.html"
       - name: Check the wheel installs and imports
         run: |
           mkdir -p test-wheel
@@ -50,6 +52,8 @@ jobs:
           venv-wheel/bin/python -c "import aesara;print(aesara.__version__)"
           echo "Checking for lazylinker_c.c..."
           test -n "$(find . -name lazylinker_c.c)" && echo "Found lazylinker_c.c"
+          echo "Checking for d3viz template.html..."
+          test -n "$(find . -name template.html | grep d3viz)" && echo "Found template.html"
       - uses: actions/upload-artifact@v3
         with:
           name: artifact
