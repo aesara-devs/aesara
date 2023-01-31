@@ -392,6 +392,11 @@ def conj_inplace(a):
     """elementwise conjugate (inplace on `a`)"""
 
 
+@scalar_elemwise
+def hyp2f1_inplace(a, b, c, z):
+    """gaussian hypergeometric function"""
+
+
 pprint.assign(add_inplace, printing.OperatorPrinter("+=", -2, "either"))
 pprint.assign(mul_inplace, printing.OperatorPrinter("*=", -1, "either"))
 pprint.assign(sub_inplace, printing.OperatorPrinter("-=", -2, "left"))
