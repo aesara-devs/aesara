@@ -989,9 +989,9 @@ class Tri(Op):
 
     gufunc_sig = (
         (
-            ("n",),
-            ("m",),
-            ("k",),
+            (),
+            (),
+            (),
         ),
         (("n", "m"),),
     )
@@ -3517,7 +3517,7 @@ class AllocDiag(Op):
     It does the inverse of `ExtractDiag`.
     """
 
-    gufunc_sig = ((("m",),), (("m", "m"),))
+    gufunc_sig = (((),), (("m", "m"),))
     __props__ = ("offset", "axis1", "axis2", "gufunc_sig")
 
     def __init__(self, offset=0, axis1=0, axis2=1):
