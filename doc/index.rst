@@ -5,6 +5,10 @@ Welcome
 Aesara is a Python library that allows you to define, optimize/rewrite, and
 evaluate mathematical expressions involving multi-dimensional arrays
 efficiently.
+.. image:: _static/aesara_overview_diagram.png
+   :width: 100%
+   :alt: Overview of Aesara
+
 
 Some of Aesara's features are:
 
