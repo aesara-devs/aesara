@@ -37,6 +37,7 @@ extensions = [
     "sphinx.ext.doctest",
     "sphinx.ext.napoleon",
     "sphinx.ext.linkcode",
+    "sphinx_design",
 ]
 
 todo_include_todos = True
@@ -126,14 +127,12 @@ pygments_style = "sphinx"
 html4_writer = True
 
 # Read the docs style:
-if os.environ.get("READTHEDOCS") != "True":
-    try:
-        import sphinx_rtd_theme
-    except ImportError:
-        pass  # assume we have sphinx >= 1.3
-    else:
-        html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
-    html_theme = "sphinx_rtd_theme"
+html_theme = "sphinx_book_theme"
+html_theme_options = {
+    "repository_url": "https://github.com/blackjax-devs/blackjax",
+    "use_repository_button": True,
+    "use_download_button": False,
+}
 
 
 def setup(app):
