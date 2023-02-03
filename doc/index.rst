@@ -1,73 +1,92 @@
-
-Welcome
+Aesara
 =======
+
+*Aesara is a fast, hackable, meta-tensor library in Python*
+
 
 Aesara is a Python library that allows you to define, optimize/rewrite, and
 evaluate mathematical expressions involving multi-dimensional arrays
-efficiently.
+efficiently. It is composed of different parts:
+
+- **Symbolic representation** of mathematical operations on arrays
+- **Speed and stability optimization**
+- **Efficient symbolic differentiation**
+- **Powerful rewrite system** to programmatically modify your models
+- **Extendable backends.** Aesara currently compiles to C, Jax and Numba.
+
 .. image:: _static/aesara_overview_diagram.png
    :width: 100%
    :alt: Overview of Aesara
 
+Aesara adheres to the following design principles:
 
-Some of Aesara's features are:
+- **Familiar**: Aesara follows the NumPy API and can act as a drop-in replacement
+- **Modular**: Aesara's graph, rewrites, backends can be easily be extended independently
+- **Hackable**: Easily add rewrites, mathematical operators and backends *in pure python*
+- **Composable**: Aesara's compiled functions are compatible with the Numba & JAX ecosystems.
 
-* **Tight integration with NumPy**
-  - Use `numpy.ndarray` in Aesara-compiled functions
-* **Efficient symbolic differentiation**
-  - Aesara efficiently computes your derivatives for functions with one or many inputs
-* **Speed and stability optimizations**
-  - Get the right answer for ``log(1 + x)`` even when ``x`` is near zero
-* **Dynamic C/JAX/Numba code generation**
-  - Evaluate expressions faster
+We also make a strong commitment to **code quality** and **scalability**.
 
 Aesara is based on `Theano`_, which has been powering large-scale computationally
 intensive scientific investigations since 2007.
 
+Install Aesara
+===============
 
-.. warning::
+Aesara installation can happen in a few different ways. You can install Aesara with `conda` or with `pip`. To get the bleeding edge version you can install `aesara-nightly.`
 
-   Much of the documentation hasn't been updated and is simply the old Theano documentation.
+.. tab-set::
 
-Download
-========
+     .. tab-item:: PyPi
 
-Aesara is `available on PyPI`_, and can be installed via ``pip install Aesara``.
+         .. code:: bash
 
-Those interested in bleeding-edge features should obtain the latest development
-version, available via::
-
-    git clone git://github.com/aesara-devs/aesara.git
-
-You can then place the checkout directory on your ``$PYTHONPATH`` or use
-``python setup.py develop`` to install a ``.pth`` into your ``site-packages``
-directory, so that when you pull updates via Git, they will be
-automatically reflected the "installed" version. For more information about
-installation and configuration, see :ref:`installing Aesara <install>`.
-
-.. _available on PyPI: http://pypi.python.org/pypi/aesara
-.. _Related Projects: https://github.com/aesara-devs/aesara/wiki/Related-projects
-
-Documentation
-=============
-
-Roughly in order of what you'll want to check out:
-
-* :ref:`install` -- How to install Aesara.
-* :ref:`introduction` -- What is Aesara?
-* :ref:`tutorial` -- Learn the basics.
-* :ref:`troubleshooting` -- Tips and tricks for common debugging.
-* :ref:`libdoc` -- Aesara's functionality, module by module.
-* :ref:`faq` -- A set of commonly asked questions.
-* :ref:`optimizations` -- Guide to Aesara's graph optimizations.
-* :ref:`extending` -- Learn to add a Type, Op, or graph optimization.
-* :ref:`dev_start_guide` -- How to contribute code to Aesara.
-* :ref:`internal` -- How to maintain Aesara and more...
-* :ref:`acknowledgement` -- What we took from other projects.
-* `Related Projects`_ -- link to other projects that implement new functionalities on top of Aesara
+             pip install aesara
 
 
-.. _aesara-community:
+     .. tab-item:: Conda
+
+         .. code:: bash
+
+            conda install -c conda-forge aesara
+
+
+     .. tab-item:: Nightly
+
+         .. code:: bash
+
+             pip install aesara-nightly
+
+
+.. attention::
+
+    To use the Numba and JAX backend you will need to install these libraries in addition to Aesara. Please refer to `Numba's installation instructions <https://numba.readthedocs.io/en/stable/user/installing.html>`__ and `JAX's installation instructions  <https://github.com/google/jax#installation>`__ respectively.
+
+
+Featured applications
+=====================
+
+The following projects illustrate Aesara's unique capabilities:
+
+.. _cards-clickable::
+
+.. card:: AePPL
+    :link: https://github.com/aesara-devs/aeppl
+
+    A(e) PPL written with Aesara.
+
+.. card:: AeMCMC
+    :link: https://github.com/aesara-devs/aemcmc
+
+    Sampling probabilistic models with Aesara
+
+.. card:: AeHMC
+    :link: https://github.com/aesara-devs/aehmc
+
+    Implementations of the HMC and NUTS sampler in Aesara
+
+
+While these projects are related to probabilistics modelling, Aesara is much more general and can be used to improve any machine learning project.
 
 Community
 =========
@@ -77,22 +96,23 @@ Community
   keep track of issues and `GitHub Discussions <https://github.com/aesara-devs/aesara/discussions>`__ to discuss feature
   additions and design changes
 
-.. toctree::
-   :maxdepth: 1
-   :hidden:
 
-   introduction
-   install
-   tutorial/index
-   extending/index
-   dev_start_guide
-   optimizations
-   library/index
-   troubleshooting
-   glossary
-   links
-   internal/index
-   acknowledgement
+.. toctree::
+    :maxdepth: 1
+    :hidden:
+
+    introduction
+    install
+    tutorial/index
+    extending/index
+    dev_start_guide
+    optimizations
+    library/index
+    troubleshooting
+    glossary
+    links
+    internal/index
+    acknowledgement
 
 
 .. _Theano: https://github.com/Theano/Theano
