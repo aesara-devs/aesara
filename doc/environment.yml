@@ -10,9 +10,11 @@ dependencies:
   - scipy
   - six
   - sphinx>=3
-  - sphinx_rtd_theme
+  - jinja2<3.1.0
   - mock
   - pillow
   - pip
   - pip:
     - -e ..[doc]
+    - sphinx-book-theme
+    - sphinx-design
