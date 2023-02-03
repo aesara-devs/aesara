@@ -133,6 +133,8 @@ html_theme_options = {
     "use_repository_button": True,
     "use_download_button": False,
 }
+html_title = ""
+html_logo = "images/aesara_logo_200.png"
 
 
 def setup(app):
