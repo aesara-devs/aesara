@@ -129,7 +129,7 @@ html4_writer = True
 # Read the docs style:
 html_theme = "sphinx_book_theme"
 html_theme_options = {
-    "repository_url": "https://github.com/blackjax-devs/blackjax",
+    "repository_url": "https://github.com/aesara-devs/aesara",
     "use_repository_button": True,
     "use_download_button": False,
 }
