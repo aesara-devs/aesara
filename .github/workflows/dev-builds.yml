@@ -25,8 +25,8 @@ jobs:
           # Modify pyproject.toml to set the nightly version in the form of
           # x.y.z.postN, where N is the number of commits since the last release
           /tmp/dasel put -f pyproject.toml project.name -v aesara-nightly
-          /tmp/dasel put -f pyproject.toml tool.setuptools_scm.version_scheme -v post-release
-          /tmp/dasel put -f pyproject.toml tool.setuptools_scm.local_scheme -v no-local-version
+          /tmp/dasel put -f pyproject.toml tool.hatch.version.raw-options.version_scheme -v post-release
+          /tmp/dasel put -f pyproject.toml tool.hatch.version.raw-options.local_scheme -v no-local-version
 
           # Install build prerequisites
           python -m pip install -U pip build
