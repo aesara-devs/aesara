@@ -24,7 +24,6 @@ from aesara.link.c.op import COp
 from aesara.link.c.type import generic
 from aesara.misc.safe_asarray import _asarray
 from aesara.sparse.type import SparseTensorType, _is_sparse
-from aesara.sparse.utils import hash_from_sparse
 from aesara.tensor import basic as at
 from aesara.tensor.basic import Split
 from aesara.tensor.math import _conj
@@ -441,35 +440,33 @@ class SparseVariable(_sparse_py_operators, TensorVariable):
         return str(self)
 
 
-class SparseConstantSignature(tuple):
+class SparseConstant(TensorConstant, _sparse_py_operators):
+    format = property(lambda self: self.type.format)
+
+    # def __init__(self, *args):
+    #     .view(HashableNDArray)
+
     def __eq__(self, other):
-        (a, b), (x, y) = self, other
-        return (
-            a == x
-            and (b.dtype == y.dtype)
-            and (type(b) == type(y))
-            and (b.shape == y.shape)
-            and (abs(b - y).sum() < 1e-6 * b.nnz)
-        )
+        if isinstance(other, type(self)):
+            b = self.data
+            y = other.data
+            if (
+                self.type == other.type
+                and (b.dtype == y.dtype)
+                and (type(b) == type(y))
+                and (b.shape == y.shape)
+                and (abs(b - y).sum() < 1e-6 * b.nnz)
+            ):
+                return True
+            return False
+
+        return NotImplemented
 
     def __ne__(self, other):
         return not self == other
 
     def __hash__(self):
-        (a, b) = self
-        return hash(type(self)) ^ hash(a) ^ hash(type(b))
-
-    def aesara_hash(self):
-        (_, d) = self
-        return hash_from_sparse(d)
-
-
-class SparseConstant(TensorConstant, _sparse_py_operators):
-    format = property(lambda self: self.type.format)
-
-    def signature(self):
-        assert self.data is not None
-        return SparseConstantSignature((self.type, self.data))
+        return hash((type(self), self.type, self.data))
 
     def __str__(self):
         return "{}{{{},{},shape={},nnz={}}}".format(

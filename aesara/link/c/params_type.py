@@ -291,9 +291,11 @@ class Params(dict):
             # NB: For writing, we must bypass setattr() which is always called by default by Python.
             self.__dict__["__signatures__"] = tuple(
                 # NB: Params object should have been already filtered.
-                self.__params_type__.types[i]
-                .make_constant(self[self.__params_type__.fields[i]])
-                .signature()
+                hash(
+                    self.__params_type__.types[i].make_constant(
+                        self[self.__params_type__.fields[i]]
+                    )
+                )
                 for i in range(self.__params_type__.length)
             )
         return hash((type(self), self.__params_type__) + self.__signatures__)

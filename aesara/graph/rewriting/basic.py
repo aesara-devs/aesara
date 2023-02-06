@@ -25,7 +25,6 @@ from aesara.graph import destroyhandler as dh
 from aesara.graph.basic import (
     Apply,
     AtomicVariable,
-    Constant,
     Variable,
     applys_between,
     io_toposort,
@@ -34,7 +33,7 @@ from aesara.graph.basic import (
 from aesara.graph.features import AlreadyThere, Feature, NodeFinder
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.op import Op
-from aesara.graph.utils import AssocList, InconsistencyError
+from aesara.graph.utils import InconsistencyError
 from aesara.misc.ordered_set import OrderedSet
 from aesara.utils import flatten
 
@@ -532,8 +531,7 @@ class MergeFeature(Feature):
         fgraph.merge_feature = self
 
         self.seen_atomics = set()
-        self.atomic_sig = AssocList()
-        self.atomic_sig_inv = AssocList()
+        self.canonical_atomics = {}
 
         # For all Apply nodes
         # Set of distinct (not mergeable) nodes
@@ -563,15 +561,15 @@ class MergeFeature(Feature):
     def clone(self):
         return type(self)()
 
-    def on_change_input(self, fgraph, node, i, r, new_r, reason):
-        if node in self.nodes_seen:
+    def on_change_input(self, fgraph, old_node, new_node, i, old_var, new_var, reason):
+        if old_node in self.nodes_seen:
             # If inputs to a node change, it's not guaranteed that the node is
             # distinct from the other nodes in `self.nodes_seen`.
-            self.nodes_seen.discard(node)
-            self.process_node(fgraph, node)
+            self.nodes_seen.discard(old_node)
+            self.process_node(fgraph, new_node)
 
-        if isinstance(new_r, AtomicVariable):
-            self.process_atomic(fgraph, new_r)
+        if isinstance(new_var, AtomicVariable):
+            self.process_atomic(fgraph, new_var)
 
     def on_import(self, fgraph, node, reason):
         for c in node.inputs:
@@ -587,17 +585,14 @@ class MergeFeature(Feature):
         for c in node.inputs:
             if isinstance(c, AtomicVariable) and len(fgraph.clients[c]) <= 1:
                 # This was the last node using this constant
-                sig = self.atomic_sig[c]
-                self.atomic_sig.discard(c)
-                self.atomic_sig_inv.discard(sig)
+                self.canonical_atomics.pop(c)
                 self.seen_atomics.discard(id(c))
 
     def process_atomic(self, fgraph, c):
         """Check if an atomic `c` can be merged, and queue that replacement."""
         if id(c) in self.seen_atomics:
             return
-        sig = c.merge_signature()
-        other_c = self.atomic_sig_inv.get(sig, None)
+        other_c = self.canonical_atomics.get(c, None)
         if other_c is not None:
             # multiple names will clobber each other..
             # we adopt convention to keep the last name
@@ -606,8 +601,7 @@ class MergeFeature(Feature):
             self.scheduled.append([[(c, other_c, "merge")]])
         else:
             # this is a new constant
-            self.atomic_sig[c] = sig
-            self.atomic_sig_inv[sig] = c
+            self.canonical_atomics[c] = c
             self.seen_atomics.add(id(c))
 
     def process_node(self, fgraph, node):
@@ -879,73 +873,6 @@ class MergeOptimizer(GraphRewriter):
             nb_merged,
             nb_atomic,
         )
-
-
-def pre_constant_merge(fgraph, variables):
-    """Merge constants in the graphs given by `variables`.
-
-    .. warning::
-
-        This changes the nodes in a graph in-place!
-
-    Parameters
-    ----------
-    fgraph
-        A `FunctionGraph` instance in which some of these `variables` may
-        reside.
-
-        We want to avoid terms in `variables` that are contained in `fgraph`.
-        The reason for that: it will break consistency of `fgraph` and its
-        features (e.g. `ShapeFeature`).
-
-    variables
-        A list of nodes for which we want to merge constant inputs.
-
-    Notes
-    -----
-    It is used to pre-merge nodes generated inside an rewrite.  It is
-    useful if there are many such replacements to make, so that `DebugMode`
-    will not check each of them.
-
-    """
-    seen_var = set()
-    # signature -> variable (for constants)
-    const_sig_inv = {}
-    if isinstance(variables, Variable):
-        variables = [variables]
-
-    def recursive_merge(var):
-
-        if var in seen_var:
-            return var
-
-        if not hasattr(var, "owner"):
-            return var
-
-        # We don't want to merge constants that are *within* the
-        # `FunctionGraph`
-        if var.owner in fgraph.apply_nodes:
-            return var
-
-        seen_var.add(var)
-
-        if isinstance(var, Constant):
-            sig = var.signature()
-
-            if sig in const_sig_inv:
-                return const_sig_inv[sig]
-
-            const_sig_inv[sig] = var
-
-            return var
-
-        if var.owner:
-            for idx, inp in enumerate(var.owner.inputs):
-                # XXX: This is changing the graph in place!
-                var.owner.inputs[idx] = recursive_merge(inp)
-        return var
-
-    return [recursive_merge(v) for v in variables]
 
 
 class MetaNodeRewriter(NodeRewriter):
@@ -1730,9 +1657,9 @@ class DispatchingFeature(Feature):
         if self.pruner:
             self.pruner(node)
 
-    def on_change_input(self, fgraph, node, i, r, new_r, reason):
+    def on_change_input(self, fgraph, old_node, new_node, i, old_var, new_var, reason):
         if self.chin:
-            self.chin(node, i, r, new_r, reason)
+            self.chin(old_node, new_node, i, old_var, new_var, reason)
 
     def on_detach(self, fgraph):
         # To allow pickling this object
@@ -1866,7 +1793,7 @@ class NodeProcessingGraphRewriter(GraphRewriter):
         if self.ignore_newtrees:
             importer = None
 
-        if importer is None and pruner is None:
+        if importer is None and pruner is None and chin is None:
             return None
 
         u = DispatchingFeature(importer, pruner, chin, name=name)
@@ -1977,7 +1904,7 @@ class NodeProcessingGraphRewriter(GraphRewriter):
             return False
         try:
             fgraph.replace_all_validate_remove(  # type: ignore
-                repl_pairs, reason=node_rewriter, remove=remove
+                repl_pairs, reason=str(node_rewriter), remove=remove
             )
             return True
         except Exception as e:
@@ -2034,8 +1961,11 @@ class WalkingGraphRewriter(NodeProcessingGraphRewriter):
             if node is not current_node:
                 q.append(node)
 
+        def change_input(old_node, new_node, i, old_var, new_var, reason):
+            q.append(new_node)
+
         u = self.attach_updater(
-            fgraph, importer, None, name=getattr(self, "name", None)
+            fgraph, importer, None, chin=change_input, name=getattr(self, "name", None)
         )
         nb = 0
         try:
@@ -2176,12 +2106,19 @@ class OpKeyGraphRewriter(NodeProcessingGraphRewriter):
             q = list(fgraph.get_nodes(op))
 
         def importer(node):
-            if node is not current_node:
-                if node.op == op:
-                    q.append(node)
+            if node is not current_node and node.op == op:
+                q.append(node)
+
+        def change_input(old_node, new_node, i, r, new_r, reason):
+            if (
+                node is not current_node
+                and isinstance(new_node, Apply)
+                and new_node.op == op
+            ):
+                q.append(new_node)
 
         u = self.attach_updater(
-            fgraph, importer, None, name=getattr(self, "name", None)
+            fgraph, importer, None, chin=change_input, name=getattr(self, "name", None)
         )
         try:
             while q:
@@ -2210,7 +2147,7 @@ class ChangeTracker(Feature):
         self.nb_imported += 1
         self.changed = True
 
-    def on_change_input(self, fgraph, node, i, r, new_r, reason):
+    def on_change_input(self, fgraph, old_node, new_node, i, old_var, new_var, reason):
         self.changed = True
 
     def reset(self):
@@ -2425,15 +2362,24 @@ class EquilibriumGraphRewriter(NodeProcessingGraphRewriter):
                 if node is not current_node:
                     q.append(node)
 
-            chin = None
             if self.tracks_on_change_inputs:
 
-                def chin(node, i, r, new_r, reason):
-                    if node is not current_node and not isinstance(node, str):
-                        q.append(node)
+                def change_input(old_node, new_node, i, r, new_r, reason):
+                    if old_node is not current_node and isinstance(new_node, Apply):
+                        q.append(new_node)
+
+            else:
+
+                def change_input(old_node, new_node, i, r, new_r, reason):
+                    if isinstance(new_node, Apply):
+                        q.append(new_node)
 
             u = self.attach_updater(
-                fgraph, importer, None, chin=chin, name=getattr(self, "name", None)
+                fgraph,
+                importer,
+                None,
+                chin=change_input,
+                name=getattr(self, "name", None),
             )
             try:
                 while q:
@@ -2839,102 +2785,6 @@ def check_chain(r, *chain):
     return _check_chain(r, reduce(list.__iadd__, ([x, 0] for x in chain)))
 
 
-def pre_greedy_node_rewriter(
-    fgraph: FunctionGraph, rewrites: Sequence[NodeRewriter], out: Variable
-) -> Variable:
-    """Apply node rewriters throughout a graph in a greedy, pre-traversal way.
-
-    This function traverses the computation graph in the graph before the
-    variable `out` but that are not in the `fgraph`. It applies
-    `rewrites` to each variable on the traversed graph.
-
-    .. warning::
-
-        This changes the nodes in a graph in-place.
-
-    Its main use is to apply locally constant folding when generating
-    the graph of the indices of a `Subtensor`.
-
-    Changes should not be applied to nodes that are in an `fgraph`,
-    so we use `fgraph` to prevent that.
-
-    Notes
-    -----
-    This doesn't do an equilibrium rewrite, so, if there is a rewrite--like
-    `local_upcast_elemwise_constant_inputs`--in the list that adds additional
-    nodes to the inputs of the node, it might be necessary to call this
-    function multiple times.
-
-    Parameters
-    ----------
-    fgraph
-        The graph used to avoid/filter nodes.
-    rewrites
-        A sequence of rewrites to apply.
-    out
-        The graph to rewrite.
-
-    """
-
-    def local_recursive_function(
-        rewrite_list: Sequence[NodeRewriter],
-        out: Variable,
-        rewritten_vars: Dict[Variable, Variable],
-        depth: int,
-    ) -> Tuple[List[Variable], Dict[Variable, Variable]]:
-        if not getattr(out, "owner", None):
-            return [out], rewritten_vars
-        node = out.owner
-
-        if node in fgraph.apply_nodes:
-            return node.outputs, rewritten_vars
-
-        # Walk up the graph via the node's inputs
-        for idx, inp in enumerate(node.inputs):
-            if inp in rewritten_vars:
-                nw_in = rewritten_vars[inp]
-            else:
-                if inp.owner:
-                    outs, rewritten_vars = local_recursive_function(
-                        rewrite_list, inp, rewritten_vars, depth + 1
-                    )
-                    for k, v in zip(inp.owner.outputs, outs):
-                        rewritten_vars[k] = v
-                    nw_in = outs[inp.owner.outputs.index(inp)]
-
-                else:
-                    nw_in = inp
-                    rewritten_vars[inp] = inp
-
-            # XXX: An in-place change
-            node.inputs[idx] = nw_in
-
-        # Apply the rewrites
-        results = node.outputs
-        for rewrite in rewrite_list:
-            ret = rewrite.transform(fgraph, node)
-            if ret is not False and ret is not None:
-                assert isinstance(ret, Sequence)
-                assert len(ret) == len(node.outputs), rewrite
-                for k, v in zip(node.outputs, ret):
-                    rewritten_vars[k] = v
-                results = ret
-                if ret[0].owner:
-                    node = out.owner
-                else:
-                    break
-
-        return results, rewritten_vars
-
-    if out.owner:
-        out_index: int = out.owner.outputs.index(out)
-    else:
-        out_index = 0
-
-    final_outs, rewritten_nodes = local_recursive_function(rewrites, out, {}, 0)
-    return final_outs[out_index]
-
-
 def copy_stack_trace(from_var, to_var):
     r"""Copy the stack traces from `from_var` to `to_var`.
 
@@ -3159,11 +3009,6 @@ DEPRECATED_NAMES = [
         "local_optimizer",
         "`local_optimizer` is deprecated: use `node_rewriter` instead.",
         node_rewriter,
-    ),
-    (
-        "pre_greedy_local_optimizer",
-        "`pre_greedy_local_optimizer` is deprecated: use `pre_greedy_node_rewriter` instead.",
-        pre_greedy_node_rewriter,
     ),
     (
         "FromFunctionOptimizer",

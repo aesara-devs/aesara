@@ -1416,15 +1416,13 @@ class CLinker(Linker):
             # yield a 'position' that reflects its role in code_gen()
             if isinstance(i, AtomicVariable):  # orphans
                 if id(i) not in constant_ids:
-                    isig = (i.signature(), topological_pos, i_idx)
+                    isig = (hash(i), topological_pos, i_idx)
                     # If the Aesara constant provides a strong hash
                     # (no collision for transpose, 2, 1, 0, -1, -2,
                     # 2 element swapped...) we put this hash in the signature
                     # instead of the value. This makes the key file much
                     # smaller for big constant arrays. Before this, we saw key
                     # files up to 80M.
-                    if hasattr(isig[0], "aesara_hash"):
-                        isig = (isig[0].aesara_hash(), topological_pos, i_idx)
                     try:
                         hash(isig)
                     except Exception:

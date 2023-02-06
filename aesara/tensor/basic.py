@@ -228,6 +228,8 @@ def constant(x, name=None, ndim=None, dtype=None) -> TensorConstant:
 
     ttype = TensorType(dtype=x_.dtype, shape=x_.shape)
 
+    x_.setflags(write=0)
+
     return TensorConstant(ttype, x_, name=name)
 
 

@@ -44,6 +44,9 @@ class MyType(Type):
     def __eq__(self, other):
         return isinstance(other, MyType)
 
+    def __hash__(self):
+        return id(self)
+
 
 def MyVariable(name):
     return Variable(MyType(), None, None, name=name)
@@ -156,12 +159,16 @@ def test_misc():
 
 @assertFailure_fast
 def test_aliased_inputs_replacement():
-    x, y, z = inputs()
+    x, *_ = inputs()
     tv = transpose_view(x)
+    tv.name = "tv"
     tvv = transpose_view(tv)
+    tvv.name = "tvv"
     sx = sigmoid(x)
+    sx.name = "sx"
     e = add_in_place(x, tv)
-    g = create_fgraph([x, y], [e], False)
+    e.name = "e"
+    g = create_fgraph([x], [e], False)
     assert not g.consistent()
     g.replace(tv, sx)
     assert g.consistent()
@@ -310,16 +317,48 @@ def test_indirect_2():
 @assertFailure_fast
 def test_long_destroyers_loop():
     x, y, z = inputs()
-    e = dot(dot(add_in_place(x, y), add_in_place(y, z)), add(z, x))
+    add_xy = add_in_place(x, y)
+    add_xy.name = "add_i_xy"
+    add_yz = add_in_place(y, z)
+    add_yz.name = "add_i_yz"
+    add_zx = add(z, x)
+    add_zx.name = "add_zx"
+    dot_add_xy_yz = dot(add_xy, add_yz)
+    dot_add_xy_yz.name = "dot_add_xy_yz"
+    e = dot(dot_add_xy_yz, add_zx)
+    e.name = "e"
     g = create_fgraph([x, y, z], [e])
+
+    orderings = g.destroy_handler.orderings(g, ordered=False)
+    exp_orderings = {add_yz.owner: {add_xy}, add_xy.owner: {add_zx}}
+    assert orderings == exp_orderings
+
     assert g.consistent()
+
+    # This apparently introduces a cycle into the graph?
+    # That means it should fail validation and revert the replacement.
+    # TODO FIXME: We need tests that directly confirm the results of the
+    # functions in `DestroyHandler`, and not these extremely indirect
+    # integration-like tests that assert almost to nothing about the results
+    # produced by the code we're testing.
+    # TODO FIXME: Also, why are we even allowing `FunctionGraph`s to take
+    # these broken states?  A quick cycle check in `FunctionGraph.replace`
+    # would be a lot better.
     TopoSubstitutionNodeRewriter(add, add_in_place).rewrite(g)
+
+    # When `g` is in its inconsistent state the orderings are as follows:
+    # {AddInPlace(y, z): {AddInPlace(x, y)},
+    #  AddInPlace(x, y): {AddInPlace(z, x)},
+    #  AddInPlace(z, x): {AddInPlace(y, z)}}
+
+    # Make sure the replacement was reverted
+    assert g.outputs[0].owner.inputs[-1].owner.op == add
+
+    orderings = g.destroy_handler.orderings(g, ordered=False)
+    assert orderings == exp_orderings
+
     assert g.consistent()
-    # we don't want to see that!
-    assert (
-        str(g)
-        != "FunctionGraph(Dot(Dot(AddInPlace(x, y), AddInPlace(y, z)), AddInPlace(z, x)))"
-    )
+
     e2 = dot(dot(add_in_place(x, y), add_in_place(y, z)), add_in_place(z, x))
     with pytest.raises(InconsistencyError):
         create_fgraph(*clone([x, y, z], [e2]))
@@ -337,8 +376,8 @@ def test_misc_2():
 
 def test_multi_destroyers():
     x, y, z = inputs()
-    e = add(add_in_place(x, y), add_in_place(x, y))
-    with pytest.raises(InconsistencyError):
+    e = add(add_in_place(x, y), add_in_place(x, z))
+    with pytest.raises(InconsistencyError, match="Multiple destroyers of"):
         create_fgraph([x, y, z], [e])
 
 

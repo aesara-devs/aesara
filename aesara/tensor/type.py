@@ -12,7 +12,7 @@ from aesara.graph.type import HasDataType, HasShape
 from aesara.graph.utils import MetaType
 from aesara.link.c.type import CType
 from aesara.misc.safe_asarray import _asarray
-from aesara.utils import apply_across_args
+from aesara.utils import HashableNDArray, apply_across_args
 
 
 if TYPE_CHECKING:
@@ -64,7 +64,7 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
     filter_checks_isfinite = False
     """
     When this is ``True``, strict filtering rejects data containing
-    ``numpy.nan`` or ``numpy.inf`` entries. (Used in `DebugMode`)
+    `numpy.nan` or `numpy.inf` entries. (Used in `DebugMode`)
     """
 
     def __init__(
@@ -253,6 +253,13 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
 
         if self.filter_checks_isfinite and not np.all(np.isfinite(data)):
             raise ValueError("Non-finite elements not allowed")
+
+        if not isinstance(data, HashableNDArray):
+            return data.view(HashableNDArray)
+
+        # Make sure it's read-only so that we can cache hash values and such
+        data.setflags(write=0)
+
         return data
 
     def filter_variable(self, other, allow_convert=True):

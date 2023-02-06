@@ -292,15 +292,7 @@ void _capsule_destructor(PyObject *o) {
 
 
 class CDataTypeConstant(Constant[T]):
-    def merge_signature(self):
-        # We don't want to merge constants that don't point to the
-        # same object.
-        return id(self.data)
-
-    def signature(self):
-        # There is no way to put the data in the signature, so we
-        # don't even try
-        return (self.type,)
+    pass
 
 
 CDataType.constant_type = CDataTypeConstant

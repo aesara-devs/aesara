@@ -206,7 +206,11 @@ class FunctionGraph(MetaObject):
             raise TypeError(
                 'The first entry of `new_client` must be an `Apply` node or the string `"output"`'
             )
-        self.clients[var].append(new_client)
+        var_clients = self.clients[var]
+        # TODO: This might be another reason to use a type like
+        # `Dict[Variable, Set[Tuple[Apply, int]]]` for `FeatureGraph.clients`
+        if new_client not in var_clients:
+            var_clients.append(new_client)
 
     def remove_client(
         self,
@@ -311,7 +315,7 @@ class FunctionGraph(MetaObject):
 
             if isinstance(var.type, NullType):
                 raise TypeError(
-                    f"Computation graph contains a NaN. {var.type.why_null}"
+                    f"Computation graph contains a null type: {var} {var.type.why_null}"
                 )
             if import_missing:
                 self.add_input(var)
@@ -327,7 +331,7 @@ class FunctionGraph(MetaObject):
         reason: Optional[str] = None,
         import_missing: bool = False,
     ) -> None:
-        """Recursively import everything between an ``Apply`` node and the ``FunctionGraph``'s outputs.
+        """Recursively import everything between an `Apply` node and the `FunctionGraph`'s outputs.
 
         Parameters
         ----------
@@ -347,42 +351,62 @@ class FunctionGraph(MetaObject):
         # to know where to stop going down.)
         new_nodes = io_toposort(self.variables, apply_node.outputs)
 
-        if check:
-            for node in new_nodes:
-                for var in node.inputs:
-                    if (
-                        var.owner is None
-                        and not isinstance(var, AtomicVariable)
-                        and var not in self.inputs
-                    ):
-                        if import_missing:
-                            self.add_input(var)
-                        else:
-                            error_msg = (
-                                f"Input {node.inputs.index(var)} ({var})"
-                                " of the graph (indices start "
-                                f"from 0), used to compute {node}, was not "
-                                "provided and not given a value. Use the "
-                                "Aesara flag exception_verbosity='high', "
-                                "for more information on this error."
-                            )
-                            raise MissingInputError(error_msg, variable=var)
-
         for node in new_nodes:
-            assert node not in self.apply_nodes
-            self.apply_nodes.add(node)
-            if not hasattr(node.tag, "imported_by"):
-                node.tag.imported_by = []
-            node.tag.imported_by.append(str(reason))
-            for output in node.outputs:
-                self.setup_var(output)
-                self.variables.add(output)
-            for i, input in enumerate(node.inputs):
-                if input not in self.variables:
-                    self.setup_var(input)
-                    self.variables.add(input)
-                self.add_client(input, (node, i))
-            self.execute_callbacks("on_import", node, reason)
+            self._import_node(
+                node, check=check, reason=reason, import_missing=import_missing
+            )
+
+    def _import_node(
+        self,
+        apply_node: Apply,
+        check: bool = True,
+        reason: Optional[str] = None,
+        import_missing: bool = False,
+    ) -> None:
+        """Import a single node.
+
+        See `FunctionGraph.import_node`.
+        """
+        assert apply_node not in self.apply_nodes
+
+        for i, inp in enumerate(apply_node.inputs):
+            if (
+                check
+                and inp.owner is None
+                and not isinstance(inp, AtomicVariable)
+                and inp not in self.inputs
+            ):
+                if import_missing:
+                    self.add_input(inp)
+                else:
+                    error_msg = (
+                        f"Input {apply_node.inputs.index(inp)} ({inp})"
+                        " of the graph (indices start "
+                        f"from 0), used to compute {apply_node}, was not "
+                        "provided and not given a value. Use the "
+                        "Aesara flag exception_verbosity='high', "
+                        "for more information on this error."
+                    )
+                    raise MissingInputError(error_msg, variable=inp)
+
+            if inp not in self.variables:
+                self.setup_var(inp)
+                self.variables.add(inp)
+
+            self.add_client(inp, (apply_node, i))
+
+        for output in apply_node.outputs:
+            self.setup_var(output)
+            self.variables.add(output)
+
+        self.apply_nodes.add(apply_node)
+
+        if not hasattr(apply_node.tag, "imported_by"):
+            apply_node.tag.imported_by = []
+
+        apply_node.tag.imported_by.append(str(reason))
+
+        self.execute_callbacks("on_import", apply_node, reason)
 
     def change_node_input(
         self,
@@ -392,15 +416,15 @@ class FunctionGraph(MetaObject):
         reason: Optional[str] = None,
         import_missing: bool = False,
         check: bool = True,
-    ) -> None:
-        """Change ``node.inputs[i]`` to `new_var`.
+    ) -> Optional[Apply]:
+        """Create a clone of `node` in which ``node.inputs[i]`` is equal to `new_var`.
 
         ``new_var.type.is_super(old_var.type)`` must be ``True``, where
         ``old_var`` is the current value of ``node.inputs[i]`` which we want to
         replace.
 
-        For each feature that has an `on_change_input` method, this method calls:
-        ``feature.on_change_input(function_graph, node, i, old_var, new_var, reason)``
+        For each feature that has an `Feature.on_change_input` method, this method calls:
+        ``feature.on_change_input(function_graph, old_node, new_node, i, old_var, new_var, reason)``
 
         Parameters
         ----------
@@ -420,35 +444,129 @@ class FunctionGraph(MetaObject):
             `History` `Feature`, which needs to revert types that have been
             narrowed and would otherwise fail this check.
         """
-        # TODO: ERROR HANDLING FOR LISTENERS (should it complete the change or revert it?)
-        if node == "output":
-            r = self.outputs[i]
-            if check and not r.type.is_super(new_var.type):
+
+        is_output = node == "output"
+
+        if is_output:
+            old_var = self.outputs[i]
+
+            if old_var is new_var:
+                return None
+
+            if check and not old_var.type.is_super(new_var.type):
                 raise TypeError(
                     f"The type of the replacement ({new_var.type}) must be "
-                    f"compatible with the type of the original Variable ({r.type})."
+                    f"compatible with the type of the original Variable ({old_var.type})."
                 )
+
             self.outputs[i] = new_var
+            new_node: Optional[Apply] = new_var.owner
+
+            self.import_var(new_var, reason=reason, import_missing=import_missing)
+            self.add_client(new_var, (node, i))
+            self.remove_client(old_var, (node, i), reason=reason)
+            self.execute_callbacks(
+                "on_change_input", node, node, i, old_var, new_var, reason=reason
+            )
         else:
             assert isinstance(node, Apply)
-            r = node.inputs[i]
-            if check and not r.type.is_super(new_var.type):
+            old_var = node.inputs[i]
+
+            if old_var is new_var:
+                return None
+
+            if check and not old_var.type.is_super(new_var.type):
                 raise TypeError(
                     f"The type of the replacement ({new_var.type}) must be "
-                    f"compatible with the type of the original Variable ({r.type})."
+                    f"compatible with the type of the original Variable ({old_var.type})."
                 )
-            node.inputs[i] = new_var
 
-        if r is new_var:
-            return
+            self.import_var(new_var, reason=reason, import_missing=import_missing)
 
-        self.import_var(new_var, reason=reason, import_missing=import_missing)
-        self.add_client(new_var, (node, i))
-        self.remove_client(r, (node, i), reason=reason)
-        # Precondition: the substitution is semantically valid However it may
-        # introduce cycles to the graph, in which case the transaction will be
-        # reverted later.
-        self.execute_callbacks("on_change_input", node, i, r, new_var, reason=reason)
+            # In this case, we need to construct a new `Apply` node with
+            # `node.inputs[i] = new_var`
+            new_inputs = list(node.inputs)
+            new_inputs[i] = new_var
+
+            # By passing `node.outputs` we're assigning those variables
+            # to this new node (i.e. by resetting `Variable.owner`).
+            # TODO: Perhaps a `change_owner` callback would be suitable.
+            new_node = Apply(node.op, new_inputs, node.outputs)
+
+            old_outputs = new_node.outputs
+            new_node.outputs = node.outputs
+
+            # This is just a sanity check
+            assert all(o.owner is new_node for o in node.outputs)
+
+            # Next, we need to swap the old `node` with `new_node` in
+            # `FunctionGraph.clients`, as well as remove any now unused
+            # nodes and variables induced by the replacement itself.
+
+            if new_node in self.apply_nodes:
+                # In this case, `new_node` isn't actually new to the graph, so
+                # all the entries connecting `new_node.inputs` to `new_node`
+                # are already present in `FunctionGraph.clients`.  All we need
+                # to do is replace references to `new_node.outputs` (i.e. the
+                # pre-existing node) with `node.outputs`.
+                for old_out in old_outputs:
+                    for o_node, o_i in self.clients[old_out]:
+                        self.apply_nodes.remove(
+                            o_node if o_node != "output" else self.outputs[o_i].owner
+                        )
+
+                    del self.clients[old_out]
+                    self.variables.remove(old_out)
+
+            else:
+                self.apply_nodes.add(new_node)
+                # self._import_node(new_node, reason=reason)
+
+                self.add_client(new_var, (new_node, i))
+
+                # We need to replace all client references to the old node with the
+                # new node
+                for j, inp in enumerate(node.inputs):
+                    if j != i:
+                        self.add_client(inp, (new_node, j))
+                    # The old variable and node needs to be removed
+                    self.remove_client(
+                        inp, (node, j), reason=reason, remove_if_empty=True
+                    )
+
+                    # TODO: If we know that no intermediate nodes need to be
+                    # removed, then we could perform the node replacements much
+                    # more efficiently
+                    # old_clients = self.clients[inp]
+                    # # TODO: Were the clients list a `dict` mapping nodes to input
+                    # # positions, we could simplify this considerably.
+                    # for k, (client_, input_id) in enumerate(old_clients):
+                    #     # client = self.outputs[input_id] if client_ == "output" else client_
+                    #     if client_ == node:
+                    #         old_clients[k] = (new_node, input_id)
+
+                self.apply_nodes.remove(node)
+
+                if not hasattr(node.tag, "removed_by"):
+                    node.tag.removed_by = []
+
+                node.tag.removed_by.append(str(reason))
+
+            # This is here to simulate the old behavior
+            self.execute_callbacks("on_prune", node, reason)
+            self.execute_callbacks("on_import", new_node, reason)
+
+            self.execute_callbacks(
+                "on_change_input",
+                node,
+                new_node,
+                i,
+                old_var,
+                new_var,
+                reason=reason,
+            )
+
+        return new_node
 
     def replace(
         self,
@@ -512,10 +630,16 @@ class FunctionGraph(MetaObject):
                         f"test value. Original: {tval_shape}, new: {new_tval_shape}"
                     )
 
+        new_nodes: Dict[ApplyOrOutput, ApplyOrOutput] = {}
         for node, i in list(self.clients[var]):
-            self.change_node_input(
-                node, i, new_var, reason=reason, import_missing=import_missing
+            new_node = self.change_node_input(
+                new_nodes.get(node, node),
+                i,
+                new_var,
+                reason=reason,
+                import_missing=import_missing,
             )
+            new_nodes[node] = new_node or node
 
     def replace_all(self, pairs: Iterable[Tuple[Variable, Variable]], **kwargs) -> None:
         """Replace variables in the `FunctionGraph` according to ``(var, new_var)`` pairs in a list."""

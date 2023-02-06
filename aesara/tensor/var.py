@@ -1,4 +1,3 @@
-import copy
 import traceback as tb
 import warnings
 from collections.abc import Iterable
@@ -16,7 +15,6 @@ from aesara.tensor import _get_vector_length, as_tensor_variable
 from aesara.tensor.exceptions import AdvancedIndexingError
 from aesara.tensor.type import TensorType
 from aesara.tensor.type_other import NoneConst
-from aesara.tensor.utils import hash_from_ndarray
 
 
 _TensorTypeType = TypeVar("_TensorTypeType", bound=TensorType)
@@ -885,119 +883,6 @@ def _get_vector_length_TensorVariable(op_or_var, var):
 TensorType.variable_type = TensorVariable
 
 
-class TensorConstantSignature(tuple):
-    r"""A signature object for comparing `TensorConstant` instances.
-
-    An instance is a pair with the type ``(Type, ndarray)``.
-
-    TODO FIXME: Subclassing `tuple` is unnecessary, and it appears to be
-    preventing the use of a much more convenient `__init__` that removes the
-    need for all these lazy computations and their safety checks.
-
-    Also, why do we even need this signature stuff?  We could simply implement
-    good `Constant.__eq__` and `Constant.__hash__` implementations.
-
-    We could also produce plain `tuple`\s with hashable values.
-
-    """
-
-    def __eq__(self, other):
-        if type(self) != type(other):
-            return False
-        try:
-            (t0, d0), (t1, d1) = self, other
-        except Exception:
-            return False
-
-        # N.B. compare shape to ensure no broadcasting in ==
-        if t0 != t1 or d0.shape != d1.shape:
-            return False
-
-        self.no_nan  # Ensure has_nan is computed.
-        # Note that in the comparisons below, the elementwise comparisons
-        # come last because they are the most expensive checks.
-        if self.has_nan:
-            other.no_nan  # Ensure has_nan is computed.
-            return (
-                other.has_nan
-                and self.sum == other.sum
-                and (self.no_nan.mask == other.no_nan.mask).all()
-                and
-                # Note that the second test below (==) may crash e.g. for
-                # a single scalar NaN value, so we do not run it when all
-                # values are missing.
-                (self.no_nan.mask.all() or (self.no_nan == other.no_nan).all())
-            )
-        else:
-            # Simple case where we do not need to worry about NaN values.
-            # (note that if there are NaN values in d1, this will return
-            # False, which is why we do not bother with testing `other.has_nan`
-            # here).
-            return (self.sum == other.sum) and np.all(d0 == d1)
-
-    def __ne__(self, other):
-        return not self == other
-
-    def __hash__(self):
-        t, d = self
-        return hash((type(self), t, d.shape, self.sum))
-
-    def aesara_hash(self):
-        _, d = self
-        return hash_from_ndarray(d)
-
-    @property
-    def sum(self):
-        """Compute sum of non NaN / Inf values in the array."""
-        try:
-            return self._sum
-        except AttributeError:
-
-            # Prevent warnings when there are `inf`s and `-inf`s present
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", category=RuntimeWarning)
-                self._sum = self.no_nan.sum()
-
-            # The following 2 lines are needed as in Python 3.3 with NumPy
-            # 1.7.1, numpy.ndarray and numpy.memmap aren't hashable.
-            if isinstance(self._sum, np.memmap):
-                self._sum = np.asarray(self._sum).item()
-
-            if self.has_nan and self.no_nan.mask.all():
-                # In this case the sum is not properly computed by numpy.
-                self._sum = 0
-
-            if np.isinf(self._sum) or np.isnan(self._sum):
-                # NaN may happen when there are both -inf and +inf values.
-                if self.has_nan:
-                    # Filter both NaN and Inf values.
-                    mask = self.no_nan.mask + np.isinf(self[1])
-                else:
-                    # Filter only Inf values.
-                    mask = np.isinf(self[1])
-                if mask.all():
-                    self._sum = 0
-                else:
-                    self._sum = np.ma.masked_array(self[1], mask).sum()
-                # At this point there should be no more NaN.
-                assert not np.isnan(self._sum)
-
-            if isinstance(self._sum, np.ma.core.MaskedConstant):
-                self._sum = 0
-
-        return self._sum
-
-    @property
-    def no_nan(self):
-        try:
-            return self._no_nan
-        except AttributeError:
-            nans = np.isnan(self[1])
-            self._no_nan = np.ma.masked_array(self[1], nans)
-            self.has_nan = np.any(nans)
-        return self._no_nan
-
-
 def get_unique_value(x: TensorVariable) -> Optional[Number]:
     """Return the unique value of a tensor, if there is one"""
     if isinstance(x, Constant):
@@ -1006,7 +891,7 @@ def get_unique_value(x: TensorVariable) -> Optional[Number]:
         if isinstance(data, np.ndarray) and data.ndim > 0:
             flat_data = data.ravel()
             if flat_data.shape[0]:
-                if (flat_data == flat_data[0]).all():
+                if np.all(flat_data == flat_data[0]):
                     return flat_data[0]
 
     return None
@@ -1030,6 +915,8 @@ class TensorConstant(TensorVariable, Constant[_TensorTypeType]):
 
         assert not any(s is None for s in new_type.shape)
 
+        data.setflags(write=0)
+
         Constant.__init__(self, new_type, data, name)
 
     def __str__(self):
@@ -1046,31 +933,6 @@ class TensorConstant(TensorVariable, Constant[_TensorTypeType]):
         else:
             name = "TensorConstant"
         return "%s{%s}" % (name, val)
-
-    def signature(self):
-        return TensorConstantSignature((self.type, self.data))
-
-    def equals(self, other):
-        # Override Constant.equals to allow to compare with
-        # numpy.ndarray, and python type.
-        if isinstance(other, (np.ndarray, int, float)):
-            # Make a TensorConstant to be able to compare
-            other = at.basic.constant(other)
-        return (
-            isinstance(other, TensorConstant) and self.signature() == other.signature()
-        )
-
-    def __copy__(self):
-        # We need to do this to remove the cached attribute
-        return type(self)(self.type, self.data, self.name)
-
-    def __deepcopy__(self, memo):
-        # We need to do this to remove the cached attribute
-        return type(self)(
-            copy.deepcopy(self.type, memo),
-            copy.deepcopy(self.data, memo),
-            copy.deepcopy(self.name, memo),
-        )
 
 
 TensorType.constant_type = TensorConstant

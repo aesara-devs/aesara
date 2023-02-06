@@ -17,17 +17,11 @@ from aesara.graph.rewriting.basic import (
     SubstitutionNodeRewriter,
     WalkingGraphRewriter,
     in2out,
-    logging,
     node_rewriter,
-    pre_constant_merge,
-    pre_greedy_node_rewriter,
 )
 from aesara.raise_op import assert_op
 from aesara.tensor.math import Dot, add, dot
-from aesara.tensor.rewriting.basic import constant_folding
-from aesara.tensor.subtensor import AdvancedSubtensor
 from aesara.tensor.type import matrix, values_eq_approx_always_true
-from aesara.tensor.type_other import MakeSlice, SliceConstant, slicetype
 from tests.graph.utils import (
     MyOp,
     MyType,
@@ -48,7 +42,9 @@ from tests.graph.utils import (
 class AssertNoChanges(Feature):
     """A `Feature` that raises an error when nodes are changed in a graph."""
 
-    def on_change_input(self, fgraph, node, i, r, new_r, reason=None):
+    def on_change_input(
+        self, fgraph, old_node, new_node, i, old_var, new_var, reason=None
+    ):
         raise AssertionError()
 
 
@@ -65,50 +61,50 @@ class TestPatternNodeRewriter:
         # replacing the whole graph
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op2(x, y), z)
-        g = FunctionGraph([x, y, z], [e])
+        g = FunctionGraph([x, y, z], [e], clone=False)
         OpKeyPatternNodeRewriter((op1, (op2, "1", "2"), "3"), (op4, "3", "2")).rewrite(
             g
         )
-        assert str(g) == "FunctionGraph(Op4(z, y))"
+        assert equal_computations(g.outputs, [op4(z, y)])
 
     def test_nested_out_pattern(self):
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(x, y)
-        g = FunctionGraph([x, y, z], [e])
+        g = FunctionGraph([x, y, z], [e], clone=False)
         OpKeyPatternNodeRewriter(
             (op1, "1", "2"), (op4, (op1, "1"), (op2, "2"), (op3, "1", "2"))
         ).rewrite(g)
-        assert str(g) == "FunctionGraph(Op4(Op1(x), Op2(y), Op3(x, y)))"
+        assert equal_computations(g.outputs, [op4(op1(x), op2(y), op3(x, y))])
 
     def test_unification_1(self):
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op2(x, x), z)  # the arguments to op2 are the same
-        g = FunctionGraph([x, y, z], [e])
+        g = FunctionGraph([x, y, z], [e], clone=False)
         OpKeyPatternNodeRewriter(
             (op1, (op2, "1", "1"), "2"),  # they are the same in the pattern
             (op4, "2", "1"),
         ).rewrite(g)
         # So the replacement should occur
-        assert str(g) == "FunctionGraph(Op4(z, x))"
+        assert equal_computations(g.outputs, [op4(z, x)])
 
     def test_unification_2(self):
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op2(x, y), z)  # the arguments to op2 are different
-        g = FunctionGraph([x, y, z], [e])
+        g = FunctionGraph([x, y, z], [e], clone=False)
         OpKeyPatternNodeRewriter(
             (op1, (op2, "1", "1"), "2"),  # they are the same in the pattern
             (op4, "2", "1"),
         ).rewrite(g)
         # The replacement should NOT occur
-        assert str(g) == "FunctionGraph(Op1(Op2(x, y), z))"
+        assert equal_computations(g.outputs, [op1(op2(x, y), z)])
 
     def test_replace_subgraph(self):
         # replacing inside the graph
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op2(x, y), z)
-        g = FunctionGraph([x, y, z], [e])
+        g = FunctionGraph([x, y, z], [e], clone=False)
         OpKeyPatternNodeRewriter((op2, "1", "2"), (op1, "2", "1")).rewrite(g)
-        assert str(g) == "FunctionGraph(Op1(Op1(y, x), z))"
+        assert equal_computations(g.outputs, [op1(op1(y, x), z)])
 
     def test_no_recurse(self):
         # if the out pattern is an acceptable in pattern
@@ -116,40 +112,40 @@ class TestPatternNodeRewriter:
         # it should do the replacement and stop
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op2(x, y), z)
-        g = FunctionGraph([x, y, z], [e])
+        g = FunctionGraph([x, y, z], [e], clone=False)
         OpKeyPatternNodeRewriter((op2, "1", "2"), (op2, "2", "1"), ign=True).rewrite(g)
-        assert str(g) == "FunctionGraph(Op1(Op2(y, x), z))"
+        assert equal_computations(g.outputs, [op1(op2(y, x), z)])
 
     def test_multiple(self):
         # it should replace all occurrences of the pattern
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
-        e = op1(op2(x, y), op2(x, y), op2(y, z))
-        g = FunctionGraph([x, y, z], [e])
+        e = op1(op2(x, y), op2(y, x), op2(y, z))
+        g = FunctionGraph([x, y, z], [e], clone=False)
         OpKeyPatternNodeRewriter((op2, "1", "2"), (op4, "1")).rewrite(g)
-        assert str(g) == "FunctionGraph(Op1(Op4(x), Op4(x), Op4(y)))"
+        assert equal_computations(g.outputs, [op1(op4(x), op4(y), op4(y))])
 
     def test_nested_even(self):
         # regardless of the order in which we rewrite, this
         # should work
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op1(op1(op1(x))))
-        g = FunctionGraph([x, y, z], [e])
+        g = FunctionGraph([x, y, z], [e], clone=False)
         OpKeyPatternNodeRewriter((op1, (op1, "1")), "1").rewrite(g)
-        assert str(g) == "FunctionGraph(x)"
+        assert equal_computations(g.outputs, [x])
 
     def test_nested_odd(self):
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op1(op1(op1(op1(x)))))
-        g = FunctionGraph([x, y, z], [e])
+        g = FunctionGraph([x, y, z], [e], clone=False)
         OpKeyPatternNodeRewriter((op1, (op1, "1")), "1").rewrite(g)
-        assert str(g) == "FunctionGraph(Op1(x))"
+        assert equal_computations(g.outputs, [op1(x)])
 
     def test_expand(self):
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op1(op1(x)))
-        g = FunctionGraph([x, y, z], [e])
+        g = FunctionGraph([x, y, z], [e], clone=False)
         OpKeyPatternNodeRewriter((op1, "1"), (op2, (op1, "1")), ign=True).rewrite(g)
-        assert str(g) == "FunctionGraph(Op2(Op1(Op2(Op1(Op2(Op1(x)))))))"
+        assert equal_computations(g.outputs, [op2(op1(op2(op1(op2(op1(x))))))])
 
     def test_ambiguous(self):
         # this test should always work with WalkingGraphRewriter and the
@@ -157,23 +153,23 @@ class TestPatternNodeRewriter:
         # = True or with other NodeProcessingGraphRewriters may differ.
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op1(op1(op1(op1(x)))))
-        g = FunctionGraph([x, y, z], [e])
+        g = FunctionGraph([x, y, z], [e], clone=False)
         WalkingPatternNodeRewriter((op1, (op1, "1")), (op1, "1"), ign=False).rewrite(g)
-        assert str(g) == "FunctionGraph(Op1(x))"
+        assert equal_computations(g.outputs, [op1(x)])
 
     def test_constant(self):
         x = Constant(MyType(), 2, name="x")
         y = MyVariable("y")
         z = Constant(MyType(), 2, name="z")
         e = op1(op1(x, y), y)
-        g = FunctionGraph([y], [e])
+        g = FunctionGraph([y], [e], clone=False)
         OpKeyPatternNodeRewriter((op1, z, "1"), (op2, "1", z)).rewrite(g)
-        assert str(g) == "FunctionGraph(Op1(Op2(y, z), y))"
+        assert equal_computations(g.outputs, [op1(op2(y, z), y)])
 
     def test_constraints(self):
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op4(op1(op2(x, y)), op1(op1(x, y)))
-        g = FunctionGraph([x, y, z], [e])
+        g = FunctionGraph([x, y, z], [e], clone=False)
 
         def constraint(r):
             # Only replacing if the input is an instance of Op2
@@ -182,14 +178,14 @@ class TestPatternNodeRewriter:
         OpKeyPatternNodeRewriter(
             (op1, {"pattern": "1", "constraint": constraint}), (op3, "1")
         ).rewrite(g)
-        assert str(g) == "FunctionGraph(Op4(Op3(Op2(x, y)), Op1(Op1(x, y))))"
+        assert equal_computations(g.outputs, [op4(op3(op2(x, y)), op1(op1(x, y)))])
 
     def test_match_same(self):
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(x, x)
-        g = FunctionGraph([x, y, z], [e])
+        g = FunctionGraph([x, y, z], [e], clone=False)
         OpKeyPatternNodeRewriter((op1, "x", "y"), (op3, "x", "y")).rewrite(g)
-        assert str(g) == "FunctionGraph(Op3(x, x))"
+        assert equal_computations(g.outputs, [op3(x, x)])
 
     @pytest.mark.xfail(
         reason="This pattern & constraint case isn't used and doesn't make much sense."
@@ -197,7 +193,7 @@ class TestPatternNodeRewriter:
     def test_match_same_illegal(self):
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op2(op1(x, x), op1(x, y))
-        g = FunctionGraph([x, y, z], [e])
+        g = FunctionGraph([x, y, z], [e], clone=False)
 
         def constraint(r):
             # Only replacing if the input is an instance of Op2
@@ -206,27 +202,26 @@ class TestPatternNodeRewriter:
         OpKeyPatternNodeRewriter(
             {"pattern": (op1, "x", "y"), "constraint": constraint}, (op3, "x", "y")
         ).rewrite(g)
-        assert str(g) == "FunctionGraph(Op2(Op1(x, x), Op3(x, y)))"
+        assert equal_computations(g.outputs, [op2(op1(x, x), op3(x, y))])
 
     def test_allow_multiple_clients(self):
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e0 = op1(x, y)
         # `e0` has multiple clients (i.e. the `op4` and `op3` nodes)
         e = op3(op4(e0), e0)
-        g = FunctionGraph([x, y, z], [e])
+        g = FunctionGraph([x, y, z], [e], clone=False)
         OpKeyPatternNodeRewriter((op4, (op1, "x", "y")), (op3, "x", "y")).rewrite(g)
-        assert str(g) == "FunctionGraph(Op3(Op4(*1 -> Op1(x, y)), *1))"
+        assert equal_computations(g.outputs, [op3(op4(op1(x, y)), op1(x, y))])
 
     def test_eq(self):
         # replacing the whole graph
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op_y(x, y), z)
-        g = FunctionGraph([x, y, z], [e])
+        g = FunctionGraph([x, y, z], [e], clone=False)
         OpKeyPatternNodeRewriter((op1, (op_z, "1", "2"), "3"), (op4, "3", "2")).rewrite(
             g
         )
-        str_g = str(g)
-        assert str_g == "FunctionGraph(Op4(z, y))"
+        assert equal_computations(g.outputs, [op4(z, y)])
 
 
 def KeyedSubstitutionNodeRewriter(op1, op2):
@@ -237,16 +232,16 @@ class TestSubstitutionNodeRewriter:
     def test_straightforward(self):
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op1(op1(op1(op1(x)))))
-        g = FunctionGraph([x, y, z], [e])
+        g = FunctionGraph([x, y, z], [e], clone=False)
         KeyedSubstitutionNodeRewriter(op1, op2).rewrite(g)
-        assert str(g) == "FunctionGraph(Op2(Op2(Op2(Op2(Op2(x))))))"
+        assert equal_computations(g.outputs, [op2(op2(op2(op2(op2(x)))))])
 
     def test_straightforward_2(self):
         x, y, z = MyVariable("x"), MyVariable("y"), MyVariable("z")
         e = op1(op2(x), op3(y), op4(z))
-        g = FunctionGraph([x, y, z], [e])
+        g = FunctionGraph([x, y, z], [e], clone=False)
         KeyedSubstitutionNodeRewriter(op3, op4).rewrite(g)
-        assert str(g) == "FunctionGraph(Op1(Op2(x), Op4(y), Op4(z)))"
+        assert equal_computations(g.outputs, [op1(op2(x), op4(y), op4(z))])
 
 
 class NoInputOp(Op):
@@ -450,8 +445,7 @@ class TestEquilibrium:
         # TODO FIXME: These `Op`s don't have matching/consistent `__prop__`s
         # and `__init__`s, so they can't be `etuplized` correctly
         e = op3(op4(x, y))
-        g = FunctionGraph([x, y, z], [e])
-        # print g
+        g = FunctionGraph([x, y, z], [e], clone=False)
         rewriter = EquilibriumGraphRewriter(
             [
                 PatternNodeRewriter((op1, "x", "y"), (op2, "x", "y")),
@@ -461,14 +455,12 @@ class TestEquilibrium:
             max_use_ratio=10,
         )
         rewriter.rewrite(g)
-        # print g
-        assert str(g) == "FunctionGraph(Op2(x, y))"
+        assert equal_computations(g.outputs, [op2(x, y)])
 
     def test_2(self):
         x, y, z = map(MyVariable, "xyz")
         e = op1(op1(op3(x, y)))
-        g = FunctionGraph([x, y, z], [e])
-        # print g
+        g = FunctionGraph([x, y, z], [e], clone=False)
         rewriter = EquilibriumGraphRewriter(
             [
                 PatternNodeRewriter((op1, (op2, "x", "y")), (op4, "x", "y")),
@@ -480,122 +472,24 @@ class TestEquilibrium:
             max_use_ratio=10,
         )
         rewriter.rewrite(g)
-        assert str(g) == "FunctionGraph(Op2(x, y))"
+        assert equal_computations(g.outputs, [op2(x, y)])
 
-    @config.change_flags(on_opt_error="ignore")
+    @config.change_flags(on_opt_error="raise")
     def test_low_use_ratio(self):
         x, y, z = map(MyVariable, "xyz")
         e = op3(op4(x, y))
-        g = FunctionGraph([x, y, z], [e])
-        # print 'before', g
-        # display pesky warnings along with stdout
-        # also silence logger for 'aesara.graph.rewriting.basic'
-        _logger = logging.getLogger("aesara.graph.rewriting.basic")
-        oldlevel = _logger.level
-        _logger.setLevel(logging.CRITICAL)
-        try:
-            rewriter = EquilibriumGraphRewriter(
-                [
-                    PatternNodeRewriter((op1, "x", "y"), (op2, "x", "y")),
-                    PatternNodeRewriter((op4, "x", "y"), (op1, "x", "y")),
-                    PatternNodeRewriter((op3, (op2, "x", "y")), (op4, "x", "y")),
-                ],
-                max_use_ratio=1.0 / len(g.apply_nodes),
-            )
+        g = FunctionGraph([x, y, z], [e], clone=False)
+        rewriter = EquilibriumGraphRewriter(
+            [
+                PatternNodeRewriter((op1, "x", "y"), (op2, "x", "y")),
+                PatternNodeRewriter((op4, "x", "y"), (op1, "x", "y")),
+                PatternNodeRewriter((op3, (op2, "x", "y")), (op4, "x", "y")),
+            ],
+            max_use_ratio=1.0 / len(g.apply_nodes),
+        )
+        with pytest.raises(AssertionError):
             rewriter.rewrite(g)
-        finally:
-            _logger.setLevel(oldlevel)
-        # print 'after', g
-        assert str(g) == "FunctionGraph(Op1(x, y))"
-
-
-def test_pre_constant_merge():
-
-    empty_fgraph = FunctionGraph([], [])
-
-    x = MyVariable("x")
-    y = MyVariable("y")
-    c1 = Constant(MyType(), 1, "c1")
-    c2 = Constant(MyType(), 1, "c1")
-    o1 = op2(c1, x)
-    o2 = op1(o1, y, c2)
-
-    assert c1 is not c2
-
-    res = pre_constant_merge(empty_fgraph, [o2])
-
-    assert [o2] == res
-    assert o2.owner.inputs[2] is c1
-
-    o2 = op1(o1, y, c2)
-    fg = FunctionGraph([x, y], [o2], clone=False)
-
-    assert o2.owner in fg.apply_nodes
-
-    res = pre_constant_merge(fg, [o2])
-
-    assert res == [o2]
-    assert o2.owner.inputs[2] is c2
-
-    # What is this supposed to test?
-    ms = MakeSlice()(1)
-    res = pre_constant_merge(empty_fgraph, [ms])
-
-    assert res == [ms]
-
-    const_slice = SliceConstant(type=slicetype, data=slice(1, None, 2))
-
-    assert isinstance(const_slice, Constant)
-
-    adv = AdvancedSubtensor()(matrix(), [2, 3], const_slice)
-
-    res = pre_constant_merge(empty_fgraph, adv)
-    assert res == [adv]
-
-
-def test_pre_greedy_node_rewriter():
-
-    empty_fgraph = FunctionGraph([], [])
-
-    x = MyVariable("x")
-    y = MyVariable("y")
-    c1 = Constant(MyType(), 1, "c1")
-    c2 = Constant(MyType(), 2, "c2")
-    o1 = op2(c1, c2)
-    o3 = op1(c1, y)
-    o2 = op1(o1, c2, x, o3, o1)
-
-    assert o2.owner.inputs[0].owner is not None
-    assert o2.owner.inputs[4].owner is not None
-
-    # This should fold `o1`, because it has only `Constant` arguments, and
-    # replace it with the `Constant` result
-    cst = pre_greedy_node_rewriter(empty_fgraph, [constant_folding], o2)
-
-    assert cst.owner.inputs[0].owner is None
-    assert cst.owner.inputs[1] is c2
-    assert cst.owner.inputs[2] is x
-    assert cst.owner.inputs[3] is o3
-    assert cst.owner.inputs[4] is cst.owner.inputs[0]
-
-    # We're going to do it again, except this time `o1` is
-    # in the `fgraph`, so it shouldn't be folded
-    fg = FunctionGraph([], [o1], clone=False)
-    o2 = op1(o1, c2, x, o3, o1)
-
-    cst = pre_greedy_node_rewriter(fg, [constant_folding], o2)
-
-    assert cst.owner.inputs[0] is o1
-    assert cst.owner.inputs[4] is cst.owner.inputs[0]
-
-    # What exactly is this supposed to test?
-    ms = MakeSlice()(1)
-    cst = pre_greedy_node_rewriter(empty_fgraph, [constant_folding], ms)
-
-    assert isinstance(cst, SliceConstant)
-
-    # Make sure constant of slice signature is hashable.
-    assert isinstance(hash(cst.signature()), int)
+        assert equal_computations(g.outputs, [op1(x, y)])
 
 
 @pytest.mark.parametrize("tracks", [True, False])
@@ -699,14 +593,9 @@ class TestSequentialNodeRewriter:
 
         capres = capsys.readouterr()
         assert capres.err == ""
-        assert (
-            "rewriting: rewrite local_rewrite_1 replaces node Op1(x, y) with [Op2.0]"
-            in capres.out
-        )
-        assert (
-            "rewriting: rewrite local_rewrite_2 replaces node Op2(y, y) with [Op2.0]"
-            in capres.out
-        )
+        out1, out2 = capres.out.split("\n", maxsplit=1)
+        assert out1.startswith("rewriting: rewrite local_rewrite_1 replaces")
+        assert out2.startswith("rewriting: rewrite local_rewrite_2 replaces")
 
 
 def test_node_rewriter_str():
