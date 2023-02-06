@@ -120,6 +120,7 @@ def debugprint(
     print_destroy_map: bool = False,
     print_view_map: bool = False,
     print_fgraph_inputs: bool = False,
+    print_default_updates: bool = False,
     ids: Optional[IDTypesType] = None,
 ) -> Union[str, TextIO]:
     r"""Print a graph as text.
@@ -177,6 +178,8 @@ def debugprint(
         Whether to print the `view_map`\s of printed objects
     print_fgraph_inputs
         Print the inputs of `FunctionGraph`\s.
+    print_default_updates
+        Print the `SharedVariable.default_update` values.
 
     Returns
     -------
@@ -263,6 +266,7 @@ def debugprint(
             raise TypeError(f"debugprint cannot print an object type {type(obj)}")
 
     inner_graph_vars: List[Variable] = []
+    default_updates: List[Variable] = []
 
     if any(p for p in profile_list if p is not None and p.fct_callcount > 0):
         print(
@@ -297,7 +301,7 @@ N.B.:
             print_type=print_type,
             file=_file,
             id_type=id_type,
-            inner_graph_ops=inner_graph_vars,
+            inner_graph_vars=inner_graph_vars,
             stop_on_name=stop_on_name,
             used_ids=used_ids,
             op_information=op_information,
@@ -305,6 +309,8 @@ N.B.:
             print_op_info=print_op_info,
             print_destroy_map=print_destroy_map,
             print_view_map=print_view_map,
+            print_default_updates=print_default_updates,
+            default_updates=default_updates,
         )
 
     for var, profile, storage_map, topo_order in zip(
@@ -325,7 +331,7 @@ N.B.:
             file=_file,
             topo_order=topo_order,
             id_type=id_type,
-            inner_graph_ops=inner_graph_vars,
+            inner_graph_vars=inner_graph_vars,
             stop_on_name=stop_on_name,
             profile=profile,
             storage_map=storage_map,
@@ -335,6 +341,8 @@ N.B.:
             print_op_info=print_op_info,
             print_destroy_map=print_destroy_map,
             print_view_map=print_view_map,
+            print_default_updates=print_default_updates,
+            default_updates=default_updates,
         )
 
     if len(inner_graph_vars) > 0:
@@ -384,7 +392,7 @@ N.B.:
                 print_type=print_type,
                 file=_file,
                 id_type=id_type,
-                inner_graph_ops=inner_graph_vars,
+                inner_graph_vars=inner_graph_vars,
                 stop_on_name=stop_on_name,
                 inner_to_outer_inputs=inner_to_outer_inputs,
                 used_ids=used_ids,
@@ -393,6 +401,8 @@ N.B.:
                 print_op_info=print_op_info,
                 print_destroy_map=print_destroy_map,
                 print_view_map=print_view_map,
+                print_default_updates=print_default_updates,
+                default_updates=default_updates,
             )
 
             if print_fgraph_inputs:
@@ -406,7 +416,7 @@ N.B.:
                         file=_file,
                         id_type=id_type,
                         stop_on_name=stop_on_name,
-                        inner_graph_ops=inner_graph_vars,
+                        inner_graph_vars=inner_graph_vars,
                         inner_to_outer_inputs=inner_to_outer_inputs,
                         used_ids=used_ids,
                         op_information=op_information,
@@ -415,6 +425,8 @@ N.B.:
                         print_destroy_map=print_destroy_map,
                         print_view_map=print_view_map,
                         inner_graph_node=ig_var.owner,
+                        print_default_updates=print_default_updates,
+                        default_updates=default_updates,
                     )
                 inner_to_outer_inputs = None
 
@@ -436,7 +448,7 @@ N.B.:
                     id_type=id_type,
                     stop_on_name=stop_on_name,
                     prefix_child=new_prefix_child,
-                    inner_graph_ops=inner_graph_vars,
+                    inner_graph_vars=inner_graph_vars,
                     inner_to_outer_inputs=inner_to_outer_inputs,
                     used_ids=used_ids,
                     op_information=op_information,
@@ -445,7 +457,42 @@ N.B.:
                     print_destroy_map=print_destroy_map,
                     print_view_map=print_view_map,
                     inner_graph_node=ig_var.owner,
+                    print_default_updates=print_default_updates,
+                    default_updates=default_updates,
                 )
+
+    if len(default_updates) > 0:
+        print("", file=_file)
+        print("Default updates:", file=_file)
+
+        inner_to_outer_inputs = {}
+
+        for var in default_updates:
+
+            print("", file=_file)
+
+            update_var = var.default_update
+            inner_to_outer_inputs[update_var] = var
+
+            _debugprint(
+                update_var,
+                depth=depth,
+                done=done,
+                print_type=print_type,
+                file=_file,
+                id_type=id_type,
+                inner_graph_vars=inner_graph_vars,
+                stop_on_name=stop_on_name,
+                inner_to_outer_inputs=inner_to_outer_inputs,
+                used_ids=used_ids,
+                op_information=op_information,
+                parent_node=None,
+                print_op_info=print_op_info,
+                print_destroy_map=print_destroy_map,
+                print_view_map=print_view_map,
+                print_default_updates=print_default_updates,
+                default_updates=default_updates,
+            )
 
     if file is _file:
         return file
@@ -470,7 +517,7 @@ def _debugprint(
     id_type: IDTypesType = "CHAR",
     stop_on_name: bool = False,
     prefix_child: Optional[str] = None,
-    inner_graph_ops: Optional[List[Variable]] = None,
+    inner_graph_vars: Optional[List[Variable]] = None,
     profile: Optional[ProfileStats] = None,
     inner_to_outer_inputs: Optional[Dict[Variable, Variable]] = None,
     storage_map: Optional[StorageMapType] = None,
@@ -479,6 +526,8 @@ def _debugprint(
     parent_node: Optional[Apply] = None,
     print_op_info: bool = False,
     inner_graph_node: Optional[Apply] = None,
+    print_default_updates: bool = False,
+    default_updates: Optional[List[Variable]] = None,
 ) -> TextIO:
     r"""Print the graph represented by `var`.
 
@@ -506,8 +555,8 @@ def _debugprint(
         See `debugprint`.
     stop_on_name
         Whether to print `Op` ``view_map``\s.
-    inner_graph_ops
-        A list of `Op`\s with inner graphs.
+    inner_graph_vars
+        A list of `Variables`\s with inner graphs.
     inner_to_outer_inputs
         A dictionary mapping an `Op`'s inner-inputs to its outer-inputs.
     storage_map
@@ -522,6 +571,10 @@ def _debugprint(
         See `debugprint`.
     inner_graph_node
         The inner-graph node in which `var` is contained.
+    print_default_updates
+        Print the `SharedVariable.default_update` values.
+    default_updates
+        A list of `Variables`\s with default updates.
     """
     if depth == 0:
         return file
@@ -534,8 +587,11 @@ def _debugprint(
     else:
         _done = done
 
-    if inner_graph_ops is None:
-        inner_graph_ops = []
+    if inner_graph_vars is None:
+        inner_graph_vars = []
+
+    if default_updates is None:
+        default_updates = []
 
     if print_type:
         type_str = f" <{var.type}>"
@@ -664,9 +720,9 @@ def _debugprint(
                 if hasattr(in_var, "owner") and hasattr(in_var.owner, "op"):
                     if (
                         isinstance(in_var.owner.op, HasInnerGraph)
-                        and in_var not in inner_graph_ops
+                        and in_var not in inner_graph_vars
                     ):
-                        inner_graph_ops.append(in_var)
+                        inner_graph_vars.append(in_var)
 
                 _debugprint(
                     in_var,
@@ -679,7 +735,7 @@ def _debugprint(
                     id_type=id_type,
                     stop_on_name=stop_on_name,
                     prefix_child=new_prefix_child,
-                    inner_graph_ops=inner_graph_ops,
+                    inner_graph_vars=inner_graph_vars,
                     profile=profile,
                     inner_to_outer_inputs=inner_to_outer_inputs,
                     storage_map=storage_map,
@@ -690,6 +746,8 @@ def _debugprint(
                     print_destroy_map=print_destroy_map,
                     print_view_map=print_view_map,
                     inner_graph_node=inner_graph_node,
+                    print_default_updates=print_default_updates,
+                    default_updates=default_updates,
                 )
     else:
 
@@ -704,6 +762,25 @@ def _debugprint(
             data = ""
 
         var_output = f"{prefix}{var}{id_str}{type_str}{data}"
+
+        # `SharedVariable`s with default updates are considered "inner-graph" variables
+        if (
+            print_default_updates
+            and isinstance(var, SharedVariable)
+            and var.default_update is not None
+        ):
+            update_obj = (
+                var.default_update
+                if var.default_update.owner is None
+                else var.default_update.owner
+            )
+            update_obj_id = get_id_str(update_obj)
+            var_output = f"{var_output} <- {update_obj_id}"
+
+            # We still want to print the graph later
+            if var not in default_updates:
+                default_updates.append(var)
+                del _done[update_obj]
 
         if print_op_info and var.owner and var.owner not in op_information:
             op_information.update(op_debug_information(var.owner.op, var.owner))

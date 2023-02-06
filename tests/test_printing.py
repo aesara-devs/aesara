@@ -11,6 +11,7 @@ import pytest
 import aesara
 from aesara.compile.mode import get_mode
 from aesara.compile.ops import deep_copy_op
+from aesara.compile.sharedvalue import SharedVariable
 from aesara.printing import (
     PatternPrinter,
     PPrinter,
@@ -25,7 +26,7 @@ from aesara.printing import (
 )
 from aesara.tensor import as_tensor_variable
 from aesara.tensor.type import dmatrix, dvector, matrix
-from tests.graph.utils import MyInnerGraphOp, MyOp, MyVariable
+from tests.graph.utils import MyInnerGraphOp, MyOp, MyType, MyVariable
 
 
 @pytest.mark.skipif(not pydot_imported, reason="pydot not available")
@@ -450,3 +451,93 @@ def test_Print(capsys):
 
     stdout, stderr = capsys.readouterr()
     assert "hello" in stdout
+
+
+def test_debugprint_default_updates():
+
+    op1 = MyOp("op1")
+    op2 = MyOp("op2")
+
+    r1 = MyVariable("1")
+    s1 = SharedVariable(MyType(), None, None, name="s1")
+    s2 = SharedVariable(MyType(), None, None, name="s2")
+
+    s1.default_update = op1(r1, s2)
+    s2.default_update = op1(r1, s1)
+
+    out = op2(r1, s1)
+    out.name = "o1"
+
+    s = StringIO()
+    debugprint(out, file=s, print_default_updates=True)
+    s = s.getvalue()
+
+    reference = dedent(
+        r"""
+        op2 [id A] 'o1'
+         |1 [id B]
+         |s1 [id C] <- [id D]
+
+        Default updates:
+
+        op1 [id D]
+         |1 [id B]
+         |s2 [id E] <- [id F]
+
+        op1 [id F]
+         |1 [id B]
+         |s1 [id C] <- [id D]
+        """
+    ).lstrip()
+
+    assert s == reference
+
+
+def test_debugprint_inner_graph_default_updates():
+    """Test for updates on shared variables in an `OpFromGraph`."""
+
+    r1 = MyVariable("1")
+    r2 = MyVariable("2")
+    o1 = MyOp("op1")(r1, r2)
+    o1.name = "o1"
+
+    # Inner graph
+    igo_in_1 = MyVariable("4")
+    igo_in_s = SharedVariable(MyType(), None, None, name="s")
+    igo_in_s.default_update = o1
+    igo_out_1 = MyOp("op2")(igo_in_1, igo_in_s)
+    igo_out_1.name = "igo1"
+
+    from aesara.compile.builders import OpFromGraph
+
+    igo = OpFromGraph([igo_in_1], [igo_out_1])
+
+    r3 = MyVariable("3")
+    out = igo(r3)
+
+    s = StringIO()
+    debugprint(out, file=s, print_default_updates=True)
+    s = s.getvalue()
+
+    reference = dedent(
+        r"""
+        OpFromGraph{inline=False} [id A]
+         |3 [id B]
+         |s [id C] <- [id D]
+
+        Inner graphs:
+
+        OpFromGraph{inline=False} [id A]
+         >op2 [id E] 'igo1'
+         > |*0-<MyType()> [id F]
+         > |*1-<MyType()> [id G]
+
+        Default updates:
+
+        op1 [id D] 'o1'
+         |1 [id H]
+         |2 [id I]
+        """
+    ).lstrip()
+
+    assert s == reference
