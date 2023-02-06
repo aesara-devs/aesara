@@ -10,7 +10,7 @@ from aesara.graph.op import Op
 from aesara.graph.rewriting.utils import rewrite_graph
 from aesara.scalar.basic import constant as scalar_constant
 from aesara.scalar.basic import int64
-from aesara.tensor import get_gufunc_signature, get_scalar_constant_value
+from aesara.tensor import get_scalar_constant_value
 from aesara.tensor.basic import atleast_Nd
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.exceptions import NotScalarConstantError
@@ -216,7 +216,7 @@ class Blockwise(Op):
             else:
                 core_inputs.append(input)
 
-        # remore the core dimension first the then broadcast the rest of the dimension
+        # remove the core dimension first the then broadcast the rest of the dimension
         max_loop_dimension = max(
             core_inputs[i].type.ndim - len(self.signature[0][i])
             for i in range(len(core_inputs))
@@ -239,13 +239,13 @@ class Blockwise(Op):
                 )
         inputs = broadcasted_inputs
 
-        # TODO: Correct this
-        out_dtype = inputs[0].dtype
+        shadow = self.op.make_node(*inputs)
+        out_dtypes = [o.type.dtype for o in shadow.outputs]
 
         bcast_shape, dim_sizes = _parse_input_dimensions(inputs, self.signature[0])
         output_shapes = _calculate_shapes(bcast_shape, dim_sizes, self.signature[1])
 
-        return out_dtype, output_shapes, inputs
+        return out_dtypes, output_shapes, inputs
 
     def make_node(self, *inputs):
         num_expected_inps = len(self.signature[0])
@@ -254,7 +254,7 @@ class Blockwise(Op):
                 f"Expected {int(num_expected_inps)} inputs, got {len(inputs)}"
             )
 
-        out_dtype, output_shapes, inputs = self.get_output_info(*inputs)
+        out_dtypes, output_shapes, inputs = self.get_output_info(*inputs)
 
         def safe_const_val(x):
             try:
@@ -263,8 +263,8 @@ class Blockwise(Op):
                 return None
 
         outputs = [
-            TensorType(out_dtype, shape=tuple(safe_const_val(s) for s in shp))()
-            for shp in output_shapes
+            TensorType(out_dtypes[i], shape=tuple(safe_const_val(s) for s in output_shapes[i]))()
+            for i in range(len(output_shapes))
         ]
         return Apply(self, list(inputs), outputs)
 
