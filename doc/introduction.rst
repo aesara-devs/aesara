@@ -1,9 +1,8 @@
 
 .. _introduction:
 
-==================
-Aesara at a Glance
-==================
+What is Aesara?
+===============
 
 Aesara is a Python library that allows one to define, optimize/rewrite, and
 evaluate mathematical expressions, especially ones involving multi-dimensional
@@ -54,7 +53,7 @@ This topic is a little more advanced and doesn't really have parallels in other 
 The PyMC/probabilistic programming connection is similar to the DL connection Theano had, but—unlike Theano—we don't want Aesara to be conflated with one of its domains of application—like probabilistic modeling. Those primary domains of application will always have some influence on the development of Aesara, but that's also why we need to avoid labels/designations like "deep learning library" and focus on the functionality, so that we don't unnecessarily compromise Aesara's general applicability, relative simplicity, and/or prevent useful input/collaboration from other domains.
 
 Sneak peek
-==========
+----------
 
 Here is an example of how to use Aesara. It doesn't show off many of
 its features, but it illustrates concretely what Aesara is.
@@ -99,7 +98,7 @@ machine instructions.
 
 
 What does it do that NumPy doesn't
-==================================
+----------------------------------
 
 Aesara is a essentially an optimizing compiler for manipulating
 and evaluating expressions, especially tensor-valued
@@ -125,32 +124,6 @@ If numpy_ is to be compared to MATLAB_ and sympy_ to Mathematica_,
 Aesara is a sort of hybrid of the two which tries to combine the best of
 both worlds.
 
-
-Getting started
-===============
-
-:ref:`install`
-  Instructions to download and install Aesara on your system.
-
-:ref:`tutorial`
-  Getting started with Aesara's basic features. Go here if you are
-  new!
-
-:ref:`libdoc`
-  Details of what Aesara provides. It is recommended to go through
-  the :ref:`tutorial` first though.
-
-
-Contact us
-==========
-
-Questions and bug reports should be submitted in the form of an issue at
-aesara-dev_
-
-We welcome all kinds of contributions. If you have any questions regarding how
-to extend Aesara, please feel free to ask.
-
-
 .. _LISA:  https://mila.umontreal.ca/
 .. _Greek mathematician: http://en.wikipedia.org/wiki/Theano_(mathematician)
 .. _numpy: http://numpy.scipy.org/
@@ -159,5 +132,3 @@ to extend Aesara, please feel free to ask.
 .. _sympy: http://www.sympy.org/
 .. _MATLAB: http://www.mathworks.com/products/matlab/
 .. _Mathematica: http://www.wolfram.com/mathematica/
-
-.. _aesara-dev: https://github.com/aesara-devs/aesara/issues
