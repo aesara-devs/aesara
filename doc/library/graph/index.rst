@@ -2,7 +2,7 @@
 .. _libdoc_graph:
 
 ================================================
-:mod:`graph` -- Theano Internals [doc TODO]
+:mod:`graph` -- Aesara Internals [doc TODO]
 ================================================
 
 .. module:: graph
@@ -18,5 +18,4 @@
     features
     op
     type
-    params_type
     utils

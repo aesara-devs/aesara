@@ -15,20 +15,10 @@ Modules
 .. toctree::
    :maxdepth: 1
 
-   compile/index
-   config
    d3viz/index
    graph/index
-   gpuarray/index
-   gradient
-   misc/pkl_utils
-   printing
    sandbox/index
    scalar/index
-   scan
-   sparse/index
-   sparse/sandbox
-   tensor/index
    typed_list
 
 .. module:: aesara
