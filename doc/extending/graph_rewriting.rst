@@ -111,7 +111,7 @@ simplification described above:
 
        def apply(self, fgraph):
            for node in fgraph.toposort():
-               if node.op == true_div:
+               if node.op == true_divide:
                    x, y = node.inputs
                    z = node.outputs[0]
                    if x.owner and x.owner.op == mul:
@@ -152,17 +152,17 @@ nothing.
 
 Now, we test the rewriter:
 
->>> from aesara.scalar import float64, add, mul, true_div
+>>> from aesara.scalar import float64, add, mul, true_divide
 >>> x = float64('x')
 >>> y = float64('y')
 >>> z = float64('z')
->>> a = add(z, mul(true_div(mul(y, x), y), true_div(z, x)))
+>>> a = add(z, mul(true_divide(mul(y, x), y), true_divide(z, x)))
 >>> e = aesara.graph.fg.FunctionGraph([x, y, z], [a])
 >>> e
-FunctionGraph(add(z, mul(true_div(mul(y, x), y), true_div(z, x))))
+FunctionGraph(add(z, mul(true_divide(mul(y, x), y), true_divide(z, x))))
 >>> simplify.rewrite(e)
 >>> e
-FunctionGraph(add(z, mul(x, true_div(z, x))))
+FunctionGraph(add(z, mul(x, true_divide(z, x))))
 
 You can check what happens if you put many
 instances of :math:`\frac{xy}{y}` in the graph. Note that it sometimes
@@ -172,13 +172,13 @@ rewrite you wrote. For example, consider the following:
 >>> x = float64('x')
 >>> y = float64('y')
 >>> z = float64('z')
->>> a = true_div(mul(add(y, z), x), add(y, z))
+>>> a = true_divide(mul(add(y, z), x), add(y, z))
 >>> e = aesara.graph.fg.FunctionGraph([x, y, z], [a])
 >>> e
-FunctionGraph(true_div(mul(add(y, z), x), add(y, z)))
+FunctionGraph(true_divide(mul(add(y, z), x), add(y, z)))
 >>> simplify.rewrite(e)
 >>> e
-FunctionGraph(true_div(mul(add(y, z), x), add(y, z)))
+FunctionGraph(true_divide(mul(add(y, z), x), add(y, z)))
 
 Nothing happened here. The reason is: ``add(y, z) != add(y,
 z)``. That is the case for efficiency reasons. To fix this problem we
@@ -190,7 +190,7 @@ computation, using the :class:`MergeOptimizer` defined in
 >>> MergeOptimizer().rewrite(e)  # doctest: +ELLIPSIS
 (0, ..., None, None, {}, 1, 0)
 >>> e
-FunctionGraph(true_div(mul(*1 -> add(y, z), x), *1))
+FunctionGraph(true_divide(mul(*1 -> add(y, z), x), *1))
 >>> simplify.rewrite(e)
 >>> e
 FunctionGraph(x)
@@ -224,7 +224,7 @@ The local version of the above code would be the following:
 
    class LocalSimplify(NodeRewriter):
        def transform(self, fgraph, node):
-           if node.op == true_div:
+           if node.op == true_divide:
                x, y = node.inputs
                if x.owner and x.owner.op == mul:
                    a, b = x.owner.inputs
@@ -237,7 +237,7 @@ The local version of the above code would be the following:
        def tracks(self):
            # This tells certain navigators to only apply this `NodeRewriter`
            # on these kinds of `Op`s
-           return [true_div]
+           return [true_divide]
 
    local_simplify = LocalSimplify()
 
@@ -261,15 +261,15 @@ subset of them) and applies one or several node rewriters.
 >>> x = float64('x')
 >>> y = float64('y')
 >>> z = float64('z')
->>> a = add(z, mul(true_div(mul(y, x), y), true_div(z, x)))
+>>> a = add(z, mul(true_divide(mul(y, x), y), true_divide(z, x)))
 >>> e = aesara.graph.fg.FunctionGraph([x, y, z], [a])
 >>> e
-FunctionGraph(add(z, mul(true_div(mul(y, x), y), true_div(z, x))))
+FunctionGraph(add(z, mul(true_divide(mul(y, x), y), true_divide(z, x))))
 >>> simplify = aesara.graph.rewriting.basic.WalkingGraphRewriter(local_simplify)
 >>> simplify.rewrite(e)
 (<aesara.graph.rewriting.basic.WalkingGraphRewriter object at 0x...>, 1, 5, 3, ..., ..., ...)
 >>> e
-FunctionGraph(add(z, mul(x, true_div(z, x))))
+FunctionGraph(add(z, mul(x, true_divide(z, x))))
 
 :class:`SubstitutionNodeRewriter`, :class:`RemovalNodeRewriter`, :class:`PatternNodeRewriter`
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -309,8 +309,8 @@ Aesara defines some shortcuts to make :class:`NodeRewriter`\s:
    # The "simplify" operation we've been defining in the past few
    # sections. Note that we need two patterns to account for the
    # permutations of the arguments to `mul`.
-   local_simplify_1 = PatternNodeRewriter((true_div, (mul, 'x', 'y'), 'y'), 'x')
-   local_simplify_2 = PatternNodeRewriter((true_div, (mul, 'x', 'y'), 'x'), 'y')
+   local_simplify_1 = PatternNodeRewriter((true_divide, (mul, 'x', 'y'), 'y'), 'x')
+   local_simplify_2 = PatternNodeRewriter((true_divide, (mul, 'x', 'y'), 'x'), 'y')
 
 .. note::
 

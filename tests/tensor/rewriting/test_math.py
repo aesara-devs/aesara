@@ -78,7 +78,7 @@ from aesara.tensor.math import prod, rad2deg, reciprocal
 from aesara.tensor.math import round as at_round
 from aesara.tensor.math import sgn, sigmoid, sin, sinh, softplus, sqr, sqrt, sub
 from aesara.tensor.math import sum as at_sum
-from aesara.tensor.math import tan, tanh, true_div, xor
+from aesara.tensor.math import tan, tanh, true_divide, xor
 from aesara.tensor.rewriting.elemwise import local_dimshuffle_lift
 from aesara.tensor.rewriting.math import (
     compute_mul,
@@ -594,7 +594,7 @@ class TestAlgebraicCanonizer:
             assert out_dtype == out.dtype
             utt.assert_allclose(out, val_inputs[1])
             topo = f.maker.fgraph.toposort()
-            assert not any(node.op == at.true_div for node in topo)
+            assert not any(node.op == at.true_divide for node in topo)
 
         # test x / y / x -> 1 / y
         for id, (g, sym_inputs, val_inputs, nb_elemwise, out_dtype) in enumerate(
@@ -1431,7 +1431,7 @@ class TestFusion:
                 "float32",
             ),
             (
-                fx - true_div(fy, 2),
+                fx - true_divide(fy, 2),
                 (fx, fy),
                 (fxv, fyv),
                 1,
@@ -1439,7 +1439,7 @@ class TestFusion:
                 "float32",
             ),
             (
-                fx - true_div(fy, fz),
+                fx - true_divide(fy, fz),
                 (fx, fy, fz),
                 (fxv, fyv, fzv),
                 1,
@@ -2796,7 +2796,7 @@ class TestLocalSwitchSink:
                 (dvector("x"), self.xv),
                 (dscalar("x"), self.xs),
             ]:
-                y = true_div(
+                y = true_divide(
                     at.switch(condition[0] > 0, 1.0 * x[0], 0.0 * x[0]),
                     at.switch(condition[0] > 0, 1.0 * x[0], log(c) * x[0]),
                 )
@@ -3132,7 +3132,7 @@ class TestLocalMergeSwitchSameCond:
             add,
             sub,
             mul,
-            true_div,
+            true_divide,
             int_div,
             floor_div,
             minimum,
@@ -3951,7 +3951,7 @@ class TestIntDivByOne:
 
 
 @pytest.mark.parametrize("t", [scalar, ivector, ftensor4])
-@pytest.mark.parametrize("op", [int_div, true_div])
+@pytest.mark.parametrize("op", [int_div, true_divide])
 def test_local_zero_div(t, op):
     """Test the canonicalization ``0/x -> 0``."""
     x = t("x")

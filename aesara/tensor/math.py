@@ -1608,7 +1608,7 @@ def mean(input, axis=None, dtype=None, op=False, keepdims=False, acc_dtype=None)
 
     # Cast shp into a float type
     # TODO Once we have a consistent casting policy, we could simply
-    # use true_div.
+    # use true_divide.
     if s.dtype in ("float16", "float32", "complex64"):
         shp = cast(shp, "float32")
     else:
@@ -1625,7 +1625,7 @@ def mean(input, axis=None, dtype=None, op=False, keepdims=False, acc_dtype=None)
 
     # This sequential division will possibly be optimized by Aesara:
     for i in axis:
-        s = true_div(s, shp[i])
+        s = true_divide(s, shp[i])
 
     # This can happen when axis is an empty list/tuple
     if s.dtype != shp.dtype and s.dtype in discrete_dtypes:
@@ -1697,7 +1697,7 @@ def var(input, axis=None, ddof=0, keepdims=False, corrected=False):
         shp = shape(input) - ddof
         v = sum((centered_input**two), axis=axis, keepdims=keepdims)
         for i in axis:
-            v = true_div(v, shp[i])
+            v = true_divide(v, shp[i])
 
     # use 'corrected_two_pass' algorithm
     if corrected:
@@ -1708,7 +1708,7 @@ def var(input, axis=None, ddof=0, keepdims=False, corrected=False):
             shp_inp = shape(input)
             error = sum(centered_input, axis=axis, keepdims=keepdims) ** 2
             for i in axis:
-                error = true_div(error, shp[i] * shp_inp[i])
+                error = true_divide(error, shp[i] * shp_inp[i])
         v = v - error
 
     v.name = "var"
@@ -1794,7 +1794,7 @@ def mul(a, *other_terms):
 
 
 @scalar_elemwise
-def true_div(a, b):
+def true_divide(a, b):
     """elementwise [true] division (inverse of multiplication)"""
     # see decorator for function body
 
@@ -1876,7 +1876,7 @@ pprint.assign(add, printing.OperatorPrinter("+", -2, "either"))
 pprint.assign(mul, printing.OperatorPrinter("*", -1, "either"))
 pprint.assign(sub, printing.OperatorPrinter("-", -2, "left"))
 pprint.assign(neg, printing.OperatorPrinter("-", 0, "either"))
-pprint.assign(true_div, printing.OperatorPrinter("/", -1, "left"))
+pprint.assign(true_divide, printing.OperatorPrinter("/", -1, "left"))
 pprint.assign(int_div, printing.OperatorPrinter("//", -1, "left"))
 pprint.assign(pow, printing.OperatorPrinter("**", 1, "right"))
 
@@ -3121,7 +3121,7 @@ __all__ = [
     "add",
     "sub",
     "mul",
-    "true_div",
+    "true_divide",
     "int_div",
     "floor_div",
     "ceil_intdiv",

@@ -67,7 +67,7 @@ The pre-compilation graph:
 
 >>> aesara.printing.debugprint(prediction) # doctest: +NORMALIZE_WHITESPACE, +ELLIPSIS
 Elemwise{gt,no_inplace} [id A] ''
- |Elemwise{true_div,no_inplace} [id B] ''
+ |Elemwise{true_divide,no_inplace} [id B] ''
  | |InplaceDimShuffle{x} [id C] ''
  | | |TensorConstant{1} [id D]
  | |Elemwise{add,no_inplace} [id E] ''

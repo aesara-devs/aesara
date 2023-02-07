@@ -3,7 +3,7 @@ from aesara.graph.rewriting.basic import copy_stack_trace, node_rewriter
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.math import Sum, exp
 from aesara.tensor.math import sum as at_sum
-from aesara.tensor.math import true_div
+from aesara.tensor.math import true_divide
 from aesara.tensor.rewriting.basic import register_specialize
 from aesara.tensor.rewriting.math import local_mul_canonizer
 from aesara.tensor.special import LogSoftmax, Softmax, SoftmaxGrad
@@ -50,7 +50,7 @@ def local_logsoftmax_grad(fgraph, node):
         isinstance(node.op, SoftmaxGrad)
         and len(node.inputs) == 2
         and node.inputs[0].owner is not None
-        and node.inputs[0].owner.op == true_div
+        and node.inputs[0].owner.op == true_divide
         and len(node.inputs[0].owner.inputs) >= 2
         and node.inputs[0].owner.inputs[1].owner is not None
         and isinstance(node.inputs[0].owner.inputs[1].owner.op, Softmax)
@@ -58,7 +58,7 @@ def local_logsoftmax_grad(fgraph, node):
         and not (
             # skip if it will be optimized by
             # local_advanced_indexing_crossentropy_onehot_grad
-            node.inputs[0].owner.op == true_div
+            node.inputs[0].owner.op == true_divide
             and node.inputs[0].owner.inputs[0].owner is not None
             and isinstance(
                 node.inputs[0].owner.inputs[0].owner.op, AdvancedIncSubtensor

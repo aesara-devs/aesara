@@ -28,7 +28,7 @@ from aesara.scalar.basic import (
     log,
     log1p,
     switch,
-    true_div,
+    true_divide,
     upcast,
     upgrade_to_float,
     upgrade_to_float64,
@@ -1241,7 +1241,7 @@ class Log1mexp(UnaryScalarOp):
     def grad(self, inp, grads):
         (x,) = inp
         (gz,) = grads
-        res = true_div(-1.0, expm1(-x))
+        res = true_divide(-1.0, expm1(-x))
         # Correct gradient at 0.0 to be -inf
         res = switch(isinf(res), -np.inf, res)
         return [gz * res]

@@ -40,7 +40,7 @@ from aesara.tensor.math import (
     softplus,
 )
 from aesara.tensor.math import sum as at_sum
-from aesara.tensor.math import tanh, tensordot, true_div
+from aesara.tensor.math import tanh, tensordot, true_divide
 from aesara.tensor.nnet.blocksparse import sparse_block_dot
 from aesara.tensor.rewriting.basic import (
     register_canonicalize,
@@ -1342,7 +1342,7 @@ def local_advanced_indexing_crossentropy_onehot_grad(fgraph, node):
             out_grad = -out_grad
             incr = incr.owner.inputs[0]
 
-        if incr.owner and incr.owner.op == true_div:
+        if incr.owner and incr.owner.op == true_divide:
             num, denom = incr.owner.inputs
 
             # set out_grad according to the numerator, it may be divided later
@@ -1406,7 +1406,7 @@ def local_advanced_indexing_crossentropy_onehot_grad(fgraph, node):
         # it was really case 1.
 
     # Second case
-    elif d_sm.owner and d_sm.owner.op == true_div:
+    elif d_sm.owner and d_sm.owner.op == true_divide:
         # we're looking for
         # AdvIncSubtensor(zeros, grad_nll, arange(len(y)), y) / softmax
         try:

@@ -109,7 +109,7 @@ from aesara.tensor.math import (
     sub,
 )
 from aesara.tensor.math import sum as at_sum
-from aesara.tensor.math import tan, tanh, tensordot, true_div, trunc, var
+from aesara.tensor.math import tan, tanh, tensordot, true_divide, trunc, var
 from aesara.tensor.type import (
     TensorType,
     complex_dtypes,
@@ -327,7 +327,7 @@ _grad_broadcast_div_mod_normal = dict(
 # fmt: on
 
 TestTrueDivBroadcast = makeBroadcastTester(
-    op=true_div,
+    op=true_divide,
     expected=_numpy_true_div,
     good=_good_broadcast_div_mod_normal_float_no_complex,
     grad=_grad_broadcast_div_mod_normal,
@@ -1832,8 +1832,8 @@ class TestDivimpl:
         assert np.allclose(function([i, f], f / i)(5, 11.0), (11.0 / 5.0))
         assert np.allclose(function([i, ii], i // ii)(5, 3), (5 // 3))
         assert np.allclose(function([i, ii], ii // i)(5, 3), (3 // 5))
-        assert np.allclose(function([i, ii], true_div(i, ii))(5, 3), (5.0 / 3.0))
-        assert np.allclose(function([i, ii], true_div(ii, i))(5, 3), (3.0 / 5.0))
+        assert np.allclose(function([i, ii], true_divide(i, ii))(5, 3), (5.0 / 3.0))
+        assert np.allclose(function([i, ii], true_divide(ii, i))(5, 3), (3.0 / 5.0))
         assert np.allclose(function([i, c], i / c)(5, complex(5, 3)), (5.0 / (5 + 3j)))
         assert np.allclose(function([i, c], c / i)(5, complex(5, 3)), ((5 + 3j) / 5.0))
 

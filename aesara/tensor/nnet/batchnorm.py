@@ -5,7 +5,7 @@ from aesara.configdefaults import config
 from aesara.graph.basic import Apply
 from aesara.graph.op import Op
 from aesara.graph.rewriting.basic import copy_stack_trace, node_rewriter
-from aesara.scalar import Composite, add, as_common_dtype, mul, sub, true_div
+from aesara.scalar import Composite, add, as_common_dtype, mul, sub, true_divide
 from aesara.tensor import basic as at
 from aesara.tensor.basic import as_tensor_variable
 from aesara.tensor.elemwise import Elemwise
@@ -27,7 +27,7 @@ class BNComposite(Composite):
         std = aesara.scalar.ScalarType(dtype=dtype).make_variable()
         gamma = aesara.scalar.ScalarType(dtype=dtype).make_variable()
         beta = aesara.scalar.ScalarType(dtype=dtype).make_variable()
-        o = add(mul(true_div(sub(x, mean), std), gamma), beta)
+        o = add(mul(true_divide(sub(x, mean), std), gamma), beta)
         inputs = [x, mean, std, gamma, beta]
         outputs = [o]
         super().__init__(inputs, outputs)

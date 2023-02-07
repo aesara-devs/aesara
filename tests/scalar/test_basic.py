@@ -53,7 +53,7 @@ from aesara.scalar.basic import (
     switch,
     tan,
     tanh,
-    true_div,
+    true_divide,
     uint8,
 )
 from aesara.tensor.type import fscalar, imatrix, iscalar, matrix
@@ -62,7 +62,7 @@ from tests.link.test_link import make_function
 
 def test_mul_add_true():
     x, y, z = floats("xyz")
-    e = mul(add(x, y), true_div(x, y))
+    e = mul(add(x, y), true_divide(x, y))
     g = FunctionGraph([x, y], [e])
     fn = make_function(DualLinker().accept(g))
     assert fn(1.0, 2.0) == 1.5
@@ -108,7 +108,7 @@ class TestComposite:
 
     def test_straightforward(self):
         x, y, z = floats("xyz")
-        e = mul(add(x, y), true_div(x, y))
+        e = mul(add(x, y), true_divide(x, y))
         C = Composite([x, y], [e])
         c = C.make_node(x, y)
         # print c.c_code(['x', 'y'], ['z'], dict(id = 0))
@@ -130,7 +130,7 @@ class TestComposite:
 
     def test_with_constants(self):
         x, y, z = floats("xyz")
-        e = mul(add(70.0, y), true_div(x, y))
+        e = mul(add(70.0, y), true_divide(x, y))
         comp_op = Composite([x, y], [e])
         comp_node = comp_op.make_node(x, y)
 
@@ -367,10 +367,10 @@ class TestUpgradeToFloat:
         xf = ScalarType(aesara.config.floatX)("xf")
         yf = ScalarType(aesara.config.floatX)("yf")
 
-        ei = true_div(xi, yi)
+        ei = true_divide(xi, yi)
         fi = aesara.function([xi, yi], ei)
 
-        ef = true_div(xf, yf)
+        ef = true_divide(xf, yf)
         ff = aesara.function([xf, yf], ef)
 
         for x_val in x_range:

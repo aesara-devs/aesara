@@ -52,7 +52,7 @@ from aesara.tensor.math import (
 from aesara.tensor.math import pow as at_pow
 from aesara.tensor.math import softplus, sqrt, sub
 from aesara.tensor.math import sum as at_sum
-from aesara.tensor.math import true_div
+from aesara.tensor.math import true_divide
 from aesara.tensor.rewriting.basic import (
     assert_op,
     local_alloc_sink_dimshuffle,
@@ -898,7 +898,7 @@ class TestLocalSwitchSink:
                 (dvector("x"), self.xv),
                 (dscalar("x"), self.xs),
             ]:
-                y = true_div(
+                y = true_divide(
                     at.switch(condition[0] > 0, 1.0 * x[0], 0.0 * x[0]),
                     at.switch(condition[0] > 0, 1.0 * x[0], log(c) * x[0]),
                 )
@@ -1083,7 +1083,7 @@ class TestLocalMergeSwitchSameCond:
             add,
             sub,
             mul,
-            true_div,
+            true_divide,
             int_div,
             floor_div,
             minimum,
@@ -1447,7 +1447,7 @@ def test_local_upcast_elemwise_constant_inputs():
     # This tests a corner case for which the rewrite should not be applied.
     with config.change_flags(floatX="float32"):
         v = lvector()
-        function([v], true_div(v, 2))
+        function([v], true_divide(v, 2))
 
 
 def test_assert_op_gradient():

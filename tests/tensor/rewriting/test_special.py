@@ -9,7 +9,7 @@ from aesara.configdefaults import config
 from aesara.graph.fg import FunctionGraph
 from aesara.graph.rewriting.basic import check_stack_trace
 from aesara.graph.rewriting.db import RewriteDatabaseQuery
-from aesara.tensor.math import add, exp, log, true_div
+from aesara.tensor.math import add, exp, log, true_divide
 from aesara.tensor.special import LogSoftmax, Softmax, SoftmaxGrad, softmax
 from aesara.tensor.type import matrix
 from tests import unittest_tools as utt
@@ -78,7 +78,7 @@ class TestLogSoftmaxRewrites:
         softmax_grad_node = g.owner
         assert softmax_grad_node.op == SoftmaxGrad(axis=-1)
         true_div_node = softmax_grad_node.inputs[0].owner
-        assert true_div_node.op == true_div
+        assert true_div_node.op == true_divide
 
         # We replace thk elemwise true_div op by an elemwise add.
         new_g = SoftmaxGrad(axis=-1)(
