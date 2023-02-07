@@ -16,8 +16,6 @@ This is a good way to make sure that proposed changes will be accepted.
 Resources
 =========
 
-See :ref:`aesara-community` for a list of Aesara resources.
-
 The Theano Google group is also relevant to (early) Aesara versions:
 `theano-dev`_.
 
@@ -75,9 +73,6 @@ Documentation and docstrings
   `cross-referencing objects <http://www.sphinx-doc.org/en/stable/domains.html#cross-referencing-python-objects>`_
   syntax. ``:py`` can be omitted, see e.g. this
   `stackoverflow answer <http://stackoverflow.com/a/7754189>`_.
-
-* See :ref:`metadocumentation`, for some information on how to generate the
-  documentation.
 
 
 A Docstring Example

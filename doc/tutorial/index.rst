@@ -29,36 +29,10 @@ Basics
 
     adding
     examples
-    gradients
-    conditions
-    loop
-    shape_info
-    broadcasting
-
-Advanced
---------
-
-.. toctree::
-
-    sparse
-
-Advanced configuration and debugging
-------------------------------------
-
-.. toctree::
-
-    modes
-    printing_drawing
-    debug_faq
-    nan_tutorial
-    profiling
 
 Further reading
 ---------------
 
 .. toctree::
 
-    loading_and_saving
-    aliasing
-    multi_cores
     faq_tutorial

@@ -14,7 +14,7 @@ efficiently. It is composed of different parts:
 - **Powerful rewrite system** to programmatically modify your models
 - **Extendable backends.** Aesara currently compiles to C, Jax and Numba.
 
-.. image:: _static/aesara_overview_diagram.png
+.. image:: ./images/aesara_overview_diagram.png
    :width: 100%
    :alt: Overview of Aesara
 
@@ -99,20 +99,42 @@ Community
 
 .. toctree::
     :maxdepth: 1
+    :caption: Introduction
     :hidden:
 
     introduction
+    Mission <mission>
     install
     help
+
+.. toctree::
+    :maxdepth: 1
+    :caption: Working with Aesara
+    :hidden:
+
+    reference/index
+    troubleshoot/index
+    extend/index
+
+.. toctree::
+    :maxdepth: 1
+    :caption: Understanding Aesara
+    :hidden:
+
+    fundamentals/graph/index
+    fundamentals/compilation/index
+    fundamentals/rewrites/index
+
+.. toctree::
+    :maxdepth: 1
+    :caption: Legacy
+    :hidden:
+
     tutorial/index
-    extending/index
     dev_start_guide
-    optimizations
     library/index
-    troubleshooting
+    sandbox/index
     glossary
-    links
-    internal/index
     acknowledgement
 
 
