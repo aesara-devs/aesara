@@ -70,7 +70,7 @@ from aesara.tensor.math import maximum, mul, neg
 from aesara.tensor.math import pow as at_pow
 from aesara.tensor.math import prod, reciprocal, sgn, sigmoid, softplus, sqr, sqrt, sub
 from aesara.tensor.math import sum as at_sum
-from aesara.tensor.math import true_div
+from aesara.tensor.math import true_divide
 from aesara.tensor.rewriting.basic import (
     broadcast_like,
     encompasses_broadcastable,
@@ -568,7 +568,7 @@ def local_mul_switch_sink(fgraph, node):
 
 
 @register_canonicalize
-@node_rewriter([true_div, int_div])
+@node_rewriter([true_divide, int_div])
 def local_div_switch_sink(fgraph, node):
     """
     This rewrite makes the following changes in the graph:
@@ -584,7 +584,7 @@ def local_div_switch_sink(fgraph, node):
     See `local_mul_switch_sink` for more details.
 
     """
-    if node.op != true_div and node.op != int_div:
+    if node.op != true_divide and node.op != int_div:
         return False
     op = node.op
     if node.inputs[0].owner and node.inputs[0].owner.op == switch:
@@ -660,7 +660,7 @@ class AlgebraicCanonizer(NodeRewriter):
         mul
     inverse
         An `Op` class such that ``inverse(main(x, y), y) == x``
-        (e.g. `sub` or `true_div`).
+        (e.g. `sub` or `true_divide`).
     reciprocal
         A function such that ``main(x, reciprocal(y)) == inverse(x, y)``
         (e.g. `neg` or `reciprocal`).
@@ -679,7 +679,7 @@ class AlgebraicCanonizer(NodeRewriter):
     >>> from aesara.tensor.rewriting.math import AlgebraicCanonizer
     >>> add_canonizer = AlgebraicCanonizer(add, sub, neg, \\
     ...                                    lambda n, d: sum(n) - sum(d))
-    >>> mul_canonizer = AlgebraicCanonizer(mul, true_div, inv, \\
+    >>> mul_canonizer = AlgebraicCanonizer(mul, true_divide, inv, \\
     ...                                    lambda n, d: prod(n) / prod(d))
 
     Examples of rewrites `mul_canonizer` can perform:
@@ -1104,7 +1104,7 @@ def mul_calculate(num, denum, aslist=False, out_type=None):
 
 
 local_mul_canonizer = AlgebraicCanonizer(
-    mul, true_div, reciprocal, mul_calculate, False
+    mul, true_divide, reciprocal, mul_calculate, False
 )
 register_canonicalize(local_mul_canonizer, name="local_mul_canonizer")
 
@@ -1459,7 +1459,7 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
         if axis is None:
             axis = list(range(node.inputs[0].ndim))
         node_input = node.inputs[0]
-        if node_input.owner and node_input.owner.op == true_div:
+        if node_input.owner and node_input.owner.op == true_divide:
             numerator, denominator = node_input.owner.inputs
 
             if denominator.owner and isinstance(denominator.owner.op, DimShuffle):
@@ -1505,13 +1505,13 @@ def local_sum_prod_div_dimshuffle(fgraph, node):
 
                     if isinstance(node.op, Sum):
                         op_on_compatible_dims = at_sum(numerator, axis=compatible_dims)
-                        rval = true_div(op_on_compatible_dims, optimized_dimshuffle)
+                        rval = true_divide(op_on_compatible_dims, optimized_dimshuffle)
                         if len(reordered_incompatible_dims) > 0:
                             rval = at_sum(rval, axis=reordered_incompatible_dims)
                     elif isinstance(node.op, Prod):
                         op_on_compatible_dims = prod(numerator, axis=compatible_dims)
                         dtype = numerator.dtype
-                        rval = true_div(
+                        rval = true_divide(
                             op_on_compatible_dims,
                             (
                                 optimized_dimshuffle
@@ -1803,18 +1803,18 @@ def local_neg_div_neg(fgraph, node):
 
     """
     if node.op == neg:
-        if node.inputs[0].owner and node.inputs[0].owner.op == true_div:
+        if node.inputs[0].owner and node.inputs[0].owner.op == true_divide:
             frac = node.inputs[0]
             num, denom = frac.owner.inputs
             if num.owner and num.owner.op == neg:
                 if len(fgraph.clients[frac]) == 1:
                     # No other clients of the original division
                     new_num = num.owner.inputs[0]
-                    return [true_div(new_num, denom)]
+                    return [true_divide(new_num, denom)]
             elif all(num.broadcastable) and isinstance(num, Constant):
                 if len(fgraph.clients[frac]) == 1:
                     new_num = -num.data
-                    return [true_div(new_num, denom)]
+                    return [true_divide(new_num, denom)]
 
 
 @register_canonicalize
@@ -1888,9 +1888,9 @@ def local_mul_zero(fgraph, node):
 
 # TODO: Add this to the canonicalization to reduce redundancy.
 @register_specialize
-@node_rewriter([true_div])
+@node_rewriter([true_divide])
 def local_div_to_reciprocal(fgraph, node):
-    if node.op == true_div and np.all(get_constant(node.inputs[0]) == 1.0):
+    if node.op == true_divide and np.all(get_constant(node.inputs[0]) == 1.0):
         out = node.outputs[0]
         new_out = reciprocal(local_mul_canonizer.merge_num_denum(node.inputs[1:], []))
         # The ones could have forced upcasting
@@ -1951,7 +1951,7 @@ def local_intdiv_by_one(fgraph, node):
 
 @register_canonicalize
 @register_specialize
-@node_rewriter([int_div, true_div])
+@node_rewriter([int_div, true_divide])
 def local_zero_div(fgraph, node):
     """0 / x -> 0"""
     if isinstance(node.op, Elemwise) and isinstance(
@@ -2238,13 +2238,13 @@ def local_abs_lift(fgraph, node):
         assert node.nin == 1
         if node.inputs[0].owner.op == mul:
             return [mul(*[at_abs(i) for i in node.inputs[0].owner.inputs])]
-        if node.inputs[0].owner.op == true_div:
+        if node.inputs[0].owner.op == true_divide:
             i = node.inputs[0].owner.inputs
-            return [true_div(at_abs(i[0]), at_abs(i[1]))]
+            return [true_divide(at_abs(i[0]), at_abs(i[1]))]
 
 
 @register_specialize
-@node_rewriter([mul, true_div])
+@node_rewriter([mul, true_divide])
 def local_abs_merge(fgraph, node):
     """
     Merge abs generated by local_abs_lift when the canonizer don't
@@ -2268,12 +2268,14 @@ def local_abs_merge(fgraph, node):
                 return False
         return [at_abs(mul(*inputs))]
     if (
-        node.op == true_div
+        node.op == true_divide
         and sum(i.owner.op == at_abs for i in node.inputs if i.owner) == 2
     ):
         return [
             at_abs(
-                true_div(node.inputs[0].owner.inputs[0], node.inputs[1].owner.inputs[0])
+                true_divide(
+                    node.inputs[0].owner.inputs[0], node.inputs[1].owner.inputs[0]
+                )
             )
         ]
 
@@ -2516,7 +2518,7 @@ def attempt_distribution(factor, num, denum, out_type):
 
 @register_canonicalize
 @register_stabilize
-@node_rewriter([mul, true_div, reciprocal])
+@node_rewriter([mul, true_divide, reciprocal])
 def local_greedy_distributor(fgraph, node):
     """Reduce the number of multiplications and/or divisions.
 
@@ -2529,7 +2531,7 @@ def local_greedy_distributor(fgraph, node):
     The following expressions are simplified:
     1. ``((a/x + b/y) * x * y) -> a*y + b*x``
     2. ``((a/x + b) * x) -> a + b*x``
-    3. There are other forms too where node is a true_div.
+    3. There are other forms too where node is a true_divide.
 
     The following expressions are not simplified:
     4. ``((a + b) * x) /> a*x + b*x``
@@ -2708,7 +2710,7 @@ def local_log_erfc(fgraph, node):
 
 @register_stabilize
 @register_specialize
-@node_rewriter([true_div])
+@node_rewriter([true_divide])
 def local_grad_log_erfc_neg(fgraph, node):
     """Stability rewrite for the grad of ``log(erfc(x))``.
 
@@ -2729,7 +2731,7 @@ def local_grad_log_erfc_neg(fgraph, node):
     Make it so that the test does not generate an error in that case!
 
     """
-    if node.op != true_div:
+    if node.op != true_divide:
         return False
     if not node.inputs[1].owner or node.inputs[1].owner.op != erfc:
         return False
@@ -2865,7 +2867,7 @@ def local_grad_log_erfc_neg(fgraph, node):
         return None
 
     # we move the y outside the div.
-    true_div_no_mul = true_div(exp_in, erfc_in)
+    true_div_no_mul = true_divide(exp_in, erfc_in)
     true_div_no_mul.owner.tag.local_grad_log_erfc_neg = True
 
     # aaron value
@@ -3153,7 +3155,7 @@ def is_neg(var):
 
 
 @register_stabilize
-@node_rewriter([true_div])
+@node_rewriter([true_divide])
 def local_exp_over_1_plus_exp(fgraph, node):
     """
 
@@ -3163,7 +3165,7 @@ def local_exp_over_1_plus_exp(fgraph, node):
     """
     # This rewrite should be done for numerical stability
     # so we don't care to check client counts
-    if node.op == true_div:
+    if node.op == true_divide:
 
         # find all the exp() terms in the numerator
         num, denom = node.inputs
@@ -3540,7 +3542,7 @@ def local_reciprocal_1_plus_exp(fgraph, node):
     """``reciprocal(1+exp(x)) -> sigm(-x)``
 
     TODO: This is redundant; we can just decided on *one* canonical form
-    for division (e.g. either `true_div` or `reciprocal`) and have this
+    for division (e.g. either `true_divide` or `reciprocal`) and have this
     taken care of with existing rewrites.
     """
     # This Rewrite should be done for numerical stability
@@ -3592,7 +3594,7 @@ register_stabilize(log1pmexp_to_log1mexp, name="log1pmexp_to_log1mexp")
 # log(sigmoid(x) / (1 - sigmoid(x))) -> x
 # i.e logit(sigmoid(x)) -> x
 local_logit_sigmoid = PatternNodeRewriter(
-    (log, (true_div, (sigmoid, "x"), (sub, 1, (sigmoid, "x")))),
+    (log, (true_divide, (sigmoid, "x"), (sub, 1, (sigmoid, "x")))),
     "x",
     tracks=[sigmoid],
     get_nodes=get_clients_at_depth2,
@@ -3606,7 +3608,7 @@ register_specialize(local_logit_sigmoid)
 # sigmoid(log(x / (1-x)) -> x
 # i.e., sigmoid(logit(x)) -> x
 local_sigmoid_logit = PatternNodeRewriter(
-    (sigmoid, (log, (true_div, "x", (sub, 1, "x")))),
+    (sigmoid, (log, (true_divide, "x", (sub, 1, "x")))),
     "x",
     allow_multiple_clients=True,
     name="local_sigmoid_logit",

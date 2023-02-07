@@ -1210,7 +1210,7 @@ def test_broadcast_shape_symbolic_one_symbolic():
     three_at = at.as_tensor(3, dtype=np.int64)
     int_div = one_at / one_at
 
-    assert int_div.owner.op == at.true_div
+    assert int_div.owner.op == at.true_divide
 
     index_shapes = [
         (one_at, one_at, three_at),

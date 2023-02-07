@@ -325,7 +325,7 @@ class Elemwise(OpenMPOp):
     -``Elemwise(add, {0 : 1})``: represents ``+=`` on the second argument ``y += x``
     -``Elemwise(mul)(np.random.random((10, 5)), np.random.random((1, 5)))``:
     the second input is completed along the first dimension to match the first input
-    -``Elemwise(true_div)(np.random.random(10, 5), np.random.random(10, 1))``: same but along the
+    -``Elemwise(true_divide)(np.random.random(10, 5), np.random.random(10, 1))``: same but along the
     second dimension
     -``Elemwise(int_div)(np.random.random((1, 5)), np.random.random((10, 1)))``:
     the output has size ``(10, 5)``.

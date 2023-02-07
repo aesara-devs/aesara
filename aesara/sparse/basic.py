@@ -323,7 +323,7 @@ def override_dense(*methods):
     "__pow__",
     "__mod__",
     "__divmod__",
-    "__truediv__",
+    "__truedivide__",
     "__floordiv__",
     "reshape",
     "dimshuffle",

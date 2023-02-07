@@ -793,8 +793,8 @@ class _scalar_py_operators:
     def __mul__(self, other):
         return mul(self, other)
 
-    def __truediv__(self, other):
-        return true_div(self, other)
+    def __truedivide__(self, other):
+        return true_divide(self, other)
 
     def __floordiv__(self, other):
         return int_div(self, other)
@@ -2035,7 +2035,7 @@ class TrueDiv(BinaryScalarOp):
         return first_part, second_part
 
 
-true_div = TrueDiv(upcast_out, name="true_div")
+true_divide = TrueDiv(upcast_out, name="true_divide")
 
 
 class IntDiv(BinaryScalarOp):
@@ -2869,7 +2869,7 @@ pprint.assign(add, printing.OperatorPrinter("+", -2, "either"))
 pprint.assign(mul, printing.OperatorPrinter("*", -1, "either"))
 pprint.assign(sub, printing.OperatorPrinter("-", -2, "left"))
 pprint.assign(neg, printing.OperatorPrinter("-", 0, "either"))
-pprint.assign(true_div, printing.OperatorPrinter("/", -1, "left"))
+pprint.assign(true_divide, printing.OperatorPrinter("/", -1, "left"))
 pprint.assign(int_div, printing.OperatorPrinter("//", -1, "left"))
 pprint.assign(pow, printing.OperatorPrinter("**", 1, "right"))
 pprint.assign(mod, printing.OperatorPrinter("%", -1, "left"))

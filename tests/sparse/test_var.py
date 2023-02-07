@@ -128,7 +128,7 @@ class TestSparseVariable:
             ("__pow__", DenseTensorType),
             ("__mod__", DenseTensorType),
             ("__divmod__", DenseTensorType),
-            ("__truediv__", DenseTensorType),
+            ("__truedivide__", DenseTensorType),
             ("__floordiv__", DenseTensorType),
         ],
     )

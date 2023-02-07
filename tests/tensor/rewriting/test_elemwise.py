@@ -43,7 +43,7 @@ from aesara.tensor.math import reciprocal
 from aesara.tensor.math import round as at_round
 from aesara.tensor.math import sin, sinh, sqr, sqrt
 from aesara.tensor.math import sum as at_sum
-from aesara.tensor.math import tan, tanh, true_div, xor
+from aesara.tensor.math import tan, tanh, true_divide, xor
 from aesara.tensor.rewriting.elemwise import local_dimshuffle_lift
 from aesara.tensor.rewriting.shape import local_useless_dimshuffle_in_reshape
 from aesara.tensor.shape import reshape
@@ -611,7 +611,7 @@ class TestFusion:
                 "float32",
             ),
             (
-                fx - true_div(fy, 2),
+                fx - true_divide(fy, 2),
                 (fx, fy),
                 (fxv, fyv),
                 1,
@@ -619,7 +619,7 @@ class TestFusion:
                 "float32",
             ),
             (
-                fx - true_div(fy, fz),
+                fx - true_divide(fy, fz),
                 (fx, fy, fz),
                 (fxv, fyv, fzv),
                 1,
