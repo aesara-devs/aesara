@@ -379,7 +379,11 @@ class TensorType(CType[np.ndarray], HasDataType, HasShape):
 
     @property
     def ndim(self):
-        """The number of dimensions."""
+        """The number of dimensions that a `Variable``'s values
+        will have at evaluation time. This must be known when we are building
+        the expression graphs.
+
+        """
         return len(self.shape)
 
     def __str__(self):

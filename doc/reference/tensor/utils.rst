@@ -1,15 +1,6 @@
-===================================================================
-:mod:`tensor.utils` --  Tensor Utils
-===================================================================
-
-.. testsetup::
-
-   from aesara.tensor.utils import *
-
-.. module:: tensor.utils
-   :platform: Unix, Windows
-   :synopsis: Tensor Utils
-.. moduleauthor:: LISA
+============
+Tensor utils
+============
 
 .. automodule:: aesara.tensor.utils
     :members:

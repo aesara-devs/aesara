@@ -7,7 +7,7 @@ More Examples
 
 At this point it would be wise to begin familiarizing yourself more
 systematically with Aesara's fundamental objects and operations by
-browsing this section of the library: :ref:`libdoc_basic_tensor`.
+browsing this section of the library: :ref:`reference_tensor`.
 
 As the tutorial unfolds, you should also gradually acquaint yourself
 with the other relevant areas of the library and with the relevant
