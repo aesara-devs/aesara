@@ -14,6 +14,8 @@ Aesara is a Python library that allows one to define, optimize, and
 efficiently evaluate mathematical expressions involving multi-dimensional
 arrays.
 
+*A fast and hackable meta-tensor library in Python*
+
 [Features](#features) •
 [Get Started](#get-started) •
 [Install](#install) •
