@@ -2037,6 +2037,8 @@ class TrueDiv(BinaryScalarOp):
 
 true_divide = TrueDiv(upcast_out, name="true_divide")
 
+true_div = true_divide
+
 
 class IntDiv(BinaryScalarOp):
     nfunc_spec = ("floor_divide", 2, 1)
