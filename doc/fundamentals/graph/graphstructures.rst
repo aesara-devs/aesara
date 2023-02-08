@@ -212,7 +212,7 @@ Every symbolic :class:`Variable` in an Aesara graph has an associated
 constructing :class:`Variable` instances.  In other words, :class:`Type`\s and
 :class:`Variable`\s go hand-in-hand.
 
-For example, :ref:`aesara.tensor.irow <libdoc_tensor_creation>` is an instance of a
+For example, :ref:`aesara.tensor.irow <reference_tensor_create>` is an instance of a
 :class:`Type` and it can be used to construct variables as follows:
 
 >>> from aesara.tensor import irow

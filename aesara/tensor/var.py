@@ -289,6 +289,12 @@ class _tensor_py_operators:
     def reshape(self, shape, ndim=None):
         """Return a reshaped view/copy of this variable.
 
+        Returns a view of this ``Variable`` that has been reshaped as in
+        `numpy.reshape`.  If the shape is a `Variable` argument, then you might
+        need to use the optional `ndim` parameter to declare how many elements
+        the shape has, and therefore how many dimensions the reshaped ``Variable``
+        will have.
+
         Parameters
         ----------
         shape
@@ -316,6 +322,22 @@ class _tensor_py_operators:
         """
         Reorder the dimensions of this variable, optionally inserting
         broadcasted dimensions.
+
+        Returns a view of this variable with permuted dimensions.  Typically the
+        pattern will include the integers ``0, 1, ... ndim-1``, and any number of
+        ``'x'`` characters in dimensions where this variable should be broadcasted.
+
+        A few examples of patterns and their effect:
+
+            * ``('x',)``: make a 0d (scalar) into a 1d vector
+            * ``(0, 1)``: identity for 2d vectors
+            * ``(1, 0)``: inverts the first and second dimensions
+            * ``('x', 0)``: make a row out of a 1d vector (N to 1xN)
+            * ``(0, 'x')``: make a column out of a 1d vector (N to Nx1)
+            * ``(2, 0, 1)``: AxBxC to CxAxB
+            * ``(0, 'x', 1)``: AxB to Ax1xB
+            * ``(1, 'x', 0)``: AxB to Bx1xA
+            * ``(1,)``: This removes the dimension at index 0. It must be a broadcastable dimension.
 
         Parameters
         ----------
@@ -347,9 +369,16 @@ class _tensor_py_operators:
         return op(self)
 
     def flatten(self, ndim=1):
+        """
+        Returns a view of this variable with `ndim` dimensions, whose shape for the first
+        ``ndim-1`` dimensions will be the same as ``self``, and shape in the
+        remaining dimension will be expanded to fit in all the data from ``self``.
+
+        """
         return at.basic.flatten(self, ndim)
 
     def ravel(self):
+        """See `flatten`."""
         return at.basic.flatten(self)
 
     def diagonal(self, offset=0, axis1=0, axis2=1):

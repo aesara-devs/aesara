@@ -15,5 +15,6 @@ Reference
    sparse/index
    shared/index
    serializing/index
+   rewrites/index
    multi_cores
    config

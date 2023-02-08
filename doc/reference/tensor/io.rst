@@ -1,11 +1,8 @@
-===================================================================
-:mod:`tensor.io` --  Tensor IO Ops
-===================================================================
+==========
+ Tensor IO
+==========
 
 .. module:: tensor.io
-   :platform: Unix, Windows
-   :synopsis: Tensor IO Ops
-.. moduleauthor:: LISA
 
 File operation
 ==============

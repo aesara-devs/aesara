@@ -33,6 +33,7 @@ sys.path.append(os.path.abspath(aesara_path))
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
     "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
     "sphinx.ext.todo",
     "sphinx.ext.doctest",
     "sphinx.ext.napoleon",
@@ -43,6 +44,7 @@ extensions = [
 todo_include_todos = True
 napoleon_google_docstring = False
 napoleon_include_special_with_doc = False
+autosummary_generate = True
 
 # We do it like this to support multiple sphinx version without having warning.
 # Our buildbot consider warning as error.

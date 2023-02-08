@@ -12,7 +12,7 @@ let's make a simple function: add two numbers together. Here is how you do
 it:
 
 >>> import numpy
->>> import aesara.tensor as at
+>>> import aesara.tensor as:ref:`M<`
 >>> from aesara import function
 >>> x = at.dscalar('x')
 >>> y = at.dscalar('y')
@@ -184,7 +184,7 @@ The following types are available:
 * **complex**: ``cscalar, cvector, cmatrix, crow, ccol, ctensor3, ctensor4, ctensor5, ctensor6, ctensor7``
 
 The previous list is not exhaustive and a guide to all types compatible
-with NumPy arrays may be found here: :ref:`tensor creation<libdoc_tensor_creation>`.
+with NumPy arrays may be found here: :ref:`tensor creation<reference_tensor_create>`.
 
 .. note::
 

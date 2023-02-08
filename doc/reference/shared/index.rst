@@ -1,7 +1,7 @@
 .. _reference_shared:
 
-Shared
-======
+Shared variables
+================
 
 .. toctree::
     :maxdepth: 1
