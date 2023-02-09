@@ -1065,10 +1065,40 @@ class TestRebuildStrict:
         assert np.all(z_val == np.ones((3, 5)) * np.arange(5))
 
 
-def test_rebuild_collect_shared():
+def test_rebuild_collect_shared_validation():
 
     x, y = ivectors("x", "y")
     z = x * y
 
     with pytest.raises(TypeError):
         rebuild_collect_shared([z], replace={1: 2})
+
+
+def test_rebuild_collect_shared_updates():
+    """Make sure that replaced variables with default updates don't include the updates."""
+
+    srng = at.random.RandomStream(239)
+
+    x = srng.gamma(0.5, 0.5, name="x")
+    y = srng.normal(x, name="y")
+
+    inputs = [x]
+    x_rng, y_rng = x.owner.inputs[0], y.owner.inputs[0]
+    shared_inputs = [x_rng, y_rng]
+    outputs = [y]
+    x_dmy, y_dmy = x_rng.type(), y_rng.type()
+    replacements = {x_rng: x_dmy, y_rng: y_dmy}
+
+    new = rebuild_collect_shared(
+        outputs,
+        inputs=inputs + shared_inputs,
+        replace=replacements,
+        copy_inputs_over=False,
+    )
+    (
+        local_inputs,
+        local_outputs,
+        (clone_d, update_d, update_expr, new_shared_inputs),
+    ) = new
+
+    assert not update_d
