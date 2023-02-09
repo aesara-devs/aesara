@@ -135,7 +135,7 @@ We welcome bug reports and fixes and improvements to the documentation.
 
 For more information on contributing, please see the
 [contributing guide](https://github.com/aesara-devs/aesara/blob/main/CONTRIBUTING.md)
-and the Aesara [Mission Statement](https://github.com/aesara-devs/aesara/mission.rst).
+and the Aesara [Mission Statement](https://github.com/aesara-devs/aesara/blob/main/doc/mission.rst).
 
 A good place to start contributing is by looking through [the issues][issues].
 
