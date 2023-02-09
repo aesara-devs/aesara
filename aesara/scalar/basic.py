@@ -4458,6 +4458,11 @@ DEPRECATED_NAMES = [
     ("Inv", "`Inv` is deprecated; use `Reciprocal` instead.", Reciprocal),
     ("inv", "`inv` is deprecated; use `reciprocal` instead.", reciprocal),
     ("Scalar", "`Scalar` is deprecated; use `ScalarType` instead.", ScalarType),
+    (
+        "true_div",
+        "`true_div` is deprecated; use `true_divide` or `divide` instead.",
+        true_div,
+    ),
 ]
 
 
