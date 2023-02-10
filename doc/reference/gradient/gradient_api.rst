@@ -1,8 +1,8 @@
-.. _reference_gradient:
+.. _reference_gradient_api:
 
-=========
-Gradients
-=========
+=============
+Gradients API
+=============
 
 
 Symbolic gradient is usually computed from :func:`gradient.grad`, which offers a
@@ -25,7 +25,7 @@ List of Implemented R op
 ========================
 
 
-See the :ref:`gradient tutorial <tutcomputinggrads>` for the R op documentation.
+See the :ref:`gradient tutorial <reference_gradient_tutorial>` for the R op documentation.
 
 list of ops that support R-op:
  * with test

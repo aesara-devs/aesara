@@ -325,7 +325,7 @@ these gradients can be composed in order to obtain the expression of the
 gradient of the graph's output with respect to the graph's inputs.
 
 A following section of this tutorial will examine the topic of
-:ref:`differentiation<tutcomputinggrads>` in greater detail.
+:ref:`differentiation<reference_gradient_tutorial>` in greater detail.
 
 Rewrites
 ========
