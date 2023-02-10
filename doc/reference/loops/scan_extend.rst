@@ -1,10 +1,10 @@
 .. _scan_internals:
 
-Developer documentation for `Scan`
-++++++++++++++++++++++++++++++++++
+`Scan` internals
+================
 
 Context
-=======
+-------
 
 This document is meant to act as reference material for developers working
 on Aesara's loop mechanism. This mechanism is called `Scan` and its internals
@@ -28,7 +28,7 @@ practical.
 
 
 Pre-requisites
-==============
+--------------
 
 The following sections assumes the reader is familiar with the following :
 
@@ -43,7 +43,7 @@ knowledge of:
 
 
 Relevant code files
-===================
+-------------------
 
 The implementation of `Scan` is spread over several files in
 ``aesara/scan``.  The different files, and sections of the code they
@@ -68,7 +68,7 @@ deal with, are :
 
 
 Notation
-========
+--------
 
 `Scan` being a sizeable and complex module, it has its own naming convention for
 functions and variables which this section will attempt to introduce.
@@ -89,7 +89,7 @@ designated **inner inputs** and **inner outputs**, respectively.
 
 
 `Scan` variables
-================
+----------------
 
 The following are the different types of variables that `Scan` has the
 capacity to handle, along with their various caracteristics.
@@ -158,10 +158,10 @@ Multiply-recurrent multiple outputs (MITMOT)                 Initial values for 
 .. _scan_internals_rewrites:
 
 Rewrites
-========
+--------
 
 `remove_constants_and_unused_inputs_scan`
------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This rewrite serves two purposes, The first is to remove a :class:`Scan`\ `Op`'s
 unused inputs. The second is to take a `Scan` `Op`'s constant inputs and remove
@@ -171,7 +171,7 @@ inner function.
 
 
 `PushOutNonSeqScan`
--------------------
+~~~~~~~~~~~~~~~~~~~
 
 This rewrite pushes sub-graphs that depends only on non-sequence inputs out of
 `Scan`'s inner function and into the outer function. Such computation ends up
@@ -181,7 +181,7 @@ computation that needs to be performed.
 
 
 `PushOutSeqScan`
-----------------
+~~~~~~~~~~~~~~~~
 
 This rewrite resembles `PushOutNonSeqScan` but it tries to push, out of
 the inner function, the computation that only relies on sequence and
@@ -193,7 +193,7 @@ increase memory usage but, in some specific cases, it can also decrease it.
 
 
 `PushOutScanOutput`
--------------------
+~~~~~~~~~~~~~~~~~~~
 
 This rewrite attempts to push out some of the computation at the end
 of the inner function to the outer function, to be executed after the `Scan`
@@ -203,7 +203,7 @@ increased memory usage.
 
 
 `PushOutDot1`
--------------
+~~~~~~~~~~~~~
 
 This is another rewrite that attempts to detect certain patterns of
 computation in a `Scan`\ `Op`'s inner function and move this computation to the
@@ -211,7 +211,7 @@ outer graph.
 
 
 `ScanInplaceOptimizer`
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
 
 This rewrite attempts to make `Scan` compute its recurrent outputs inplace
 on the input tensors that contain their initial states. This rewrite can
@@ -219,7 +219,7 @@ improve runtime performance as well as reduce memory usage.
 
 
 `ScanSaveMem`
--------------
+~~~~~~~~~~~~~
 
 This rewrite attempts to determine if a `Scan` node, during its execution,
 for any of its outputs, can get away with allocating a memory buffer that is
@@ -240,7 +240,7 @@ be kept in memory.
 
 
 `ScanMerge`
------------
+~~~~~~~~~~~
 
 This rewrite attempts to fuse distinct `Scan` nodes into a single `Scan` node
 that performs all the computation. The main advantage of merging `Scan` nodes
@@ -253,7 +253,7 @@ the graph can improve performance.
 
 
 `scan_merge_inouts`
--------------------
+~~~~~~~~~~~~~~~~~~~
 
 This rewrite attempts to merge a `Scan`\s identical outer inputs as well
 as merge its identical outer outputs (outputs that perform the same
@@ -263,7 +263,7 @@ function.
 
 
 Helper classes and functions
-============================
+----------------------------
 
 Because of the complexity involved in dealing with `Scan`, a large number of
 helper classes and functions have been developed over time to implement
@@ -274,7 +274,7 @@ by usage.
 
 
 Accessing/manipulating `Scan`'s inputs and outputs by type
-----------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Declared in ``utils.py``, the class `ScanArgs` handles the
 parsing of the inputs and outputs (both inner and outer) to a format
@@ -291,7 +291,7 @@ great care.
 
 
 Navigating between outer inputs/outputs and inner inputs/outputs
-----------------------------------------------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Navigation between these four sets of variables can be done in two ways,
 depending on the type of navigation that is required.

@@ -1,8 +1,8 @@
 .. _tutloop:
 
-=============
-Loop tutorial
-=============
+========
+Tutorial
+========
 
 
 Scan
@@ -417,16 +417,3 @@ Note that if you want to use a random variable ``d`` that will not be updated th
 .. testoutput::
 
     19.0
-
-
-
-
-Exercise
-========
-
-Run both examples.
-
-Modify and execute the polynomial example to have the reduction done by ``scan``.
-
-
-:download:`Solution<loop_solution_1.py>`

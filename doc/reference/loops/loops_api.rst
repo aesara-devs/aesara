@@ -1,11 +1,6 @@
 
 .. _reference_scan:
 
-=====
-Loops
-=====
-
-
 Guide
 =====
 
@@ -665,16 +660,3 @@ the small individual matrix multiplications would have produced. This
 rewrite replaces several small and inefficient matrix multiplications by
 a single larger one and thus improves performance at the cost of a potentially
 higher memory usage.
-
-
-reference
-=========
-
-.. automodule:: aesara.scan
-.. autofunction:: aesara.map
-.. autofunction:: aesara.reduce
-.. autofunction:: aesara.foldl
-.. autofunction:: aesara.foldr
-.. autofunction:: aesara.scan
-   :noindex:
-.. autofunction:: aesara.scan.scan_checkpoints
