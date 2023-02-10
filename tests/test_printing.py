@@ -510,10 +510,12 @@ def test_debugprint_inner_graph_default_updates():
 
     from aesara.compile.builders import OpFromGraph
 
-    igo = OpFromGraph([igo_in_1], [igo_out_1])
+    igo = OpFromGraph([r1, r2, igo_in_1], [igo_out_1])
 
     r3 = MyVariable("3")
-    out = igo(r3)
+    r4 = MyVariable("4")
+    r5 = MyVariable("5")
+    out = igo(r3, r4, r5)
 
     s = StringIO()
     debugprint(out, file=s, print_default_updates=True)
@@ -523,20 +525,21 @@ def test_debugprint_inner_graph_default_updates():
         r"""
         OpFromGraph{inline=False} [id A]
          |3 [id B]
-         |s [id C] <- [id D]
+         |4 [id C]
+         |5 [id D]
+         |s [id E] <- [id F]
 
         Inner graphs:
 
         OpFromGraph{inline=False} [id A]
-         >op2 [id E] 'igo1'
-         > |*0-<MyType()> [id F]
-         > |*1-<MyType()> [id G]
+         >op2 [id G] 'igo1'
+         > |*2-<MyType()> [id H]
+         > |*3-<MyType()> [id I]
 
         Default updates:
 
-        op1 [id D] 'o1'
-         |1 [id H]
-         |2 [id I]
+        UpdatePlaceholder [id F]
+         |s [id E] <- [id F]
         """
     ).lstrip()
 

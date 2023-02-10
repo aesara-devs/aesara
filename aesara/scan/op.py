@@ -750,7 +750,9 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             If ``True``, all the shared variables used in the inner-graph must be provided.
 
         """
-        self.fgraph, shared_inputs, _, _ = construct_nominal_fgraph(inputs, outputs)
+        self.fgraph, shared_inputs = construct_nominal_fgraph(inputs, outputs)
+
+        assert not self.fgraph.update_mapping
 
         # The shared variables should have been removed, so, if there are
         # any, it's because the user didn't specify an input.
