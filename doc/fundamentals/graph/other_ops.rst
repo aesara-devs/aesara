@@ -212,15 +212,6 @@ along with pointers to the relevant documentation.
         class
         `PyArrayObject <http://docs.scipy.org/doc/numpy/reference/c-api.types-and-structures.html#PyArrayObject>`_.
 
-*       :ref:`TypedList <libdoc_typed_list>` : Aesara type that represents a
-        typed list (a list where every element in the list has the same Aesara
-        type). Variables of this Aesara type are represented in C as objects
-        of class `PyListObject <https://docs.python.org/2/c-api/list.html>`_.
-
-*       :ref:`ScalarType <libdoc_scalar>` : Aesara type that represents a C
-        primitive type. The C type associated with this Aesara type is the
-        represented C primitive itself.
-
 *       :ref:`SparseTensorType <sparse_ops>` : Aesara `Type` used to represent sparse
         tensors. There is no equivalent C type for this Aesara `Type` but you
         can split a sparse variable into its parts as TensorVariables. Those

@@ -9,8 +9,3 @@ Building Aesara graphs
    loops/index
    gradient/index
    conditionals
-   Compile Aesara graphs <compile/index>
-   Serialize Aesara graphs <serializing/index>
-   rewrites/index
-   multi_cores
-   config

@@ -20,8 +20,7 @@ Graph and Node Rewriters
 
 There are two types of basic rewriters: *graph* rewriters and *node* rewriters.
 
-A graph rewriter takes a :class:`FunctionGraph` object (see its
-:doc:`documentation </library/graph/fgraph>` for more details) and navigates through it
+A graph rewriter takes a :class:`FunctionGraph` object and navigates through it
 in a suitable way, replacing some :class:`Variable`\s by others in the process.
 A node rewriter, on the other hand, is defined as a function on a
 *single* :ref:`apply` node and must return either ``False`` (to mean that

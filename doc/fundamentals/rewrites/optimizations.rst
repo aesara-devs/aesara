@@ -22,7 +22,7 @@ modes, 'o1' to 'o4', where 'o1' leads to fastest compile-time and 'o4' leads to
 fastest run-time in general.
 For an even faster run-time, we could disable assertions (which could be time
 consuming) for valid user inputs, using the optimization mode 'unsafe', but this
-is, as the name suggests, unsafe.  See :ref:`unsafe_rewrites`.
+is, as the name suggests, unsafe.
 
 ..  note::
 
@@ -265,5 +265,3 @@ Optimization                                              o4             o3  o2 
 	setting ``optimizer_including=local_remove_all_assert`` which will
 	remove all assertions in the graph for checking user inputs are valid.
         Use this optimization if you are sure everything is valid in your graph.
-
-	See :ref:`unsafe_rewrites`

@@ -952,10 +952,6 @@ Mathematical
    https://github.com/Theano/Theano_lgpl.git
 
 
-.. _libdoc_tensor_broadcastable:
-
-You can find more information about Broadcasting in the :ref:`tutbroadcasting` tutorial.
-
 Linear Algebra
 --------------
 

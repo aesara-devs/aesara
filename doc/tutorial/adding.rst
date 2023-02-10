@@ -171,7 +171,7 @@ array([[ 11.,  22.],
 
 It is possible to add scalars to matrices, vectors to matrices,
 scalars to vectors, etc. The behavior of these operations is defined
-by :ref:`broadcasting <libdoc_tensor_broadcastable>`.
+by :ref:`broadcasting rules<reference_shapes>`.
 
 The following types are available:
 

@@ -229,8 +229,7 @@ stabilize          "+++++"       "++"            Only applies stability rewrites
 =================  ============  ==============  ==================================================
 
 For a detailed list of the specific rewrites applied for each of these
-optimizers, see :ref:`optimizations`. Also, see :ref:`unsafe_rewrites` and
-:ref:`faster-aesara-function-compilation` for other trade-off.
+optimizers, see :ref:`optimizations`.
 
 
 .. _using_debugmode:
