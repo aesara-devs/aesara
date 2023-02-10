@@ -1,8 +1,7 @@
 
-.. _tutcomputinggrads:
+.. _reference_gradient_tutorial:
 
 
-=====================
 Derivatives in Aesara
 =====================
 
@@ -88,7 +87,7 @@ of symbolic differentiation).
    The first argument of `at.grad` has to be a scalar (a tensor
    of size 1). For more information on the semantics of the arguments of
    `at.grad` and details about the implementation, see
-   :ref:`this<reference_gradient>` section of the library.
+   :ref:`this<reference_gradient_api>` section of the library.
 
    Additional information on the inner workings of differentiation may also be
    found in the more advanced tutorial :ref:`Extending Aesara<extend>`.
