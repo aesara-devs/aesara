@@ -26,7 +26,10 @@ This section of the documentation is organized as follows:
     :hidden:
 
     tensor
-    create
-    operations
-    utils
-    io
+    Creation <create>
+    Operations <operations>
+    shapes
+    sparse/index
+    shared/index
+    Utils <utils>
+    IO <io>

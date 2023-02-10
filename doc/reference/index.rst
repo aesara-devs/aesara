@@ -1,6 +1,5 @@
-=========
-Reference
-=========
+Building Aesara graphs
+======================
 
 .. toctree::
    :caption: Reference
@@ -10,11 +9,8 @@ Reference
    loops/index
    gradient/index
    conditionals
-   compile/index
-   shapes/index
-   sparse/index
-   shared/index
-   serializing/index
+   Compile Aesara graphs <compile/index>
+   Serialize Aesara graphs <serializing/index>
    rewrites/index
    multi_cores
    config
