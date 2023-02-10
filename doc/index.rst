@@ -133,7 +133,6 @@ Community
     tutorial/index
     dev_start_guide
     library/index
-    sandbox/index
     glossary
     acknowledgement
 
