@@ -16,4 +16,4 @@ Troubleshoot
    debug_faq
    nan_tutorial
    troubleshooting
-   unittest
+   d3viz/index

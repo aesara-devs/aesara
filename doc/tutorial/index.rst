@@ -29,10 +29,3 @@ Basics
 
     adding
     examples
-
-Further reading
----------------
-
-.. toctree::
-
-    faq_tutorial

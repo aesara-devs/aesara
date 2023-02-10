@@ -634,9 +634,8 @@ your :class:`Op` works only with such matrices, you can disable the warning with
 Testing the gradient
 ^^^^^^^^^^^^^^^^^^^^
 
-The function :ref:`verify_grad <validating_grad>`
-verifies the gradient of an :class:`Op` or Aesara graph. It compares the
-analytic (symbolically computed) gradient and the numeric
+The function ``verify_grad`` verifies the gradient of an :class:`Op` or Aesara
+graph. It compares the analytic (symbolically computed) gradient and the numeric
 gradient (computed through the Finite Difference Method).
 
 If there is an error, the function raises an exception. If you want to
@@ -836,9 +835,6 @@ tag.
 
 Final Note
 ----------
-
-A more extensive discussion of this section's content may be found in
-the advanced tutorial :ref:`Extending Aesara<extend>`.
 
 The section :ref:`Other Ops <other_ops>` includes more instructions for
 the following specific cases:

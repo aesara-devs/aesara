@@ -89,9 +89,6 @@ of symbolic differentiation).
    `at.grad` and details about the implementation, see
    :ref:`this<reference_gradient_api>` section of the library.
 
-   Additional information on the inner workings of differentiation may also be
-   found in the more advanced tutorial :ref:`Extending Aesara<extend>`.
-
 Computing the Jacobian
 ======================
 

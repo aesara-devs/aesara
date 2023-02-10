@@ -11,3 +11,4 @@ Aesara Graphs
     type
     using_params
     other_ops
+    graph/index

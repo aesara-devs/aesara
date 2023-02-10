@@ -113,8 +113,10 @@ Community
     :hidden:
 
     reference/index
-    troubleshoot/index
-    extend/index
+    Compilation <compile/index>
+    Serialization <serializing/index>
+    Troubleshooting <troubleshoot/index>
+    Aesara configuration <config>
 
 .. toctree::
     :maxdepth: 1
@@ -127,12 +129,20 @@ Community
 
 .. toctree::
     :maxdepth: 1
-    :caption: Legacy
+    :caption: Extending Aesara
+    :hidden:
+
+    Ops <extend/op/index>
+    Rewrites <extend/rewrite>
+    Backends <extend/backend/index>
+
+.. toctree::
+    :maxdepth: 1
+    :caption: Reference
     :hidden:
 
     tutorial/index
     dev_start_guide
-    library/index
     glossary
     acknowledgement
 

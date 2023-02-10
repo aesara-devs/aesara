@@ -13,6 +13,7 @@ Compile
     io
     ops
     mode
+    rewrites/index
     modes
     debugmode
     nanguardmode
