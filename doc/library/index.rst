@@ -17,7 +17,6 @@ Modules
 
    d3viz/index
    graph/index
-   sandbox/index
    scalar/index
    typed_list
 
