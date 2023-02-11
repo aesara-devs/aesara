@@ -10,6 +10,131 @@
    :synopsis: defines aesara.shared and related classes
 .. moduleauthor:: LISA
 
+Using Shared Variables
+======================
+
+It is possible to make a function with an internal state. For
+example, let's say we want to make an accumulator: at the beginning,
+the state is initialized to zero, then, on each function call, the state
+is incremented by the function's argument.
+
+First let's define the *accumulator* function. It adds its argument to the
+internal state and returns the old state value.
+
+.. If you modify this code, also change :
+.. tests/test_tutorial.py:T_examples.test_examples_8
+
+>>> from aesara import shared
+>>> state = shared(0)
+>>> inc = at.iscalar('inc')
+>>> accumulator = function([inc], state, updates=[(state, state+inc)])
+
+This code introduces a few new concepts.  The ``shared`` function constructs
+so-called :ref:`shared variables<libdoc_compile_shared>`.
+These are hybrid symbolic and non-symbolic variables whose value may be shared
+between multiple functions.  Shared variables can be used in symbolic expressions just like
+the objects returned by `dmatrices` but they also have an internal
+value that defines the value taken by this symbolic variable in *all* the
+functions that use it.  It is called a *shared* variable because its value is
+shared between many functions.  The value can be accessed and modified by the
+:meth:`get_value` and :meth:`set_value` methods. We will come back to this soon.
+
+The other new thing in this code is the ``updates`` parameter of :func:`aesara.function`.
+``updates`` must be supplied with a list of pairs of the form (shared-variable, new expression).
+It can also be a dictionary whose keys are shared-variables and values are
+the new expressions.  Either way, it means "whenever this function runs, it
+will replace the :attr:`value` of each shared variable with the result of the
+corresponding expression".  Above, our accumulator replaces the ``state``'s value with the sum
+of the state and the increment amount.
+
+Let's try it out!
+
+.. If you modify this code, also change :
+.. tests/test_tutorial.py:T_examples.test_examples_8
+
+>>> print(state.get_value())
+0
+>>> accumulator(1)
+array(0)
+>>> print(state.get_value())
+1
+>>> accumulator(300)
+array(1)
+>>> print(state.get_value())
+301
+
+It is possible to reset the state. Just use the ``.set_value()`` method:
+
+>>> state.set_value(-1)
+>>> accumulator(3)
+array(-1)
+>>> print(state.get_value())
+2
+
+As we mentioned above, you can define more than one function to use the same
+shared variable.  These functions can all update the value.
+
+.. If you modify this code, also change :
+.. tests/test_tutorial.py:T_examples.test_examples_8
+
+>>> decrementor = function([inc], state, updates=[(state, state-inc)])
+>>> decrementor(2)
+array(2)
+>>> print(state.get_value())
+0
+
+You might be wondering why the updates mechanism exists.  You can always
+achieve a similar result by returning the new expressions, and working with
+them in NumPy as usual.  The updates mechanism can be a syntactic convenience,
+but it is mainly there for efficiency.  Updates to shared variables can
+sometimes be done more quickly using in-place algorithms (e.g. low-rank matrix
+updates).
+
+It may happen that you expressed some formula using a shared variable, but
+you do *not* want to use its value. In this case, you can use the
+``givens`` parameter of :func:`aesara.function` which replaces a particular node in a graph
+for the purpose of one particular function.
+
+.. If you modify this code, also change :
+.. tests/test_tutorial.py:T_examples.test_examples_8
+
+>>> fn_of_state = state * 2 + inc
+>>> # The type of foo must match the shared variable we are replacing
+>>> # with the ``givens``
+>>> foo = at.scalar(dtype=state.dtype)
+>>> skip_shared = function([inc, foo], fn_of_state, givens=[(state, foo)])
+>>> skip_shared(1, 3)  # we're using 3 for the state, not state.value
+array(7)
+>>> print(state.get_value())  # old state still there, but we didn't use it
+0
+
+The ``givens`` parameter can be used to replace any symbolic variable, not just a
+shared variable. You can replace constants, and expressions, in general.  Be
+careful though, not to allow the expressions introduced by a ``givens``
+substitution to be co-dependent, the order of substitution is not defined, so
+the substitutions have to work in any order.
+
+In practice, a good way of thinking about the ``givens`` is as a mechanism
+that allows you to replace any part of your formula with a different
+expression that evaluates to a tensor of same shape and dtype.
+
+.. note::
+
+    Aesara shared variable broadcast pattern default to ``False`` for each
+    dimensions. Shared variable size can change over time, so we can't
+    use the shape to find the broadcastable pattern. If you want a
+    different pattern, just pass it as a parameter
+    ``aesara.shared(..., broadcastable=(True, False))``
+
+.. note::
+    Use the ``shape`` parameter to specify tuples of static shapes instead;
+    the old broadcastable values are being phased-out.  Unknown shape values
+    for dimensions take the value ``None``; otherwise, integers are used for
+    known static shape values.
+    For example, ``aesara.shared(..., shape=(1, None))``.
+
+Reference
+=========
 
 .. class:: SharedVariable
 

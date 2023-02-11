@@ -6,10 +6,10 @@ If you need help with any aspect of Aesara, let us know! We would be happy to he
 Bugs and feature requests
 -------------------------
 
-Report bugs on GitHub on the Aesara `Issues page <https://github.com/aesara-devs/aesara/issues>`__. You can post feature requests on the `Discussions page <https://github.com/aesara-devs/aesara/discussions>`__.
-
 .. tip::
    Take a look at the :ref:`troubleshoot` section if you are encountering difficulties with Aesara.
+
+Report bugs on GitHub on the Aesara `Issues page <https://github.com/aesara-devs/aesara/issues>`__. You can post feature requests on the `Discussions page <https://github.com/aesara-devs/aesara/discussions>`__.
 
 Help using Aesara
 -----------------

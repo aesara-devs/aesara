@@ -103,8 +103,8 @@ Community
     :hidden:
 
     introduction
-    Mission <mission>
     install
+    how_to_think_in_aesara
     help
 
 .. toctree::
@@ -141,7 +141,7 @@ Community
     :caption: Reference
     :hidden:
 
-    tutorial/index
+    Mission <mission>
     dev_start_guide
     glossary
     acknowledgement
