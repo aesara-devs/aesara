@@ -30,6 +30,146 @@ The behaviour of function can be controlled in several ways, such as
 :class:`In`, :class:`Out`, ``mode``, ``updates``, and ``givens``.  These are covered
 in the :ref:`tutorial examples <basictutexamples>` and :ref:`tutorial on modes <using_modes>`.
 
+Computing More than one Thing at the Same Time
+==============================================
+
+Aesara supports functions with multiple outputs. For example, we can
+compute the :ref:`element-wise <libdoc_tensor_elemwise>` difference, absolute difference, and
+squared difference between two matrices ``a`` and ``b`` at the same time:
+
+.. If you modify this code, also change :
+.. tests/test_tutorial.py:T_examples.test_examples_3
+
+>>> a, b = at.dmatrices('a', 'b')
+>>> diff = a - b
+>>> abs_diff = abs(diff)
+>>> diff_squared = diff**2
+>>> f = aesara.function([a, b], [diff, abs_diff, diff_squared])
+
+.. note::
+   `dmatrices` produces as many outputs as names that you provide.  It is a
+   shortcut for allocating symbolic variables that we will often use in the
+   tutorials.
+
+When we use the function ``f``, it returns the three variables (the printing
+was reformatted for readability):
+
+>>> f([[1, 1], [1, 1]], [[0, 1], [2, 3]])
+[array([[ 1.,  0.],
+       [-1., -2.]]), array([[ 1.,  0.],
+       [ 1.,  2.]]), array([[ 1.,  0.],
+       [ 1.,  4.]])]
+
+
+Setting a Default Value for an Argument
+=======================================
+
+Let's say you want to define a function that adds two numbers, except
+that if you only provide one number, the other input is assumed to be
+one. You can do it like this:
+
+.. If you modify this code, also change :
+.. tests/test_tutorial.py:T_examples.test_examples_6
+
+>>> from aesara.compile.io import In
+>>> from aesara import function
+>>> x, y = at.dscalars('x', 'y')
+>>> z = x + y
+>>> f = function([x, In(y, value=1)], z)
+>>> f(33)
+array(34.0)
+>>> f(33, 2)
+array(35.0)
+
+This makes use of the :ref:`In <function_inputs>` class which allows
+you to specify properties of your function's parameters with greater detail. Here we
+give a default value of ``1`` for ``y`` by creating a :class:`In` instance with
+its ``value`` field set to ``1``.
+
+Inputs with default values must follow inputs without default values (like
+Python's functions).  There can be multiple inputs with default values. These
+parameters can be set positionally or by name, as in standard Python:
+
+
+.. If you modify this code, also change :
+.. tests/test_tutorial.py:T_examples.test_examples_7
+
+>>> x, y, w = at.dscalars('x', 'y', 'w')
+>>> z = (x + y) * w
+>>> f = function([x, In(y, value=1), In(w, value=2, name='w_by_name')], z)
+>>> f(33)
+array(68.0)
+>>> f(33, 2)
+array(70.0)
+>>> f(33, 0, 1)
+array(33.0)
+>>> f(33, w_by_name=1)
+array(34.0)
+>>> f(33, w_by_name=1, y=0)
+array(33.0)
+
+.. note::
+   `In` does not know the name of the local variables ``y`` and ``w``
+   that are passed as arguments.  The symbolic variable objects have name
+   attributes (set by `dscalars` in the example above) and *these* are the
+   names of the keyword parameters in the functions that we build.  This is
+   the mechanism at work in ``In(y, value=1)``.  In the case of ``In(w,
+   value=2, name='w_by_name')``. We override the symbolic variable's name
+   attribute with a name to be used for this function.
+
+
+You may like to see :ref:`Function<usingfunction>` in the library for more detail.
+
+
+Copying functions
+=================
+Aesara functions can be copied, which can be useful for creating similar
+functions but with different shared variables or updates. This is done using
+the :func:`aesara.compile.function.types.Function.copy` method of :class:`Function` objects.
+The optimized graph of the original function is copied, so compilation only
+needs to be performed once.
+
+Let's start from the accumulator defined above:
+
+>>> import aesara
+>>> import aesara.tensor as at
+>>> state = aesara.shared(0)
+>>> inc = at.iscalar('inc')
+>>> accumulator = aesara.function([inc], state, updates=[(state, state+inc)])
+
+We can use it to increment the state as usual:
+
+>>> accumulator(10)
+array(0)
+>>> print(state.get_value())
+10
+
+We can use :meth:`copy` to create a similar accumulator but with its own internal state
+using the ``swap`` parameter, which is a dictionary of shared variables to exchange:
+
+>>> new_state = aesara.shared(0)
+>>> new_accumulator = accumulator.copy(swap={state:new_state})
+>>> new_accumulator(100)
+[array(0)]
+>>> print(new_state.get_value())
+100
+
+The state of the first function is left untouched:
+
+>>> print(state.get_value())
+10
+
+We now create a copy with updates removed using the ``delete_updates``
+parameter, which is set to ``False`` by default:
+
+>>> null_accumulator = accumulator.copy(delete_updates=True)
+
+As expected, the shared state is no longer updated:
+
+>>> null_accumulator(9000)
+[array(10)]
+>>> print(state.get_value())
+10
 Reference
 =========
 

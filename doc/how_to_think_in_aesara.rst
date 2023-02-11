@@ -1,18 +1,17 @@
 .. _adding:
 
-====================
-Baby Steps - Algebra
-====================
+How to think in Aesara
+======================
 
 Adding two Scalars
-==================
+------------------
 
 To get us started with Aesara and get a feel of what we're working with,
 let's make a simple function: add two numbers together. Here is how you do
 it:
 
 >>> import numpy
->>> import aesara.tensor as:ref:`M<`
+>>> import aesara.tensor as at
 >>> from aesara import function
 >>> x = at.dscalar('x')
 >>> y = at.dscalar('y')
@@ -143,7 +142,7 @@ then be used like a normal Python function.
 
 
 Adding two Matrices
-===================
+-------------------
 
 You might already have guessed how to do this. Indeed, the only change
 from the previous example is that you need to instantiate *x* and
@@ -191,26 +190,3 @@ with NumPy arrays may be found here: :ref:`tensor creation<reference_tensor_crea
    You, the user---not the system architecture---have to choose whether your
    program will use 32- or 64-bit integers (``i`` prefix vs. the ``l`` prefix)
    and floats (``f`` prefix vs. the ``d`` prefix).
-
-
-
-Exercise
-========
-
-.. testcode::
-
-   import aesara
-   a = aesara.tensor.vector() # declare variable
-   out = a + a ** 10               # build symbolic expression
-   f = aesara.function([a], out)   # compile function
-   print(f([0, 1, 2]))
-
-.. testoutput::
-
-   [    0.     2.  1026.]
-
-
-Modify and execute this code to compute this expression: a ** 2 + b ** 2 + 2 * a * b.
-
-
-:download:`Solution<adding_solution_1.py>`
