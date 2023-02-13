@@ -142,6 +142,7 @@ Community
     :hidden:
 
     Mission <mission>
+    Roadmap <https://github.com/orgs/aesara-devs/projects/3>
     dev_start_guide
     glossary
     acknowledgement
