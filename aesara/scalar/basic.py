@@ -793,7 +793,7 @@ class _scalar_py_operators:
     def __mul__(self, other):
         return mul(self, other)
 
-    def __truedivide__(self, other):
+    def __truediv__(self, other):
         return true_divide(self, other)
 
     def __floordiv__(self, other):

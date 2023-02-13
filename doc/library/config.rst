@@ -278,7 +278,7 @@ import ``aesara`` and print the config variable, as in:
     release of Aesara).  It raises an error when one tries to perform such an
     operation, enforcing the use of the integer division operator (``//``). If a
     float result is desired, either cast one of the arguments to a float, or use
-    ``x.__truedivide__(y)``.
+    ``x.__truediv__(y)``.
 
 .. attribute:: mode
 

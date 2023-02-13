@@ -169,7 +169,7 @@ class _tensor_py_operators:
     def __divmod__(self, other):
         return at.math.divmod(self, other)
 
-    def __truedivide__(self, other):
+    def __truediv__(self, other):
         return at.math.true_divide(self, other)
 
     def __floordiv__(self, other):
