@@ -4461,7 +4461,7 @@ DEPRECATED_NAMES = [
     (
         "true_div",
         "`true_div` is deprecated; use `true_divide` or `divide` instead.",
-        true_div,
+        true_divide,
     ),
 ]
 
