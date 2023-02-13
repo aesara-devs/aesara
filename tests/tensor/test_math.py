@@ -3562,3 +3562,15 @@ def test_deprecations():
 
     with pytest.deprecated_call():
         from aesara.tensor.math import true_div  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.tensor import floor_div  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.tensor.math import floor_div  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.tensor import int_div  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.tensor.math import int_div  # noqa: F401 F811

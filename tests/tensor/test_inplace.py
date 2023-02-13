@@ -22,8 +22,8 @@ from aesara.tensor.inplace import (
     exp2_inplace,
     exp_inplace,
     expm1_inplace,
+    floor_divide_inplace,
     floor_inplace,
-    int_div_inplace,
     log1p_inplace,
     log2_inplace,
     log10_inplace,
@@ -46,7 +46,7 @@ from aesara.tensor.inplace import (
     sub_inplace,
     tan_inplace,
     tanh_inplace,
-    true_div_inplace,
+    true_divide_inplace,
     trunc_inplace,
     xor_inplace,
 )
@@ -131,7 +131,7 @@ TestMulInplaceBroadcast = makeBroadcastTester(
 )
 
 TestTrueDivInplaceBroadcast = makeBroadcastTester(
-    op=true_div_inplace,
+    op=true_divide_inplace,
     expected=_numpy_true_div,
     good=copymod(
         _good_broadcast_div_mod_normal_float_inplace,
@@ -191,7 +191,7 @@ TestAbsInplaceBroadcast = makeBroadcastTester(
 )
 
 TestIntDivInplaceBroadcast = makeBroadcastTester(
-    op=int_div_inplace,
+    op=floor_divide_inplace,
     expected=lambda x, y: check_floatX((x, y), x // y),
     good=_good_broadcast_div_mod_normal_float_inplace,
     # I don't test the grad as the output is always an integer

@@ -56,8 +56,8 @@ from aesara.tensor.math import (
     erfc,
     exp,
     expm1,
+    floor_divide,
     ge,
-    int_div,
     isinf,
     le,
     log,
@@ -576,7 +576,7 @@ def local_mul_switch_sink(fgraph, node):
 
 
 @register_canonicalize
-@node_rewriter([true_divide, int_div])
+@node_rewriter([true_divide, floor_divide])
 def local_div_switch_sink(fgraph, node):
     """
     This rewrite makes the following changes in the graph:
@@ -592,7 +592,7 @@ def local_div_switch_sink(fgraph, node):
     See `local_mul_switch_sink` for more details.
 
     """
-    if node.op != true_divide and node.op != int_div:
+    if node.op != true_divide and node.op != floor_divide:
         return False
     op = node.op
     if node.inputs[0].owner and node.inputs[0].owner.op == switch:
@@ -1947,10 +1947,10 @@ def local_mul_to_sqr(fgraph, node):
 
 
 @register_canonicalize
-@node_rewriter([int_div])
+@node_rewriter([floor_divide])
 def local_intdiv_by_one(fgraph, node):
     """x // 1 -> x"""
-    if node.op in [int_div]:
+    if node.op in [floor_divide]:
         if isinstance(node.inputs[1], TensorConstant) and np.all(
             node.inputs[1].value == 1
         ):
@@ -1959,7 +1959,7 @@ def local_intdiv_by_one(fgraph, node):
 
 @register_canonicalize
 @register_specialize
-@node_rewriter([int_div, true_divide])
+@node_rewriter([floor_divide, true_divide])
 def local_zero_div(fgraph, node):
     """0 / x -> 0"""
     if isinstance(node.op, Elemwise) and isinstance(

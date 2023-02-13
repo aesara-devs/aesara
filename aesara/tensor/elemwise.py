@@ -327,7 +327,7 @@ class Elemwise(OpenMPOp):
     the second input is completed along the first dimension to match the first input
     -``Elemwise(true_divide)(np.random.random(10, 5), np.random.random(10, 1))``: same but along the
     second dimension
-    -``Elemwise(int_div)(np.random.random((1, 5)), np.random.random((10, 1)))``:
+    -``Elemwise(floor_div)(np.random.random((1, 5)), np.random.random((10, 1)))``:
     the output has size ``(10, 5)``.
     -``Elemwise(log)(np.random.random((3, 4, 5)))``
 

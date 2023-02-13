@@ -1771,8 +1771,8 @@ def minimum(x, y):
 
 
 def divmod(x, y):
-    """elementvise divmod, using floor_div and mod_check"""
-    return floor_div(x, y), mod_check(x, y)
+    """Element-wise `divmod`, using `floor_divide` and `mod_check`."""
+    return floor_divide(x, y), mod_check(x, y)
 
 
 @scalar_elemwise
@@ -1800,13 +1800,9 @@ def true_divide(a, b):
 
 
 @scalar_elemwise
-def int_div(a, b):
+def floor_divide(a, b):
     """elementwise [floor] division (inverse of multiplication)"""
     # see decorator for function body
-
-
-# floor_div and int_div are the same thing
-floor_div = int_div
 
 
 def ceil_intdiv(a, b):
@@ -1824,7 +1820,7 @@ def ceil_intdiv(a, b):
 
     # We cast for the case when a and b are uint*; otherwise, neq will
     # force their upcast to int.
-    div = int_div(a, b)
+    div = floor_divide(a, b)
     ret = cast(neq(a % b, 0), div.dtype) + div
     assert ret.dtype == aes.upcast(
         div.owner.inputs[0].type.dtype, div.owner.inputs[1].type.dtype
@@ -1877,7 +1873,7 @@ pprint.assign(mul, printing.OperatorPrinter("*", -1, "either"))
 pprint.assign(sub, printing.OperatorPrinter("-", -2, "left"))
 pprint.assign(neg, printing.OperatorPrinter("-", 0, "either"))
 pprint.assign(true_divide, printing.OperatorPrinter("/", -1, "left"))
-pprint.assign(int_div, printing.OperatorPrinter("//", -1, "left"))
+pprint.assign(floor_divide, printing.OperatorPrinter("//", -1, "left"))
 pprint.assign(pow, printing.OperatorPrinter("**", 1, "right"))
 
 
@@ -3122,8 +3118,7 @@ __all__ = [
     "sub",
     "mul",
     "true_divide",
-    "int_div",
-    "floor_div",
+    "floor_divide",
     "ceil_intdiv",
     "mod",
     "pow",
@@ -3149,6 +3144,12 @@ DEPRECATED_NAMES: List[Tuple[str, str, object]] = [
         "true_div",
         "`true_div` is deprecated; use `true_divide` or `divide` instead.",
         true_divide,
+    ),
+    ("int_div", "`int_div` is deprecated; use `floor_divide` instead.", floor_divide),
+    (
+        "floor_div",
+        "`floor_div` is deprecated; use `floor_divide` instead.",
+        floor_divide,
     ),
 ]
 

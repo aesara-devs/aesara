@@ -68,7 +68,7 @@ class TestLogSoftmaxRewrites:
     def test_logsoftmax_grad_true_div_elemwise(self):
         """
         Checks that the gradient of an expression similar to a ``log(softmax)`` but
-        with a different elemwise operation than true_div is not rewritten.
+        with a different elemwise operation than true_divide is not rewritten.
         """
 
         x = matrix("x")
@@ -80,7 +80,7 @@ class TestLogSoftmaxRewrites:
         true_div_node = softmax_grad_node.inputs[0].owner
         assert true_div_node.op == true_divide
 
-        # We replace thk elemwise true_div op by an elemwise add.
+        # We replace the elemwise true_divide op by an elemwise add.
         new_g = SoftmaxGrad(axis=-1)(
             add(*true_div_node.inputs), softmax_grad_node.inputs[1]
         )

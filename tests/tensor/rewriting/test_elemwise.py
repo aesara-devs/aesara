@@ -28,7 +28,7 @@ from aesara.tensor.math import (
     dot,
     eq,
     exp,
-    int_div,
+    floor_divide,
     invert,
     iround,
     log,
@@ -627,7 +627,7 @@ class TestFusion:
                 "float32",
             ),
             (
-                fx - int_div(ix * 100, iy * 1000),
+                fx - floor_divide(ix * 100, iy * 1000),
                 (fx, ix, iy),
                 (fxv, ixv, iyv),
                 1,

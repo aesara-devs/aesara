@@ -70,7 +70,7 @@ d = a/a + (M + a).dot(v)
 aesara.dprint(d)
 # Elemwise{add,no_inplace} [id A] ''
 #  |InplaceDimShuffle{x} [id B] ''
-#  | |Elemwise{true_div,no_inplace} [id C] ''
+#  | |Elemwise{true_divide,no_inplace} [id C] ''
 #  |   |a [id D]
 #  |   |a [id D]
 #  |dot [id E] ''
