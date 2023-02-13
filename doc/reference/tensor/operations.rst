@@ -5,9 +5,40 @@ Tensor operations
 
 .. currentmodule:: aesara.tensor
 
-The module :mod:`aesara.tensor` allows to create tensors and express symbolic calculations using the NumPy and SciPy API.
+The module :mod:`aesara.tensor` allows to create tensors and express symbolic calculations using the NumPy and SciPy API. Docstings are grouped by functionality, and assume that ``aesara.tensor`` is imported as
+
+>>> import aesara.tensor as at
 
 Aesara's API tries to mirror NumPy's, so in most cases it is safe to assume that the basic NumPy array functions and methods will be available. If you find an inconsistency, or if a function is missing, please open an `Issue <https://github.com/aesara-devs/aesara>`__.
+
+
+Array manipulation
+------------------
+
+Binary operation
+----------------
+
+Mathematical operators
+-----------------------
+
+Discrete Fourier Transform (`at.tensor.fft`)
+--------------------------------------------
+
+Linalg
+------
+
+Logical operators
+-----------------
+
+Sorting, searching and counting
+-------------------------------
+
+Shaping and Shuffling
+---------------------
+
+Window function
+---------------
+
 
 Shaping and Shuffling
 ---------------------
@@ -775,10 +806,6 @@ Condition
       x,y = at.dmatrices('x','y')
       z = at.switch(at.lt(a,b), x, y)
 
-.. function:: where(cond, ift, iff)
-
-   Alias for `switch`. where is the NumPy name.
-
 .. function:: clip(x, min, max)
 
     Return a variable representing `x`, but with all elements greater than
@@ -1175,18 +1202,14 @@ Linear Algebra
            [4]])
     >>> b[1].eval()
     array([[0, 1, 2]])
+
 .. autosummary::
    :toctree: _autosummary
 
-    alloc
     choose
     concatenate
-    eye
-    fill
     flatten
     identity_like
-    ones
-    ones_like
     reshape
     roll
     shape
@@ -1196,8 +1219,6 @@ Linear Algebra
     stack
     stacklists
     tile
-    zeros
-    zeros_like
     max
     argmax
     max_and_argmax
@@ -1348,3 +1369,7 @@ aesara.tensor.extra_ops
     squeeze
     unique
     unravel_index
+
+.. toctree::
+
+   operations.tensor_creation
