@@ -356,8 +356,8 @@ class TestUpgradeToFloat:
                 assert outi.dtype == outf.dtype, "incorrect dtype"
                 assert np.allclose(outi, outf), "insufficient precision"
 
-    def test_true_div(self):
-        # true_div's upcast policy is not exactly "upgrade_to_float",
+    def test_true_divide(self):
+        # true_divide's upcast policy is not exactly "upgrade_to_float",
         # so the test is a little bit different
         x_range = list(range(-127, 128))
         y_range = list(range(-127, 0)) + list(range(1, 127))
@@ -547,3 +547,15 @@ def test_deprecations():
 
     with pytest.deprecated_call():
         from aesara.scalar import Scalar  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.scalar.basic import floor_div  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.scalar import floor_div  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.scalar.basic import int_div  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.scalar import int_div  # noqa: F401 F811

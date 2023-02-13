@@ -173,13 +173,13 @@ class _tensor_py_operators:
         return at.math.true_divide(self, other)
 
     def __floordiv__(self, other):
-        return at.math.floor_div(self, other)
+        return at.math.floor_divide(self, other)
 
     def __rtruediv__(self, other):
         return at.math.true_divide(other, self)
 
     def __rfloordiv__(self, other):
-        return at.math.floor_div(other, self)
+        return at.math.floor_divide(other, self)
 
     # Do not use these; in-place `Op`s should be inserted by optimizations
     # only!

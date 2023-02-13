@@ -55,10 +55,9 @@ from aesara.tensor.math import (
     erfc,
     exp,
     expm1,
-    floor_div,
+    floor_divide,
     ge,
     gt,
-    int_div,
     invert,
     iround,
     le,
@@ -1447,7 +1446,7 @@ class TestFusion:
                 "float32",
             ),
             (
-                fx - int_div(ix * 100, iy * 1000),
+                fx - floor_divide(ix * 100, iy * 1000),
                 (fx, ix, iy),
                 (fxv, ixv, iyv),
                 1,
@@ -3133,8 +3132,7 @@ class TestLocalMergeSwitchSameCond:
             sub,
             mul,
             true_divide,
-            int_div,
-            floor_div,
+            floor_divide,
             minimum,
             maximum,
             gt,
@@ -3906,7 +3904,7 @@ class TestIntDivByOne:
         self.mode = self.mode.including("local_intdiv_by_one")
 
     def test_remove_floor(self):
-        """Tests removing the extra floor_div by 1 introduced by `local_subtensor_merge` rewrite."""
+        """Tests removing the extra floor_divide by 1 introduced by `local_subtensor_merge` rewrite."""
 
         y = tensor4("y")
         self.mode = self.mode.excluding("fusion")
@@ -3951,7 +3949,7 @@ class TestIntDivByOne:
 
 
 @pytest.mark.parametrize("t", [scalar, ivector, ftensor4])
-@pytest.mark.parametrize("op", [int_div, true_divide])
+@pytest.mark.parametrize("op", [floor_divide, true_divide])
 def test_local_zero_div(t, op):
     """Test the canonicalization ``0/x -> 0``."""
     x = t("x")

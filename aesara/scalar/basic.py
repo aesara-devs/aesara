@@ -797,7 +797,7 @@ class _scalar_py_operators:
         return true_divide(self, other)
 
     def __floordiv__(self, other):
-        return int_div(self, other)
+        return floor_divide(self, other)
 
     def __mod__(self, other):
         return mod_check(self, other)
@@ -2133,10 +2133,7 @@ class IntDiv(BinaryScalarOp):
         return [inp.zeros_like(dtype=config.floatX) for inp in inputs]
 
 
-int_div = IntDiv(upcast_out, name="int_div")
-
-
-floor_div = int_div
+floor_divide = IntDiv(upcast_out, name="floor_divide")
 
 
 def mod_check(x, y):
@@ -2871,7 +2868,7 @@ pprint.assign(mul, printing.OperatorPrinter("*", -1, "either"))
 pprint.assign(sub, printing.OperatorPrinter("-", -2, "left"))
 pprint.assign(neg, printing.OperatorPrinter("-", 0, "either"))
 pprint.assign(true_divide, printing.OperatorPrinter("/", -1, "left"))
-pprint.assign(int_div, printing.OperatorPrinter("//", -1, "left"))
+pprint.assign(floor_divide, printing.OperatorPrinter("//", -1, "left"))
 pprint.assign(pow, printing.OperatorPrinter("**", 1, "right"))
 pprint.assign(mod, printing.OperatorPrinter("%", -1, "left"))
 
@@ -4461,6 +4458,12 @@ DEPRECATED_NAMES: List[Tuple[str, str, object]] = [
         "`true_div` is deprecated; use `true_divide` or `divide` instead.",
         true_divide,
     ),
+    ("int_div", "`int_div` is deprecated; use `floor_divide` instead.", floor_divide),
+    (
+        "floor_div",
+        "`floor_div` is deprecated; use `floor_divide` instead.",
+        floor_divide,
+    ),
 ]
 
 
@@ -4644,8 +4647,7 @@ __all__ = [
     "sub",
     "true_divide",
     "divide",
-    "int_div",
-    "floor_div",
+    "floor_divide",
     "mod",
     "pow",
     "clip",
