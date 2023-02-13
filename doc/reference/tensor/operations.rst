@@ -1373,3 +1373,4 @@ aesara.tensor.extra_ops
 .. toctree::
 
    operations.tensor_creation
+   operations.tensor_manipulation
