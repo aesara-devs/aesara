@@ -346,3 +346,46 @@ def jax_sample_fn_lognormal(op):
         return (rng, sample_exp)
 
     return sample_fn
+
+
+@jax_sample_fn.register(aer.WaldRV)
+def jax_sample_fn_wald(op):
+    r"""Provide a JAX implementation of `WaldRV`.
+
+    The uses the Multiple Roots transformation sampling from [1]_.
+
+    It is based on the following observation:
+
+    .. math::
+
+        \frac{\lambda(X - \mu^2)}{\mu^2X} \sim \chi_{(1)}^2
+
+    References
+    ----------
+    .. [1] Michael, John R.; Schucany, William R.; Haas, Roy W.
+        Generating Random Variates Using Transformations with Multiple Roots
+
+    """
+
+    def sample_fn(rng, size, dtype, *parameters):
+        rng_key = rng["jax_state"]
+        rng_key, sampling_key = jax.random.split(rng_key, 2)
+
+        mean, scale = parameters
+
+        key1, key2 = jax.random.split(sampling_key, 2)
+        y = jax.random.normal(key1, size, dtype)
+
+        w = mean * y * y
+        c = mean / (2 * scale)
+        x = mean + c * (w - jax.numpy.sqrt(4 * scale * w + w * w))
+
+        z = jax.random.uniform(key2, size, dtype)
+
+        cond = z <= mean / (mean + x)
+        samples = jax.numpy.where(cond, x, mean * mean / x)
+
+        rng["jax_state"] = rng_key
+        return (rng, samples)
+
+    return sample_fn
