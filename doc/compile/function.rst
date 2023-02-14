@@ -27,14 +27,13 @@ array(8.0)
 The idea here is that we've compiled the symbolic graph (``2*x``) into a function that can be called on a number and will do some computations.
 
 The behaviour of function can be controlled in several ways, such as
-:class:`In`, :class:`Out`, ``mode``, ``updates``, and ``givens``.  These are covered
-in the :ref:`tutorial examples <basictutexamples>` and :ref:`tutorial on modes <using_modes>`.
+:class:`In`, :class:`Out`, ``mode``, ``updates``, and ``givens``.
 
 Computing More than one Thing at the Same Time
 ==============================================
 
 Aesara supports functions with multiple outputs. For example, we can
-compute the :ref:`element-wise <libdoc_tensor_elemwise>` difference, absolute difference, and
+compute the element-wise difference, absolute difference, and
 squared difference between two matrices ``a`` and ``b`` at the same time:
 
 .. If you modify this code, also change :
