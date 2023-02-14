@@ -225,6 +225,48 @@ class BetaRV(RandomVariable):
 beta = BetaRV()
 
 
+class RayleighRV(RandomVariable):
+    r"""A rayleigh continuous random variable.
+
+    The probability density function for `rayleigh` is:
+
+    .. math::
+
+        P(x;scale) = \\frac{x}{scale^2}e^{\\frac{-x^2}{2 \\cdotp scale^2}}
+
+
+    """
+    name = "rayleigh"
+    ndim_supp = 0
+    ndims_params = [0]
+    dtype = "floatX"
+    _print_name = ("Rayleigh", "\\operatorname{Rayleigh}")
+
+    def __call__(self, scale=1.0, size=None, **kwargs):
+        r"""Draw samples from a rayleigh distribution.
+
+        Signature
+        ---------
+
+        `() -> ()`
+
+        Parameters
+        ----------
+        scale
+            Scale, also equals the mode. Must be non-negative. Default is 1
+        size
+            Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
+            independent, identically distributed random variables are
+            returned. Default is `None` in which case a single random variable
+            is returned.
+
+        """
+        return super().__call__(scale, size=size, **kwargs)
+
+
+rayleigh = RayleighRV()
+
+
 class NormalRV(RandomVariable):
     r"""A normal continuous random variable.
 
@@ -2130,4 +2172,5 @@ __all__ = [
     "gengamma",
     "t",
     "random",
+    "rayleigh",
 ]
