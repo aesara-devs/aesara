@@ -48,96 +48,83 @@ New tensors can be constructed using the routines defined in :ref:`reference_ten
 
    TensorType
 
-
 Tensor attributes
 -----------------
 
 .. autosummary::
    :toctree: _autosummary
 
-   TensorVariable.T
-   TensorVariable.transpose
    TensorVariable.shape
    TensorVariable.size
+   TensorVariable.name
    TensorVariable.astype
-   TensorVariable.__getitem__
-   TensorVariable.take
-   TensorVariable.copy
-   TensorVariable.__iter__
    TensorVariable.ndim
    TensorVariable.dtype
    TensorVariable.type
-   TensorVariable.ndim
-   TensorVariable.dtype
-   TensorVariable.dimshuffle
 
 Tensor methods
 --------------
 
-Tensor comparison
------------------
+A ``TensorVariable`` has many methods which operate on the array and typically return a new ``TensorVariable``.
 
-Tensor operations
------------------
-
-.. autosummary::
-   :toctree: _autosummary
-
-   TensorVariable.__abs__
-   TensorVariable.__neg__
-   TensorVariable.__lt__
-   TensorVariable.__le__
-   TensorVariable.__gt__
-   TensorVariable.__ge__
-   TensorVariable.__invert__
-   TensorVariable.__and__
-   TensorVariable.__or__
-   TensorVariable.__xor__
-   TensorVariable.__rand__
-   TensorVariable.__ror__
-   TensorVariable.__rxor__
+Shape manipulation
+~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: _autosummary
 
-   TensorVariable.__add__
-   TensorVariable.__sub__
-   TensorVariable.__mul__
-   TensorVariable.__div__
-   TensorVariable.__pow__
-   TensorVariable.__mod__
-   TensorVariable.__divmod__
-   TensorVariable.__truediv__
-   TensorVariable.__floordiv__
-   TensorVariable.__rtruediv__
-   TensorVariable.__rfloordiv__
-   TensorVariable.__radd__
-   TensorVariable.__rsub__
-   TensorVariable.__rmul__
-   TensorVariable.__rdiv__
-   TensorVariable.__rpow__
-   TensorVariable.__rmod__
-   TensorVariable.__rdivmod__
-   TensorVariable.__ceil__
-   TensorVariable.__floor__
-   TensorVariable.__trunc__
-
-
-
-.. autosummary::
-   :toctree: _autosummary
-
-   TensorVariable.any
    TensorVariable.reshape
    TensorVariable.dimshuffle
+   TensorVariable.transpose
+   TensorVariable.T
+   TensorVariable.swapaxes
    TensorVariable.flatten
    TensorVariable.ravel
-   TensorVariable.diagonal
-   TensorVariable.transfer
+   TensorVariable.squeeze
+
+Item selection and manipulation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autosummary::
    :toctree: _autosummary
 
+   TensorVariable.take
+   TensorVariable.repeat
+   TensorVariable.choose
+   TensorVariable.sort
+   TensorVariable.argsort
+   TensorVariable.compress
+   TensorVariable.searchsorted
+   TensorVariable.nonzero
+   TensorVariable.nonzero_values
+   TensorVariable.diagonal
+   TensorVariable.get_scalar_constant_value
+
+Calculation
+~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: _autosummary
+
+   TensorVariable.sum
+   TensorVariable.prod
+   TensorVariable.cumsum
+   TensorVariable.cumprod
+   TensorVariable.norm
+   TensorVariable.mean
+   TensorVariable.var
+   TensorVariable.std
+   TensorVariable.min
+   TensorVariable.argmin
+   TensorVariable.max
+   TensorVariable.argmax
+   TensorVariable.any
+   TensorVariable.clip
+   TensorVariable.conjugate
+   TensorVariable.ptp
+   TensorVariable.trunc
+   TensorVariable.round
+   TensorVariable.trace
    TensorVariable.arccos
    TensorVariable.arccosh
    TensorVariable.arcsin
@@ -162,45 +149,80 @@ Tensor operations
    TensorVariable.sqrt
    TensorVariable.tan
    TensorVariable.tanh
-   TensorVariable.trunc
+
+Tensor methods
+--------------
+
+Comparison
+~~~~~~~~~~
+
+.. danger::
+
+   The Python operators ``==`` and ``!=`` do not work as a comparison operator in the usual sense in Aesara. Use :func:`eq` and :func:`neq` respectively instead.
+
+.. autosummary::
+   :toctree: _autosummary
+
+   TensorVariable.__lt__
+   TensorVariable.__le__
+   TensorVariable.__gt__
+   TensorVariable.__ge__
+
+Unary operations
+~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: _autosummary
+
+   TensorVariable.__abs__
+   TensorVariable.__neg__
+   TensorVariable.__invert__
+
+Arithmetic
+----------
+
+.. autosummary::
+   :toctree: _autosummary
+
+   TensorVariable.__add__
+   TensorVariable.__radd__
+   TensorVariable.__sub__
+   TensorVariable.__mul__
+   TensorVariable.__truediv__
+   TensorVariable.__floordiv__
+   TensorVariable.__rtruediv__
+   TensorVariable.__rfloordiv__
+   TensorVariable.__mod__
+   TensorVariable.__rmod__
+   TensorVariable.__divmod__
+   TensorVariable.__rdivmod__
+   TensorVariable.__pow__
+   TensorVariable.__rpow__
+   TensorVariable.__and__
+   TensorVariable.__or__
+   TensorVariable.__ror__
+   TensorVariable.__xor__
+   TensorVariable.__rxor__
+
+   TensorVariable.__rand__
+   TensorVariable.__rsub__
+   TensorVariable.__rmul__
+   TensorVariable.__div__
+   TensorVariable.__rdiv__
+   TensorVariable.__ceil__
+   TensorVariable.__floor__
+   TensorVariable.__trunc__
+
+
+Matrix multiplication:
 
 .. autosummary::
    :toctree: _autosummary
 
    TensorVariable.__dot__
    TensorVariable.__rdot__
-   TensorVariable.sum
-   TensorVariable.prod
-   TensorVariable.norm
-   TensorVariable.mean
-   TensorVariable.var
-   TensorVariable.std
-   TensorVariable.max
-   TensorVariable.argmin
-   TensorVariable.argmax
-   TensorVariable.nonzero
-   TensorVariable.nonzero_values
-   TensorVariable.sort
-   TensorVariable.argsort
-   TensorVariable.clip
-   TensorVariable.conj
-   TensorVariable.repeat
-   TensorVariable.round
-   TensorVariable.trace
-   TensorVariable.get_scalar_constant_value
-   TensorVariable.zeros_like
-   TensorVariable.ones_like
-   TensorVariable.cumsum
-   TensorVariable.cumprod
-   TensorVariable.searchsorted
-   TensorVariable.ptp
-   TensorVariable.swapaxes
-   TensorVariable.fill
-   TensorVariable.choose
-   TensorVariable.squeeze
-   TensorVariable.compress
-   TensorVariable.real
-   TensorVariable.imag
+   TensorVariable.__matmul__
+   TensorVariable.__rmatmul__
 
 
 Numerical types
