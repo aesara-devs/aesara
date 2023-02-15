@@ -519,3 +519,31 @@ def test_shape():
     assert b.shape.type.ndim == 1
     assert b.shape.type.shape == (0,)
     assert b.shape.type.dtype == "int64"
+
+
+def test_deprecations():
+    """Make sure we can import from deprecated modules."""
+
+    with pytest.deprecated_call():
+        from aesara.scalar.basic import true_div  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.scalar import true_div  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.scalar.basic import Inv  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.scalar import Inv  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.scalar.basic import inv  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.scalar import inv  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.scalar.basic import Scalar  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.scalar import Scalar  # noqa: F401 F811
