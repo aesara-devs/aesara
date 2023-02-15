@@ -32,4 +32,3 @@ This section of the documentation is organized as follows:
     sparse/index
     shared/index
     Utils <utils>
-    IO <io>
