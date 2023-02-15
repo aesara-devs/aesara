@@ -149,3 +149,27 @@ from aesara.tensor.var import TensorConstant, TensorVariable  # noqa
 
 
 __all__ = ["random"]  # noqa: F405
+
+# isort: off
+from aesara.tensor.math import DEPRECATED_NAMES as MATH_DEPRECATED_NAMES
+
+# isort: on
+
+
+DEPRECATED_NAMES = MATH_DEPRECATED_NAMES
+
+
+def __getattr__(name):
+    """Intercept module-level attribute access of deprecated symbols.
+
+    Adapted from https://stackoverflow.com/a/55139609/3006474.
+
+    """
+    from warnings import warn
+
+    for old_name, msg, old_object in DEPRECATED_NAMES:
+        if name == old_name:
+            warn(msg, DeprecationWarning, stacklevel=2)
+            return old_object
+
+    raise AttributeError(f"module {__name__} has no attribute {name}")

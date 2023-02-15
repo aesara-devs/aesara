@@ -3535,3 +3535,25 @@ def test_logdiffexp():
         if isinstance(node.op, Elemwise) and isinstance(node.op.scalar_op, aes.Exp)
     ]
     assert len(ops_graph) != 2
+
+
+def test_deprecations():
+    """Make sure we can import from deprecated modules."""
+
+    with pytest.deprecated_call():
+        from aesara.tensor.math import abs_  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.tensor import abs_  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.tensor import inv  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.tensor.math import inv  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.tensor import true_div  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.tensor.math import true_div  # noqa: F401 F811
