@@ -12,6 +12,7 @@ and all of these constructors accept an optional ``name`` argument.
 For example, the following each produce a `TensorVariable` instance that stands
 for a 0-dimensional `ndarray` of integers with the name ``'myvar'``:
 
+>>> import aesara.tensor as at
 >>> x = at.scalar('myvar', dtype='int32')
 >>> x = at.iscalar('myvar')
 >>> x = at.tensor(dtype='int32', shape=(), name='myvar')
@@ -27,47 +28,30 @@ variables in your code.  By default, they produce floating-point variables
 these constructors it is easy to switch your code between different levels of
 floating-point precision.
 
-.. function:: scalar(name=None, dtype=config.floatX)
+.. currentmodule:: aesara.tensor
 
-    Return a `Variable` for a 0-dimensional `ndarray`
+.. autosummary::
+   :toctree: _autosummary
 
-.. function:: vector(name=None, dtype=config.floatX)
+   scalar
+   vector
+   row
+   col
+   matrix
+   tensor3
+   tensor4
+   tensor5
+   tensor6
+   tensor7
 
-    Return a `Variable` for a 1-dimensional `ndarray`
+.. doctest:: creation
 
-.. function:: row(name=None, dtype=config.floatX)
-
-    Return a `Variable` for a 2-dimensional `ndarray`
-    in which the number of rows is guaranteed to be 1.
-
-.. function:: col(name=None, dtype=config.floatX)
-
-    Return a `Variable` for a 2-dimensional `ndarray`
-    in which the number of columns is guaranteed to be 1.
-
-.. function:: matrix(name=None, dtype=config.floatX)
-
-    Return a `Variable` for a 2-dimensional `ndarray`
-
-.. function:: tensor3(name=None, dtype=config.floatX)
-
-    Return a `Variable` for a 3-dimensional `ndarray`
-
-.. function:: tensor4(name=None, dtype=config.floatX)
-
-    Return a `Variable` for a 4-dimensional `ndarray`
-
-.. function:: tensor5(name=None, dtype=config.floatX)
-
-    Return a `Variable` for a 5-dimensional `ndarray`
-
-.. function:: tensor6(name=None, dtype=config.floatX)
-
-    Return a `Variable` for a 6-dimensional `ndarray`
-
-.. function:: tensor7(name=None, dtype=config.floatX)
-
-    Return a `Variable` for a 7-dimensional `ndarray`
+    >>> x = at.scalar()
+    >>> x.type.shape
+    ()
+    >>> y = at.vector()
+    >>> y.type.shape
+    (None,)
 
 .. #COMMENT
     Each of the types described above can be constructed by two methods:
@@ -247,6 +231,68 @@ tensors.
 Converting from Python Objects
 -------------------------------
 
+One can convert python objects by calling either :func:`aesara.tensor.as_tensor_variable` or :func:`aesara.shared`.
+
+
+``aesara.tensor.as_tensor_variable``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. note::
+
+    This is the default way of converting a python object to a `TensorVariable`. Unless you have a need for shared variables, use this function instead.
+
+.. function:: as_tensor_variable(x, name=None, ndim=None)
+
+    Turn an argument ``x` into a `TensorVariable` or `TensorConstant`.
+
+    Many tensor `Op`\s run their arguments through this function as
+    pre-processing.  It passes through `TensorVariable` instances, and tries to
+    wrap other objects into `TensorConstant`.
+
+    When `x` is a Python number, the dtype is inferred as described above.
+
+    When `x` is a `list` or `tuple` it is passed through `np.asarray`
+
+    If the `ndim` argument is not ``None``, it must be an integer and the output
+    will be broadcasted if necessary in order to have this many dimensions.
+
+    :rtype: :class:`TensorVariable` or :class:`TensorConstant`
+
+
+.. doctest:: as_tensor_variable
+
+   >>> import numpy as np
+   >>> x = np.array([[1, 2], [3, 4]])
+   >>> y = at.as_tensor(x)
+   >>> y.type.shape
+   (2, 2)
+
+Finally, when you use a NumPy `ndarray` or a Python number together with
+:class:`TensorVariable` instances in arithmetic expressions, the result is a
+:class:`TensorVariable`. What happens to the `ndarray` or the number?
+Aesara requires that the inputs to all expressions be `Variable` instances, so
+Aesara automatically wraps them in a :class:`TensorConstant`.
+
+.. doctest:: as_tensor_variable
+
+   >>> x = at.vector()
+   >>> b = at.add(x, np.ones(3))
+   >>> type(b)
+   <class 'aesara.tensor.var.TensorVariable'>
+   >>> b.type.shape
+   (3,)
+   >>> b.owner.inputs[1]
+   >>> TensorConstant{(3,) of 1.0}
+
+.. note::
+
+    Aesara makes a copy of any `ndarray` that is used in an expression, so
+    subsequent changes to that `ndarray` will not have any effect on the Aesara
+    expression in which they're contained.
+
+``aesara.shared``
+~~~~~~~~~~~~~~~~~
+
 Another way of creating a `TensorVariable` (a `TensorSharedVariable` to be
 precise) is by calling :func:`aesara.shared`
 
@@ -256,24 +302,17 @@ precise) is by calling :func:`aesara.shared`
 
 This will return a :term:`shared variable <shared variable>` whose ``.value`` is
 a NumPy `ndarray`.  The number of dimensions and dtype of the `Variable` are
-inferred from the `ndarray` argument.  The argument to `shared` *will not be
-copied*, and subsequent changes will be reflected in ``x.value``.
+inferred from the `ndarray` argument.
 
-For additional information, see the :func:`shared() <shared.shared>` documentation.
+.. danger::
+    The argument to `shared` *will not be copied*, and subsequent changes will be reflected in ``x.value``.
 
-.. _libdoc_tensor_autocasting:
 
-Finally, when you use a NumPy `ndarray` or a Python number together with
-:class:`TensorVariable` instances in arithmetic expressions, the result is a
-:class:`TensorVariable`. What happens to the `ndarray` or the number?
-Aesara requires that the inputs to all expressions be `Variable` instances, so
-Aesara automatically wraps them in a :class:`TensorConstant`.
+For additional information, see the :ref:`documentation for shared variables <reference_shared>`.
 
-.. note::
 
-    Aesara makes a copy of any `ndarray` that is used in an expression, so
-    subsequent changes to that `ndarray` will not have any effect on the Aesara
-    expression in which they're contained.
+dtype and shape
+~~~~~~~~~~~~~~~
 
 For NumPy `ndarrays` the dtype is given, but the static shape/broadcastable pattern must be
 inferred.  The `TensorConstant` is given a type with a matching dtype,
@@ -295,22 +334,11 @@ them perfectly, but a `dscalar` otherwise.
     For fine control of this rounding policy, see
     `aesara.tensor.basic.autocast_float`.
 
-.. function:: as_tensor_variable(x, name=None, ndim=None)
 
-    Turn an argument `x` into a `TensorVariable` or `TensorConstant`.
+Loading from file
+-----------------
 
-    Many tensor `Op`\s run their arguments through this function as
-    pre-processing.  It passes through `TensorVariable` instances, and tries to
-    wrap other objects into `TensorConstant`.
+One can also create tensor by loading NumPy arrays from a `.npy` file.
 
-    When `x` is a Python number, the dtype is inferred as described above.
-
-    When `x` is a `list` or `tuple` it is passed through `np.asarray`
-
-    If the `ndim` argument is not ``None``, it must be an integer and the output
-    will be broadcasted if necessary in order to have this many dimensions.
-
-    :rtype: :class:`TensorVariable` or :class:`TensorConstant`
-
-
-
+.. automodule:: aesara.tensor.io
+    :members:
