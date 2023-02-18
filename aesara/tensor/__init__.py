@@ -1,14 +1,14 @@
 """Symbolic tensor types and constructor functions."""
 
 from functools import singledispatch
-from typing import TYPE_CHECKING, Any, Callable, NoReturn, Optional, Sequence, Union
+from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple, Union
 
 from aesara.graph.basic import Constant, Variable
 from aesara.graph.op import Op
 
 
 if TYPE_CHECKING:
-    from numpy.typing import ArrayLike, NDArray
+    from numpy.typing import ArrayLike
 
 
 TensorLike = Union[Variable, Sequence[Variable], "ArrayLike"]
@@ -156,7 +156,7 @@ from aesara.tensor.math import DEPRECATED_NAMES as MATH_DEPRECATED_NAMES
 # isort: on
 
 
-DEPRECATED_NAMES = MATH_DEPRECATED_NAMES
+DEPRECATED_NAMES: List[Tuple[str, str, object]] = MATH_DEPRECATED_NAMES
 
 
 def __getattr__(name):
