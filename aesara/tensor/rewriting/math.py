@@ -314,9 +314,8 @@ def local_exp_log(fgraph, node):
 @register_specialize
 @node_rewriter([log])
 def log_diff_exp(fgraph, node):
-    r"""
-    Rewrite that changes ``log(exp(a) - exp(b))`` to ``a + log1mexp(b - a)``.
-    """
+    r"""Rewrite that changes ``log(exp(a) - exp(b))`` to ``a + log1mexp(b - a)``."""
+
     x = node.inputs[0]
 
     if not x.owner or not isinstance(x.owner.op, Elemwise):
@@ -325,19 +324,28 @@ def log_diff_exp(fgraph, node):
     prev_op = x.owner.op.scalar_op
     node_op = node.op.scalar_op
 
-    if isinstance(prev_op, aes.Sub) and isinstance(node_op, aes.Log):
-        a, b = x.owner.inputs
-        if not a.owner or not b.owner:
-            return
-        a_op, b_op = a.owner.op.scalar_op, b.owner.op.scalar_op
-        if isinstance(a_op, aes.Exp) and isinstance(b_op, aes.Exp):
-            a = a.owner.inputs[0]
-            b = b.owner.inputs[0]
-            new_out = add(a, log1mexp(sub(b, a)))
-            old_out = node.outputs[0]
-            if new_out.dtype != old_out.dtype:
-                new_out = cast(new_out, old_out.dtype)
-            return [new_out]
+    if not (isinstance(prev_op, aes.Sub) and isinstance(node_op, aes.Log)):
+        return
+
+    a, b = x.owner.inputs
+    a_owner = a.owner
+    b_owner = b.owner
+
+    if not (a_owner and isinstance(a_owner.op, Elemwise)) or not (
+        b_owner and isinstance(a_owner.op, Elemwise)
+    ):
+        return
+
+    a_scalar_op, b_scalar_op = a_owner.op.scalar_op, b_owner.op.scalar_op
+
+    if isinstance(a_scalar_op, aes.Exp) and isinstance(b_scalar_op, aes.Exp):
+        a = a_owner.inputs[0]
+        b = b_owner.inputs[0]
+        new_out = add(a, log1mexp(sub(b, a)))
+        old_out = node.outputs[0]
+        if new_out.dtype != old_out.dtype:
+            new_out = cast(new_out, old_out.dtype)
+        return [new_out]
 
 
 @register_specialize
