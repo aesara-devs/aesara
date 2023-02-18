@@ -3523,18 +3523,23 @@ class TestMatMul(utt.InferShapeTester):
             )
 
 
-def test_logdiffexp():
-    mode = get_default_mode().including("log_diff_exp")
+def test_log_diff_exp():
+    mode = get_default_mode().including("log_diff_exp").excluding("fusion", "inplace")
+
     x = fmatrix()
     y = fmatrix()
     f = function([x, y], log(exp(x) - exp(y)), mode=mode)
-    graph = f.maker.fgraph.toposort()
-    ops_graph = [
-        node
-        for node in graph
-        if isinstance(node.op, Elemwise) and isinstance(node.op.scalar_op, aes.Exp)
-    ]
-    assert len(ops_graph) != 2
+
+    fgraph_ops = tuple(node.op for node in f.maker.fgraph.apply_nodes)
+
+    assert log not in fgraph_ops
+    assert log1mexp in fgraph_ops
+
+    f = function([x, y], log(exp(x) - y), mode=mode)
+
+    fgraph_ops = tuple(node.op for node in f.maker.fgraph.apply_nodes)
+
+    assert log1mexp not in fgraph_ops
 
 
 def test_deprecations():
