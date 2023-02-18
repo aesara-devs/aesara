@@ -154,6 +154,9 @@ class FunctionGraph(MetaObject):
 
         self.profile = None
 
+        self.set_update_mapping(update_mapping)
+
+    def set_update_mapping(self, update_mapping):
         self.update_mapping = {}
         self.inv_update_mapping = {}
 
@@ -549,12 +552,22 @@ class FunctionGraph(MetaObject):
 
         new_idx = 0
         for (out, old_idx) in old_idx_mappings:
+            # We need to update `update_mappings`, as well
+            map_in_idx = self.update_mapping.pop(old_idx, None)
+            self.inv_update_mapping.pop(map_in_idx, None)
+
             if old_idx == idx:
                 continue
+
+            if map_in_idx is not None:
+                self.update_mapping[new_idx] = map_in_idx
+                self.inv_update_mapping[map_in_idx] = new_idx
+
             out_clients = self.clients[out]
             arrow: ClientType = ("output", old_idx)
             arrow_idx = out_clients.index(arrow)
             out_clients[arrow_idx] = ("output", new_idx)
+
             new_idx += 1
 
     def remove_node(self, node: Apply, reason: Optional[str] = None):
@@ -645,7 +658,18 @@ class FunctionGraph(MetaObject):
 
     def remove_input(self, input_idx: int, reason: Optional[str] = None):
         """Remove the input at index `input_idx`."""
+
         var = self.inputs.pop(input_idx)
+
+        for in_idx, out_idx in tuple(self.inv_update_mapping.items()):
+            if in_idx == input_idx:
+                del self.update_mapping[out_idx]
+                del self.inv_update_mapping[in_idx]
+            elif in_idx > input_idx:
+                new_in_idx = in_idx - 1
+                self.update_mapping[out_idx] = new_in_idx
+                del self.inv_update_mapping[in_idx]
+                self.inv_update_mapping[new_in_idx] = out_idx
 
         for client, idx in list(self.clients[var]):
             if client == "output":
