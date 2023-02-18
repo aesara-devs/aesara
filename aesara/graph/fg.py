@@ -72,7 +72,7 @@ class FunctionGraph(MetaObject):
         outputs: Optional[Sequence[Variable]] = None,
         features: Optional[Sequence[Feature]] = None,
         clone: bool = True,
-        update_mapping: Optional[Dict[Variable, Variable]] = None,
+        update_mapping: Optional[Dict[int, int]] = None,
         **clone_kwds,
     ):
         """
@@ -90,8 +90,8 @@ class FunctionGraph(MetaObject):
         clone
             If ``True``, the graph will be cloned.
         update_mapping
-            Mapping between the `inputs` with updates and the `outputs`
-            corresponding to their updates.
+            Mapping between the `outputs` indices of update graphs and the `inputs`
+            indices that are updated with the former's values.
         clone_kwds
             Keywords passed to `clone_get_equiv` when `clone` is ``True``.
         """
@@ -153,7 +153,15 @@ class FunctionGraph(MetaObject):
             self.add_output(output, reason="init")
 
         self.profile = None
-        self.update_mapping = update_mapping
+
+        self.update_mapping = {}
+        self.inv_update_mapping = {}
+
+        if update_mapping:
+            for k, v in update_mapping.items():
+                self.update_mapping[k] = v
+                # `update_mapping` should be bijective, making this reasonable
+                self.inv_update_mapping[v] = k
 
     def add_output(
         self, var: Variable, reason: Optional[str] = None, import_missing: bool = False
