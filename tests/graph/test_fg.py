@@ -65,7 +65,8 @@ class TestFunctionGraph:
         assert fg.inputs == [var1, var2]
         assert fg.outputs == [var3, var4]
         assert fg.apply_nodes == {var3.owner, var4.owner}
-        assert fg.update_mapping is None
+        assert fg.update_mapping == {}
+        assert fg.inv_update_mapping == {}
         assert fg.check_integrity() is None
         assert fg.variables == {var1, var2, var3, var4}
         assert fg.get_clients(var1) == [(var3.owner, 0)]
@@ -431,7 +432,9 @@ class TestFunctionGraph:
         node2_out = op2(var2, node1_out)
         node3_out = op3(node2_out)
 
-        fg = FunctionGraph([var1, var2], [node2_out, node3_out], clone=False)
+        fg = FunctionGraph(
+            [var1, var2], [node2_out, node3_out], clone=False, update_mapping={1: 1}
+        )
 
         fg.remove_output(0)
         fg.check_integrity()
@@ -439,8 +442,12 @@ class TestFunctionGraph:
         assert fg.apply_nodes == {node1_out.owner, node2_out.owner, node3_out.owner}
         assert fg.inputs == [var1, var2]
         assert fg.outputs == [node3_out]
+        assert fg.update_mapping == {0: 1}
+        assert fg.inv_update_mapping == {1: 0}
 
-        fg = FunctionGraph([var1, var2], [node2_out, node3_out], clone=False)
+        fg = FunctionGraph(
+            [var1, var2], [node2_out, node3_out], clone=False, update_mapping={1: 0}
+        )
 
         fg.remove_output(1)
         fg.check_integrity()
@@ -448,6 +455,8 @@ class TestFunctionGraph:
         assert fg.apply_nodes == {node1_out.owner, node2_out.owner}
         assert fg.inputs == [var1, var2]
         assert fg.outputs == [node2_out]
+        assert fg.update_mapping == {}
+        assert fg.inv_update_mapping == {}
 
         fg = FunctionGraph([var1, var2], [node2_out, node3_out, var1], clone=False)
 
@@ -554,16 +563,19 @@ class TestFunctionGraph:
         out3 = out1
 
         fg = FunctionGraph(
-            [var0, var1, var2, var3, var4],
+            [var0, var1, var4, var2, var3],
             [out0, out1, out2, out3],
             clone=False,
+            update_mapping={0: 3, 3: 2},
         )
 
-        fg.remove_input(4)
+        fg.remove_input(2)
         fg.check_integrity()
 
         assert fg.inputs == [var0, var1, var2, var3]
         assert fg.outputs == [out0]
+        assert fg.update_mapping == {0: 2}
+        assert fg.inv_update_mapping == {2: 0}
 
     def test_remove_in_and_out(self):
         var1 = MyVariable("var1")
