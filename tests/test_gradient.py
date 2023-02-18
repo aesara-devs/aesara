@@ -31,7 +31,7 @@ from aesara.graph.basic import Apply, graph_inputs
 from aesara.graph.null_type import NullType
 from aesara.graph.op import Op
 from aesara.sandbox.rng_mrg import MRG_RandomStream
-from aesara.tensor.math import add, dot, exp, sigmoid, sqr
+from aesara.tensor.math import add, dot, exp, sigmoid, square
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tanh
 from aesara.tensor.type import (
@@ -621,7 +621,7 @@ def test_known_grads():
     p.name = "p"
     y = ct * p
     y.name = "y"
-    cost = sqr(y)
+    cost = square(y)
     cost.name = "cost"
 
     layers = [[cost], [y], [ct, p], [ct, x, ft], [coeffs, t, full_range, x]]
@@ -732,9 +732,9 @@ def test_subgraph_grad():
     w2 = aesara.shared(np.random.standard_normal((4, 2)))
     a1 = tanh(dot(x, w1))
     a2 = tanh(dot(a1, w2))
-    cost2 = sqr(a2 - t).sum()
-    cost2 += sqr(w2.sum())
-    cost1 = sqr(w1.sum())
+    cost2 = square(a2 - t).sum()
+    cost2 += square(w2.sum())
+    cost1 = square(w1.sum())
 
     params = [[w2], [w1]]
     costs = [cost2, cost1]

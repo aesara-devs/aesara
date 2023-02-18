@@ -559,3 +559,9 @@ def test_deprecations():
 
     with pytest.deprecated_call():
         from aesara.scalar import int_div  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.scalar.basic import sqr  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.scalar import sqr  # noqa: F401 F811

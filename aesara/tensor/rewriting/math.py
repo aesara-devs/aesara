@@ -68,7 +68,16 @@ from aesara.tensor.math import (
 from aesara.tensor.math import max as at_max
 from aesara.tensor.math import maximum, mul, neg
 from aesara.tensor.math import pow as at_pow
-from aesara.tensor.math import prod, reciprocal, sgn, sigmoid, softplus, sqr, sqrt, sub
+from aesara.tensor.math import (
+    prod,
+    reciprocal,
+    sgn,
+    sigmoid,
+    softplus,
+    sqrt,
+    square,
+    sub,
+)
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import true_divide
 from aesara.tensor.rewriting.basic import (
@@ -411,8 +420,8 @@ def local_exp_log_nan_switch(fgraph, node):
 def local_sumsqr2dot(fgraph, node):
     """
     This rewrite detects
-    ``at.sqr(W.dimshuffle("x", 0, 1) * G.dimshuffle(0, "x", 1) ).sum(axis=(1, 2))``
-    and converts it to ``at.dot(at.sqr(G), at.sqr(W).sum(axis=0))``.
+    ``at.square(W.dimshuffle("x", 0, 1) * G.dimshuffle(0, "x", 1) ).sum(axis=(1, 2))``
+    and converts it to ``at.dot(at.square(G), at.square(W).sum(axis=0))``.
     """
     if (
         isinstance(node.op, Sum)
@@ -445,7 +454,7 @@ def local_sumsqr2dot(fgraph, node):
                     W = in_mul1.owner.inputs[0]
                     G = in_mul2.owner.inputs[0]
 
-                    new_out = dot(sqr(G), sqr(W).sum(axis=0))
+                    new_out = dot(square(G), square(W).sum(axis=0))
                     if new_out.dtype != out.dtype:
                         new_out = cast(new_out, dtype=out.dtype)
                     return [new_out]
@@ -1938,12 +1947,12 @@ def local_pow_canonicalize(fgraph, node):
 @node_rewriter([mul])
 def local_mul_to_sqr(fgraph, node):
     """
-    x*x -> sqr(x)
+    x*x -> square(x)
     """
     if node.op == mul:
         if len(node.inputs) == 2:
             if node.inputs[0] is node.inputs[1]:
-                return [sqr(node.inputs[0])]
+                return [square(node.inputs[0])]
 
 
 @register_canonicalize
@@ -1988,7 +1997,7 @@ def local_pow_specialize(fgraph, node):
             rval = None
 
             if np.all(y == 2):
-                rval = [sqr(xsym)]
+                rval = [square(xsym)]
             if np.all(y == 1):
                 rval = [xsym]
             if np.all(y == 0):
@@ -2000,7 +2009,7 @@ def local_pow_specialize(fgraph, node):
             if np.all(y == -1):
                 rval = [reciprocal(xsym)]
             if np.all(y == -2):
-                rval = [reciprocal(sqr(xsym))]
+                rval = [reciprocal(square(xsym))]
             if rval:
                 rval[0] = cast(rval[0], odtype)
                 assert rval[0].type == node.outputs[0].type, (rval, node.outputs)
@@ -2046,8 +2055,8 @@ def local_pow_specialize_device(fgraph, node):
                 pow2_scal = [aes.get_scalar_type(xsym.dtype)()]
                 y_to_do = abs(y)
                 for i in range(int(np.log2(y_to_do))):
-                    pow2.append(sqr(pow2[i]))
-                    pow2_scal.append(aes.sqr(pow2_scal[i]))
+                    pow2.append(square(pow2[i]))
+                    pow2_scal.append(aes.square(pow2_scal[i]))
                 rval1 = None
                 rval1_scal = None
                 while y_to_do > 0:
@@ -2779,7 +2788,10 @@ def local_grad_log_erfc_neg(fgraph, node):
 
     if exp_in.owner.inputs[0].owner.op == neg:
         neg_in = exp_in.owner.inputs[0]
-        if not neg_in.owner.inputs[0].owner or neg_in.owner.inputs[0].owner.op != sqr:
+        if (
+            not neg_in.owner.inputs[0].owner
+            or neg_in.owner.inputs[0].owner.op != square
+        ):
             return False
         sqr_in = neg_in.owner.inputs[0]
         x = sqr_in.owner.inputs[0]
@@ -2826,7 +2838,7 @@ def local_grad_log_erfc_neg(fgraph, node):
         if len(mul_neg.owner.inputs) == 2:
             if (
                 not mul_neg.owner.inputs[1].owner
-                or mul_neg.owner.inputs[1].owner.op != sqr
+                or mul_neg.owner.inputs[1].owner.op != square
             ):
                 return False
             sqr_in = mul_neg.owner.inputs[1]

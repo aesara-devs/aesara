@@ -687,9 +687,9 @@ def subgraph_grad(wrt, end, start=None, cost=None, details=False):
         w2 = aesara.shared(np.random.standard_normal((4,2)))
         a1 = aesara.tensor.tanh(aesara.tensor.dot(x,w1))
         a2 = aesara.tensor.tanh(aesara.tensor.dot(a1,w2))
-        cost2 = aesara.tensor.sqr(a2 - t).sum()
-        cost2 += aesara.tensor.sqr(w2.sum())
-        cost1 = aesara.tensor.sqr(w1.sum())
+        cost2 = aesara.tensor.square(a2 - t).sum()
+        cost2 += aesara.tensor.square(w2.sum())
+        cost1 = aesara.tensor.square(w1.sum())
 
         params = [[w2],[w1]]
         costs = [cost2,cost1]
