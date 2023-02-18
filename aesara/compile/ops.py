@@ -329,3 +329,45 @@ def as_op(itypes, otypes, infer_shape=None):
         return FromFunctionOp(fn, itypes, otypes, infer_shape)
 
     return make_op
+
+
+class UpdatePlaceholder(Op):
+    """A placeholder for a `SharedVariable` update that hasn't been set.
+
+    These will appear in `FunctionGraph.outputs` and represent potential updates
+    (i.e. the `updates` argument to `aesara.function` and/or updates specified via
+    `SharedVariable.default_update`s) that could be specified by rewrites.
+
+    When present, these should be removed by non-rewrite steps in the
+    compilation pipeline (and before any thunks are created for them).
+
+    .. note::
+
+        One reason these can't be removed during the rewrite passes is that the
+        `FunctionGraph.outputs` list entries containing them need to be
+        entirely removed, and we don't want to add/remove
+        `FunctionGraph.outputs` during rewriting.
+
+    """
+
+    view_map = {0: [0]}
+
+    def make_node(self, x):
+        return Apply(self, [x], [x.type()])
+
+    def perform(self, node, inp, out):  # pragma: no cover
+        (x,) = inp
+        (z,) = out
+        z[0] = x
+
+    def __str__(self):  # pragma: no cover
+        return f"{self.__class__.__name__}"
+
+    def infer_shape(self, fgraph, node, input_shapes):
+        return input_shapes
+
+    def grad(self, args, g_outs):  # pragma: no cover
+        return g_outs
+
+
+update_placeholder = UpdatePlaceholder()

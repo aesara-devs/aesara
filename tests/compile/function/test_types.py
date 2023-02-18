@@ -11,6 +11,7 @@ from aesara.compile.function import function
 from aesara.compile.function.types import UnusedInputError
 from aesara.compile.io import In, Out
 from aesara.compile.mode import Mode, get_default_mode
+from aesara.compile.ops import update_placeholder
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant
 from aesara.graph.rewriting.basic import OpKeyGraphRewriter, PatternNodeRewriter
@@ -1265,3 +1266,22 @@ def test_empty_givens_updates():
     y = x * 2
     function([In(x)], y, givens={})
     function([In(x)], y, updates={})
+
+
+def test_update_placeholder():
+    a, x, s, m, n = scalars("axsmn")
+
+    f1 = function(
+        [
+            x,
+            In(a, value=1.0, name="a"),
+            In(m, value=0.0, update=update_placeholder(m), mutable=True),
+            In(s, value=0.0, update=s + a * x, mutable=True),
+            In(n, value=0.0, update=update_placeholder(n), mutable=True),
+        ],
+        s + a * x,
+    )
+
+    # The second update shouldn't be present
+    assert len(f1.maker.fgraph.outputs) == 2
+    assert f1.maker.fgraph.update_mapping == {1: 3}

@@ -6,14 +6,16 @@ import logging
 import time
 import warnings
 from itertools import chain
-from typing import TYPE_CHECKING, List, Optional, Tuple, Type
+from typing import TYPE_CHECKING, List, Optional, Tuple, Type, Union
 
 import numpy as np
+from typing_extensions import Literal
 
 import aesara
 import aesara.compile.profiling
-from aesara.compile.io import In, SymbolicInput, SymbolicOutput
-from aesara.compile.ops import deep_copy_op, view_op
+from aesara.compile.io import In, Out, SymbolicInput, SymbolicOutput
+from aesara.compile.ops import deep_copy_op, update_placeholder, view_op
+from aesara.compile.profiling import ProfileStats
 from aesara.configdefaults import config
 from aesara.graph.basic import (
     Constant,
@@ -732,10 +734,10 @@ class Function:
                 message = name
             else:
                 message = str(profile.message) + " copy"
-            profile = aesara.compile.profiling.ProfileStats(message=message)
+            profile = ProfileStats(message=message)
             # profile -> object
         elif isinstance(profile, str):
-            profile = aesara.compile.profiling.ProfileStats(message=profile)
+            profile = ProfileStats(message=profile)
 
         f_cpy = maker.__class__(
             inputs=ins,
@@ -1392,13 +1394,35 @@ class FunctionMaker:
 
     @staticmethod
     def prepare_fgraph(
-        inputs,
-        outputs,
-        additional_outputs,
+        inputs: List[In],
+        outputs: List[Out],
+        additional_outputs: List[Out],
         fgraph: FunctionGraph,
         mode: "Mode",
-        profile,
+        profile: Union[Optional[ProfileStats], Literal[False]],
     ):
+        r"""Perform rewrites on a graph, insert `DeepCopyOp`\s, and remove unused updates.
+
+        .. warning::
+
+            The `additional_outputs` list and `fgraph.outputs` are updated in-place by this method.
+
+        Parameters
+        ==========
+        inputs
+            The wrapped inputs.
+        outputs
+            The wrapped outputs (i.e. wrapped with `Out`).
+        additional_outputs
+            Output graphs that essentially serve as updates to mutable `inputs`.
+        fgraph
+            The `FunctionGraph` to be prepared.
+        mode
+            The `Mode` that determines--for example--which rewrites are applied.
+        profile
+            The profile object/setting to use.
+
+        """
 
         rewriter = mode.optimizer
 
@@ -1418,6 +1442,40 @@ class FunctionMaker:
                 end_rewriter = time.perf_counter()
                 rewrite_time = end_rewriter - start_rewriter
                 _logger.debug(f"Rewriting took {rewrite_time:f} seconds")
+
+                fgraph_outputs = tuple(fgraph.outputs)
+                update_mappings = tuple(fgraph.update_mapping.items())
+                outputs_to_remove = []
+                additional_outputs_to_remove = []
+
+                # Remove unused updates
+                for i, (out_idx, in_idx) in enumerate(update_mappings):
+                    update = fgraph_outputs[out_idx]
+
+                    if update.owner and update.owner.op == update_placeholder:
+
+                        # TODO: Consider removing the corresponding
+                        # `FunctionGraph` input when it has no other
+                        # references?
+                        # updated_var = fgraph_inputs[in_idx]
+                        # if not fgraph.clients[updated_var]:
+                        #     fgraph.remove_input(updated_var)
+
+                        # Remove the update entry from the wrapped inputs
+                        inputs[in_idx].update = None
+
+                        # We assume that the orders of `fgraph.update_mapping` and
+                        # `additional_outputs` correspond (and they should)
+                        additional_outputs_to_remove.append(additional_outputs[i])
+
+                        outputs_to_remove.append(fgraph.outputs[out_idx])
+
+                for add_out, out in zip(
+                    additional_outputs_to_remove, outputs_to_remove
+                ):
+                    additional_outputs.remove(add_out)
+                    fgraph_out_idx = fgraph.outputs.index(out)
+                    fgraph.remove_output(fgraph_out_idx)
 
                 # Add deep copy to respect the memory interface
                 insert_deepcopy(fgraph, inputs, outputs + additional_outputs)
