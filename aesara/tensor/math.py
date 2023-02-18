@@ -1,6 +1,6 @@
 import builtins
 import warnings
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 import numpy as np
 
@@ -3142,7 +3142,7 @@ __all__ = [
     "hyp2f1_der",
 ]
 
-DEPRECATED_NAMES = [
+DEPRECATED_NAMES: List[Tuple[str, str, object]] = [
     ("abs_", "`abs_` is deprecated; use `abs` instead.", abs),
     ("inv", "`inv` is deprecated; use `reciprocal` instead.", reciprocal),
     (
