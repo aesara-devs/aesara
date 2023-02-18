@@ -18,7 +18,7 @@ from aesara.raise_op import Assert
 from aesara.tensor import inplace
 from aesara.tensor.basic import Alloc, MakeVector, _convert_to_int8, make_vector
 from aesara.tensor.elemwise import DimShuffle, Elemwise
-from aesara.tensor.math import Dot, add, dot, exp, sqr
+from aesara.tensor.math import Dot, add, dot, exp, square
 from aesara.tensor.rewriting.subtensor import (
     local_replace_AdvancedSubtensor,
     local_subtensor_shape_constant,
@@ -1774,7 +1774,7 @@ def test_local_IncSubtensor_serialize():
     j = vector("j", dtype="int64")
     t = scalar("t")
     y = (W[i] + W[j] + W[1] + W[i, j]).sum()
-    cost = sqr(t - y)
+    cost = square(t - y)
     dW = aesara.grad(cost, W)
     mode = get_default_mode().excluding("fusion")
     mode = mode.including("local_IncSubtensor_serialize")

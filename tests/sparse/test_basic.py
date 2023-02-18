@@ -3168,7 +3168,7 @@ TruncTester = elemwise_checker(
 )
 
 
-SqrTester = elemwise_checker(sparse.sqr, lambda x: x * x)
+SqrTester = elemwise_checker(sparse.square, lambda x: x * x)
 
 SqrtTester = elemwise_checker(sparse.sqrt, np.sqrt, gap=(0, 10))
 

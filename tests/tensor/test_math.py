@@ -104,8 +104,8 @@ from aesara.tensor.math import (
     sin,
     sinh,
     smallest,
-    sqr,
     sqrt,
+    square,
     sub,
 )
 from aesara.tensor.math import sum as at_sum
@@ -433,7 +433,7 @@ TestRoundHalfAwayFromZeroBroadcast = makeBroadcastTester(
 )
 
 TestSqrBroadcast = makeBroadcastTester(
-    op=sqr,
+    op=square,
     expected=np.square,
     good=_good_broadcast_unary_normal,
     grad=_grad_broadcast_unary_normal,
@@ -2664,7 +2664,7 @@ class TestProd:
         # second time, with some added complexity
         # verify_grad takes the sum of the matrices anyway
         def fn(x2):
-            return sqr(Prod(axis=1)(x2))
+            return square(Prod(axis=1)(x2))
 
         utt.verify_grad(fn, [x_val], mode=self.mode)
 
@@ -3574,3 +3574,9 @@ def test_deprecations():
 
     with pytest.deprecated_call():
         from aesara.tensor.math import int_div  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.tensor import sqr  # noqa: F401 F811
+
+    with pytest.deprecated_call():
+        from aesara.tensor.math import sqr  # noqa: F401 F811

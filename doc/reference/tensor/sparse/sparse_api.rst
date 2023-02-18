@@ -196,7 +196,7 @@ List of Implemented Operations
     - ``sgn``
     - ``log1p``
     - ``expm1``
-    - ``sqr``
+    - ``square``
     - ``sqrt``
 
 - Dot Product

@@ -40,8 +40,8 @@ from aesara.tensor.math import (
     sigmoid,
     sin,
     sinh,
-    sqr,
     sqrt,
+    square,
     tan,
     tanh,
     trunc,
@@ -3255,8 +3255,8 @@ def trunc(x):
     """
 
 
-@structured_monoid(sqr)  # type: ignore[no-redef]
-def sqr(x):
+@structured_monoid(square)  # type: ignore[no-redef]
+def square(x):
     """
     Elemwise `x` * `x`.
 

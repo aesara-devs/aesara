@@ -3216,7 +3216,7 @@ class Sqr(UnaryScalarOp):
         return f"{z} = {x} * {x};"
 
 
-sqr = Sqr(same_out, name="sqr")
+square = Sqr(same_out, name="square")
 
 
 class Sqrt(UnaryScalarOp):
@@ -3385,7 +3385,7 @@ class ArcCos(UnaryScalarOp):
             else:
                 return [x.zeros_like()]
 
-        return (-gz / sqrt(np.cast[x.type](1) - sqr(x)),)
+        return (-gz / sqrt(np.cast[x.type](1) - square(x)),)
 
     def c_code(self, node, name, inputs, outputs, sub):
         (x,) = inputs
@@ -3459,7 +3459,7 @@ class ArcSin(UnaryScalarOp):
             else:
                 return [x.zeros_like()]
 
-        return (gz / sqrt(np.cast[x.type](1) - sqr(x)),)
+        return (gz / sqrt(np.cast[x.type](1) - square(x)),)
 
     def c_code(self, node, name, inputs, outputs, sub):
         (x,) = inputs
@@ -3495,7 +3495,7 @@ class Tan(UnaryScalarOp):
             else:
                 return [x.zeros_like()]
 
-        return (gz / sqr(cos(x)),)
+        return (gz / square(cos(x)),)
 
     def c_code(self, node, name, inputs, outputs, sub):
         (x,) = inputs
@@ -3531,7 +3531,7 @@ class ArcTan(UnaryScalarOp):
             else:
                 return [x.zeros_like()]
 
-        return (gz / (np.cast[x.type](1) + sqr(x)),)
+        return (gz / (np.cast[x.type](1) + square(x)),)
 
     def c_code(self, node, name, inputs, outputs, sub):
         (x,) = inputs
@@ -3577,7 +3577,10 @@ class ArcTan2(BinaryScalarOp):
 
             # If the output is float, the gradient should flow,
             # even if the inputs are ints
-            return [gz * x / (sqr(x) + sqr(y)), gz * neg(y) / (sqr(x) + sqr(y))]
+            return [
+                gz * x / (square(x) + square(y)),
+                gz * neg(y) / (square(x) + square(y)),
+            ]
 
     def c_code(self, node, name, inputs, outputs, sub):
         (y, x) = inputs
@@ -3654,7 +3657,7 @@ class ArcCosh(UnaryScalarOp):
             else:
                 return [x.zeros_like()]
 
-        return (gz / sqrt(sqr(x) - np.cast[x.type](1)),)
+        return (gz / sqrt(square(x) - np.cast[x.type](1)),)
 
     def c_code(self, node, name, inputs, outputs, sub):
         (x,) = inputs
@@ -3731,7 +3734,7 @@ class ArcSinh(UnaryScalarOp):
             else:
                 return [x.zeros_like()]
 
-        return (gz / sqrt(sqr(x) + np.cast[x.type](1)),)
+        return (gz / sqrt(square(x) + np.cast[x.type](1)),)
 
     def c_code(self, node, name, inputs, outputs, sub):
         (x,) = inputs
@@ -3773,7 +3776,7 @@ class Tanh(UnaryScalarOp):
             else:
                 return [x.zeros_like()]
 
-        return (gz * (1 - sqr(tanh(x))),)
+        return (gz * (1 - square(tanh(x))),)
 
     def c_code(self, node, name, inputs, outputs, sub):
         (x,) = inputs
@@ -3809,7 +3812,7 @@ class ArcTanh(UnaryScalarOp):
             else:
                 return [x.zeros_like()]
 
-        return (gz / (np.cast[x.type](1) - sqr(x)),)
+        return (gz / (np.cast[x.type](1) - square(x)),)
 
     def c_code(self, node, name, inputs, outputs, sub):
         (x,) = inputs
@@ -4464,6 +4467,7 @@ DEPRECATED_NAMES: List[Tuple[str, str, object]] = [
         "`floor_div` is deprecated; use `floor_divide` instead.",
         floor_divide,
     ),
+    ("sqr", "`sqr` is deprecated; use `square` instead.", square),
 ]
 
 
@@ -4686,7 +4690,7 @@ __all__ = [
     "exp",
     "exp2",
     "expm1",
-    "sqr",
+    "square",
     "sqrt",
     "deg2rad",
     "rad2deg",

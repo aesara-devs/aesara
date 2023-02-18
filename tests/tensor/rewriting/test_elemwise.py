@@ -41,7 +41,7 @@ from aesara.tensor.math import (
 from aesara.tensor.math import pow as at_pow
 from aesara.tensor.math import reciprocal
 from aesara.tensor.math import round as at_round
-from aesara.tensor.math import sin, sinh, sqr, sqrt
+from aesara.tensor.math import sin, sinh, sqrt, square
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tan, tanh, true_divide, xor
 from aesara.tensor.rewriting.elemwise import local_dimshuffle_lift
@@ -728,7 +728,7 @@ class TestFusion:
                 "float32",
             ),
             (
-                fx - fy + sqr(fz),
+                fx - fy + square(fz),
                 (fx, fy, fz),
                 (fxv, fyv, fzv),
                 1,

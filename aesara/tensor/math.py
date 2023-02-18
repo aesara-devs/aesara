@@ -1154,12 +1154,8 @@ def round_half_away_from_zero(a):
 
 
 @scalar_elemwise
-def sqr(a):
+def square(a):
     """square of a"""
-
-
-# alias to sqr, included to maintain similarity with numpy interface
-square = sqr
 
 
 def cov(m, y=None, rowvar=True, bias=False, ddof=None, fweights=None, aweights=None):
@@ -1689,7 +1685,7 @@ def var(input, axis=None, ddof=0, keepdims=False, corrected=False):
     # center the input
     centered_input = input - mean_input
 
-    # return the mean sqr
+    # return the mean square
     two = constant(2, dtype=centered_input.dtype)
     if ddof == 0:
         v = mean((centered_input**two), axis, keepdims=keepdims)
@@ -3051,7 +3047,6 @@ __all__ = [
     "round",
     "round_half_to_even",
     "round_half_away_from_zero",
-    "sqr",
     "square",
     "cov",
     "sqrt",
@@ -3150,6 +3145,11 @@ DEPRECATED_NAMES: List[Tuple[str, str, object]] = [
         "floor_div",
         "`floor_div` is deprecated; use `floor_divide` instead.",
         floor_divide,
+    ),
+    (
+        "sqr",
+        "`sqr` is deprecated; use `square` instead.",
+        square,
     ),
 ]
 

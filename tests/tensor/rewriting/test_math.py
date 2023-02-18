@@ -75,7 +75,7 @@ from aesara.tensor.math import minimum, mul, neg, neq
 from aesara.tensor.math import pow as at_pow
 from aesara.tensor.math import prod, rad2deg, reciprocal
 from aesara.tensor.math import round as at_round
-from aesara.tensor.math import sgn, sigmoid, sin, sinh, softplus, sqr, sqrt, sub
+from aesara.tensor.math import sgn, sigmoid, sin, sinh, softplus, sqrt, square, sub
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.math import tan, tanh, true_divide, xor
 from aesara.tensor.rewriting.elemwise import local_dimshuffle_lift
@@ -1547,7 +1547,7 @@ class TestFusion:
                 "float32",
             ),
             (
-                fx - fy + sqr(fz),
+                fx - fy + square(fz),
                 (fx, fy, fz),
                 (fxv, fyv, fzv),
                 1,
@@ -2376,13 +2376,13 @@ def test_local_pow_specialize():
 
     f = function([v], v**2, mode=mode)
     nodes = [node.op for node in f.maker.fgraph.toposort()]
-    assert nodes == [sqr]
+    assert nodes == [square]
     utt.assert_allclose(f(val), val**2)
 
     f = function([v], v ** (-2), mode=mode)
     nodes = [node.op for node in f.maker.fgraph.toposort()]
     assert len(nodes) == 2
-    assert nodes[0] == sqr
+    assert nodes[0] == square
     assert isinstance(nodes[1].scalar_op, aes.basic.Reciprocal)
     utt.assert_allclose(f(val_no0), val_no0 ** (-2))
 
@@ -3032,10 +3032,10 @@ class TestLocalErfc:
 
         # Test cases for which the requisite form isn't present
         no_matches = [
-            ([x, y], exp(sqr(x)) / erfc(y)),
+            ([x, y], exp(square(x)) / erfc(y)),
             ([x, y], exp(neg(x)) / erfc(y)),
             ([x, y], exp(x * 1) / erfc(y)),
-            ([x, y], exp(neg(sqr(x))) / erfc(y)),
+            ([x, y], exp(neg(square(x))) / erfc(y)),
             ([x], mul(1.0, 2.0, x) / erfc(x)),
         ]
         for inputs, no_match in no_matches:
@@ -3064,7 +3064,7 @@ class TestLocalErfc:
         assert f.maker.fgraph.outputs[0].dtype == config.floatX
 
         # Test with a different `mul` and `constant`
-        f = function([x], mul(exp(neg(sqr(x))), -10.12837917) / erfc(x), mode=mode)
+        f = function([x], mul(exp(neg(square(x))), -10.12837917) / erfc(x), mode=mode)
 
         assert f.maker.fgraph.outputs[0].owner.op == mul
         assert f.maker.fgraph.outputs[0].owner.inputs[0].owner.op == switch
@@ -3072,13 +3072,13 @@ class TestLocalErfc:
         assert all(np.isfinite(f(val)))
 
         # Test it works without the `mul`
-        f = function([x], exp(neg(sqr(x))) / erfc(x), mode=mode)
+        f = function([x], exp(neg(square(x))) / erfc(x), mode=mode)
 
         assert f.maker.fgraph.outputs[0].owner.op == switch
         assert f.maker.fgraph.outputs[0].dtype == config.floatX
         assert all(np.isfinite(f(val)))
 
-        # Test that it works without the `sqr` and `neg`
+        # Test that it works without the `square` and `neg`
         f = function([x], exp(mul(-1, x, x)) / erfc(x), mode=mode)
 
         assert f.maker.fgraph.outputs[0].owner.op == switch
@@ -3980,7 +3980,7 @@ def test_local_sumsqr2dot():
     G = matrix("G")
     W = matrix("W")
 
-    y = sqr(W.dimshuffle("x", 0, 1) * G.dimshuffle(0, "x", 1)).sum(axis=(1, 2))
+    y = square(W.dimshuffle("x", 0, 1) * G.dimshuffle(0, "x", 1)).sum(axis=(1, 2))
     MODE = get_default_mode().including("local_sumsqr2dot")
 
     f = function([W, G], y, mode=MODE)
