@@ -12,7 +12,7 @@ efficiently. It is composed of different parts:
 - **Speed and stability optimization**
 - **Efficient symbolic differentiation**
 - **Powerful rewrite system** to programmatically modify your models
-- **Extendable backends.** Aesara currently compiles to C, Jax and Numba.
+- **Extendable backends** Aesara currently compiles to C, Jax and Numba.
 
 .. image:: ./images/aesara_overview_diagram.png
    :width: 100%
@@ -20,9 +20,9 @@ efficiently. It is composed of different parts:
 
 Aesara adheres to the following design principles:
 
-- **Familiar**: Aesara follows the NumPy API and can act as a drop-in replacement
-- **Modular**: Aesara's graph, rewrites, backends can be easily be extended independently
-- **Hackable**: Easily add rewrites, mathematical operators and backends *in pure python*
+- **Familiar**: Aesara follows the NumPy API and can act as a drop-in replacement.
+- **Modular**: Aesara's graph, rewrites, backends can be easily be extended independently.
+- **Hackable**: Easily add rewrites, mathematical operators and backends *in pure python*.
 - **Composable**: Aesara's compiled functions are compatible with the Numba & JAX ecosystems.
 
 We also make a strong commitment to **code quality** and **scalability**.
@@ -33,34 +33,34 @@ intensive scientific investigations since 2007.
 Install Aesara
 ===============
 
-Aesara installation can happen in a few different ways. You can install Aesara with `conda` or with `pip`. To get the bleeding edge version you can install `aesara-nightly.`
+You can install Aesara with `conda` or with `pip`. To get the bleeding edge version you can install `aesara-nightly.`
 
 .. tab-set::
 
-     .. tab-item:: PyPi
+    .. tab-item:: Conda
 
-         .. code:: bash
-
-             pip install aesara
-
-
-     .. tab-item:: Conda
-
-         .. code:: bash
+        .. code:: bash
 
             conda install -c conda-forge aesara
 
 
-     .. tab-item:: Nightly
+    .. tab-item:: PyPi
 
-         .. code:: bash
+        .. code:: bash
 
-             pip install aesara-nightly
+            pip install aesara
+
+
+    .. tab-item:: Nightly
+
+        .. code:: bash
+
+            pip install aesara-nightly
 
 
 .. attention::
 
-    To use the Numba and JAX backend you will need to install these libraries in addition to Aesara. Please refer to `Numba's installation instructions <https://numba.readthedocs.io/en/stable/user/installing.html>`__ and `JAX's installation instructions  <https://github.com/google/jax#installation>`__ respectively.
+    To use the Numba or JAX backend you will need to install that library in addition to Aesara. Please refer to `Numba's installation instructions <https://numba.readthedocs.io/en/stable/user/installing.html>`__ and `JAX's installation instructions  <https://github.com/google/jax#installation>`__ respectively.
 
 
 Featured applications
@@ -73,12 +73,12 @@ The following projects illustrate Aesara's unique capabilities:
 .. card:: AePPL
     :link: https://github.com/aesara-devs/aeppl
 
-    A(e) PPL written with Aesara.
+    A(e) Probabilistic Programming Language written with Aesara
 
 .. card:: AeMCMC
     :link: https://github.com/aesara-devs/aemcmc
 
-    Sampling probabilistic models with Aesara
+    Constructs samplers for probabilistic models with Aesara
 
 .. card:: AeHMC
     :link: https://github.com/aesara-devs/aehmc
@@ -86,7 +86,7 @@ The following projects illustrate Aesara's unique capabilities:
     Implementations of the HMC and NUTS sampler in Aesara
 
 
-While these projects are related to probabilistics modelling, Aesara is much more general and can be used to improve any machine learning project.
+While these projects are related to probabilistic modelling, Aesara is much more general and can be used to improve any machine learning project.
 
 Community
 =========
