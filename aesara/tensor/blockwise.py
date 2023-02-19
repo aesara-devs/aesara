@@ -189,6 +189,13 @@ def infer_shape_to_gufunc_sig(node: Apply, fgraph: Optional["FunctionGraph"] = N
     return (gufunc_inputs_sig, gufunc_outputs_sig)
 
 
+def safe_const_val(x):
+    try:
+        return get_scalar_constant_value(x)
+    except NotScalarConstantError:
+        return None
+
+
 class Blockwise(Op):
     __props__ = ("op", "signature")
 
@@ -196,58 +203,103 @@ class Blockwise(Op):
         self.op = op
         self.signature = signature or self.op.gufunc_sig
 
-    def get_output_info(self, *inputs):
-        """Return the outputs dtype and broadcastable pattern and the
-        dimshuffled inputs.
+    def get_core_inputs_outputs(self, inputs: Sequence["TensorVariable"]):
+        """Get the core inputs and outputs for a given set of `inputs`.
+
+        Parameters
+        ==========
+        inputs
+            The normalized, blocked inputs (i.e. "broadcasted" inputs with all
+            the necessary dimensions added).  They're needed for their dtype
+            and static shape information.
 
         """
-        # ensure that all inputs have the code dimensions
-        core_inputs = []
-        for input, signature in zip(inputs, self.signature[0]):
-            core_dimension = len(signature)
-            if core_dimension > input.type.ndim:
-                difference = core_dimension - input.type.ndim
-                core_inputs.append(
-                    DimShuffle(
-                        input.type.broadcastable,
-                        list(range(input.type.ndim)) + ["x"] * difference,
-                    )(input)
-                )
-            else:
-                core_inputs.append(input)
 
-        # remove the core dimension first the then broadcast the rest of the dimension
+        core_inputs = []
+        for _inp, _inp_sig in zip(inputs, self.signature[0]):
+            curr_dtype = _inp.type.dtype
+            # Extract the static shape values of the core dimensions in the
+            # signature.  Doing so will produce a much more precise
+            # `TensorType`.
+            curr_static_shape = _inp.type.shape[_inp.type.ndim - len(_inp_sig) :]
+            core_inputs.append(TensorType(curr_dtype, curr_static_shape)())
+
+        # TODO: This shouldn't be necessary; `Op.make_node` doesn't call
+        # `compute_test_value`, only `Op.__call__` does.
+        with aesara.config.change_flags(compute_test_value="off"):
+            core_outputs: Sequence[Variable] = self.op.make_node(*core_inputs).outputs
+
+        return core_inputs, core_outputs
+
+    def get_output_info(self, *inputs):
+        r"""Return the outputs dtype and broadcastable pattern and the `DimShuffle`\d inputs.
+
+        Parameters
+        ==========
+        inputs
+             The blocked inputs (i.e. "broadcasted" inputs).
+        """
+
+        # Ensure that all blocked inputs have the same number of core
+        # dimensions
+        blocked_inputs = []
+        for inp, signature in zip(inputs, self.signature[0]):
+            core_ndim = len(signature)
+            difference = core_ndim - inp.type.ndim
+
+            # Do we need to _add_ core dimensions?
+            if difference > 0:
+                core_inp = DimShuffle(
+                    inp.type.broadcastable,
+                    list(range(inp.type.ndim)) + ["x"] * difference,
+                )(inp)
+            else:
+                core_inp = inp
+
+            blocked_inputs.append(core_inp)
+
+        # Remove the core dimension first, then broadcast the rest of the
+        # dimensions
         max_loop_dimension = max(
-            core_inputs[i].type.ndim - len(self.signature[0][i])
-            for i in range(len(core_inputs))
+            blocked_inputs[i].type.ndim - len(self.signature[0][i])
+            for i in range(len(blocked_inputs))
         )
 
+        # Normalize the inputs by adding missing broadcast dimensions
         broadcasted_inputs = []
-        for input, signature in zip(core_inputs, self.signature[0]):
-            core_dimension = len(signature)
-            loop_dimension = input.type.ndim - core_dimension
+        for inp, signature in zip(blocked_inputs, self.signature[0]):
+            core_ndim = len(signature)
+            loop_dimension = inp.type.ndim - core_ndim
             difference = max_loop_dimension - loop_dimension
+            assert difference >= 0
 
-            if difference == 0:
-                broadcasted_inputs.append(input)
+            if difference > 0:
+                bcast_inp = DimShuffle(
+                    inp.type.broadcastable,
+                    ["x"] * difference + list(range(inp.type.ndim)),
+                )(inp)
             else:
-                broadcasted_inputs.append(
-                    DimShuffle(
-                        input.type.broadcastable,
-                        ["x"] * difference + list(range(input.type.ndim)),
-                    )(input)
-                )
-        inputs = broadcasted_inputs
+                bcast_inp = inp
 
-        shadow = self.op.make_node(*inputs)
-        out_dtypes = [o.type.dtype for o in shadow.outputs]
+            broadcasted_inputs.append(bcast_inp)
 
-        bcast_shape, dim_sizes = _parse_input_dimensions(inputs, self.signature[0])
+        _, core_outputs = self.get_core_inputs_outputs(broadcasted_inputs)
+        out_dtypes = [o.type.dtype for o in core_outputs]
+
+        bcast_shape, dim_sizes = _parse_input_dimensions(
+            broadcasted_inputs, self.signature[0]
+        )
         output_shapes = _calculate_shapes(bcast_shape, dim_sizes, self.signature[1])
 
-        return out_dtypes, output_shapes, inputs
+        return out_dtypes, output_shapes, broadcasted_inputs
 
     def make_node(self, *inputs):
+        """
+        Parameters
+        ==========
+        inputs
+            The blocked inputs (i.e. "broadcasted" inputs).
+        """
         num_expected_inps = len(self.signature[0])
         if len(inputs) != num_expected_inps:
             raise ValueError(
@@ -256,14 +308,10 @@ class Blockwise(Op):
 
         out_dtypes, output_shapes, inputs = self.get_output_info(*inputs)
 
-        def safe_const_val(x):
-            try:
-                return get_scalar_constant_value(x)
-            except NotScalarConstantError:
-                return None
-
         outputs = [
-            TensorType(out_dtypes[i], shape=tuple(safe_const_val(s) for s in output_shapes[i]))()
+            TensorType(
+                out_dtypes[i], shape=tuple(safe_const_val(s) for s in output_shapes[i])
+            )()
             for i in range(len(output_shapes))
         ]
         return Apply(self, list(inputs), outputs)
@@ -280,7 +328,8 @@ class Blockwise(Op):
         # Compute grad with respect to broadcasted input
         rval = self._bgrad(inputs, outs, ograds)
 
-        # sum out the broadcasted dimensions
+        # TODO: This is very broken.  See #1089.
+        # Sum out the broadcasted dimensions
         for i, ipt in enumerate(inputs):
             if isinstance(rval[i].type, (NullType, DisconnectedType)):
                 continue
@@ -298,22 +347,19 @@ class Blockwise(Op):
                 sr = at_sum(rval[i], axis=to_sum, keepdims=True)
                 rval[i] = sr
 
+        for inp, grad in zip(inputs, rval):
+            assert inp.ndim == grad.ndim
+
         return rval
 
     def _bgrad(
         self,
-        inputs: Sequence[Variable],
-        outputs: Sequence[Variable],
-        ograds: Sequence[Variable],
+        inputs: Sequence["TensorVariable"],
+        outputs: Sequence["TensorVariable"],
+        ograds: Sequence["TensorVariable"],
     ):
-
         with aesara.config.change_flags(compute_test_value="off"):
-            core_inputs = []
-            for _inp, _inp_sig in zip(inputs, self.signature[0]):
-                curr_dtype = _inp.type.dtype
-                # extract the core dimensions
-                curr_static_shape = _inp.type.shape[-len(_inp_sig) :]
-                core_inputs.append(TensorType(curr_dtype, curr_static_shape)())
+            core_inputs, core_outputs = self.get_core_inputs_outputs(inputs)
 
             core_out_grads = []
             for _out_grad, _out_sig in zip(ograds, self.signature[1]):
@@ -322,24 +368,28 @@ class Blockwise(Op):
                 curr_static_shape = _out_grad.type.shape[start_idx:]
                 core_out_grads.append(TensorType(curr_dtype, curr_static_shape)())
 
-            core_outputs: Sequence[Variable] = self.op.make_node(*core_inputs).outputs
             core_inp_grads = self.op.L_op(core_inputs, core_outputs, core_out_grads)
 
             for igrad in core_inp_grads:
                 assert igrad is not None, self.op
 
-        def transform(var: "TensorVariable", client_node: Optional[Apply]) -> Variable:
+        def transform(
+            var: "TensorVariable", client_node: Optional[Apply]
+        ) -> "TensorVariable":
             """Walk a graph and expand single gradient \"block\"s into their block-wise equivalents."""
 
             if isinstance(var.type, (NullType, DisconnectedType)):
                 return var
 
             if var in core_inputs:
-                return inputs[core_inputs.index(var)]
-            if var in core_outputs:
-                return outputs[core_outputs.index(var)]
-            if var in core_out_grads:
-                return ograds[core_out_grads.index(var)]
+                idx: int = core_inputs.index(var)
+                return inputs[idx]
+            elif var in core_outputs:
+                idx = core_outputs.index(var)
+                return outputs[idx]
+            elif var in core_out_grads:
+                idx = core_out_grads.index(var)
+                return ograds[idx]
 
             node = var.owner
             if node is None:
@@ -362,7 +412,7 @@ class Blockwise(Op):
 
             assert isinstance(new_r, Variable)
 
-            return new_r
+            return cast("TensorVariable", new_r)
 
         ret = []
         for core_inp_grad, ipt in zip(core_inp_grads, inputs):
