@@ -253,7 +253,7 @@ _scalar_constant_value_elemwise_ops = (
     aes.Mod,
     aes.Mul,
     aes.FloorDivide,
-    aes.TrueDiv,
+    aes.TrueDivide,
     aes.ScalarMinimum,
     aes.ScalarMaximum,
 )

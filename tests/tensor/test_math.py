@@ -3042,7 +3042,7 @@ class TestMeanDtype:
                     try:
                         grad(mean_var.sum(), x, disconnected_inputs="ignore")
                     except NotImplementedError:
-                        # TrueDiv does not seem to have a gradient when
+                        # TrueDivide does not seem to have a gradient when
                         # the numerator is complex.
                         if mean_var.dtype in complex_dtypes:
                             pass

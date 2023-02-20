@@ -34,7 +34,7 @@ from aesara.scalar.basic import (
     ScalarMaximum,
     ScalarMinimum,
     Sub,
-    TrueDiv,
+    TrueDivide,
 )
 from aesara.scalar.basic import add as add_as
 from aesara.scalar.basic import scalar_maximum
@@ -101,7 +101,7 @@ def scalar_in_place_fn_XOR(op, idx, res, arr):
     return f"{res}[{idx}] ^= {arr}"
 
 
-@scalar_in_place_fn.register(TrueDiv)
+@scalar_in_place_fn.register(TrueDivide)
 def scalar_in_place_fn_TrueDiv(op, idx, res, arr):
     return f"{res}[{idx}] /= {arr}"
 
