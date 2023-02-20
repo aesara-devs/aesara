@@ -197,6 +197,74 @@ means of generating distinct random variables in a fully reproducible way.
 sophisticated `Op`\s like `Scan`, which makes it the de facto random variable
 interface in Aesara.
 
+Quick start
+-----------
+
+.. currentmodule:: aesara.tensor.random
+
+Create a new :class:`RandomStream` instance, then call its methods to generate :class:`RandomVariable` with different distributions. The :class:`RandomStream` interface follows that of NumPy's ``Generator``; the implementation details depend on the backend to which the Aesara graph is compiled.
+
+.. testcode:: quickstart_random
+
+   import aesara.tensor as at
+
+   srng = at.random.RandomStream(0)
+   x_rv = srng.normal(0, 1)
+   y_rv = srng.poisson(1.)
+
+
+Distributions
+-------------
+
+Aesara can produce :class:`RandomVariable`\s that draw samples from many different statistical distributions, using the following :class:`Op`\s. The :class:`RandomVariable`\s behave similarly to NumPy's *Generalized Universal Functions* (or `gunfunc`): it supports "core" random variable :class:`Op`\s that map distinctly shaped inputs to potentially non-scalar outputs. We document this behavior in the following with `gufunc`-like signatures.
+
+.. automodule:: aesara.tensor.random
+
+.. autosummary::
+   :toctree: _autosummary
+
+   bernoulli
+   beta
+   betabinom
+   binomial
+   categorical
+   cauchy
+   chisquare
+   choice
+   dirichlet
+   exponential
+   gengamma
+   geometric
+   gamma
+   gumbel
+   halfcauchy
+   halfnormal
+   hypergeometric
+   laplace
+   logistic
+   lognormal
+   integers
+   invgamma
+   multinomial
+   multivariate_normal
+   negative_binomial
+   nbinom
+   normal
+   permutation
+   pareto
+   poisson
+   random
+   rayleigh
+   standard_normal
+   t
+   triangular
+   truncexpon
+   uniform
+   vonmises
+   wald
+   weibull
+
+
 Reference
 ---------
 
@@ -258,56 +326,3 @@ Reference
     :class:`Op` that draws random numbers from a :class:`numpy.random.RandomState` object.
     This :class:`Op` is parameterized to draw numbers from many possible
     distributions.
-
-
-Distributions
--------------
-
-Aesara can produce :class:`RandomVariable`\s that draw samples from many different statistical distributions, using the following :class:`Op`\s. The :class:`RandomVariable`\s behave similarly to NumPy's *Generalized Universal Functions* (or `gunfunc`): it supports "core" random variable :class:`Op`\s that map distinctly shaped inputs to potentially non-scalar outputs. We document this behavior in the following with `gufunc`-like signatures.
-
-.. automodule:: aesara.tensor.random
-
-.. autosummary::
-   :toctree: _autosummary
-
-   bernoulli
-   beta
-   betabinom
-   binomial
-   categorical
-   cauchy
-   chisquare
-   choice
-   dirichlet
-   exponential
-   gengamma
-   geometric
-   gamma
-   gumbel
-   halfcauchy
-   halfnormal
-   hypergeometric
-   laplace
-   logistic
-   lognormal
-   integers
-   invgamma
-   multinomial
-   multivariate_normal
-   negative_binomial
-   nbinom
-   normal
-   permutation
-   pareto
-   poisson
-   random
-   standard_normal
-   t
-   triangular
-   truncexpon
-   uniform
-   vonmises
-   wald
-   weibull
-   ..
-      randint
