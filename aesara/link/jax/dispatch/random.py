@@ -389,3 +389,20 @@ def jax_sample_fn_wald(op):
         return (rng, samples)
 
     return sample_fn
+
+
+@jax_sample_fn.register(aer.GeometricRV)
+def jax_sample_fn_geometric(op):
+    """JAX implementation of `GeometricRV`."""
+
+    def sample_fn(rng, size, dtype, *parameters):
+        rng_key = rng["jax_state"]
+        rng_key, sampling_key = jax.random.split(rng_key, 2)
+        p = parameters[0]
+        sample_num = jax.numpy.log(jax.random.uniform(sampling_key, size))
+        sample = sample_num / jax.numpy.log1p(-p)
+        sample_ceil = jax.numpy.ceil(sample)
+        rng["jax_state"] = rng_key
+        return (rng, sample_ceil)
+
+    return sample_fn
