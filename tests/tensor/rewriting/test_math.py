@@ -3915,7 +3915,7 @@ class TestIntDivByOne:
             node
             for node in graph
             if isinstance(node.op, Elemwise)
-            and isinstance(node.op.scalar_op, aes.IntDiv)
+            and isinstance(node.op.scalar_op, aes.FloorDivide)
         ]
         assert len(divs) == 0
 
@@ -3929,7 +3929,7 @@ class TestIntDivByOne:
             node
             for node in graph
             if isinstance(node.op, Elemwise)
-            and isinstance(node.op.scalar_op, aes.IntDiv)
+            and isinstance(node.op.scalar_op, aes.FloorDivide)
         ]
         assert len(divs) == 0
 
@@ -3943,7 +3943,7 @@ class TestIntDivByOne:
             node
             for node in graph
             if isinstance(node.op, Elemwise)
-            and isinstance(node.op.scalar_op, aes.IntDiv)
+            and isinstance(node.op.scalar_op, aes.FloorDivide)
         ]
         assert len(divs) == 0
 

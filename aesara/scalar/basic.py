@@ -2039,7 +2039,7 @@ true_divide = TrueDiv(upcast_out, name="true_divide")
 divide = true_divide
 
 
-class IntDiv(BinaryScalarOp):
+class FloorDivide(BinaryScalarOp):
     nfunc_spec = ("floor_divide", 2, 1)
     complex_error = ComplexError(
         "Aesara does not support integer division (//) on "
@@ -2133,7 +2133,7 @@ class IntDiv(BinaryScalarOp):
         return [inp.zeros_like(dtype=config.floatX) for inp in inputs]
 
 
-floor_divide = IntDiv(upcast_out, name="floor_divide")
+floor_divide = FloorDivide(upcast_out, name="floor_divide")
 
 
 def mod_check(x, y):
@@ -4540,7 +4540,7 @@ __all__ = [
     "Mul",
     "Sub",
     "TrueDiv",
-    "IntDiv",
+    "FloorDivide",
     "mod_check",
     "Mod",
     "Pow",

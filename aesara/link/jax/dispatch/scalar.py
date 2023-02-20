@@ -10,8 +10,8 @@ from aesara.scalar.basic import (
     Cast,
     Clip,
     Composite,
+    FloorDivide,
     Identity,
-    IntDiv,
     Mod,
     Mul,
     ScalarOp,
@@ -113,7 +113,7 @@ def elemwise_scalar_sub(op):
     return elemwise
 
 
-@elemwise_scalar.register(IntDiv)
+@elemwise_scalar.register(FloorDivide)
 def elemwise_scalar_intdiv(op):
     def elemwise(x, y):
         return x // y

@@ -1963,7 +1963,7 @@ def local_intdiv_by_one(fgraph, node):
 def local_zero_div(fgraph, node):
     """0 / x -> 0"""
     if isinstance(node.op, Elemwise) and isinstance(
-        node.op.scalar_op, (aes.IntDiv, aes.TrueDiv)
+        node.op.scalar_op, (aes.FloorDivide, aes.TrueDiv)
     ):
         if get_constant(node.inputs[0]) == 0:
             ret = broadcast_like(0, node.outputs[0], fgraph)
