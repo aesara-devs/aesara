@@ -369,6 +369,21 @@ def test_random_bernoulli(size):
     np.testing.assert_allclose(samples.mean(axis=0), 0.5, 1)
 
 
+@pytest.mark.parametrize(
+    "p, size",
+    [
+        (0.6, ()),
+        (0.2, (4,)),
+    ],
+)
+def test_random_geometric(p, size):
+    rng = shared(np.random.RandomState(123))
+    g = at.random.geometric(p, size=(1000,) + size, rng=rng)
+    g_fn = function([], g, mode=jax_mode)
+    samples = g_fn()
+    np.testing.assert_allclose(samples.mean(), 1 / p, atol=0.1)
+
+
 def test_random_mvnormal():
     rng = shared(np.random.RandomState(123))
 
