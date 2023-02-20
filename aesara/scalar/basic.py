@@ -1979,7 +1979,7 @@ class Sub(BinaryScalarOp):
 sub = Sub(upcast_out_nobool, name="sub")
 
 
-class TrueDiv(BinaryScalarOp):
+class TrueDivide(BinaryScalarOp):
     nfunc_spec = ("true_divide", 2, 1)
 
     def output_types(self, types):
@@ -2035,7 +2035,7 @@ class TrueDiv(BinaryScalarOp):
         return first_part, second_part
 
 
-true_divide = TrueDiv(upcast_out, name="true_divide")
+true_divide = TrueDivide(upcast_out, name="true_divide")
 divide = true_divide
 
 
@@ -4539,7 +4539,7 @@ __all__ = [
     "Mean",
     "Mul",
     "Sub",
-    "TrueDiv",
+    "TrueDivide",
     "FloorDivide",
     "mod_check",
     "Mod",

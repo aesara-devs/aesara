@@ -1505,7 +1505,7 @@ class ProfileStats:
             aes.Add,
             aes.Mul,
             aes.Sub,
-            aes.TrueDiv,
+            aes.TrueDivide,
             aes.FloorDivide,
             aes.Clip,
             aes.Second,

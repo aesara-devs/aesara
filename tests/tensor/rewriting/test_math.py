@@ -618,7 +618,7 @@ class TestAlgebraicCanonizer:
             assert isinstance(elem[0].op, (Elemwise,))
             assert isinstance(
                 elem[0].op.scalar_op,
-                (aes.basic.Reciprocal, aes.basic.TrueDiv),
+                (aes.basic.Reciprocal, aes.basic.TrueDivide),
             )
             assert out_dtype == out.dtype
 
@@ -693,7 +693,7 @@ class TestAlgebraicCanonizer:
             topo = f.maker.fgraph.toposort()
             assert len(topo) == 1
             assert isinstance(topo[0].op, (Elemwise,))
-            assert isinstance(topo[0].op.scalar_op, aes.basic.TrueDiv)
+            assert isinstance(topo[0].op.scalar_op, aes.basic.TrueDivide)
             assert len(topo[0].inputs) == 2
             assert out_dtype == out.dtype
 
@@ -746,7 +746,7 @@ class TestAlgebraicCanonizer:
             assert isinstance(topo[0].op.scalar_op, aes.basic.Mul)
             assert len(topo[0].inputs) == 2
             assert isinstance(topo[1].op, (Elemwise,))
-            assert isinstance(topo[1].op.scalar_op, aes.basic.TrueDiv)
+            assert isinstance(topo[1].op.scalar_op, aes.basic.TrueDivide)
             assert len(topo[1].inputs) == 2
             assert out_dtype == out.dtype
 
@@ -3729,7 +3729,7 @@ class TestLocalSumProdDimshuffle:
         for i, s in enumerate(sums):
             f = function([a, b, c, d], s, mode=self.mode, on_unused_input="ignore")
             g = f.maker.fgraph.toposort()
-            assert isinstance(g[-1].op.scalar_op, aes.basic.TrueDiv)
+            assert isinstance(g[-1].op.scalar_op, aes.basic.TrueDivide)
             f(a_val, b_val, c_val, d_val)
 
     def test_local_prod_div_dimshuffle(self):
@@ -3820,7 +3820,7 @@ class TestLocalSumProdDimshuffle:
             aes.basic.Mul,
             aes.basic.Composite,
             aes.basic.Composite,
-            aes.basic.TrueDiv,
+            aes.basic.TrueDivide,
             aes.basic.Composite,
             aes.basic.Mul,
             aes.basic.Composite,
