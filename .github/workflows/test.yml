@@ -88,6 +88,11 @@ jobs:
             float32: 0
             install-numba: 1
             part: "tests --ignore=tests/tensor/nnet --ignore=tests/tensor/signal"
+          - python-version: "3.11"
+            fast-compile: 0
+            float32: 0
+            install-numba: 0
+            part: "tests/scan/test_basic.py"
     steps:
       - uses: actions/checkout@v3
         with:
