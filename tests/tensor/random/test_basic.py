@@ -46,6 +46,7 @@ from aesara.tensor.random.basic import (
     pareto,
     permutation,
     poisson,
+    power,
     randint,
     random,
     rayleigh,
@@ -57,6 +58,7 @@ from aesara.tensor.random.basic import (
     vonmises,
     wald,
     weibull,
+    zipf,
 )
 from aesara.tensor.rewriting.shape import ShapeFeature
 from aesara.tensor.type import iscalar, scalar, tensor
@@ -421,6 +423,28 @@ def test_exponential_default_args():
 
 def test_rayleigh_default_args():
     compare_sample_values(rayleigh)
+
+
+@pytest.mark.parametrize(
+    "a, size",
+    [
+        (0.5, None),
+        (2.3, 1000),
+    ],
+)
+def test_power_samples(a, size):
+    compare_sample_values(power, a, size=size)
+
+
+@pytest.mark.parametrize(
+    "a, size",
+    [
+        (1.5, None),
+        (5.5, 1000),
+    ],
+)
+def test_zipf_samples(a, size):
+    compare_sample_values(zipf, a, size=size)
 
 
 @pytest.mark.parametrize(
