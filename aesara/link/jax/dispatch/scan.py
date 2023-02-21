@@ -568,8 +568,25 @@ def make_jax_scan_fn(
             body_fn, init_carry, sequences, length=n_steps
         )
 
+        # We need to preprend the initial values so the output matches
+        # the raw `Scan` output.
+        if len(outer_in["mit_sot"]) > 0:
+            results = tuple([
+                jnp.concatenate([init[:-n_steps], out], axis=0)
+                for init, out in zip(outer_in["mit_sot"], results)
+            ])
+        # TODO: HERE IS THE REASON WHY test_scan_multiple_none_output
+        elif len(outer_in["sit_sot"]) > 0:
+            results = tuple([
+                jnp.concatenate([init[:-n_steps], out], axis=0)
+                for init, out in zip(outer_in["sit_sot"], results)
+            ])
+
+        breakpoint()
+
         shared_output = tuple(last_carry["shared"])
         outer_outputs = results + shared_output
+
 
         if len(outer_outputs) == 1:
             return outer_outputs[0]
