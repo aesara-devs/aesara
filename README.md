@@ -22,6 +22,9 @@ arrays.
 [Get help](#get-help) •
 [Contribute](#contribute)
 
+[Roadmap](https://github.com/orgs/aesara-devs/projects/3) •
+[Docs](https://aesara.readthedocs.io/en/latest/)
+
 </div>
 
 ## Features
