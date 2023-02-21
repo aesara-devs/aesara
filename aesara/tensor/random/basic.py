@@ -267,6 +267,90 @@ class RayleighRV(RandomVariable):
 rayleigh = RayleighRV()
 
 
+class PowerRV(RandomVariable):
+    r"""A power continuous random variable.
+
+    The probability density function for `power` is:
+
+    .. math::
+
+        P(x; a) = ax^{a-1}, 0 \\le x \\le 1, a>0.
+
+    """
+    name = "power"
+    ndim_supp = 0
+    ndims_params = [0]
+    dtype = "floatX"
+    _print_name = ("Power", "\\operatorname{Power}")
+
+    def __call__(self, a, size=None, **kwargs):
+        r"""Draw samples from a rayleigh distribution.
+
+        Signature
+        ---------
+
+        `() -> ()`
+
+        Parameters
+        ----------
+        a
+            Parameter of the distribution. Must be non-negative.
+        size
+            Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
+            independent, identically distributed random variables are
+            returned. Default is `None` in which case a single random variable
+            is returned.
+
+        """
+        return super().__call__(a, size=size, **kwargs)
+
+
+power = PowerRV()
+
+
+class ZipfRV(RandomVariable):
+    r"""A zipf discrete random variable.
+
+    The probability density function for `zipf` is:
+
+    .. math::
+
+        p(x) = \\frac{x^{-a}}{\\zeta(a)},
+
+    where :math:`\\zeta` is the Riemann Zeta function.
+
+    """
+    name = "zipf"
+    ndim_supp = 0
+    ndims_params = [0]
+    dtype = "int64"
+    _print_name = ("Zipf", "\\operatorname{Zipf}")
+
+    def __call__(self, a, size=None, **kwargs):
+        r"""Draw samples from a rayleigh distribution.
+
+        Signature
+        ---------
+
+        `() -> ()`
+
+        Parameters
+        ----------
+        a
+            Distribution parameter. Must be greater than 1.
+        size
+            Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
+            independent, identically distributed random variables are
+            returned. Default is `None` in which case a single random variable
+            is returned.
+
+        """
+        return super().__call__(a, size=size, **kwargs)
+
+
+zipf = ZipfRV()
+
+
 class NormalRV(RandomVariable):
     r"""A normal continuous random variable.
 
@@ -2173,4 +2257,6 @@ __all__ = [
     "t",
     "random",
     "rayleigh",
+    "power",
+    "zipf",
 ]
