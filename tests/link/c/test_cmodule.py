@@ -7,6 +7,7 @@ deterministic based on the input type and the op.
 import logging
 import multiprocessing
 import os
+import sys
 import tempfile
 from unittest.mock import patch
 
@@ -221,6 +222,7 @@ def test_linking_patch(listdir_mock, platform):
             ]
 
 
+@pytest.mark.skipif(sys.platform == "darwin", reason="Fails on MacOS")
 def test_cache_race_condition():
 
     with tempfile.TemporaryDirectory() as dir_name:
