@@ -77,7 +77,6 @@ version-file = "aesara/_version.py"
 
 [tool.hatch.build]
 exclude = [
-    "/tests",
     "/.github",
     "/.flake8",
     "/.gitignore",
@@ -85,7 +84,6 @@ exclude = [
     "/.pre-commit-config.yaml",
     "/CODE_OF_CONDUCT.md",
     "/CONTRIBUTING.md",
-    "/doc",
     "Makefile",
     "codecov.yml",
     "conftest.py",
