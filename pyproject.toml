@@ -86,7 +86,6 @@ exclude = [
     "/CONTRIBUTING.md",
     "Makefile",
     "codecov.yml",
-    "conftest.py",
     "environment-arm.yml",
     "environment.yml",
     "readthedocs.yml",
