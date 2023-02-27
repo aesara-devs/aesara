@@ -22,6 +22,9 @@ arrays.
 [Get help](#get-help) •
 [Contribute](#contribute)
 
+[Roadmap](https://github.com/orgs/aesara-devs/projects/3) •
+[Docs](https://aesara.readthedocs.io/en/latest/)
+
 </div>
 
 ## Features
@@ -31,6 +34,8 @@ arrays.
 - Implements an extensible graph transpilation framework that currently provides
   compilation via C, [JAX](https://github.com/google/jax), and [Numba](https://github.com/numba/numba).
 - Based on one of the most widely-used Python tensor libraries: [Theano](https://github.com/Theano/Theano).
+
+<img src="./doc/images/aesara_overview_diagram.png" alt="Aesara Overview Diagram: A graph linking the different components of Aesara. From left to right: Numpy API->Symbolic Graph<->Rewrites->Optimize/Stabilize->[C, Jax, Numba]"></img>
 
 ## Get started
 
