@@ -76,8 +76,10 @@ tag-pattern = '^rel-(?P<version>[vV]?\d+(?:\.\d+){0,2}[^\+]*)(?:\+.*)?$'
 version-file = "aesara/_version.py"
 
 [tool.hatch.build]
+# While the sdist can be made much smaller by omiting the docs,
+# it is useful to certain people to include the docs and tests.
+# Ref: <https://github.com/aesara-devs/aesara/discussions/1453>
 exclude = [
-    "/tests",
     "/.github",
     "/.flake8",
     "/.gitignore",
@@ -85,10 +87,8 @@ exclude = [
     "/.pre-commit-config.yaml",
     "/CODE_OF_CONDUCT.md",
     "/CONTRIBUTING.md",
-    "/doc",
     "Makefile",
     "codecov.yml",
-    "conftest.py",
     "environment-arm.yml",
     "environment.yml",
     "readthedocs.yml",
