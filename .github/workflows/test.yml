@@ -207,6 +207,87 @@ jobs:
           fail-on-alert: true
           auto-push: false
 
+  profiling:
+    name: "Pytest Profiling"
+    needs:
+      - changes
+      - style
+    runs-on: ubuntu-latest
+    if: ${{ needs.changes.outputs.changes == 'true' && needs.style.result == 'success' }}
+    strategy:
+      fail-fast: true
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Set up Python 3.9
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          miniforge-variant: Mambaforge
+          miniforge-version: latest
+          channels: conda-forge,defaults
+          channel-priority: true
+          python-version: 3.9
+      - name: Install dependencies
+        shell: bash -l {0}
+        run: |
+          mamba install --yes -q -c conda-forge "python~=${PYTHON_VERSION}=*_cpython" mkl numpy scipy pip mkl-service cython pytest "numba>=0.55" numba-scipy jax jaxlib pytest-benchmark pytest-monitor pytest-profiling pytest-html
+          pip install -e ./
+          mamba list && pip freeze
+          python -c 'import aesara; print(aesara.config.__str__(print_doc=False))'
+          python -c 'import aesara; assert(aesara.config.blas__ldflags != "")'
+        env:
+          PYTHON_VERSION: 3.9
+      - name: Cache pip and pytest dependencies
+        uses: actions/cache@v3
+        with:
+          path: ./cache
+          key: ${{ runner.os }}-profiling
+      - name: Run pytest profiling
+        shell: bash -l {0}
+        run: |
+          export AESARA_FLAGS=mode=FAST_COMPILE,warn__ignore_bug_before=all,on_opt_error=raise,on_shape_error=raise,gcc__cxxflags=-pipe
+          python -m pytest --junitxml=test-results.xml --profile --profile-svg --html=report.html --self-contained-html
+      - name: Generate report
+        id: generate_report
+        uses: actions/upload-artifact@v3
+        with:
+          name: Test results
+          path: |
+            report.html
+            test-results.xml
+            profiles/
+
+  monitoring:
+    runs-on: ubuntu-latest
+    needs: profiling
+    env:
+      CI: true
+
+    steps:
+    - name: Monitor CPU and Memory usage
+      id: monitoring
+      uses: actions/github-script@v6
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const execSync = require('child_process').execSync;
+          const cpuPercent = parseFloat(execSync('top -b -n1 | grep "Cpu(s)" | awk \'{print $2}\'').toString().trim());
+          const memoryPercent = parseFloat(execSync('free | grep Mem | awk \'{print $3/$2 * 100.0}\'').toString().trim());
+          
+          if (cpuPercent > 90 || memoryPercent > 90) {
+            const body = `⚠️ High CPU/Memory usage detected in Pytest Monitoring and Profiling workflow:
+            CPU usage: ${cpuPercent}%
+            Memory usage: ${memoryPercent}%
+            View report: ${steps.profiling.outputs.generate_report.outputs.url}`;
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body,
+            });
+          }
+
   all-checks:
     if: ${{ always() }}
     runs-on: ubuntu-latest
