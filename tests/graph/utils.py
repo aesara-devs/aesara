@@ -150,6 +150,9 @@ class MyInnerGraphOp(Op, HasInnerGraph):
     def fn(self):
         raise NotImplementedError("No Python implementation available.")
 
+    def reset_fn(self):
+        pass
+
     @property
     def inner_inputs(self):
         return self.fgraph.inputs

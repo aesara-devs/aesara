@@ -658,6 +658,10 @@ class HasInnerGraph(ABC):
     def clone(self) -> Op:
         """Clone the `Op` and its inner-graph."""
 
+    @abstractmethod
+    def reset_fn(self) -> "Function":
+        """Reset the compiled inner-graph function."""
+
 
 def get_test_value(v: Any) -> Any:
     """Get the test value for `v`.

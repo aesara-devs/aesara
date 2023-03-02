@@ -1020,6 +1020,10 @@ class OpFromGraph(Op, HasInnerGraph):
 
         return self._fn
 
+    def reset_fn(self):
+        if hasattr(self, "_fn"):
+            del self._fn
+
     @property
     def inner_inputs(self):
         return self.fgraph.inputs
