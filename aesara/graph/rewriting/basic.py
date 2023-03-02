@@ -15,7 +15,7 @@ from functools import _compose_mro, partial, reduce  # type: ignore
 from itertools import chain
 from typing import TYPE_CHECKING, Callable, Dict
 from typing import Iterable as IterableType
-from typing import List, Optional, Sequence, Tuple, Union, cast
+from typing import List, Optional, Sequence, Set, Tuple, Union, cast
 
 from typing_extensions import Literal
 
@@ -525,11 +525,8 @@ class MergeFeature(Feature):
 
     """
 
-    def on_attach(self, fgraph):
-        if hasattr(fgraph, "merge_feature"):
-            raise AlreadyThere()
-
-        fgraph.merge_feature = self
+    def __init__(self):
+        super().__init__()
 
         self.seen_atomics = set()
         self.atomic_sig = AssocList()
@@ -537,7 +534,7 @@ class MergeFeature(Feature):
 
         # For all Apply nodes
         # Set of distinct (not mergeable) nodes
-        self.nodes_seen = set()
+        self.nodes_seen: Set[Apply] = set()
         # Ordered set of distinct (not mergeable) nodes without any input
         self.noinput_nodes = OrderedSet()
 
@@ -550,12 +547,18 @@ class MergeFeature(Feature):
         #    [[(node.out1, cand1.out1), (node.out2, cand1.out2)],
         #     [(node.out1, cand2.out1), (node.out2, cand2.out2)],
         #     [(node.out1, cand3.out1), (node.out2, cand3.out2)]]]
-        self.scheduled = []
+        self.scheduled: List[List[List[Tuple[Variable, Variable]]]] = []
 
         # List of (node, candidate) pairs, where we tried to replace node by
         # candidate, but it failed. This is used to avoid infinite loops
         # during the replacement phase.
-        self.blacklist = []
+        self.blacklist: List[Tuple[Apply, Apply]] = []
+
+    def on_attach(self, fgraph):
+        if hasattr(fgraph, "merge_feature"):
+            raise AlreadyThere()
+
+        fgraph.merge_feature = self
 
         for node in fgraph.toposort():
             self.on_import(fgraph, node, "on_attach")
@@ -592,25 +595,25 @@ class MergeFeature(Feature):
                 self.atomic_sig_inv.discard(sig)
                 self.seen_atomics.discard(id(c))
 
-    def process_atomic(self, fgraph, c):
+    def process_atomic(self, fgraph: "FunctionGraph", c: AtomicVariable):
         """Check if an atomic `c` can be merged, and queue that replacement."""
         if id(c) in self.seen_atomics:
             return
         sig = c.merge_signature()
-        other_c = self.atomic_sig_inv.get(sig, None)
+        other_c: Optional[Variable] = self.atomic_sig_inv.get(sig, None)
         if other_c is not None:
             # multiple names will clobber each other..
             # we adopt convention to keep the last name
             if c.name:
                 other_c.name = c.name
-            self.scheduled.append([[(c, other_c, "merge")]])
+            self.scheduled.append([[(c, other_c)]])
         else:
             # this is a new constant
             self.atomic_sig[c] = sig
             self.atomic_sig_inv[sig] = c
             self.seen_atomics.add(id(c))
 
-    def process_node(self, fgraph, node):
+    def process_node(self, fgraph: "FunctionGraph", node: Apply):
         r"""Check if a `node` can be merged, and queue that replacement.
 
         When `node` is changed we check for other nodes (via the clients map)
@@ -635,7 +638,9 @@ class MergeFeature(Feature):
             )[0]
             assert len(clients) > 0
 
-            merge_candidates = [c for c, i in clients if c in self.nodes_seen]
+            merge_candidates = [
+                c for c, i in clients if c in self.nodes_seen and isinstance(c, Apply)
+            ]
         else:
             # If two nodes have no input, but perform the same operation,
             # they are not always constant-folded, so we want to merge them.
@@ -661,13 +666,7 @@ class MergeFeature(Feature):
                     continue
 
                 # Schedule transfer of clients from node to candidate
-                pairs = list(
-                    zip(
-                        node.outputs,
-                        candidate.outputs,
-                        ["merge"] * len(node.outputs),
-                    )
-                )
+                pairs = list(zip(node.outputs, candidate.outputs))
 
                 replacement_candidates.append(pairs)
 
@@ -720,27 +719,20 @@ class MergeOptimizer(GraphRewriter):
                 # is faster than doing the full cycle check. The full cycle
                 # check is skipped by `Validator.validate` if the graph doesn't
                 # contain destroyers.
-                var, candidate_var, merge_mode = pairs_[0]
-                if merge_mode == "new_node" and var in fgraph.variables:
-                    pass
-                elif (
-                    var not in fgraph.variables or candidate_var not in fgraph.variables
-                ):
+                var, candidate_var = pairs_[0]
+                if var not in fgraph.variables or candidate_var not in fgraph.variables:
                     continue
 
                 # Keep len(item) == 2 for item in pairs
                 pairs = [pair[:2] for pair in pairs_]
 
                 if var.owner and candidate_var.owner:
-                    if merge_mode == "new_node":
-                        inputs_match = True
-                    else:
-                        inputs_match = all(
-                            node_in is cand_in
-                            for node_in, cand_in in zip(
-                                var.owner.inputs, candidate_var.owner.inputs
-                            )
+                    inputs_match = all(
+                        node_in is cand_in
+                        for node_in, cand_in in zip(
+                            var.owner.inputs, candidate_var.owner.inputs
                         )
+                    )
 
                     # No need to compare the op again, as it don't change.
                     if not inputs_match:
