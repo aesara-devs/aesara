@@ -570,6 +570,7 @@ class GammaRV(ScipyRandomVariable):
 
 
 gamma = GammaRV()
+standard_gamma = get_partial_wrapper(gamma, "standard_gamma", rate=1.0)
 
 
 class ChiSquareRV(RandomVariable):
@@ -1264,6 +1265,7 @@ class CauchyRV(ScipyRandomVariable):
 
 
 cauchy = CauchyRV()
+standard_cauchy = get_partial_wrapper(cauchy, "standard_cauchy", loc=0.0, scale=1.0)
 
 
 class HalfCauchyRV(ScipyRandomVariable):
@@ -2226,6 +2228,8 @@ __all__ = [
     "beta",
     "triangular",
     "uniform",
+    "standard_cauchy",
+    "standard_gamma",
     "standard_normal",
     "negative_binomial",
     "gengamma",

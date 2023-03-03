@@ -50,6 +50,8 @@ from aesara.tensor.random.basic import (
     randint,
     random,
     rayleigh,
+    standard_cauchy,
+    standard_gamma,
     standard_normal,
     t,
     triangular,
@@ -306,6 +308,31 @@ def test_normal_samples(mean, sigma, size):
 
 def test_normal_default_args():
     compare_sample_values(standard_normal)
+
+
+def test_std_cauchy_default_args():
+    compare_sample_values(standard_cauchy, test_fn=fixed_scipy_rvs("cauchy"))
+
+
+@pytest.mark.parametrize(
+    "shape, size",
+    [
+        (np.array(10, dtype=config.floatX), None),
+        (np.array(2.5, dtype=config.floatX), 10000),
+    ],
+)
+def test_standard_gamma_args(shape, size):
+    gamma_test_fn = fixed_scipy_rvs("gamma")
+
+    def test_fn(shape, **kwargs):
+        return gamma_test_fn(shape, scale=1.0, **kwargs)
+
+    compare_sample_values(
+        standard_gamma,
+        shape,
+        size=size,
+        test_fn=test_fn,
+    )
 
 
 def test_random_default_args():
