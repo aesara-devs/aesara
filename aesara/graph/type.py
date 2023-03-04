@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import Any, Generic, Optional, Text, Tuple, TypeVar, Union
 
 from typing_extensions import TypeAlias
@@ -262,14 +262,33 @@ class Type(MetaObject, Generic[D]):
         return cls.values_eq(a, b)
 
 
-class HasDataType:
+class HasDataType(ABC):
     """A mixin for a type that has a :attr:`dtype` attribute."""
 
     dtype: str
 
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is HasDataType:
+            if any("dtype" in B.__dict__ for B in C.__mro__):
+                return True
+        return NotImplemented
 
-class HasShape:
+
+class HasShape(ABC):
     """A mixin for a type that has :attr:`shape` and :attr:`ndim` attributes."""
 
     ndim: int
     shape: Tuple[Optional[int], ...]
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is HasShape:
+            has_shape, has_ndim = False, False
+            for B in C.__mro__:
+                has_shape = has_shape or ("shape" in B.__dict__)
+                has_ndim = has_ndim or ("ndim" in B.__dict__)
+
+                if has_shape and has_ndim:
+                    return True
+        return NotImplemented

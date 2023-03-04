@@ -146,3 +146,4 @@ class TypedListType(CType):
 
     dtype = property(lambda self: self.ttype)
     ndim = property(lambda self: self.ttype.ndim + 1)
+    shape = property(lambda self: (None,) + self.ttype.shape)
