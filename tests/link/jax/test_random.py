@@ -61,7 +61,7 @@ def test_random_updates(rng_ctor):
 
 
 @pytest.mark.parametrize(
-    "rv_op, dist_params, base_size, cdf_name, params_conv",
+    "rv_op, dist_params, base_size, cdf_name, params_conv, n_samples",
     [
         (
             aer.beta,
@@ -78,6 +78,7 @@ def test_random_updates(rng_ctor):
             (2,),
             "beta",
             lambda *args: args,
+            None,
         ),
         (
             aer.cauchy,
@@ -94,6 +95,7 @@ def test_random_updates(rng_ctor):
             (2,),
             "cauchy",
             lambda *args: args,
+            None,
         ),
         (
             aer.exponential,
@@ -106,6 +108,7 @@ def test_random_updates(rng_ctor):
             (2,),
             "expon",
             lambda *args: (0, args[0]),
+            None,
         ),
         (
             aer.gamma,
@@ -122,6 +125,7 @@ def test_random_updates(rng_ctor):
             (2,),
             "gamma",
             lambda a, b: (a, 0.0, b),
+            None,
         ),
         (
             aer.gumbel,
@@ -138,6 +142,7 @@ def test_random_updates(rng_ctor):
             (2,),
             "gumbel_r",
             lambda *args: args,
+            None,
         ),
         (
             aer.laplace,
@@ -148,6 +153,7 @@ def test_random_updates(rng_ctor):
             (2,),
             "laplace",
             lambda *args: args,
+            None,
         ),
         (
             aer.logistic,
@@ -164,6 +170,7 @@ def test_random_updates(rng_ctor):
             (2,),
             "logistic",
             lambda *args: args,
+            None,
         ),
         (
             aer.lognormal,
@@ -180,6 +187,7 @@ def test_random_updates(rng_ctor):
             (2,),
             "lognorm",
             lambda *args: args,
+            None,
         ),
         (
             aer.normal,
@@ -196,6 +204,7 @@ def test_random_updates(rng_ctor):
             (2,),
             "norm",
             lambda *args: args,
+            None,
         ),
         (
             aer.pareto,
@@ -208,6 +217,7 @@ def test_random_updates(rng_ctor):
             (2,),
             "pareto",
             lambda *args: args,
+            None,
         ),
         (
             aer.poisson,
@@ -220,6 +230,7 @@ def test_random_updates(rng_ctor):
             (2,),
             "poisson",
             lambda *args: args,
+            None,
         ),
         (
             aer.randint,
@@ -236,6 +247,7 @@ def test_random_updates(rng_ctor):
             (),
             "randint",
             lambda *args: args,
+            None,
         ),
         (
             aer.standard_normal,
@@ -243,6 +255,7 @@ def test_random_updates(rng_ctor):
             (2,),
             "norm",
             lambda *args: args,
+            None,
         ),
         (
             aer.t,
@@ -263,6 +276,7 @@ def test_random_updates(rng_ctor):
             (2,),
             "t",
             lambda *args: args,
+            50_000,
         ),
         (
             aer.uniform,
@@ -279,6 +293,7 @@ def test_random_updates(rng_ctor):
             (2,),
             "uniform",
             lambda *args: args,
+            50_000,
         ),
         (
             aer.halfnormal,
@@ -295,6 +310,7 @@ def test_random_updates(rng_ctor):
             (2,),
             "halfnorm",
             lambda *args: args,
+            None,
         ),
         (
             aer.halfcauchy,
@@ -311,6 +327,7 @@ def test_random_updates(rng_ctor):
             (2,),
             "halfcauchy",
             lambda *args: args,
+            None,
         ),
         (
             aer.wald,
@@ -323,10 +340,13 @@ def test_random_updates(rng_ctor):
             (),
             "invgauss",
             lambda *args: args,
+            None,
         ),
     ],
 )
-def test_random_RandomVariable(rv_op, dist_params, base_size, cdf_name, params_conv):
+def test_random_RandomVariable(
+    rv_op, dist_params, base_size, cdf_name, params_conv, n_samples
+):
     """The JAX samplers are not one-to-one with NumPy samplers so we
     need to use a statistical test to make sure that the transpilation
     is correct.
@@ -339,8 +359,11 @@ def test_random_RandomVariable(rv_op, dist_params, base_size, cdf_name, params_c
         The parameters passed to the op.
 
     """
+    if n_samples is None:
+        n_samples = 10_000
+
     rng = shared(np.random.RandomState(29402))
-    g = rv_op(*dist_params, size=(10_000,) + base_size, rng=rng)
+    g = rv_op(*dist_params, size=(n_samples,) + base_size, rng=rng)
     g_fn = function(dist_params, g, mode=jax_mode)
     samples = g_fn(
         *[
