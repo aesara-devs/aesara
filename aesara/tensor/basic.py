@@ -756,14 +756,16 @@ pprint.assign(fill, printing.FunctionPrinter(["fill"]))
 
 
 def ones_like(model, dtype=None, opt=False):
-    """equivalent of numpy.ones_like
+    """Equivalent of `numpy.ones_like`.
+
     Parameters
     ----------
-    model : tensor
-    dtype : data-type, optional
-    opt : If True, we will return a constant instead of a graph when possible.
-          Useful for Aesara optimization, not for user building a graph as this
-          have the consequence that model isn't always in the graph.
+    model
+    dtype
+    opt
+        If ``True``, we will return a constant instead of a graph when possible.
+        Useful for Aesara optimization, not for user building a graph as this
+        have the consequence that model isn't always in the graph.
 
     Returns
     -------
@@ -782,14 +784,16 @@ def ones_like(model, dtype=None, opt=False):
 
 
 def zeros_like(model, dtype=None, opt=False):
-    """equivalent of numpy.zeros_like
+    """Equivalent of `numpy.zeros_like`.
+
     Parameters
     ----------
-    model : tensor
-    dtype : data-type, optional
-    opt : If True, we will return a constant instead of a graph when possible.
-          Useful for Aesara optimization, not for user building a graph as this
-          have the consequence that model isn't always in the graph.
+    model
+    dtype
+    opt
+        If ``True``, we will return a constant instead of a graph when possible.
+        Useful for Aesara optimization, not for user building a graph as this
+        have the consequence that model isn't always in the graph.
 
     Returns
     -------
