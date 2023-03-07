@@ -124,10 +124,6 @@ pygments_style = "sphinx"
 # html_style = 'default.css'
 # html_theme = 'sphinxdoc'
 
-# html4_writer added to Fix colon & whitespace misalignment
-# https://github.com/readthedocs/sphinx_rtd_theme/issues/766#issuecomment-513852197
-html4_writer = True
-
 # Read the docs style:
 html_theme = "sphinx_book_theme"
 html_theme_options = {
