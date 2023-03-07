@@ -180,7 +180,6 @@ create a virtual environment in the project directory:
     conda env create -n aesara-dev -f environment.yml
     conda activate aesara-dev
 
-
 Afterward, you can install the development dependencies:
 
 .. code-block:: bash
