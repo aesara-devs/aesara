@@ -21,9 +21,9 @@ the :envvar:`AESARA_FLAGS` environment variable.
 
 The order of precedence is:
 
-1. an assignment to ``aesara.config.<property>``
-2. an assignment in :envvar:`AESARA_FLAGS`
-3. an assignment in the ``.aesararc`` file (or the file indicated in :envvar:`AESARARC`)
+1. values of `aesara.config` properties,
+2. values specified in :envvar:`AESARA_FLAGS`, and
+3. values specified in the ``.aesararc`` file (or the file indicated in :envvar:`AESARARC`).
 
 You can display the current/effective configuration at any time by printing
 `aesara.config`.  For example, to see a list  of all active configuration
@@ -115,7 +115,7 @@ Modify and execute this example to run on CPU (the default) with ``floatX=float3
 time the execution using the command line ``time python file.py``.  Save your code
 as it will be useful later on.
 
-.. Note::
+.. note::
 
    * Apply the Aesara flag ``floatX=float32`` (through ``aesara.config.floatX``) in your code.
    * Cast inputs before storing them into a shared variable.
@@ -127,43 +127,40 @@ as it will be useful later on.
 
 :download:`Solution<modes_solution_1.py>`
 
--------------------------------------------
-
 Default Modes
 =============
 
 Every time :func:`aesara.function <function.function>` is called,
 the symbolic relationships between the input and output Aesara *variables*
 are rewritten and compiled. The way this compilation occurs
-is controlled by the value of the ``mode`` parameter.
+is controlled by the value of the ``mode`` parameter and/or
+:attr:`aesara.config.mode` value.
 
 Aesara defines the following modes by name:
 
 - ``'FAST_COMPILE'``: Apply just a few graph optimizations and only use Python implementations.
 - ``'FAST_RUN'``: Apply all optimizations and use C implementations where possible.
 - ``'DebugMode'``: Verify the correctness of all optimizations, and compare C and Python
-    implementations. This mode can take much longer than the other modes, but can identify
-    several kinds of problems.
+   implementations. This mode can take much longer than the other modes, but can identify
+   several kinds of problems.
 - ``'NanGuardMode'``: Same optimization as FAST_RUN, but :ref:`check if a node generate nans. <nanguardmode>`
 
-The default mode is typically ``FAST_RUN``, but it can be controlled via
-the configuration variable :attr:`config.mode`,
-which can be overridden by passing the keyword argument to
-:func:`aesara.function <function.function>`.
+The default mode is typically ``'FAST_RUN'``, but it can be controlled via
+the configuration variable :attr:`aesara.config.mode`.
 
-================= =============================================================== ===============================================================================
-short name        Full constructor                                                What does it do?
-================= =============================================================== ===============================================================================
-``FAST_COMPILE``  ``compile.mode.Mode(linker='py', optimizer='fast_compile')``    Python implementations only, quick and cheap graph transformations
-``FAST_RUN``      ``compile.mode.Mode(linker='cvm', optimizer='fast_run')``       C implementations where available, all available graph transformations.
-``DebugMode``     ``compile.debugmode.DebugMode()``                               Both implementations where available, all available graph transformations.
-================= =============================================================== ===============================================================================
+=================  ===============================================================  ==========================================================================
+short name         Full constructor                                                 What does it do?
+=================  ===============================================================  ==========================================================================
+``FAST_COMPILE``   ``compile.mode.Mode(linker='py', optimizer='fast_compile')``     Python implementations only, quick and cheap graph transformations
+``FAST_RUN``       ``compile.mode.Mode(linker='cvm', optimizer='fast_run')``        C implementations where available, all available graph transformations.
+``DebugMode``      ``compile.debugmode.DebugMode()``                                Both implementations where available, all available graph transformations.
+=================  ===============================================================  ==========================================================================
 
-.. Note::
+.. note::
 
-    For debugging purpose, there also exists a :class:`MonitorMode` (which has no
-    short name). It can be used to step through the execution of a function:
-    see :ref:`the debugging FAQ<faq_monitormode>` for details.
+   For debugging purpose, there also exists a :class:`MonitorMode` (which has no
+   short name). It can be used to step through the execution of a function:
+   see :ref:`the debugging FAQ<faq_monitormode>` for details.
 
 
 Default Linkers
@@ -176,9 +173,10 @@ optimizer and linker. `DebugMode` uses its own linker.
 You can select which linker to use with the Aesara flag :attr:`config.linker`.
 Here is a table to compare the different linkers.
 
-=============  =========  =================  =========  ===
+
+=============  =========  =================  =========  =============================================================
 linker         gc [#gc]_  Raise error by op  Overhead   Definition
-=============  =========  =================  =========  ===
+=============  =========  =================  =========  =============================================================
 cvm            yes        yes                "++"       As c|py, but the runtime algo to execute the code is in c
 cvm_nogc       no         yes                "+"        As cvm, but without gc
 c|py [#cpy1]_  yes        yes                "+++"      Try C code. If none exists for an op, use Python
@@ -187,7 +185,7 @@ c              no         yes                "+"        Use only C code (if none
 py             yes        yes                "+++"      Use only Python code
 NanGuardMode   yes        yes                "++++"     Check if nodes generate NaN
 DebugMode      no         yes                VERY HIGH  Make many checks on what Aesara computes
-=============  =========  =================  =========  ===
+=============  =========  =================  =========  =============================================================
 
 
 .. [#gc] Garbage collection of intermediate results during computation.
@@ -213,12 +211,12 @@ a :class:`Rewriter`).
 The optimizers Aesara provides are summarized below to indicate the trade-offs
 one might make between compilation time and execution time.
 
-These optimizers can be enabled globally with the Aesara flag: ``optimizer=name``
-or per call to aesara functions with ``function(...mode=Mode(optimizer="name"))``.
+These optimizers can be enabled globally with the Aesara config flag ``optimizer=name``,
+or per call to Aesara functions with ``function(...mode=Mode(optimizer="name"))``.
 
-=================  ============  ==============  ==================================================
+=================  ============  ==============  =====================================================
 optimizer          Compile time  Execution time  Description
-=================  ============  ==============  ==================================================
+=================  ============  ==============  =====================================================
 None               "++++++"      "+"             Applies none of Aesara's rewrites
 o1 (fast_compile)  "+++++"       "++"            Applies only basic rewrites
 o2                 "++++"        "+++"           Applies few basic rewrites and some that compile fast
@@ -226,7 +224,7 @@ o3                 "+++"         "++++"          Applies all rewrites except one
 o4 (fast_run)      "++"          "+++++"         Applies all rewrites
 unsafe             "+"           "++++++"        Applies all rewrites, and removes safety checks
 stabilize          "+++++"       "++"            Only applies stability rewrites
-=================  ============  ==============  ==================================================
+=================  ============  ==============  =====================================================
 
 For a detailed list of the specific rewrites applied for each of these
 optimizers, see :ref:`optimizations`.
