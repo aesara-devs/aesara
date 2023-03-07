@@ -62,6 +62,7 @@ from aesara.tensor.random.basic import (
 )
 from aesara.tensor.rewriting.shape import ShapeFeature
 from aesara.tensor.type import iscalar, scalar, tensor
+from tests import unittest_tools as utt
 from tests.unittest_tools import create_aesara_param
 
 
@@ -93,7 +94,7 @@ def compare_sample_values(rv, *params, rng=None, test_fn=None, **kwargs):
 
     """
     if rng is None:
-        rng = np.random.default_rng()
+        rng = np.random.default_rng(seed=utt.fetch_seed())
 
     if test_fn is None:
         name = getattr(rv, "name", None)
