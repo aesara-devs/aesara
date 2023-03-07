@@ -147,6 +147,22 @@ with the following:
     You can choose a name other than "upstream" to reference the official Aesara
     repository.
 
+We also have to pull the necessary tags like so:
+
+.. code-block:: bash
+
+    git fetch -t --all
+
+.. note::
+
+    If an error along the lines of `errno=Operation timed out` occurs here, then you
+    may need to run 
+    
+    .. code-block:: bash
+        
+        git remote set-url upstream https://github.com/aesara-devs/aesara.git
+        git fetch -t --all
+
 Setting up the your local development environment
 -------------------------------------------------
 
@@ -155,10 +171,15 @@ You will need to create a virtual environment and install the project requiremen
 The recommended approach is to install `conda <https://conda.io/projects/conda/en/latest/user-guide/install/index.html>`_ and
 create a virtual environment in the project directory:
 
+.. note::
+
+    For computers using an ARM processor, replace the `environment.yml` below with `environment-arm.yml`.
+
 .. code-block:: bash
 
     conda env create -n aesara-dev -f environment.yml
     conda activate aesara-dev
+
 
 Afterward, you can install the development dependencies:
 
