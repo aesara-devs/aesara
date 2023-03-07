@@ -51,8 +51,10 @@ from aesara.tensor.random.basic import (
     random,
     rayleigh,
     standard_cauchy,
+    standard_exponential,
     standard_gamma,
     standard_normal,
+    standard_t,
     t,
     triangular,
     truncexpon,
@@ -447,6 +449,18 @@ def test_exponential_samples(lam, size):
 
 def test_exponential_default_args():
     compare_sample_values(exponential)
+
+
+@pytest.mark.parametrize(
+    "size",
+    [
+        (10_000,),
+        None,
+        (100, 100),
+    ],
+)
+def test_std_exponential_args(size):
+    compare_sample_values(standard_exponential, size=size)
 
 
 def test_rayleigh_default_args():
@@ -1027,6 +1041,34 @@ def test_t_samples(df, loc, scale, size):
         size=size,
         test_fn=lambda *args, size=None, random_state=None, **kwargs: t.rng_fn(
             random_state, *(args + (size,))
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    "df, size",
+    [
+        (
+            np.array(2, dtype=config.floatX),
+            None,
+        ),
+        (
+            np.array(2.30, dtype=config.floatX),
+            [2, 3],
+        ),
+        (
+            np.full((1, 2), 5, dtype=config.floatX),
+            None,
+        ),
+    ],
+)
+def test_standard_t_samples(df, size):
+    compare_sample_values(
+        standard_t,
+        df,
+        size=size,
+        test_fn=lambda df, size=None, random_state=None, **kwargs: t.rng_fn(
+            random_state, df, 0.0, 1.0, size
         ),
     )
 

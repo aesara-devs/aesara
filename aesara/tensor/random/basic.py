@@ -778,6 +778,9 @@ class ExponentialRV(RandomVariable):
 
 
 exponential = ExponentialRV()
+standard_exponential = get_partial_wrapper(
+    exponential, "standard_exponential", scale=1.0
+)
 
 
 class WeibullRV(RandomVariable):
@@ -1525,6 +1528,7 @@ class StudentTRV(ScipyRandomVariable):
 
 
 t = StudentTRV()
+standard_t = get_partial_wrapper(t, "standard_t", loc=0.0, scale=1.0)
 
 
 class BernoulliRV(ScipyRandomVariable):
@@ -2229,8 +2233,10 @@ __all__ = [
     "triangular",
     "uniform",
     "standard_cauchy",
+    "standard_exponential",
     "standard_gamma",
     "standard_normal",
+    "standard_t",
     "negative_binomial",
     "gengamma",
     "t",

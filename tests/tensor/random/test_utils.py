@@ -111,6 +111,8 @@ class TestSharedRandomStream:
         assert hasattr(random, "standard_normal")
         assert hasattr(random, "standard_cauchy")
         assert hasattr(random, "standard_gamma")
+        assert hasattr(random, "standard_exponential")
+        assert hasattr(random, "standard_t")
 
         with pytest.raises(AttributeError):
             np_random = RandomStream(namespace=np, rng_ctor=rng_ctor)
