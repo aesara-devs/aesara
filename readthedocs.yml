@@ -14,3 +14,5 @@ build:
       # the pip install build process. Alternatively, we could use
       # 'git fetch --unshallow', but that is rather intensive.
       - git fetch --depth 1000
+    post_install:
+      - pip list
