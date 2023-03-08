@@ -5,9 +5,6 @@
 :mod:`sparse` -- Symbolic Sparse Matrices
 =========================================
 
-In the tutorial section, you can find a :ref:`sparse tutorial
-<tutsparse>`.
-
 The sparse submodule is not loaded when we import Aesara. You must
 import ``aesara.sparse`` to enable it.
 
