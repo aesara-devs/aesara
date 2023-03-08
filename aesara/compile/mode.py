@@ -15,6 +15,7 @@ from aesara.graph.destroyhandler import DestroyHandler
 from aesara.graph.rewriting.basic import (
     CheckStackTraceRewriter,
     GraphRewriter,
+    InnerGraphRewriter,
     MergeOptimizer,
     NodeProcessingGraphRewriter,
 )
@@ -182,7 +183,7 @@ class PrintCurrentFunctionGraph(GraphRewriter):
         aesara.printing.debugprint(fgraph.outputs)
 
 
-optdb = SequenceDB()
+optdb = SequenceDB(seq_rewriter_type=InnerGraphRewriter)
 optdb.register(
     "merge1", MergeOptimizer(), "fast_run", "fast_compile", "merge", position=0
 )

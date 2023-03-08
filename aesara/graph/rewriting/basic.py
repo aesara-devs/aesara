@@ -15,7 +15,7 @@ from functools import _compose_mro, partial, reduce  # type: ignore
 from itertools import chain
 from typing import TYPE_CHECKING, Callable, Dict
 from typing import Iterable as IterableType
-from typing import List, Optional, Sequence, Tuple, Union, cast
+from typing import List, Optional, Sequence, Set, Tuple, Union, cast
 
 from typing_extensions import Literal
 
@@ -31,9 +31,9 @@ from aesara.graph.basic import (
     io_toposort,
     vars_between,
 )
-from aesara.graph.features import AlreadyThere, Feature, NodeFinder
+from aesara.graph.features import AlreadyThere, Feature, InnerGraphWatcher, NodeFinder
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.op import Op
+from aesara.graph.op import HasInnerGraph, Op
 from aesara.graph.utils import AssocList, InconsistencyError
 from aesara.misc.ordered_set import OrderedSet
 from aesara.utils import flatten
@@ -250,7 +250,7 @@ class SequentialGraphRewriter(GraphRewriter, UserList):
         elif config.on_opt_error == "pdb":
             pdb.post_mortem(sys.exc_info()[2])
 
-    def __init__(self, *rewrites, failure_callback=None):
+    def __init__(self, *rewrites, failure_callback=None, **kwargs):
         """
         Parameters
         ----------
@@ -506,7 +506,7 @@ class SequentialGraphRewriter(GraphRewriter, UserList):
         return (
             new_rewrite,
             new_t,
-            prof1[2] + prof2[2],
+            (prof1[2] if prof1[2] else 0) + (prof2[2] if prof2[2] else 0),
             prof1[3] + prof2[3],
             -1,
             -1,
@@ -525,11 +525,8 @@ class MergeFeature(Feature):
 
     """
 
-    def on_attach(self, fgraph):
-        if hasattr(fgraph, "merge_feature"):
-            raise AlreadyThere()
-
-        fgraph.merge_feature = self
+    def __init__(self):
+        super().__init__()
 
         self.seen_atomics = set()
         self.atomic_sig = AssocList()
@@ -537,25 +534,35 @@ class MergeFeature(Feature):
 
         # For all Apply nodes
         # Set of distinct (not mergeable) nodes
-        self.nodes_seen = set()
+        self.nodes_seen: Set[Apply] = set()
         # Ordered set of distinct (not mergeable) nodes without any input
-        self.noinput_nodes = OrderedSet()
+        self.noinput_nodes: OrderedSet[Tuple[FunctionGraph, Apply]] = OrderedSet()
 
         # Each element of scheduled is a list of list of (out, new_out) pairs.
         # Each list of pairs represent the substitution needed to replace all
         # the outputs of a node with the outputs of a replacement candidate.
         # Each node can have several candidates. For instance, if "node" has
         # 2 outputs, and there are 3 replacement candidates, we will have:
-        # shelf.scheduled = [
-        #    [[(node.out1, cand1.out1), (node.out2, cand1.out2)],
-        #     [(node.out1, cand2.out1), (node.out2, cand2.out2)],
-        #     [(node.out1, cand3.out1), (node.out2, cand3.out2)]]]
-        self.scheduled = []
+        # self.scheduled = [
+        #    [[(fg, node.out1, cand1.out1), (fg, node.out2, cand1.out2)],
+        #     [(fg, node.out1, cand2.out1), (fg, node.out2, cand2.out2)],
+        #     [(fg, node.out1, cand3.out1), (fg, node.out2, cand3.out2)]]]
+        self.scheduled: List[List[List[Tuple[FunctionGraph, Variable, Variable]]]] = []
 
         # List of (node, candidate) pairs, where we tried to replace node by
         # candidate, but it failed. This is used to avoid infinite loops
         # during the replacement phase.
-        self.blacklist = []
+        self.blacklist: List[Tuple[Apply, Apply]] = []
+
+        self.fgraphs: List[FunctionGraph] = []
+
+    def on_attach(self, fgraph):
+        if hasattr(fgraph, "merge_feature"):
+            raise AlreadyThere()
+
+        fgraph.merge_feature = self
+
+        self.fgraphs.append(fgraph)
 
         for node in fgraph.toposort():
             self.on_import(fgraph, node, "on_attach")
@@ -583,7 +590,7 @@ class MergeFeature(Feature):
     def on_prune(self, fgraph, node, reason):
         self.nodes_seen.discard(node)
         if not node.inputs:
-            self.noinput_nodes.discard(node)
+            self.noinput_nodes.discard((fgraph, node))
         for c in node.inputs:
             if isinstance(c, AtomicVariable) and len(fgraph.clients[c]) <= 1:
                 # This was the last node using this constant
@@ -592,25 +599,25 @@ class MergeFeature(Feature):
                 self.atomic_sig_inv.discard(sig)
                 self.seen_atomics.discard(id(c))
 
-    def process_atomic(self, fgraph, c):
+    def process_atomic(self, fgraph: FunctionGraph, c: AtomicVariable):
         """Check if an atomic `c` can be merged, and queue that replacement."""
         if id(c) in self.seen_atomics:
             return
         sig = c.merge_signature()
-        other_c = self.atomic_sig_inv.get(sig, None)
+        other_c: Optional[Variable] = self.atomic_sig_inv.get(sig, None)
         if other_c is not None:
             # multiple names will clobber each other..
             # we adopt convention to keep the last name
             if c.name:
                 other_c.name = c.name
-            self.scheduled.append([[(c, other_c, "merge")]])
+            self.scheduled.append([[(fgraph, c, other_c)]])
         else:
             # this is a new constant
             self.atomic_sig[c] = sig
             self.atomic_sig_inv[sig] = c
             self.seen_atomics.add(id(c))
 
-    def process_node(self, fgraph, node):
+    def process_node(self, fgraph: FunctionGraph, node: Apply):
         r"""Check if a `node` can be merged, and queue that replacement.
 
         When `node` is changed we check for other nodes (via the clients map)
@@ -623,27 +630,39 @@ class MergeFeature(Feature):
             return
 
         if node.inputs:
-            # We use the smallest clients list.  Some `Op`s like `Elemwise`
-            # have rewrites that put constants as the first inputs.  Since
-            # constants generally have more clients than other types of nodes,
-            # using `node.inputs[0]` will make us look at more nodes on
-            # average, so by picking the smallest clients list, we might speed
-            # things up?
+            # We use the smallest clients list in each `FunctionGraph`.  Why?
+            # Some `Op`s like `Elemwise` have rewrites that put constants as
+            # the first inputs.  Since constants generally have more clients
+            # than other types of nodes, using `node.inputs[0]` will make us
+            # look at more nodes on average, so by picking the smallest clients
+            # list, we might speed things up.
 
-            clients = sorted(
-                (fgraph.clients[inp] for inp in node.inputs), key=lambda x: len(x)
-            )[0]
-            assert len(clients) > 0
+            merge_candidates: List[Tuple[FunctionGraph, Apply]] = []
+            for fg in self.fgraphs:
+                if node not in fg:
+                    continue
 
-            merge_candidates = [c for c, i in clients if c in self.nodes_seen]
+                local_clients = min(
+                    (fg.clients[inp] for inp in node.inputs), key=lambda x: len(x)
+                )
+
+                assert len(local_clients) > 0
+
+                merge_candidates.extend(
+                    (fg, c)
+                    for c, i in local_clients
+                    if c in self.nodes_seen and isinstance(c, Apply)
+                )
         else:
             # If two nodes have no input, but perform the same operation,
             # they are not always constant-folded, so we want to merge them.
             # In that case, the candidates are all the nodes without inputs.
-            merge_candidates = self.noinput_nodes
+            merge_candidates = list(self.noinput_nodes)
 
-        replacement_candidates = []
-        for candidate in merge_candidates:
+        replacement_candidates: List[
+            List[Tuple[FunctionGraph, Variable, Variable]]
+        ] = []
+        for fg, candidate in merge_candidates:
 
             if candidate is node:
                 continue
@@ -660,14 +679,13 @@ class MergeFeature(Feature):
                     # They were already tried, and there was an error
                     continue
 
+                assert len(node.outputs) == len(candidate.outputs)
+
                 # Schedule transfer of clients from node to candidate
-                pairs = list(
-                    zip(
-                        node.outputs,
-                        candidate.outputs,
-                        ["merge"] * len(node.outputs),
-                    )
-                )
+                pairs = [
+                    (fg, out1, out2)
+                    for out1, out2 in zip(node.outputs, candidate.outputs)
+                ]
 
                 replacement_candidates.append(pairs)
 
@@ -676,7 +694,7 @@ class MergeFeature(Feature):
         else:
             self.nodes_seen.add(node)
             if not node.inputs:
-                self.noinput_nodes.add(node)
+                self.noinput_nodes.add((fgraph, node))
 
 
 class MergeOptimizer(GraphRewriter):
@@ -694,12 +712,26 @@ class MergeOptimizer(GraphRewriter):
 
     """
 
+    def __init__(self):
+        super().__init__()
+        self.merge_feature = MergeFeature()
+
     def add_requirements(self, fgraph):
-        if not hasattr(fgraph, "merge_feature"):
-            fgraph.attach_feature(MergeFeature())
+        fgraph.attach_feature(self.merge_feature)
+        # Make sure that all inner-graphs have the same `MergeFeature`.
+        fgraph.attach_feature(InnerGraphWatcher((self.merge_feature,)))
 
     def apply(self, fgraph):
-        sched = fgraph.merge_feature.scheduled
+        """
+        Parameters
+        ----------
+        fgraph
+            The outer-most graph upon which merging is applied.
+
+        """
+
+        sched = self.merge_feature.scheduled
+
         nb_fail = 0
         t0 = time.perf_counter()
         if fgraph.profile:
@@ -720,38 +752,29 @@ class MergeOptimizer(GraphRewriter):
                 # is faster than doing the full cycle check. The full cycle
                 # check is skipped by `Validator.validate` if the graph doesn't
                 # contain destroyers.
-                var, candidate_var, merge_mode = pairs_[0]
-                if merge_mode == "new_node" and var in fgraph.variables:
-                    pass
-                elif (
-                    var not in fgraph.variables or candidate_var not in fgraph.variables
-                ):
+                fg, var, candidate_var = pairs_[0]
+                if var not in fg.variables or candidate_var not in fg.variables:
                     continue
 
                 # Keep len(item) == 2 for item in pairs
-                pairs = [pair[:2] for pair in pairs_]
+                pairs = [pair[1:] for pair in pairs_]
 
                 if var.owner and candidate_var.owner:
-                    if merge_mode == "new_node":
-                        inputs_match = True
-                    else:
-                        inputs_match = all(
-                            node_in is cand_in
-                            for node_in, cand_in in zip(
-                                var.owner.inputs, candidate_var.owner.inputs
-                            )
+                    inputs_match = all(
+                        node_in is cand_in
+                        for node_in, cand_in in zip(
+                            var.owner.inputs, candidate_var.owner.inputs
                         )
+                    )
 
                     # No need to compare the op again, as it don't change.
                     if not inputs_match:
                         continue
 
-                    if hasattr(fgraph, "destroy_handler"):
+                    if hasattr(fg, "destroy_handler"):
                         # If both nodes have clients that destroy them, we
                         # can't merge them.
-                        clients = (
-                            fgraph.clients[pairs[0][0]] + fgraph.clients[pairs[0][1]]
-                        )
+                        clients = fg.clients[var] + fg.clients[candidate_var]
                         if any(
                             i in flatten(c.op.destroy_map.values())
                             for c, i in clients
@@ -759,31 +782,32 @@ class MergeOptimizer(GraphRewriter):
                         ):
                             continue
 
-                if len(pairs) == 1 and pairs[0][0].type != pairs[0][1].type:
-                    res = pairs[0][0].type.convert_variable(pairs[0][1])
+                if len(pairs) == 1 and var.type != candidate_var.type:
+                    res = var.type.convert_variable(candidate_var)
 
-                    # Since the fgraph.replace only checks the convert_variable
+                    # Since the fg.replace only checks the convert_variable
                     # in one way, we change the order in the case that
                     # convert_variable will not be successful.
                     if not res:
-                        pairs = [(pairs[0][1], pairs[0][0])]
+                        pairs = [(candidate_var, var)]
 
                 try:
                     # If they're all `AtomicVariable`s, there's no need to call validate.
                     if all(isinstance(old, AtomicVariable) for old, _ in pairs):
-                        fgraph.replace_all(pairs, reason="MergeOptimizer")
+                        fg.replace_all(pairs, reason="MergeOptimizer")
                     else:
-                        fgraph.replace_all_validate(pairs, reason="MergeOptimizer")
+                        fg.replace_all_validate(pairs, reason="MergeOptimizer")
+
                 except InconsistencyError:
                     success = False
                     nb_fail += 1
-                    fgraph.merge_feature.blacklist.append(
-                        (pairs[0][0].owner, pairs[0][1].owner)
+                    self.merge_feature.blacklist.append(
+                        (var.owner, candidate_var.owner)
                     )
 
                 if success:
                     nb_merged += len(pairs)
-                    if isinstance(pairs[0][0], AtomicVariable):
+                    if isinstance(var, AtomicVariable):
                         nb_atomic += 1
                     break
 
@@ -803,7 +827,7 @@ class MergeOptimizer(GraphRewriter):
             callback_time = None
             callbacks_time = {}
 
-        fgraph.merge_feature.blacklist = []
+        self.merge_feature.blacklist = []
 
         return (
             nb_fail,
@@ -3137,6 +3161,102 @@ class CheckStackTraceRewriter(GraphRewriter):
 
     def apply(self, fgraph):
         pass
+
+
+class InnerGraphRewriter(SequentialGraphRewriter):
+    """A `SequentialGraphRewriter` that applies its rewrites to inner-graphs as well."""
+
+    def apply(self, fgraph):
+        # - Inner-graphs can be added by rewrites, so we need to handle the
+        #   addition of new inner-graphs.
+        # - We need to alert `FunctionGraph`s to inner-graph `Op` changes.
+        #   Merging and other rewrites/`Feature`s use the node update callbacks
+        #   to operate, so we need inner-graph rewrites to work in that
+        #   context.
+
+        # Canonicalize and merge all the inner-graphs first, then perform the
+        # remaining rewrites on all the graphs.
+        from aesara.compile import optdb
+
+        canonicalizer = optdb.query("+merge", "+canonicalize")
+
+        # TODO: We need to use the same `MergeFeature` so that inner-graphs can
+        # be merged.
+
+        pre_profile_res = self.apply_to_inner_graphs(fgraph, canonicalizer)
+
+        # Rewrite the outer-most graph
+        profile_res = super().apply(fgraph)
+
+        if pre_profile_res is not None:
+            profile_res = self.merge_profile(profile_res, pre_profile_res)
+
+        # Apply all rewrites to the inner-graphs
+        post_profile_res = self.apply_to_inner_graphs(fgraph, super().apply)
+
+        if post_profile_res is not None:
+            profile_res = self.merge_profile(profile_res, post_profile_res)
+
+        return profile_res
+
+    def apply_to_inner_graphs(self, fgraph, rewriter):
+        final_profile_res = None
+        inner_graphs_seen = set()
+        inner_graphs_to_rewrite = set(fgraph._nodes_to_inner_graphs.values())
+        while inner_graphs_to_rewrite:
+            fg = inner_graphs_to_rewrite.pop()
+
+            if fg in inner_graphs_seen:
+                continue
+
+            self.add_requirements(fg)
+
+            inner_graph_watcher: InnerGraphWatcher = fg.inner_graph_watcher
+            inner_graph_watcher.reset()
+
+            profile_res = rewriter(fg)
+
+            if final_profile_res is not None:
+                final_profile_res = self.merge_profile(profile_res, final_profile_res)
+            else:
+                final_profile_res = profile_res
+
+            inner_graphs_seen.add(fg)
+
+            if inner_graph_watcher.new_inner_graph_nodes:
+                # Add the newly added inner-graphs that we haven't already seen
+                inner_graphs_to_rewrite.update(
+                    inner_graph_watcher.new_inner_graph_nodes.difference(
+                        inner_graphs_seen
+                    )
+                )
+
+            if inner_graph_watcher.changed:
+                # Check for new merge opportunities in the graphs containing
+                # this updated `fg` graph
+                parent_fg = fg._local_parent_graph
+                merge_feature = parent_fg.merge_feature
+
+                # Get the nodes in `parent_fg` that are associated with `fg` and
+                # - reset any cached values pertaining to it in the associated
+                #   `Op`s (e.g. cached compiled functions),
+                # - perform upstream merge passes.
+                for ig_node in parent_fg._local_inner_graphs_to_nodes[fg]:
+                    assert isinstance(ig_node.op, HasInnerGraph)
+
+                    ig_node.op.reset_fn()
+
+                    merge_feature.nodes_seen.discard(ig_node)
+                    merge_feature.process_node(parent_fg, ig_node)
+
+                inner_graphs_seen.discard(parent_fg)
+                inner_graphs_to_rewrite.add(parent_fg)
+
+        return final_profile_res
+
+    def add_requirements(self, fgraph):
+        super().add_requirements(fgraph)
+        fgraph.attach_feature(InnerGraphWatcher())
 
 
 DEPRECATED_NAMES = [

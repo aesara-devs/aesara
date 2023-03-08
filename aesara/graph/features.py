@@ -2,16 +2,22 @@ import inspect
 import sys
 import time
 import warnings
-from collections import OrderedDict
+from collections import ChainMap, OrderedDict, defaultdict
 from functools import partial
 from io import StringIO
+from typing import TYPE_CHECKING, Dict, Optional, Set
 
 import numpy as np
 
 import aesara
 from aesara.configdefaults import config
-from aesara.graph.basic import Variable, io_toposort
+from aesara.graph.basic import Apply, Variable, io_toposort
+from aesara.graph.op import HasInnerGraph
 from aesara.graph.utils import InconsistencyError
+
+
+if TYPE_CHECKING:
+    from aesara.graph.fg import FunctionGraph
 
 
 class AlreadyThere(Exception):
@@ -801,3 +807,114 @@ class NoOutputFromInplace(Feature):
                 )
 
         return True
+
+
+class InnerGraphWatcher(Bookkeeper):
+    r"""Watch for insertions and removals of `Op`\s with inner `FunctionGraph`s.
+
+    The `Feature`\s of the outer-graph will be added to the inner-graphs.
+    """
+
+    def __init__(self, shared_features=None):
+
+        if shared_features is None:
+            self.shared_features = []
+        else:
+            self.shared_features = list(shared_features)
+
+        self.new_inner_graph_nodes = set()
+        self.changed = False
+
+    def reset(self):
+        self.new_inner_graph_nodes.clear()
+        self.changed = False
+
+    def on_attach(self, fgraph):
+        if hasattr(fgraph, "_nodes_to_inner_graphs"):
+            raise AlreadyThere(f"InnerGraphWatcher is already attached to {fgraph}.")
+
+        fgraph.inner_graph_watcher = self
+
+        # This is the outer-most `FunctionGraph`; `None` if
+        # not initialized
+        fgraph._parent_graph: Optional["FunctionGraph"] = getattr(
+            fgraph, "_parent_graph", None
+        )
+
+        # This is the `FunctionGraph` containing this inner-graph
+        # (i.e. `fgraph`); `None` if not initialized
+        fgraph._local_parent_graph: Optional["FunctionGraph"] = None
+
+        # These are the inner-graph nodes within `fgraph`'s "scope" (i.e. not inner-graphs
+        # to an inner-graph of `fgraph`) mapped to their `FunctionGraph`s
+        fgraph._local_nodes_to_inner_graphs: Dict[Apply, "FunctionGraph"] = {}
+        fgraph._local_inner_graphs_to_nodes: Dict[
+            "FunctionGraph", Set[Apply]
+        ] = defaultdict(set)
+
+        # These are all the inner-graph nodes inside `fgraph` (i.e. including
+        # nested inner-graphs) mapped to their `FunctionGraph`s
+        fgraph._nodes_to_inner_graphs = ChainMap(fgraph._local_nodes_to_inner_graphs)
+
+        super().on_attach(fgraph)
+
+    def on_detach(self, fgraph):
+        del fgraph.inner_graph_watcher
+        del fgraph._parent_graph
+        del fgraph._local_parent_graph
+        del fgraph._local_nodes_to_inner_graphs
+        del fgraph._local_inner_graphs_to_nodes
+        del fgraph._nodes_to_inner_graphs
+
+    def on_import(self, fgraph, node, reason):
+
+        if not isinstance(node.op, HasInnerGraph):
+            return
+
+        self.new_inner_graph_nodes.add(node)
+
+        inner_fgraph: "FunctionGraph" = node.op.fgraph
+
+        fgraph._local_nodes_to_inner_graphs[node] = inner_fgraph
+        fgraph._local_inner_graphs_to_nodes[inner_fgraph].add(node)
+
+        # Assign `fgraph`'s parent, or `fgraph` itself, as this inner-graph's
+        # parent.  This must be done *before* `inner_fgraph.attach_feature` in
+        # order to make the assignment from top to bottom.
+        inner_fgraph._parent_graph = fgraph._parent_graph or fgraph
+
+        # Make inner-graphs track their inner-graphs
+        inner_fgraph.attach_feature(self, must_be_distinct=True)
+
+        for feature in self.shared_features:
+            inner_fgraph.attach_feature(feature, must_be_distinct=True)
+
+        inner_fgraph._local_parent_graph = fgraph
+
+        # Add the inner-graph's inner graphs to ours
+        fgraph._nodes_to_inner_graphs.maps.append(
+            inner_fgraph._local_nodes_to_inner_graphs
+        )
+
+    def on_change_input(self, fgraph, node, i, r, new_r, reason):
+        self.changed = True
+
+    def on_prune(self, fgraph, node, reason):
+        if isinstance(node.op, HasInnerGraph):
+
+            self.new_inner_graph_nodes.discard(node)
+
+            inner_fgraph = node.op.fgraph
+            ig_nodes = fgraph._local_inner_graphs_to_nodes[inner_fgraph]
+            ig_nodes.remove(node)
+            if not ig_nodes:
+                del fgraph._local_inner_graphs_to_nodes[inner_fgraph]
+
+            del fgraph._local_nodes_to_inner_graphs[node]
+
+            fgraph._nodes_to_inner_graphs.maps.remove(
+                inner_fgraph._local_nodes_to_inner_graphs
+            )
+
+    def clone(self):
+        return type(self)()

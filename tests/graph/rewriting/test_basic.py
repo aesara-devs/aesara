@@ -2,13 +2,22 @@ import sys
 
 import pytest
 
+import aesara.tensor as at
+from aesara.compile import SharedVariable
 from aesara.configdefaults import config
-from aesara.graph.basic import Apply, Constant, equal_computations
+from aesara.graph.basic import (
+    Apply,
+    Constant,
+    NominalVariable,
+    clone_replace,
+    equal_computations,
+)
 from aesara.graph.features import Feature
 from aesara.graph.fg import FunctionGraph
-from aesara.graph.op import Op
+from aesara.graph.op import HasInnerGraph, Op
 from aesara.graph.rewriting.basic import (
     EquilibriumGraphRewriter,
+    InnerGraphRewriter,
     MergeOptimizer,
     OpKeyGraphRewriter,
     OpToRewriterTracker,
@@ -43,6 +52,52 @@ from tests.graph.utils import (
     op_y,
     op_z,
 )
+
+
+class InnerGraphOp(Op, HasInnerGraph):
+    def __init__(self, fgraph):
+        input_replacements = [
+            (v, NominalVariable(n, v.type))
+            for n, v in enumerate(fgraph.inputs)
+            if not isinstance(v, (SharedVariable, Constant))
+        ]
+        outputs = clone_replace(fgraph.outputs, replace=input_replacements)
+        _, inputs = zip(*input_replacements) if input_replacements else (None, [])
+        self.fgraph = FunctionGraph(inputs, outputs, clone=False)
+
+    def make_node(self, *inputs):
+        assert len(inputs) == len(self.fgraph.inputs)
+        outputs = [out.type() for out in self.fgraph.outputs]
+        return Apply(self, list(inputs), outputs)
+
+    def perform(self, node, inputs, outputs):
+        # TODO: Lazily generate `self._fn` from `self.fgraph`
+        outputs[0] = self._fn(*inputs)
+
+    @property
+    def fn(self):
+        raise NotImplementedError()
+
+    @property
+    def inner_inputs(self):
+        return self.fgraph.inputs
+
+    @property
+    def inner_outputs(self):
+        return self.fgraph.outputs
+
+    def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            return False
+
+        return self.fgraph.outputs == other.fgraph.outputs
+
+    def __hash__(self):
+        return hash((type(self), tuple(self.fgraph.outputs)))
+
+    def clone(self):
+        new_fgraph = self.fgraph.clone()
+        return type(self)(new_fgraph)
 
 
 class AssertNoChanges(Feature):
@@ -442,6 +497,89 @@ class TestMergeOptimizer:
 
         assert fg.outputs[0] is fg.outputs[1]
         assert fg.outputs[0] is not fg.outputs[2]
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_HasInnerGraph_basic(self):
+        """Make sure that two inner-graphs can be merged."""
+        x, y = matrix("x"), matrix("y")
+
+        inner_graph_op = InnerGraphOp(FunctionGraph(outputs=[x * x], clone=False))
+        inner_graph_op.fgraph.name = "fgraph_igo_1"
+
+        # These are technically the same `Op` instances with identical inputs, so
+        # the standard `MergeOptimizer` should work regardless of inner-graphs
+        igo_1 = inner_graph_op(y)
+        igo_2 = inner_graph_op(y)
+        r1 = igo_1 + igo_2
+
+        add_node = r1.owner
+        assert add_node.op == at.add
+        assert add_node.inputs[0] is not add_node.inputs[1]
+
+        fg = FunctionGraph(outputs=[r1], clone=False)
+
+        opt = InnerGraphRewriter(MergeOptimizer())
+        opt.rewrite(fg)
+
+        add_node = fg.outputs[0].owner
+        assert add_node.op == at.add
+        assert add_node.inputs[0] is add_node.inputs[1]
+
+        # Make sure it works after introducing a new, but equivalent inner-graph `Op`
+        inner_graph_op_2 = InnerGraphOp(FunctionGraph(outputs=[x * x], clone=False))
+        inner_graph_op_2.fgraph.name = "fgraph_igo_2"
+
+        igo_1 = inner_graph_op(y)
+        igo_2 = inner_graph_op_2(y)
+        r1 = igo_1 + igo_2
+
+        add_node = r1.owner
+        assert add_node.op == at.add
+        assert add_node.inputs[0] is not add_node.inputs[1]
+
+        fg = FunctionGraph(outputs=[r1], clone=False)
+
+        opt = InnerGraphRewriter(MergeOptimizer())
+        opt.rewrite(fg)
+
+        add_node = fg.outputs[0].owner
+        assert add_node.op == at.add
+        assert add_node.inputs[0] is add_node.inputs[1]
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_HasInnerGraph_canonicalize(self):
+        """Make sure inner-graph are canonicalized before being merged."""
+        x, y = matrix("x"), matrix("y")
+
+        inner_graph_op = InnerGraphOp(FunctionGraph(outputs=[x + x], clone=False))
+        inner_graph_op.fgraph.name = "fgraph_igo_1"
+
+        inner_graph_op_2 = InnerGraphOp(
+            FunctionGraph(outputs=[x + 2 * x / 2], clone=False)
+        )
+        inner_graph_op_2.fgraph.name = "fgraph_igo_2"
+
+        igo_1 = inner_graph_op(y)
+        igo_2 = inner_graph_op_2(y)
+        r1 = igo_1 + igo_2
+
+        add_node = r1.owner
+        assert add_node.op == at.add
+        assert add_node.inputs[0] is not add_node.inputs[1]
+
+        fg = FunctionGraph(outputs=[r1], clone=False)
+
+        from aesara.compile import optdb
+
+        rewriter = optdb.query("+merge", "+canonicalize")
+
+        assert isinstance(rewriter, InnerGraphRewriter)
+
+        rewriter.rewrite(fg)
+
+        add_node = fg.outputs[0].owner
+        assert add_node.op == at.add
+        assert add_node.inputs[0] is add_node.inputs[1]
 
 
 class TestEquilibrium:
@@ -846,3 +984,42 @@ def test_deprecations():
 
     with pytest.deprecated_call():
         from aesara.graph.opt import GraphRewriter  # noqa: F401
+
+
+@pytest.mark.xfail(reason="Not implemented")
+@pytest.mark.parametrize(
+    "rewriter",
+    [
+        lambda psub: OpKeyGraphRewriter(psub, ignore_newtrees=False),
+        lambda psub: WalkingGraphRewriter(psub, ignore_newtrees=True),
+    ],
+)
+def test_InnerGraphOptimizer_PatternSub(rewriter):
+    """Test that a `PatternSub` can be applied to nested inner-graphs."""
+    x, y, z = matrix("x"), matrix("y"), matrix("z")
+
+    inner_graph_op_1 = InnerGraphOp(FunctionGraph(outputs=[x * x], clone=False))
+    inner_graph_op_2 = InnerGraphOp(
+        FunctionGraph(inputs=[x], outputs=[x * inner_graph_op_1(x)], clone=False)
+    )
+
+    igo = inner_graph_op_2(inner_graph_op_1(y))
+    r1 = igo + z
+
+    fgraph = FunctionGraph(outputs=[r1], clone=False)
+
+    psub = PatternNodeRewriter((at.mul, "a", "a"), (at.mul, 2, "a"))
+
+    opt = InnerGraphRewriter(rewriter(psub))
+    _ = opt.rewrite(fgraph)
+
+    inner_graph_op_1_new = InnerGraphOp(FunctionGraph(outputs=[2 * x], clone=False))
+    exp_r1 = inner_graph_op_2(inner_graph_op_1_new(y)) + z
+
+    assert equal_computations(fgraph.outputs, [exp_r1])
+
+    # This implies that the `Op` has been updated in-place
+    # TODO: We probably *don't* want this.
+    assert equal_computations(
+        inner_graph_op_1.fgraph.outputs, inner_graph_op_1_new.fgraph.outputs
+    )
