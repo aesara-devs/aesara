@@ -1,4 +1,5 @@
 import abc
+from functools import partial
 from typing import List, Optional, Union
 
 import numpy as np
@@ -22,6 +23,13 @@ except AttributeError:
 
     def broadcast_shapes(*shapes):
         return _broadcast_shape(*[np.empty(x, dtype=[]) for x in shapes])
+
+
+def get_partial_wrapper(rv, name, *args, **kwargs):
+    func = partial(rv, *args, **kwargs)
+    func.__name__ = name
+    func.__module__ = rv.__module__
+    return func
 
 
 class ScipyRandomVariable(RandomVariable):
@@ -395,40 +403,7 @@ class NormalRV(RandomVariable):
 
 
 normal = NormalRV()
-
-
-class StandardNormalRV(NormalRV):
-    r"""A standard normal continuous random variable.
-
-    The probability density function for `standard_normal` is:
-
-    .. math::
-
-        f(x) = \frac{1}{\sqrt{2 \pi}} e^{-\frac{x^2}{2}}
-
-    """
-
-    def __call__(self, size=None, **kwargs):
-        """Draw samples from a standard normal distribution.
-
-        Signature
-        ---------
-
-        `nil -> ()`
-
-        Parameters
-        ----------
-        size
-            Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
-            independent, identically distributed random variables are
-            returned. Default is `None` in which case a single random variable
-            is returned.
-
-        """
-        return super().__call__(loc=0.0, scale=1.0, size=size, **kwargs)
-
-
-standard_normal = StandardNormalRV()
+standard_normal = get_partial_wrapper(normal, "standard_normal", loc=0.0, scale=1.0)
 
 
 class HalfNormalRV(ScipyRandomVariable):
