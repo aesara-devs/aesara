@@ -7,6 +7,7 @@ from numpy.random.bit_generator import (  # type: ignore[attr-defined]
 )
 
 import aesara.tensor.random.basic as aer
+from aesara.graph.basic import Constant
 from aesara.link.jax.dispatch.basic import jax_funcify, jax_typify
 from aesara.link.jax.dispatch.shape import JAXShapeTuple
 from aesara.tensor.shape import Shape, Shape_i
@@ -37,6 +38,10 @@ def assert_size_argument_jax_compatible(node):
 
     """
     size = node.inputs[1]
+
+    if isinstance(size, Constant):
+        return
+
     size_op = size.owner.op
     if not isinstance(size_op, (Shape, Shape_i, JAXShapeTuple)):
         raise NotImplementedError(SIZE_NOT_COMPATIBLE)
