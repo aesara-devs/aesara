@@ -237,6 +237,16 @@ def test_infer_shape_to_gufunc_sig():
     res = infer_shape_to_gufunc_sig(y.owner)
     assert res == ((("i0",),), (("i0", "i0"),))
 
+    # check signature of dot
+    y = at.dot(at.matrix("x"), at.matrix("y"))
+    res = infer_shape_to_gufunc_sig(y.owner)
+    assert res == ((("i0", "i1"), ("i0", "i1")), (("i0", "i1"),))
+
+    # check signature of det
+    y = at.nlinalg.det(at.matrix("x"))
+    res = infer_shape_to_gufunc_sig(y.owner)
+    assert res == ((("i0", "i1"),), ((),))
+
 
 def test_Blockwise_get_output_info():
     a = at.lscalar("a")
@@ -245,7 +255,7 @@ def test_Blockwise_get_output_info():
 
     from aesara.tensor.basic import Tri
 
-    blk_op = Blockwise(op=Tri(dtype="float64"), signature=(((), (), ()), (('n', 'm'),)))
+    blk_op = Blockwise(op=Tri(dtype="float64"), signature=(((), (), ()), (("n", "m"),)))
     out_dtype, output_shapes, inputs = blk_op.get_output_info(a, b, c)
 
     assert out_dtype == ["float64"]
