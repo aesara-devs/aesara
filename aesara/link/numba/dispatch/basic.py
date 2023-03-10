@@ -382,7 +382,10 @@ def make_node_key(node):
 
 def check_cache(node_key):
     """Check disk-backed cache."""
-    return numba_db.get(node_key)
+    file_name = numba_db.get(node_key)
+    if file_name:
+        return dill.load_module(file_name).source
+    return None
 
 
 def add_to_cache(node_key, numba_py_fn):
@@ -396,11 +399,11 @@ def add_to_cache(node_key, numba_py_fn):
     cache_module.source = numba_py_fn
     dill.dump_module(module_file_base, module=cache_module)
 
-    # Load the function from the persisted module
-    numba_py_fn = dill.load_module(module_file_base).source
+    # # Load the function from the persisted module
+    # numba_py_fn = dill.load_module(module_file_base).source
 
     # Add the function to numba_cache database
-    numba_db[node_key] = numba_py_fn
+    numba_db[node_key] = module_file_base
 
     return numba_py_fn
 
