@@ -275,7 +275,7 @@ jobs:
           const cpuPercent = parseFloat(execSync('top -b -n1 | grep "Cpu(s)" | awk \'{print $2}\'').toString().trim());
           const memoryPercent = parseFloat(execSync('free | grep Mem | awk \'{print $3/$2 * 100.0}\'').toString().trim());
           
-          if (cpuPercent > 90 || memoryPercent > 90) {
+          if (cpuPercent > 30 || memoryPercent > 30) {
             const body = `⚠️ High CPU/Memory usage detected in Pytest Monitoring and Profiling workflow:
             CPU usage: ${cpuPercent}%
             Memory usage: ${memoryPercent}%
