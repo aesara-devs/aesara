@@ -95,7 +95,7 @@ exclude = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["aesara", "bin"]
+packages = ["aesara"]
 
 [tool.coverage.run]
 omit = [
