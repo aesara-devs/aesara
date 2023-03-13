@@ -139,7 +139,7 @@ Report bugs by opening an [issue][issues]. If you have a question regarding the 
 We welcome bug reports and fixes and improvements to the documentation.
 
 For more information on contributing, please see the
-[contributing guide](https://github.com/aesara-devs/aesara/blob/main/CONTRIBUTING.md)
+[contributing guide](https://github.com/aesara-devs/aesara/blob/main/.github/CONTRIBUTING.md)
 and the Aesara [Mission Statement](https://github.com/aesara-devs/aesara/blob/main/doc/mission.rst).
 
 A good place to start contributing is by looking through [the issues][issues].
