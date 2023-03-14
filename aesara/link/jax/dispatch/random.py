@@ -449,7 +449,7 @@ def jax_sample_fn_gengamma(op):
         samples = jax.random.gamma(sampling_key, d, size, dtype)
         samples = lam * samples ** (1.0 / p)
 
-        rng["rng_state"] = rng_key
+        rng["jax_state"] = rng_key
         return (rng, samples)
 
     return sample_fn
