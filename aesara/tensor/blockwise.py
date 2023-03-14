@@ -149,7 +149,8 @@ def infer_shape_to_gufunc_sig(node: Apply, fgraph: Optional["FunctionGraph"] = N
     """
     op = node.op
     in_shapes = tuple(
-        tuple(lscalar(f"i{s}") for s in range(inp.type.ndim)) for inp in node.inputs
+        tuple(lscalar(f"i{n}{s}") for s in range(inp.type.ndim))
+        for n, inp in enumerate(node.inputs)
     )
     out_shapes = op.infer_shape(fgraph, node, in_shapes)
 

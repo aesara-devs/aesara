@@ -231,21 +231,23 @@ def test_blockwise_cholesky_grad(shape):
 def test_infer_shape_to_gufunc_sig():
     y = at.extract_diag(at.matrix("x"))
     res = infer_shape_to_gufunc_sig(y.owner)
-    assert res == ((("i0", "i1"),), (("o0",),))
+    assert res == ((("i00", "i01"),), (("o0",),))
 
     y = at.diag(at.vector("x"))
     res = infer_shape_to_gufunc_sig(y.owner)
-    assert res == ((("i0",),), (("i0", "i0"),))
+    assert res == ((("i00",),), (("i00", "i00"),))
 
     # check signature of dot
+    # '(m,n),(n,p)->(m,p)'
     y = at.dot(at.matrix("x"), at.matrix("y"))
     res = infer_shape_to_gufunc_sig(y.owner)
-    assert res == ((("i0", "i1"), ("i0", "i1")), (("i0", "i1"),))
+    assert res == ((("i00", "i01"), ("i10", "i11")), (("i00", "i11"),))
 
     # check signature of det
+    # '(m,m)->()'
     y = at.nlinalg.det(at.matrix("x"))
     res = infer_shape_to_gufunc_sig(y.owner)
-    assert res == ((("i0", "i1"),), ((),))
+    assert res == ((("i00", "i01"),), ((),))
 
 
 def test_Blockwise_get_output_info():
