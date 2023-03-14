@@ -4,6 +4,7 @@ import pytest
 import aesara
 import aesara.tensor as at
 from aesara.configdefaults import config
+from aesara.tensor.basic import Tri
 from aesara.tensor.blockwise import (
     Blockwise,
     _calculate_shapes,
@@ -14,7 +15,7 @@ from aesara.tensor.blockwise import (
 )
 from aesara.tensor.math import Dot
 from aesara.tensor.nlinalg import Det
-from aesara.tensor.slinalg import Cholesky, Solve
+from aesara.tensor.slinalg import Cholesky, Solve, SolveTriangular
 from aesara.tensor.type import TensorType
 from tests import unittest_tools as utt
 from tests.unittest_tools import check_infer_shape, verify_grad
@@ -99,6 +100,12 @@ def test_parse_input_dimensions(args, arg_vals, input_core_dims, output_core_dim
             (at.tensor("float64", (None, None, None)),),
             (np.zeros((5, 3, 3)),),
             lambda x: np.linalg.det(x),
+        ),
+        (
+            Tri(),
+            (at.scalar(), at.scalar(), at.scalar()),
+            (3, 4, 0),
+            lambda n, m, k: np.tri(n, m, k),
         ),
     ],
 )
@@ -261,3 +268,25 @@ def test_Blockwise_get_output_info():
     out_dtype, output_shapes, inputs = blk_op.get_output_info(a, b, c)
 
     assert out_dtype == ["float64"]
+
+
+@pytest.mark.parametrize(
+    "a_shape, b_shape",
+    [
+        (
+            (3, 3),
+            (3, 1),
+        )
+    ],
+)
+def test_blockwise_SolveTriangular_grad(a_shape, b_shape):
+    rng = np.random.default_rng(utt.fetch_seed())
+    A_val = (rng.normal(size=a_shape) * 0.5 + np.eye(a_shape[-1])).astype(config.floatX)
+    b_val = rng.normal(size=b_shape).astype(config.floatX)
+
+    eps = None
+    if config.floatX == "float64":
+        eps = 2e-8
+
+    solve_op = Blockwise(SolveTriangular())
+    verify_grad(solve_op, [A_val, b_val], 3, rng, eps=eps)

@@ -294,7 +294,6 @@ class SolveTriangular(SolveBase):
         "trans",
         "unit_diagonal",
         "check_finite",
-        "gufunc_sig",
     )
 
     def __init__(
