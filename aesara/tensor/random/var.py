@@ -1,21 +1,34 @@
 import copy
+from typing import TypeVar
 
 import numpy as np
 
 from aesara.compile.sharedvalue import SharedVariable, shared_constructor
-from aesara.tensor.random.type import random_generator_type, random_state_type
+from aesara.tensor.random.type import (
+    RandomGeneratorType,
+    RandomStateType,
+    RandomType,
+    random_generator_type,
+    random_state_type,
+)
 
 
-class RandomStateSharedVariable(SharedVariable):
+RNGTypeType = TypeVar("RNGTypeType", bound=RandomType)
+
+
+class RandomTypeSharedVariable(SharedVariable[RNGTypeType]):
+    """A `Variable` type representing shared RNG states."""
+
     def __str__(self):
-        return self.name or "RandomStateSharedVariable({})".format(repr(self.container))
+        return self.name or f"{self.__class__}({repr(self.container)})"
 
 
-class RandomGeneratorSharedVariable(SharedVariable):
-    def __str__(self):
-        return self.name or "RandomGeneratorSharedVariable({})".format(
-            repr(self.container)
-        )
+class RandomStateSharedVariable(RandomTypeSharedVariable[RandomStateType]):
+    pass
+
+
+class RandomGeneratorSharedVariable(RandomTypeSharedVariable[RandomGeneratorType]):
+    pass
 
 
 @shared_constructor.register(np.random.RandomState)
