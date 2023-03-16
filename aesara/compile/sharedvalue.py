@@ -3,16 +3,12 @@
 import copy
 from contextlib import contextmanager
 from functools import singledispatch
-from typing import TYPE_CHECKING, List, Optional
+from typing import List, Optional
 
-from aesara.graph.basic import Variable
+from aesara.graph.basic import Variable, _TypeType
 from aesara.graph.utils import add_tag_trace
 from aesara.link.basic import Container
 from aesara.link.c.type import generic
-
-
-if TYPE_CHECKING:
-    from aesara.graph.type import Type
 
 
 __SHARED_CONTEXT__: Optional[List[Variable]] = None
@@ -31,12 +27,12 @@ def collect_new_shareds():
         __SHARED_CONTEXT__ = old_context
 
 
-class SharedVariable(Variable):
+class SharedVariable(Variable[_TypeType, None]):
     """Variable that is shared between compiled functions."""
 
     def __init__(
         self,
-        type: "Type",
+        type: _TypeType,
         value,
         strict: bool,
         allow_downcast=None,
@@ -160,7 +156,7 @@ class SharedVariable(Variable):
         return self._default_update
 
     @default_update.setter
-    def default_update(self, value):
+    def default_update(self, value: Optional[Variable]):
         if value is not None:
             self._default_update = self.type.filter_variable(value, allow_convert=True)
         else:
