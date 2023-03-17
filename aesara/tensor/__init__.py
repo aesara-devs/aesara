@@ -98,6 +98,20 @@ def _get_vector_length_Constant(op: Union[Op, Variable], var: Constant) -> int:
     return len(var.data)
 
 
+def get_gufunc_signature(op, blocked_inputs):
+    sig = getattr(op, "gufunc_sig", None)
+
+    if sig is None:
+        return _get_gufunc_signature(op, blocked_inputs)
+
+    return sig
+
+
+@singledispatch
+def _get_gufunc_signature(op, blocked_inputs):
+    raise ValueError(f"'{op}' object has no attribute 'gufunc_sig'")
+
+
 import aesara.tensor.exceptions  # noqa
 from aesara.gradient import consider_constant, grad, hessian, jacobian  # noqa
 

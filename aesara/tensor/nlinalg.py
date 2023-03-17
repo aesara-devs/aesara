@@ -110,8 +110,11 @@ class MatrixInverse(Op):
     of ``solve``.
 
     """
-
-    __props__ = ()
+    gufunc_sig = (
+        (("m", "m"),),
+        (("m", "m"),),
+    )
+    __props__ = ("gufunc_sig",)
 
     def __init__(self):
         pass
@@ -199,7 +202,8 @@ class Det(Op):
 
     """
 
-    __props__ = ()
+    gufunc_sig = ((("m", "m"),), ((),))
+    __props__ = ("gufunc_sig",)
 
     def make_node(self, x):
         x = as_tensor_variable(x)

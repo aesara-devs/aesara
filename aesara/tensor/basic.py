@@ -38,6 +38,7 @@ from aesara.scalar import int32
 from aesara.scalar.basic import ScalarConstant, ScalarVariable
 from aesara.tensor import (
     _as_tensor_variable,
+    _get_gufunc_signature,
     _get_vector_length,
     as_tensor_variable,
     get_vector_length,
@@ -986,7 +987,15 @@ def nonzero_values(a):
 
 class Tri(Op):
 
-    __props__ = ("dtype",)
+    gufunc_sig = (
+        (
+            (),
+            (),
+            (),
+        ),
+        (("n", "m"),),
+    )
+    __props__ = ("dtype", "gufunc_sig")
 
     def __init__(self, dtype=None):
         if dtype is None:
@@ -3470,6 +3479,12 @@ class ExtractDiag(Op):
             self.axis2 = 1
 
 
+@_get_gufunc_signature.register(ExtractDiag)
+def _get_gufunc_signature_ExtractDiag(op, blocked_inputs):
+    # TODO:
+    raise NotImplementedError()
+
+
 extract_diag = ExtractDiag()
 # TODO: optimization to insert ExtractDiag with view=True
 
@@ -3502,7 +3517,8 @@ class AllocDiag(Op):
     It does the inverse of `ExtractDiag`.
     """
 
-    __props__ = ("offset", "axis1", "axis2")
+    gufunc_sig = (((),), (("m", "m"),))
+    __props__ = ("offset", "axis1", "axis2", "gufunc_sig")
 
     def __init__(self, offset=0, axis1=0, axis2=1):
         """

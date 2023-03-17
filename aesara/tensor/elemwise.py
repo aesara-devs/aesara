@@ -19,7 +19,7 @@ from aesara.scalar import get_scalar_type
 from aesara.scalar.basic import bool as scalar_bool
 from aesara.scalar.basic import identity as scalar_identity
 from aesara.scalar.basic import transfer_type, upcast
-from aesara.tensor import _get_vector_length, as_tensor_variable
+from aesara.tensor import _get_gufunc_signature, _get_vector_length, as_tensor_variable
 from aesara.tensor import elemwise_cgen as cgen
 from aesara.tensor import get_vector_length
 from aesara.tensor.type import (
@@ -273,6 +273,20 @@ class DimShuffle(ExternalCOp):
                     Elemwise(scalar_identity)(gz)
                 )
             ]
+
+
+@_get_gufunc_signature.register(DimShuffle)
+def _get_gufunc_signature_DimShuffle(op, blocked_inputs):
+    # remove the extra dimensions that
+    # we have added during op creation
+    new_order = [i for i in op.new_order if i != "x"]
+
+    # derive gufunc signature for DimShuffle
+    input_signature: Tuple[str, ...] = tuple(f"a{i}" for i in range(len(new_order)))
+    output_signature: Tuple[str, ...] = tuple(
+        f"a{i}" if i != "x" else "1" for i in op.new_order
+    )
+    return ((input_signature,), (output_signature,))
 
 
 class DimShufflePrinter(Printer):
@@ -1220,6 +1234,12 @@ class Elemwise(OpenMPOp):
             return tuple(version)
         else:
             return ()
+
+
+@_get_gufunc_signature.register(Elemwise)
+def _get_gufunc_signature_Elemwise(op, blocked_inputs):
+    op = op.scalar_op
+    return (((),) * len(blocked_inputs), ((),))
 
 
 class CAReduce(COp):

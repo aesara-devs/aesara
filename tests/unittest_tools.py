@@ -1,15 +1,19 @@
 import logging
 import sys
+import warnings
 from copy import copy, deepcopy
 from functools import wraps
+from typing import Optional, Tuple, Union
 
 import numpy as np
 import pytest
 
 import aesara
 from aesara.compile.debugmode import str_diagnostic
+from aesara.compile.mode import Mode
 from aesara.configdefaults import config
 from aesara.gradient import verify_grad as orig_verify_grad
+from aesara.graph.op import Op
 from aesara.tensor.basic import as_tensor_variable
 from aesara.tensor.math import _allclose
 from aesara.tensor.math import add as at_add
@@ -175,6 +179,106 @@ class OpContractTestMixin:
             assert s  # names should not be empty
 
 
+def check_infer_shape(
+    inputs,
+    outputs,
+    numeric_inputs,
+    op_cls: Op,
+    excluding: Optional[Tuple[str]] = None,
+    warn: bool = True,
+    check_topo: bool = True,
+    mode: Optional[Union[Mode, str]] = None,
+):
+    """Test an :meth:`Op.infer_shape` method.
+
+    When testing with input values with shapes that take the same
+    value over different dimensions (for instance, a square
+    matrix, or a 3D tensor with shape ``(n, n, n)``, or ``(m, n, m)``), it
+    is not possible to detect if the output shape was computed
+    correctly, or if some shapes with the same value have been
+    mixed up. For instance, if the :meth:`Op.infer_shape` uses the width of a
+    matrix instead of its height, then testing with only square
+    matrices will not detect the problem. If ``warn=True``, we emit a
+    warning when testing with such values.
+
+    Parameters
+    ----------
+    inputs
+        The symbolic inputs.
+    outputs
+        The symbolic outputs.
+    numeric_inputs
+        The numeric inputs to be used during evaluation.
+    op_cls
+        The :class:`Op` class
+    excluding
+        Exclusions to be added to `mode`.
+    warn
+        If ``True``, emit a warning when the inputs do not imply distinct
+        dimension shapes.
+    check_topo
+        If ``True``, check that the :class:`Op` was removed from the
+        optimized/compiled graph.
+    mode
+        The mode to use when :func:`aesara.function` is called.
+
+    """
+    if excluding:
+        mode = mode.excluding(*excluding)
+
+    if warn:
+        for var, inp in zip(inputs, numeric_inputs):
+            if isinstance(inp, (int, float, list, tuple)):
+                inp = var.type.filter(inp)
+
+            if not hasattr(inp, "shape"):
+                continue
+
+            # Remove broadcasted dims, since they can't be changed to prevent
+            # the equal-dims problem
+            if hasattr(var.type, "broadcastable"):
+                shp = [
+                    inp.shape[i]
+                    for i in range(inp.ndim)
+                    if not var.type.broadcastable[i]
+                ]
+            else:
+                shp = inp.shape
+
+            if len(set(shp)) != len(shp):
+                warnings.warn(
+                    f"While testing shape inference for {op_cls}, we received an"
+                    f" input with a shape that has some repeated values: {inp.shape}"
+                    ", like a square matrix. This makes it impossible to"
+                    " check if the values for these dimensions have been"
+                    " correctly used, or if they have been mixed up."
+                )
+                break
+
+    outputs_function = aesara.function(inputs, outputs, mode=mode)
+
+    # Now that we have full shape information at the type level, it's
+    # possible/more likely that shape-computing graphs will not need the
+    # inputs to the graph for which the shape is computed
+    shapes_function = aesara.function(
+        inputs, [o.shape for o in outputs], mode=mode, on_unused_input="ignore"
+    )
+
+    # Check that the `Op` is removed from the compiled function.
+    if check_topo:
+        topo_shape = shapes_function.maker.fgraph.toposort()
+        assert not any(isinstance(t.op, op_cls) for t in topo_shape)
+
+    topo_out = outputs_function.maker.fgraph.toposort()
+    assert any(isinstance(t.op, op_cls) for t in topo_out)
+
+    # Check that the shape produced agrees with the actual shape.
+    numeric_outputs = outputs_function(*numeric_inputs)
+    numeric_shapes = shapes_function(*numeric_inputs)
+    for out, shape in zip(numeric_outputs, numeric_shapes):
+        assert out.shape == tuple(shape)
+
+
 class InferShapeTester:
     def setup_method(self):
         # Take into account any mode that may be defined in a child class
@@ -196,73 +300,16 @@ class InferShapeTester:
         warn=True,
         check_topo=True,
     ):
-        """This tests the infer_shape method only
-
-        When testing with input values with shapes that take the same
-        value over different dimensions (for instance, a square
-        matrix, or a tensor3 with shape (n, n, n), or (m, n, m)), it
-        is not possible to detect if the output shape was computed
-        correctly, or if some shapes with the same value have been
-        mixed up. For instance, if the infer_shape uses the width of a
-        matrix instead of its height, then testing with only square
-        matrices will not detect the problem. If warn=True, we emit a
-        warning when testing with such values.
-
-        :param check_topo: If True, we check that the Op where removed
-            from the graph. False is useful to test not implemented case.
-
-        """
-        mode = self.mode
-        if excluding:
-            mode = mode.excluding(*excluding)
-        if warn:
-            for var, inp in zip(inputs, numeric_inputs):
-                if isinstance(inp, (int, float, list, tuple)):
-                    inp = var.type.filter(inp)
-                if not hasattr(inp, "shape"):
-                    continue
-                # remove broadcasted dims as it is sure they can't be
-                # changed to prevent the same dim problem.
-                if hasattr(var.type, "broadcastable"):
-                    shp = [
-                        inp.shape[i]
-                        for i in range(inp.ndim)
-                        if not var.type.broadcastable[i]
-                    ]
-                else:
-                    shp = inp.shape
-                if len(set(shp)) != len(shp):
-                    _logger.warning(
-                        "While testing shape inference for %r, we received an"
-                        " input with a shape that has some repeated values: %r"
-                        ", like a square matrix. This makes it impossible to"
-                        " check if the values for these dimensions have been"
-                        " correctly used, or if they have been mixed up.",
-                        cls,
-                        inp.shape,
-                    )
-                    break
-
-        outputs_function = aesara.function(inputs, outputs, mode=mode)
-
-        # Now that we have full shape information at the type level, it's
-        # possible/more likely that shape-computing graphs will not need the
-        # inputs to the graph for which the shape is computed
-        shapes_function = aesara.function(
-            inputs, [o.shape for o in outputs], mode=mode, on_unused_input="ignore"
+        return check_infer_shape(
+            inputs,
+            outputs,
+            numeric_inputs,
+            cls,
+            excluding=excluding,
+            warn=warn,
+            check_topo=check_topo,
+            mode=self.mode,
         )
-
-        # Check that the Op is removed from the compiled function.
-        if check_topo:
-            topo_shape = shapes_function.maker.fgraph.toposort()
-            assert not any(isinstance(t.op, cls) for t in topo_shape)
-        topo_out = outputs_function.maker.fgraph.toposort()
-        assert any(isinstance(t.op, cls) for t in topo_out)
-        # Check that the shape produced agrees with the actual shape.
-        numeric_outputs = outputs_function(*numeric_inputs)
-        numeric_shapes = shapes_function(*numeric_inputs)
-        for out, shape in zip(numeric_outputs, numeric_shapes):
-            assert np.all(out.shape == shape), (out.shape, shape)
 
 
 class WrongValue(Exception):
