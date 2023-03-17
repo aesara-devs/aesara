@@ -20,7 +20,7 @@ class RandomTypeSharedVariable(SharedVariable[RNGTypeType]):
     """A `Variable` type representing shared RNG states."""
 
     def __str__(self):
-        return self.name or f"{self.__class__}({repr(self.container)})"
+        return self.name or f"{self.__class__.__name__}({repr(self.container)})"
 
 
 class RandomStateSharedVariable(RandomTypeSharedVariable[RandomStateType]):
