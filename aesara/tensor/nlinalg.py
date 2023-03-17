@@ -9,7 +9,7 @@ from aesara.graph.basic import Apply
 from aesara.graph.op import Op
 from aesara.tensor import basic as at
 from aesara.tensor import math as tm
-from aesara.tensor.basic import as_tensor_variable, extract_diag
+from aesara.tensor.basic import as_tensor_variable, extract_diag, swapaxes
 from aesara.tensor.type import dvector, lscalar, matrix, scalar, vector
 
 
@@ -118,7 +118,7 @@ class MatrixInverse(Op):
 
     def make_node(self, x):
         x = as_tensor_variable(x)
-        assert x.ndim == 2
+        assert x.ndim >= 2
         return Apply(self, [x], [x.type()])
 
     def perform(self, node, inputs, outputs):
@@ -133,7 +133,7 @@ class MatrixInverse(Op):
 
         where :math:`V` corresponds to ``g_outputs`` and :math:`X` to
         ``inputs``. Using the `matrix cookbook
-        <http://www2.imm.dtu.dk/pubdb/views/publication_details.php?id=3274>`_,
+        <https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf>`_,
         one can deduce that the relation corresponds to
 
             .. math:: (X^{-1} \cdot V^{T} \cdot X^{-1})^T.
@@ -142,8 +142,14 @@ class MatrixInverse(Op):
         (x,) = inputs
         xi = self(x)
         (gz,) = g_outputs
-        # tm.dot(gz.T,xi)
-        return [-matrix_dot(xi, gz.T, xi).T]
+
+        # Take transpose of last two dimensions
+        gz_transpose = swapaxes(gz, -1, -2)
+
+        output = xi * gz_transpose * xi
+
+        output_transpose = swapaxes(output, -1, -2)
+        return [-output_transpose]
 
     def R_op(self, inputs, eval_points):
         r"""The gradient function should return
@@ -152,7 +158,7 @@ class MatrixInverse(Op):
 
         where :math:`V` corresponds to ``g_outputs`` and :math:`X` to
         ``inputs``. Using the `matrix cookbook
-        <http://www2.imm.dtu.dk/pubdb/views/publication_details.php?id=3274>`_,
+        <https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf>`_,
         one can deduce that the relation corresponds to
 
             .. math:: X^{-1} \cdot V \cdot X^{-1}.
@@ -163,7 +169,7 @@ class MatrixInverse(Op):
         (ev,) = eval_points
         if ev is None:
             return [None]
-        return [-matrix_dot(xi, ev, xi)]
+        return [-xi * ev * xi]
 
     def infer_shape(self, fgraph, node, shapes):
         return shapes
