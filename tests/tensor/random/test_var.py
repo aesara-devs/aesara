@@ -100,3 +100,14 @@ def test_set_value_borrow(rng_ctor):
     rr = rng_ctor(33)
     s_rng.set_value(rr, borrow=True)
     assert rr is s_rng.container.storage[0]
+
+
+def test_RandomTypeSharedVariable_str():
+
+    s_rng = shared(np.random.RandomState(123))
+
+    assert str(s_rng).startswith("RandomStateSharedVariable(")
+
+    s_rng = shared(np.random.default_rng(123))
+
+    assert str(s_rng).startswith("RandomGeneratorSharedVariable(")
