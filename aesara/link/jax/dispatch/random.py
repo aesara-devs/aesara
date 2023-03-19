@@ -453,3 +453,24 @@ def jax_sample_fn_gengamma(op):
         return (rng, samples)
 
     return sample_fn
+
+
+@jax_sample_fn.register(aer.InvGammaRV)
+def jax_sample_fn_invgamma(op):
+    """JAX implementation of `InvGammaRV`."""
+
+    def sample_fn(rng, size, dtype, *parameters):
+        rng_key = rng["jax_state"]
+        rng_key, sampling_key = jax.random.split(rng_key, 2)
+
+        (
+            shape,
+            scale,
+        ) = parameters
+        # InvGamma[shape, scale] <-> 1 / Gamma[shape, 1 / scale]
+        samples = 1 / (jax.random.gamma(sampling_key, shape, size, dtype) / scale)
+
+        rng["jax_state"] = rng_key
+        return (rng, samples)
+
+    return sample_fn
