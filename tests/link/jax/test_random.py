@@ -467,6 +467,19 @@ def test_random_dirichlet(parameter, size):
     np.testing.assert_allclose(samples.mean(axis=0), 0.5, 1)
 
 
+@pytest.mark.parametrize(
+    "shape, scale",
+    [(3, 3), (2, 1), (2, 5)],
+)
+def test_random_invgamma(shape, scale):
+    rng = shared(np.random.RandomState(123))
+    g = at.random.invgamma(shape, scale, size=(100000,), rng=rng)
+    g_fn = function([], g, mode=jax_mode)
+    samples = g_fn()
+    # mean = scale / (shape - 1) only exists for shape > 1
+    np.testing.assert_allclose(samples.mean(), scale / (shape - 1), rtol=1e-01)
+
+
 def test_random_choice():
     # Elements are picked at equal frequency
     num_samples = 10000
