@@ -378,6 +378,15 @@ def add_basic_configvars():
         in_c_key=False,
     )
 
+    config.add(
+        "DISABLE_NUMBA_CACHE",
+        (
+            "Disable numba caching in the backend"
+        ),
+        BoolParam(False),
+        in_c_key=False,
+    )
+
 
 def _is_gt_0(x):
     return x > 0

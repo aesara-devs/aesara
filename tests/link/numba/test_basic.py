@@ -163,18 +163,21 @@ def eval_python_only(fn_inputs, fn_outputs, inputs, mode=numba_mode):
         ),
         mock.patch("numba.np.unsafe.ndarray.to_fixed_tuple", lambda x, n: tuple(x)),
     ]
+    try:
+        config.DISABLE_NUMBA_CACHE = True
+        with contextlib.ExitStack() as stack:
+            for ctx in mocks:
+                stack.enter_context(ctx)
 
-    with contextlib.ExitStack() as stack:
-        for ctx in mocks:
-            stack.enter_context(ctx)
-
-        aesara_numba_fn = function(
-            fn_inputs,
-            fn_outputs,
-            mode=mode,
-            accept_inplace=True,
-        )
-        _ = aesara_numba_fn(*inputs)
+            aesara_numba_fn = function(
+                fn_inputs,
+                fn_outputs,
+                mode=mode,
+                accept_inplace=True,
+            )
+            _ = aesara_numba_fn(*inputs)
+    finally:
+        config.DISABLE_NUMBA_CACHE = False
 
 
 def compare_numba_and_py(

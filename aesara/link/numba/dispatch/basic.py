@@ -352,25 +352,29 @@ def numba_const_convert(data, dtype=None, **kwargs):
 
 def numba_funcify(obj, node=None, storage_map=None, **kwargs) -> Callable:
     """Convert `obj` to a Numba-JITable object."""
-    node_key = make_node_key(node)
     numba_py_fn = None
-    if node_key:
-        numba_py_fn = check_cache(node_key)
-    if node_key is None or numba_py_fn is None:
-        # We could only ever return the function source in our dispatch
-        # implementations. That way, we can compile directly to the on-disk
-        # modules only once.
+    if config.DISABLE_NUMBA_CACHE:
         numba_py_fn = _numba_funcify(obj, node=node, storage_map=storage_map, **kwargs)
+    else:
+        node_key = make_node_key(node)
 
-        # This will determine on-disk module name to be generated for
-        # `numba_py_src` and return the corresponding Python function
-        # object using steps similar to
-        # `aesara.link.utils.compile_function_src`.
         if node_key:
-            numba_py_fn = add_to_cache(node_key, numba_py_fn)
+            numba_py_fn = check_cache(node_key)
+        if node_key is None or numba_py_fn is None:
+            # We could only ever return the function source in our dispatch
+            # implementations. That way, we can compile directly to the on-disk
+            # modules only once.
+            numba_py_fn = _numba_funcify(obj, node=node, storage_map=storage_map, **kwargs)
 
-    # TODO: Presently numba_py_fn is already jitted.
-    # numba_fn = numba_njit(numba_py_fn)
+            # This will determine on-disk module name to be generated for
+            # `numba_py_src` and return the corresponding Python function
+            # object using steps similar to
+            # `aesara.link.utils.compile_function_src`.
+            if node_key:
+                numba_py_fn = add_to_cache(node_key, numba_py_fn)
+
+        # TODO: Presently numba_py_fn is already jitted.
+        # numba_fn = numba_njit(numba_py_fn)
     return cast(Callable, numba_py_fn)
 
 
