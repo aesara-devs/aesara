@@ -382,7 +382,7 @@ class TestGrad:
 
         rng = np.random.default_rng([2012, 8, 28])
 
-        vx = rng.standard_normal((2))
+        vx = rng.standard_normal(2)
 
         utt.verify_grad(output, [vx])
 
@@ -394,7 +394,7 @@ class TestGrad:
 
         rng = np.random.default_rng([2012, 8, 28])
 
-        vx = rng.standard_normal((2))
+        vx = rng.standard_normal(2)
         vA = rng.standard_normal((2, 2))
 
         utt.verify_grad(cost, [vx, vA])
@@ -407,7 +407,7 @@ class TestGrad:
 
         rng = np.random.default_rng([2012, 8, 28])
 
-        vx = rng.standard_normal((2))
+        vx = rng.standard_normal(2)
         vA = rng.standard_normal((2, 2))
 
         utt.verify_grad(output, [vx, vA])
@@ -420,7 +420,7 @@ class TestGrad:
 
         rng = np.random.default_rng([2012, 8, 28])
 
-        vx = rng.standard_normal((2))
+        vx = rng.standard_normal(2)
         vA = rng.standard_normal((2, 2))
 
         utt.verify_grad(cost, [vx, vA])
@@ -434,7 +434,7 @@ class TestGrad:
 
         rng = np.random.default_rng([2012, 8, 28])
 
-        vx = rng.standard_normal((2))
+        vx = rng.standard_normal(2)
         vA = rng.standard_normal((2, 2))
 
         utt.verify_grad(output, [vx, vA])
@@ -448,7 +448,7 @@ class TestGrad:
 
         rng = np.random.default_rng([2012, 8, 28])
 
-        vx = rng.standard_normal((2))
+        vx = rng.standard_normal(2)
         vA = rng.standard_normal((2, 2))
 
         utt.verify_grad(output, [vx, vA])
@@ -483,7 +483,7 @@ class TestGrad:
 
         X = np.cast[int_type](rng.standard_normal((m, d)) * 127.0)
         W = np.cast[W.dtype](rng.standard_normal((d, n)))
-        b = np.cast[b.dtype](rng.standard_normal((n)))
+        b = np.cast[b.dtype](rng.standard_normal(n))
 
         int_result = int_func(X, W, b)
         float_result = float_func(np.cast[float_type](X), W, b)
@@ -508,7 +508,7 @@ class TestGrad:
         # the output
         f = aesara.function([x], g)
         rng = np.random.default_rng([2012, 9, 5])
-        x = np.cast[x.dtype](rng.standard_normal((3)))
+        x = np.cast[x.dtype](rng.standard_normal(3))
         g = f(x)
         assert np.allclose(g, np.ones(x.shape, dtype=x.dtype))
 
@@ -629,7 +629,7 @@ def test_known_grads():
     inputs = [coeffs, t, x]
 
     rng = np.random.default_rng([2012, 11, 15])
-    values = [rng.standard_normal((10)), rng.integers(10), rng.standard_normal()]
+    values = [rng.standard_normal(10), rng.integers(10), rng.standard_normal()]
     values = [np.cast[ipt.dtype](value) for ipt, value in zip(inputs, values)]
 
     true_grads = grad(cost, inputs, disconnected_inputs="ignore")
@@ -742,7 +742,7 @@ def test_subgraph_grad():
 
     inputs = [t, x]
     rng = np.random.default_rng([2012, 11, 15])
-    values = [rng.standard_normal((2)), rng.standard_normal((3))]
+    values = [rng.standard_normal(2), rng.standard_normal(3)]
     values = [np.cast[ipt.dtype](value) for ipt, value in zip(inputs, values)]
 
     wrt = [w2, w1]
@@ -849,8 +849,8 @@ class TestZeroGrad:
         rop = Rop(y, x, v)
         f = aesara.function([x, v], rop, on_unused_input="ignore")
 
-        a = np.asarray(self.rng.standard_normal((5)), dtype=config.floatX)
-        u = np.asarray(self.rng.standard_normal((5)), dtype=config.floatX)
+        a = np.asarray(self.rng.standard_normal(5), dtype=config.floatX)
+        u = np.asarray(self.rng.standard_normal(5), dtype=config.floatX)
 
         assert np.count_nonzero(f(a, u)) == 0
 

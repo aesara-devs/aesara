@@ -35,7 +35,7 @@ class TestSP:
         input = dmatrix()
         rng = np.random.default_rng(3423489)
         filters = rng.standard_normal((nkern, np.prod(kshp)))
-        biasvals = rng.standard_normal((nkern))
+        biasvals = rng.standard_normal(nkern)
 
         for mode in ("FAST_COMPILE", "FAST_RUN"):
             ttot, ntot = 0, 0

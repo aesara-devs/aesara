@@ -376,7 +376,7 @@ class TestShapeI(utt.InferShapeTester):
         rng = np.random.default_rng(utt.fetch_seed())
 
         advec = vector()
-        advec_val = rng.random((3)).astype(config.floatX)
+        advec_val = rng.random(3).astype(config.floatX)
         f = function([advec], Shape_i(0)(advec))
         out = f(advec_val)
         utt.assert_allclose(out, advec_val.shape[0])

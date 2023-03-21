@@ -1,10 +1,9 @@
 import logging
 import warnings
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Literal, Union
 
 import numpy as np
 import scipy.linalg
-from typing_extensions import Literal
 
 import aesara.tensor
 from aesara.graph.basic import Apply

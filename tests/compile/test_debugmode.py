@@ -802,7 +802,7 @@ class TestPreallocatedOutput:
         c, r = VecAsRowAndCol()(v)
         f = function([v], [c, r])
 
-        v_val = self.rng.standard_normal((5)).astype("float32")
+        v_val = self.rng.standard_normal(5).astype("float32")
         f(v_val)
 
 

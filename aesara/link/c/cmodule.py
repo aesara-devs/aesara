@@ -19,7 +19,17 @@ import textwrap
 import time
 import warnings
 from io import BytesIO, StringIO
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple, cast
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Protocol,
+    Set,
+    Tuple,
+    cast,
+)
 
 import numpy as np
 from setuptools._distutils.sysconfig import (
@@ -28,7 +38,6 @@ from setuptools._distutils.sysconfig import (
     get_python_inc,
     get_python_lib,
 )
-from typing_extensions import Protocol
 
 # we will abuse the lockfile mechanism when reading and writing the registry
 from aesara.compile.compilelock import lock_ctx
@@ -2157,15 +2166,13 @@ class GCC_compiler(Compiler):
                 if len(default_lines) < 1:
                     reported_lines = get_lines(f"{config.cxx} -E -v -", parse=False)
                     warnings.warn(
-                        (
-                            "Aesara was not able to find the "
-                            "default g++ parameters. This is needed to tune "
-                            "the compilation to your specific "
-                            "CPU. This can slow down the execution of Aesara "
-                            "functions. Please submit the following lines to "
-                            "Aesara's mailing list so that we can fix this "
-                            f"problem:\n {reported_lines}"
-                        )
+                        "Aesara was not able to find the "
+                        "default g++ parameters. This is needed to tune "
+                        "the compilation to your specific "
+                        "CPU. This can slow down the execution of Aesara "
+                        "functions. Please submit the following lines to "
+                        "Aesara's mailing list so that we can fix this "
+                        f"problem:\n {reported_lines}"
                     )
                 else:
                     # Some options are actually given as "-option value",
@@ -2248,7 +2255,7 @@ class GCC_compiler(Compiler):
                                 if len(version) != 3:
                                     # Unexpected, but should not be a problem
                                     continue
-                                mj, mn, patch = [int(vp) for vp in version]
+                                mj, mn, patch = (int(vp) for vp in version)
                                 if (
                                     ((mj, mn) == (4, 6) and patch < 4)
                                     or ((mj, mn) == (4, 7) and patch <= 3)

@@ -124,11 +124,11 @@ class TestGemm:
             b = np.asarray(b_, dtype=dtype)
 
             def cmp_linker(z, a, x, y, b, l):
-                z, a, x, y, b = [np.asarray(p) for p in (z, a, x, y, b)]
+                z, a, x, y, b = (np.asarray(p) for p in (z, a, x, y, b))
                 z_orig = z.copy()
-                tz, ta, tx, ty, tb = [
+                tz, ta, tx, ty, tb = (
                     as_tensor_variable(p).type() for p in (z, a, x, y, b)
-                ]
+                )
 
                 f = inplace_func(
                     [tz, ta, tx, ty, tb],
@@ -309,11 +309,11 @@ class TestGemm:
         C = rng.random((4, 5))[:, :4]
 
         def t(z, x, y, a=1.0, b=0.0, l="c|py", dt="float64"):
-            z, a, x, y, b = [_asarray(p, dtype=dt) for p in (z, a, x, y, b)]
+            z, a, x, y, b = (_asarray(p, dtype=dt) for p in (z, a, x, y, b))
             # z_orig = z.copy()
             z_after = self._gemm(z, a, x, y, b)
 
-            tz, ta, tx, ty, tb = [shared(p) for p in (z, a, x, y, b)]
+            tz, ta, tx, ty, tb = (shared(p) for p in (z, a, x, y, b))
 
             # f = inplace_func([tz,ta,tx,ty,tb], gemm_inplace(tz,ta,tx,ty,tb),
             #                 mode = Mode(optimizer = None, linker=l))
@@ -368,13 +368,13 @@ class TestGemm:
         C = rng.random((4, 4, 3))
 
         def t(z, x, y, a=1.0, b=0.0, l="c|py", dt="float64"):
-            z, a, x, y, b = [_asarray(p, dtype=dt) for p in (z, a, x, y, b)]
+            z, a, x, y, b = (_asarray(p, dtype=dt) for p in (z, a, x, y, b))
             z_orig = z.copy()
             z_after = np.zeros_like(z_orig)
             for i in range(3):
                 z_after[:, :, i] = self._gemm(z[:, :, i], a, x[:, :, i], y[:, :, i], b)
 
-            tz, ta, tx, ty, tb = [shared(p) for p in (z, a, x, y, b)]
+            tz, ta, tx, ty, tb = (shared(p) for p in (z, a, x, y, b))
             for i in range(3):
                 f_i = inplace_func(
                     [],
@@ -1559,7 +1559,7 @@ class BaseGemv:
         return alpha, beta, a, x, y
 
     def test_simple(self):
-        alpha, beta, a, x, y = [shared(value) for value in self.get_data()]
+        alpha, beta, a, x, y = (shared(value) for value in self.get_data())
         desired_oy = (
             alpha.get_value() * matrixmultiply(a.get_value(), x.get_value())
             + beta.get_value() * y.get_value()
@@ -1596,7 +1596,7 @@ class BaseGemv:
     def test_simple_transpose(self):
         vs = self.get_data()
         alpha_v, beta_v, a_v, x_v, y_v = vs
-        alpha, beta, a, x, y = [shared(v) for v in vs]
+        alpha, beta, a, x, y = (shared(v) for v in vs)
 
         desired_oy = alpha_v * matrixmultiply(np.transpose(a_v), x_v) + beta_v * y_v
 
@@ -1612,7 +1612,7 @@ class BaseGemv:
     def test_x_stride(self):
         vs = self.get_data(x_stride=2)
         alpha_v, beta_v, a_v, x_v, y_v = vs
-        alpha, beta, a, x, y = [shared(v) for v in vs]
+        alpha, beta, a, x, y = (shared(v) for v in vs)
 
         desired_oy = alpha_v * matrixmultiply(a_v, x_v[::2]) + beta_v * y_v
 
@@ -1628,7 +1628,7 @@ class BaseGemv:
     def test_x_stride_transpose(self):
         vs = self.get_data(x_stride=2)
         alpha_v, beta_v, a_v, x_v, y_v = vs
-        alpha, beta, a, x, y = [shared(v) for v in vs]
+        alpha, beta, a, x, y = (shared(v) for v in vs)
 
         desired_oy = (
             alpha_v * matrixmultiply(np.transpose(a_v), x_v[::2]) + beta_v * y_v
@@ -1646,7 +1646,7 @@ class BaseGemv:
     def test_y_stride(self):
         vs = self.get_data(y_stride=2)
         alpha_v, beta_v, a_v, x_v, y_v = vs
-        alpha, beta, a, x, y = [shared(v) for v in vs]
+        alpha, beta, a, x, y = (shared(v) for v in vs)
 
         desired_oy = alpha_v * matrixmultiply(a_v, x_v) + beta_v * y_v[::2]
 
@@ -1662,7 +1662,7 @@ class BaseGemv:
     def test_y_stride_transpose(self):
         vs = self.get_data(y_stride=2)
         alpha_v, beta_v, a_v, x_v, y_v = vs
-        alpha, beta, a, x, y = [shared(v) for v in vs]
+        alpha, beta, a, x, y = (shared(v) for v in vs)
 
         desired_oy = (
             alpha_v * matrixmultiply(np.transpose(a_v), x_v) + beta_v * y_v[::2]
@@ -1680,7 +1680,7 @@ class BaseGemv:
     def test_a_strides(self):
         vs = self.get_data()
         alpha_v, beta_v, a_v, x_v, y_v = vs
-        alpha, beta, a, x, y = [shared(v) for v in vs]
+        alpha, beta, a, x, y = (shared(v) for v in vs)
         a_v = a_v[::-1, ::-1]
         a.set_value(
             a.get_value(borrow=True, return_internal_type=True)[::-1, ::-1], borrow=True
@@ -1700,7 +1700,7 @@ class BaseGemv:
     def test_a_strides_transpose(self):
         vs = self.get_data()
         alpha_v, beta_v, a_v, x_v, y_v = vs
-        alpha, beta, a, x, y = [shared(v) for v in vs]
+        alpha, beta, a, x, y = (shared(v) for v in vs)
         a_v = a_v[::-1, ::-1]
         a.set_value(
             a.get_value(borrow=True, return_internal_type=True)[::-1, ::-1], borrow=True
@@ -1938,8 +1938,8 @@ class TestGer(unittest_tools.OptimizationTestMixin):
         f = self.function([self.x, self.y], outer(self.x, self.y))
         self.assertFunctionContains(f, self.ger_destructive)
         f(
-            rng.random((5)).astype(self.dtype),
-            rng.random((4)).astype(self.dtype),
+            rng.random(5).astype(self.dtype),
+            rng.random(4).astype(self.dtype),
         ).shape == (5, 4)
 
     def test_A_plus_outer(self):
@@ -1948,13 +1948,13 @@ class TestGer(unittest_tools.OptimizationTestMixin):
         self.assertFunctionContains(f, self.ger)
         f(
             rng.random((5, 4)).astype(self.dtype),
-            rng.random((5)).astype(self.dtype),
-            rng.random((4)).astype(self.dtype),
+            rng.random(5).astype(self.dtype),
+            rng.random(4).astype(self.dtype),
         ).shape == (5, 4)
         f(
             rng.random((5, 4)).astype(self.dtype)[::-1, ::-1],
-            rng.random((5)).astype(self.dtype),
-            rng.random((4)).astype(self.dtype),
+            rng.random(5).astype(self.dtype),
+            rng.random(4).astype(self.dtype),
         ).shape == (5, 4)
 
     def test_A_plus_scaled_outer(self):
@@ -1965,13 +1965,13 @@ class TestGer(unittest_tools.OptimizationTestMixin):
         self.assertFunctionContains(f, self.ger)
         f(
             rng.random((5, 4)).astype(self.dtype),
-            rng.random((5)).astype(self.dtype),
-            rng.random((4)).astype(self.dtype),
+            rng.random(5).astype(self.dtype),
+            rng.random(4).astype(self.dtype),
         ).shape == (5, 4)
         f(
             rng.random((5, 4)).astype(self.dtype)[::-1, ::-1],
-            rng.random((5)).astype(self.dtype),
-            rng.random((4)).astype(self.dtype),
+            rng.random(5).astype(self.dtype),
+            rng.random(4).astype(self.dtype),
         ).shape == (5, 4)
 
     def test_scaled_A_plus_scaled_outer(self):
@@ -1986,13 +1986,13 @@ class TestGer(unittest_tools.OptimizationTestMixin):
         self.assertFunctionContains(f, self.gemm)
         f(
             rng.random((5, 4)).astype(self.dtype),
-            rng.random((5)).astype(self.dtype),
-            rng.random((4)).astype(self.dtype),
+            rng.random(5).astype(self.dtype),
+            rng.random(4).astype(self.dtype),
         ).shape == (5, 4)
         f(
             rng.random((5, 4)).astype(self.dtype)[::-1, ::-1],
-            rng.random((5)).astype(self.dtype),
-            rng.random((4)).astype(self.dtype),
+            rng.random(5).astype(self.dtype),
+            rng.random(4).astype(self.dtype),
         ).shape == (5, 4)
 
     def given_dtype(self, dtype, M, N, *, destructive=True):
@@ -2009,13 +2009,13 @@ class TestGer(unittest_tools.OptimizationTestMixin):
         )
         f(
             rng.random((M, N)).astype(dtype),
-            rng.random((M)).astype(dtype),
-            rng.random((N)).astype(dtype),
+            rng.random(M).astype(dtype),
+            rng.random(N).astype(dtype),
         ).shape == (5, 4)
         f(
             rng.random((M, N)).astype(dtype)[::-1, ::-1],
-            rng.random((M)).astype(dtype),
-            rng.random((N)).astype(dtype),
+            rng.random(M).astype(dtype),
+            rng.random(N).astype(dtype),
         ).shape == (5, 4)
 
     def test_f32_0_0(self):
@@ -2069,16 +2069,16 @@ class TestGer(unittest_tools.OptimizationTestMixin):
         self.assertFunctionContains(f, self.ger_destructive)
         # TODO: Test something about the updated value of `A`
         f(
-            rng.random((4)).astype(self.dtype),
-            rng.random((5)).astype(self.dtype),
+            rng.random(4).astype(self.dtype),
+            rng.random(5).astype(self.dtype),
         )
 
         A.set_value(
             A.get_value(borrow=True, return_internal_type=True)[::-1, ::-1], borrow=True
         )
         f(
-            rng.random((4)).astype(self.dtype),
-            rng.random((5)).astype(self.dtype),
+            rng.random(4).astype(self.dtype),
+            rng.random(5).astype(self.dtype),
         )
 
 

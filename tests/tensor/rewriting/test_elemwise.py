@@ -277,13 +277,13 @@ class TestFusion:
     def my_init(dtype="float64", num=0):
         return np.zeros((5, 5), dtype=dtype) + num
 
-    fw, fx, fy, fz = [
+    fw, fx, fy, fz = (
         tensor(dtype="float32", shape=(None,) * 2, name=n) for n in "wxyz"
-    ]
-    dw, dx, dy, dz = [
+    )
+    dw, dx, dy, dz = (
         tensor(dtype="float64", shape=(None,) * 2, name=n) for n in "wxyz"
-    ]
-    ix, iy, iz = [tensor(dtype="int32", shape=(None,) * 2, name=n) for n in "xyz"]
+    )
+    ix, iy, iz = (tensor(dtype="int32", shape=(None,) * 2, name=n) for n in "xyz")
     fv = fvector("v")
     fs = fscalar("s")
     fwv = my_init("float32", 1)

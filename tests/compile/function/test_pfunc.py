@@ -117,7 +117,7 @@ class TestPfunc:
         # function, as a 'state' that can be updated at will.
 
         rng = np.random.default_rng(1827)
-        w_init = rng.random((5))
+        w_init = rng.random(5)
         w = shared(w_init.copy(), "w")
         reg = at_sum(w * w)
         f = pfunc([], reg)
@@ -143,7 +143,7 @@ class TestPfunc:
 
         f = pfunc([In(a, strict=False)], [out])
         # works, random( generates float64 by default
-        f(np.random.random((8)))
+        f(np.random.random(8))
         # works, casting is allowed
         f(np.array([1, 2, 3, 4], dtype="int32"))
 
@@ -160,14 +160,14 @@ class TestPfunc:
 
         # using mutable=True will let fip change the value in aval
         fip = pfunc([In(a, mutable=True)], [a_out], mode="FAST_RUN")
-        aval = np.random.random((10))
+        aval = np.random.random(10)
         aval2 = aval.copy()
         assert np.all(fip(aval) == (aval2 * 2))
         assert not np.all(aval == aval2)
 
         # using mutable=False should leave the input untouched
         f = pfunc([In(a, mutable=False)], [a_out], mode="FAST_RUN")
-        aval = np.random.random((10))
+        aval = np.random.random(10)
         aval2 = aval.copy()
         assert np.all(f(aval) == (aval2 * 2))
         assert np.all(aval == aval2)

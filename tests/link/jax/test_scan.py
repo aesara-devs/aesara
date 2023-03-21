@@ -87,9 +87,9 @@ def test_jax_scan_multiple_output():
     s0, e0, i0 = 100, 50, 25
     logp_c0 = np.array(0.0, dtype=config.floatX)
     logp_d0 = np.array(0.0, dtype=config.floatX)
-    beta_val, gamma_val, delta_val = [
+    beta_val, gamma_val, delta_val = (
         np.array(val, dtype=config.floatX) for val in [0.277792, 0.135330, 0.108753]
-    ]
+    )
     C = np.array([3, 5, 8, 13, 21, 26, 10, 3], dtype=np.int32)
     D = np.array([1, 2, 3, 7, 9, 11, 5, 1], dtype=np.int32)
 

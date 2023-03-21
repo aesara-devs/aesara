@@ -846,7 +846,7 @@ class TestScan:
         vu1 = asarrayX(rng.random((3, 2)))
         vu2 = asarrayX(rng.random((3, 3)))
         vy0 = asarrayX(rng.random((3, 2)))
-        vy1 = asarrayX(rng.random((2)))
+        vy1 = asarrayX(rng.random(2))
         vu1 = asarrayX(rng.random((3, 2)))
 
         W1 = shared(vW1, "W1")
@@ -2599,8 +2599,8 @@ class TestExamples:
             ),
             dtype="float32",
         )
-        v_bvis = np.array(rng.random((20)) - 0.5, dtype="float32")
-        v_bhid = np.array(rng.random((30)) - 0.5, dtype="float32")
+        v_bvis = np.array(rng.random(20) - 0.5, dtype="float32")
+        v_bhid = np.array(rng.random(30) - 0.5, dtype="float32")
         W = shared(v_W, "vW")
         bhid = shared(v_bhid, "vbhid")
         bvis = shared(v_bvis, "vbvis")

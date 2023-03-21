@@ -2,10 +2,9 @@ from collections.abc import Sequence
 from functools import partial, wraps
 from itertools import zip_longest
 from types import ModuleType
-from typing import Callable, Optional, Union
+from typing import Callable, Literal, Optional, Union
 
 import numpy as np
-from typing_extensions import Literal
 
 from aesara.compile.sharedvalue import shared
 from aesara.graph.basic import Constant, Variable
@@ -196,7 +195,7 @@ class RandomStream:
         )
 
         if ns_obj is None:
-            raise AttributeError("No attribute {}.".format(obj))
+            raise AttributeError(f"No attribute {obj}.")
 
         from aesara.tensor.random.op import RandomVariable
 
@@ -209,7 +208,7 @@ class RandomStream:
                 return self.gen(ns_obj, *args, **kwargs)
 
         else:
-            raise AttributeError("No attribute {}.".format(obj))
+            raise AttributeError(f"No attribute {obj}.")
 
         setattr(self, obj, meta_obj)
         return getattr(self, obj)

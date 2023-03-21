@@ -1172,7 +1172,7 @@ class ScalarOp(COp):
             if param:
                 return "{}{{{}}}".format(
                     self.__class__.__name__,
-                    ", ".join("{}={}".format(k, v) for k, v in param),
+                    ", ".join(f"{k}={v}" for k, v in param),
                 )
             else:
                 return self.__class__.__name__

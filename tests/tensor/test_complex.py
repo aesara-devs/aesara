@@ -25,7 +25,7 @@ class TestRealImag:
     def test_on_real_input(self):
         x = dvector()
         rng = np.random.default_rng(23)
-        xval = rng.standard_normal((10))
+        xval = rng.standard_normal(10)
         np.all(0 == aesara.function([x], imag(x))(xval))
         np.all(xval == aesara.function([x], real(x))(xval))
 
@@ -102,7 +102,7 @@ class TestRealImag:
 
         rng = np.random.default_rng(9333)
         aval = np.asarray(rng.standard_normal((2, 5)))
-        bval = rng.standard_normal((5))
+        bval = rng.standard_normal(5)
         try:
             utt.verify_grad(f, [aval, bval])
         except GradientError as e:

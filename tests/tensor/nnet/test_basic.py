@@ -108,22 +108,22 @@ class TestSoftmaxWithBias(utt.InferShapeTester):
 
         rng = np.random.default_rng(utt.fetch_seed())
 
-        utt.verify_grad(f, [rng.random((3, 4)), rng.random((4))])
+        utt.verify_grad(f, [rng.random((3, 4)), rng.random(4)])
 
         def f(a, b):
             return softmax_with_bias(a, b)[:, 1]
 
-        utt.verify_grad(f, [rng.random((3, 4)), rng.random((4))])
+        utt.verify_grad(f, [rng.random((3, 4)), rng.random(4)])
 
         def f(a, b):
             return softmax_with_bias(a, b)[:, 2]
 
-        utt.verify_grad(f, [rng.random((3, 4)), rng.random((4))])
+        utt.verify_grad(f, [rng.random((3, 4)), rng.random(4)])
 
         def f(a, b):
             return softmax_with_bias(a, b)[:, 3]
 
-        utt.verify_grad(f, [rng.random((3, 4)), rng.random((4))])
+        utt.verify_grad(f, [rng.random((3, 4)), rng.random(4)])
 
     def test_broadcast(self):
         """
@@ -159,7 +159,7 @@ class TestSoftmaxWithBias(utt.InferShapeTester):
         advec = vector()
         rng = np.random.default_rng(utt.fetch_seed())
         admat_val = rng.random((3, 4)).astype(config.floatX)
-        advec_val = rng.random((4)).astype(config.floatX)
+        advec_val = rng.random(4).astype(config.floatX)
         self._compile_and_check(
             [admat, advec],
             [SoftmaxWithBias()(admat, advec)],
@@ -177,7 +177,7 @@ class TestCrossEntropySoftmax1Hot:
 
         rng = np.random.default_rng(utt.fetch_seed())
 
-        utt.verify_grad(f, [rng.random((3, 4)), rng.random((4))])
+        utt.verify_grad(f, [rng.random((3, 4)), rng.random(4)])
 
         y_idx = [0, 1, 3]
 
@@ -202,7 +202,7 @@ class TestCrossEntropySoftmax1Hot:
             return crossentropy_softmax_1hot(shape_padleft(a) + b, y_idx)[0]
 
         rng = np.random.default_rng(utt.fetch_seed())
-        utt.verify_grad(f, [rng.random((4,)), rng.random((4))])
+        utt.verify_grad(f, [rng.random((4,)), rng.random(4)])
 
 
 class TestCrossEntropySoftmax1HotWithBiasDx(utt.InferShapeTester):
@@ -214,7 +214,7 @@ class TestCrossEntropySoftmax1HotWithBiasDx(utt.InferShapeTester):
                 # Class indices
                 y = rng.integers(low=0, high=5, size=10).astype(class_dtype)
                 return crossentropy_softmax_1hot_with_bias_dx(
-                    rng.random((10)),
+                    rng.random(10),
                     sm,
                     y,  # Gradient w.r.t. NLL.  # Softmax output.
                 )
@@ -237,7 +237,7 @@ class TestCrossEntropySoftmax1HotWithBiasDx(utt.InferShapeTester):
                 dy, softmax_output, rng.integers(low=0, high=5, size=10)
             )
 
-        utt.verify_grad(f, [rng.random((10))])
+        utt.verify_grad(f, [rng.random(10)])
 
     def test_infer_shape(self):
         admat = matrix()
@@ -246,7 +246,7 @@ class TestCrossEntropySoftmax1HotWithBiasDx(utt.InferShapeTester):
         rng = np.random.default_rng(utt.fetch_seed())
         admat_val = rng.random((10, 5)).astype(config.floatX)
         admat_val /= admat_val.sum(axis=1).reshape(10, 1)
-        advec_val = rng.random((10)).astype(config.floatX)
+        advec_val = rng.random(10).astype(config.floatX)
         alvec_val = rng.integers(low=0, high=5, size=10)
         self._compile_and_check(
             [advec, admat, alvec],
@@ -262,7 +262,7 @@ class TestCrossEntropySoftmax1HotWithBiasDx(utt.InferShapeTester):
         rng = np.random.default_rng(utt.fetch_seed())
         admat_val = rng.random((10, 5)).astype(config.floatX)
         admat_val /= admat_val.sum(axis=1).reshape(10, 1)
-        advec_val = rng.random((10)).astype(config.floatX)
+        advec_val = rng.random(10).astype(config.floatX)
         alvec_val = rng.integers(low=0, high=5, size=10)
         alvec_val[1] = -1
         out = CrossentropySoftmax1HotWithBiasDx()(advec, admat, alvec)
@@ -297,7 +297,7 @@ class TestCrossEntropySoftmaxArgmax1HotWithBias(utt.InferShapeTester):
                 grad_on_nll_dtype(dtype),
                 [
                     rng.random((n_samples, n_classes)),
-                    rng.random((n_classes)),
+                    rng.random(n_classes),
                 ],
             )
 
@@ -311,7 +311,7 @@ class TestCrossEntropySoftmaxArgmax1HotWithBias(utt.InferShapeTester):
 
         utt.verify_grad(
             grad_on_softmax,
-            [rng.random((n_samples, n_classes)), rng.random((n_classes))],
+            [rng.random((n_samples, n_classes)), rng.random(n_classes)],
         )
 
     def test_infer_shape(self):
@@ -320,7 +320,7 @@ class TestCrossEntropySoftmaxArgmax1HotWithBias(utt.InferShapeTester):
         alvec = lvector()
         rng = np.random.default_rng(utt.fetch_seed())
         admat_val = rng.random((3, 5)).astype(config.floatX)
-        advec_val = rng.random((5)).astype(config.floatX)
+        advec_val = rng.random(5).astype(config.floatX)
         alvec_val = rng.integers(low=0, high=5, size=3)
         self._compile_and_check(
             [admat, advec, alvec],
@@ -335,7 +335,7 @@ class TestCrossEntropySoftmaxArgmax1HotWithBias(utt.InferShapeTester):
         alvec = lvector()
         rng = np.random.default_rng(utt.fetch_seed())
         admat_val = rng.random((3, 5)).astype(config.floatX)
-        advec_val = rng.random((5)).astype(config.floatX)
+        advec_val = rng.random(5).astype(config.floatX)
         alvec_val = rng.integers(low=0, high=5, size=3)
         alvec_val[1] = -1
         out = CrossentropySoftmaxArgmax1HotWithBias()(admat, advec, alvec)
@@ -392,7 +392,7 @@ class TestCrossEntropyCategorical1HotGrad(utt.InferShapeTester):
         admat = matrix()
         alvec = lvector()
         rng = np.random.default_rng(utt.fetch_seed())
-        advec_val = rng.random((3)).astype(config.floatX)
+        advec_val = rng.random(3).astype(config.floatX)
         admat_val = rng.random((3, 2)).astype(config.floatX)
         alvec_val = [0, 1, 0]
         self._compile_and_check(

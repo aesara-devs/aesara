@@ -6,10 +6,9 @@ import logging
 import time
 import warnings
 from itertools import chain
-from typing import TYPE_CHECKING, Iterable, List, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Iterable, List, Literal, Optional, Tuple, Type, Union
 
 import numpy as np
-from typing_extensions import Literal
 
 import aesara
 import aesara.compile.profiling

@@ -42,10 +42,10 @@ def test_BNComposite():
         v = vector("v")
 
         x.tag.test_value = rng.random((2, 2)).astype(aesara.config.floatX)
-        b.tag.test_value = rng.random((2)).astype(aesara.config.floatX)
-        g.tag.test_value = rng.random((2)).astype(aesara.config.floatX)
-        m.tag.test_value = rng.random((2)).astype(aesara.config.floatX)
-        v.tag.test_value = rng.random((2)).astype(aesara.config.floatX)
+        b.tag.test_value = rng.random(2).astype(aesara.config.floatX)
+        g.tag.test_value = rng.random(2).astype(aesara.config.floatX)
+        m.tag.test_value = rng.random(2).astype(aesara.config.floatX)
+        v.tag.test_value = rng.random(2).astype(aesara.config.floatX)
 
         bn_ref_op = bn_ref(x, g, b, m, v)
         f_ref = aesara.function([x, b, g, m, v], [bn_ref_op])
@@ -555,7 +555,7 @@ def test_batch_normalization_train_broadcast():
                 assert len(nodes) == 1
                 assert isinstance(nodes[0].op, aesara.compile.DeepCopyOp)
             inputs = [
-                np.asarray(np.random.random(((4,) * n)), x.dtype)
+                np.asarray(np.random.random((4,) * n), x.dtype)
                 for n in [
                     x.ndim,
                     scale.ndim,

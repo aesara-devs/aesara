@@ -386,7 +386,7 @@ class TestLocalUselessIncSubtensorAlloc:
             len([n for n in f2.maker.fgraph.toposort() if isinstance(n.op, Alloc)]) == 0
         )
 
-        x_value = np.random.standard_normal((5)).astype(config.floatX)
+        x_value = np.random.standard_normal(5).astype(config.floatX)
         y_value = np.random.standard_normal()
         i_value = self.rng.integers(0, 3, size=(2, 3))
 
@@ -418,7 +418,7 @@ class TestLocalUselessIncSubtensorAlloc:
             len([n for n in f2.maker.fgraph.toposort() if isinstance(n.op, Alloc)]) == 0
         )
 
-        x_value = np.random.standard_normal((5)).astype(config.floatX)
+        x_value = np.random.standard_normal(5).astype(config.floatX)
         y_value = np.random.standard_normal()
         i_value = self.rng.integers(0, 3, size=2)
 
@@ -449,7 +449,7 @@ class TestLocalUselessIncSubtensorAlloc:
             len([n for n in f2.maker.fgraph.toposort() if isinstance(n.op, Alloc)]) == 0
         )
 
-        x_value = np.random.standard_normal((5)).astype(config.floatX)
+        x_value = np.random.standard_normal(5).astype(config.floatX)
         y_value = np.random.standard_normal()
         i_value = 3
 
@@ -489,7 +489,7 @@ class TestUselessCheckAndRaise:
         fg = FunctionGraph(outputs=[assert_op(x, y, 1)], clone=False)
         fg_res = rewrite_graph(fg, include=["canonicalize", "specialize"])
         topo = fg_res.toposort()
-        (assert_node,) = [node for node in topo if isinstance(node.op, CheckAndRaise)]
+        (assert_node,) = (node for node in topo if isinstance(node.op, CheckAndRaise))
         assert assert_node.inputs == [x, y]
 
     def test_local_remove_useless_3(self):
@@ -499,7 +499,7 @@ class TestUselessCheckAndRaise:
         fg = FunctionGraph(outputs=[assert_op(x, y, 0)], clone=False)
         fg_res = rewrite_graph(fg, include=["canonicalize", "specialize"])
         topo = fg_res.toposort()
-        (assert_node,) = [node for node in topo if isinstance(node.op, CheckAndRaise)]
+        (assert_node,) = (node for node in topo if isinstance(node.op, CheckAndRaise))
         assert assert_node.inputs[:2] == [x, y]
         assert assert_node.inputs[-1].data == 0
 

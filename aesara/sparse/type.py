@@ -1,8 +1,7 @@
-from typing import Iterable, Optional, Union
+from typing import Iterable, Literal, Optional, Union
 
 import numpy as np
 import scipy.sparse
-from typing_extensions import Literal
 
 import aesara
 from aesara import scalar as aes

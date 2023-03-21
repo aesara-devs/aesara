@@ -112,9 +112,9 @@ class TestSpecialSigmoidOpts:
 
         assert isinstance(topo[0].op, Elemwise)
         assert isinstance(topo[0].op.scalar_op, Composite)
-        assert ultra_fast_scalar_sigmoid in set(
+        assert ultra_fast_scalar_sigmoid in {
             node.op for node in topo[0].op.scalar_op.fgraph.toposort()
-        )
+        }
         assert len(topo) == 1
 
     def test_local_hard_sigmoid(self):

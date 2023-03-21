@@ -1183,11 +1183,9 @@ def clone_replace(
         items = []
     else:
         raise ValueError(
-            (
-                "replace is neither a dictionary, list, "
-                f"tuple or None ! The value provided is {replace},"
-                f"of type {type(replace)}"
-            )
+            "replace is neither a dictionary, list, "
+            f"tuple or None ! The value provided is {replace},"
+            f"of type {type(replace)}"
         )
     tmp_replace = [(x, x.type()) for x, y in items]
     new_replace = [(x, y) for ((_, x), (_, y)) in zip(tmp_replace, items)]

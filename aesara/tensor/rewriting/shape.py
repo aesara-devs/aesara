@@ -548,11 +548,9 @@ class ShapeFeature(Feature):
         #   elements of the tuple can be either strings, or ints
         if len(o_shapes) != len(node.outputs):
             raise Exception(
-                (
-                    f'The infer_shape method for the Op "{node.op}" returned a list '
-                    f"with the wrong number of element: len(o_shapes) = {len(o_shapes)} "
-                    f" != len(node.outputs) = {len(node.outputs)}"
-                )
+                f'The infer_shape method for the Op "{node.op}" returned a list '
+                f"with the wrong number of element: len(o_shapes) = {len(o_shapes)} "
+                f" != len(node.outputs) = {len(node.outputs)}"
             )
 
         # Ensure shapes are in 'int64'. This is to make sure the assert

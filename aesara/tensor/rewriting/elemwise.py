@@ -683,12 +683,10 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
 
                 except (NotImplementedError, MethodNotDefined):
                     warn(
-                        (
-                            "Rewrite warning: "
-                            f"The Op {i.owner.op.scalar_op} does not provide a C implementation."
-                            " As well as being potentially slow, this also disables "
-                            "loop fusion."
-                        )
+                        "Rewrite warning: "
+                        f"The Op {i.owner.op.scalar_op} does not provide a C implementation."
+                        " As well as being potentially slow, this also disables "
+                        "loop fusion."
                     )
                     scalar_node = None
 
@@ -753,12 +751,10 @@ def local_elemwise_fusion_op(op_class, max_input_fct=lambda node: 32, maker=None
         except (NotImplementedError, MethodNotDefined):
             name = str(s_new_out[0].owner.op)
             warn(
-                (
-                    "Rewrite warning: "
-                    f"The Op {name} does not provide a C implementation."
-                    " As well as being potentially slow, this also disables "
-                    "loop fusion."
-                )
+                "Rewrite warning: "
+                f"The Op {name} does not provide a C implementation."
+                " As well as being potentially slow, this also disables "
+                "loop fusion."
             )
             return False
 

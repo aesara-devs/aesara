@@ -1,6 +1,6 @@
 import warnings
 from abc import abstractmethod
-from typing import Callable, Dict, List, Text, Tuple, Union
+from typing import Callable, Dict, List, Tuple, Union
 
 from aesara.graph.basic import Apply, Constant
 from aesara.graph.utils import MethodNotDefined
@@ -9,7 +9,7 @@ from aesara.graph.utils import MethodNotDefined
 class CLinkerObject:
     """Standard methods for an `Op` or `Type` used with the `CLinker`."""
 
-    def c_headers(self, **kwargs) -> List[Text]:
+    def c_headers(self, **kwargs) -> List[str]:
         """Return a list of header files required by code returned by this class.
 
         These strings will be prefixed with ``#include`` and inserted at the
@@ -30,7 +30,7 @@ class CLinkerObject:
         """
         return []
 
-    def c_header_dirs(self, **kwargs) -> List[Text]:
+    def c_header_dirs(self, **kwargs) -> List[str]:
         """Return a list of header search paths required by code returned by this class.
 
         Provides search paths for headers, in addition to those in any relevant
@@ -53,7 +53,7 @@ class CLinkerObject:
         """
         return []
 
-    def c_libraries(self, **kwargs) -> List[Text]:
+    def c_libraries(self, **kwargs) -> List[str]:
         """Return a list of libraries required by code returned by this class.
 
         The compiler will search the directories specified by the environment
@@ -77,7 +77,7 @@ class CLinkerObject:
         """
         return []
 
-    def c_lib_dirs(self, **kwargs) -> List[Text]:
+    def c_lib_dirs(self, **kwargs) -> List[str]:
         """Return a list of library search paths required by code returned by this class.
 
         Provides search paths for libraries, in addition to those in any
@@ -100,7 +100,7 @@ class CLinkerObject:
         """
         return []
 
-    def c_support_code(self, **kwargs) -> Text:
+    def c_support_code(self, **kwargs) -> str:
         """Return utility code for use by a `Variable` or `Op`.
 
         This is included at global scope prior to the rest of the code for this class.
@@ -115,7 +115,7 @@ class CLinkerObject:
         """
         return ""
 
-    def c_compile_args(self, **kwargs) -> List[Text]:
+    def c_compile_args(self, **kwargs) -> List[str]:
         """Return a list of recommended compile arguments for code returned by other methods in this class.
 
         Compiler arguments related to headers, libraries and search paths
@@ -133,7 +133,7 @@ class CLinkerObject:
         """
         return []
 
-    def c_no_compile_args(self, **kwargs) -> List[Text]:
+    def c_no_compile_args(self, **kwargs) -> List[str]:
         """Return a list of incompatible ``gcc`` compiler arguments.
 
         We will remove those arguments from the command line of ``gcc``. So if
@@ -145,7 +145,7 @@ class CLinkerObject:
         """
         return []
 
-    def c_init_code(self, **kwargs) -> List[Text]:
+    def c_init_code(self, **kwargs) -> List[str]:
         """Return a list of code snippets to be inserted in module initialization."""
         return []
 
@@ -176,11 +176,11 @@ class CLinkerOp(CLinkerObject):
     def c_code(
         self,
         node: Apply,
-        name: Text,
-        inputs: List[Text],
-        outputs: List[Text],
-        sub: Dict[Text, Text],
-    ) -> Text:
+        name: str,
+        inputs: List[str],
+        outputs: List[str],
+        sub: Dict[str, str],
+    ) -> str:
         """Return the C implementation of an ``Op``.
 
         Returns C code that does the computation associated to this ``Op``,
@@ -240,11 +240,11 @@ class CLinkerOp(CLinkerObject):
     def c_code_cleanup(
         self,
         node: Apply,
-        name: Text,
-        inputs: List[Text],
-        outputs: List[Text],
-        sub: Dict[Text, Text],
-    ) -> Text:
+        name: str,
+        inputs: List[str],
+        outputs: List[str],
+        sub: Dict[str, str],
+    ) -> str:
         """Return C code to run after :meth:`CLinkerOp.c_code`, whether it failed or not.
 
         This is a convenient place to clean up things allocated by :meth:`CLinkerOp.c_code`.
@@ -275,7 +275,7 @@ class CLinkerOp(CLinkerObject):
         """
         return ""
 
-    def c_support_code_apply(self, node: Apply, name: Text) -> Text:
+    def c_support_code_apply(self, node: Apply, name: str) -> str:
         """Return `Apply`-specialized utility code for use by an `Op` that will be inserted at global scope.
 
         Parameters
@@ -296,7 +296,7 @@ class CLinkerOp(CLinkerObject):
         """
         return ""
 
-    def c_init_code_apply(self, node: Apply, name: Text) -> Text:
+    def c_init_code_apply(self, node: Apply, name: str) -> str:
         """Return a code string specific to the `Apply` to be inserted in the module initialization code.
 
         Parameters
@@ -318,7 +318,7 @@ class CLinkerOp(CLinkerObject):
         """
         return ""
 
-    def c_init_code_struct(self, node: Apply, name, sub) -> Text:
+    def c_init_code_struct(self, node: Apply, name, sub) -> str:
         """Return an `Apply`-specific code string to be inserted in the struct initialization code.
 
         Parameters
@@ -335,7 +335,7 @@ class CLinkerOp(CLinkerObject):
         """
         return ""
 
-    def c_support_code_struct(self, node: Apply, name: Text) -> Text:
+    def c_support_code_struct(self, node: Apply, name: str) -> str:
         """Return `Apply`-specific utility code for use by an `Op` that will be inserted at struct scope.
 
         Parameters
@@ -349,7 +349,7 @@ class CLinkerOp(CLinkerObject):
         """
         return ""
 
-    def c_cleanup_code_struct(self, node: Apply, name: Text) -> Text:
+    def c_cleanup_code_struct(self, node: Apply, name: str) -> str:
         """Return an `Apply`-specific code string to be inserted in the struct cleanup code.
 
         Parameters
@@ -373,8 +373,8 @@ class CLinkerType(CLinkerObject):
 
     @abstractmethod
     def c_declare(
-        self, name: Text, sub: Dict[Text, Text], check_input: bool = True
-    ) -> Text:
+        self, name: str, sub: Dict[str, str], check_input: bool = True
+    ) -> str:
         """Return C code to declare variables that will be instantiated by :meth:`CLinkerType.c_extract`.
 
         Parameters
@@ -411,7 +411,7 @@ class CLinkerType(CLinkerObject):
         """
 
     @abstractmethod
-    def c_init(self, name: Text, sub: Dict[Text, Text]) -> Text:
+    def c_init(self, name: str, sub: Dict[str, str]) -> str:
         """Return C code to initialize the variables that were declared by :meth:`CLinkerType.c_declare`.
 
         Notes
@@ -435,8 +435,8 @@ class CLinkerType(CLinkerObject):
 
     @abstractmethod
     def c_extract(
-        self, name: Text, sub: Dict[Text, Text], check_input: bool = True, **kwargs
-    ) -> Text:
+        self, name: str, sub: Dict[str, str], check_input: bool = True, **kwargs
+    ) -> str:
         r"""Return C code to extract a ``PyObject *`` instance.
 
         The code returned from this function must be templated using
@@ -475,7 +475,7 @@ class CLinkerType(CLinkerObject):
         """
 
     @abstractmethod
-    def c_sync(self, name: Text, sub: Dict[Text, Text]) -> Text:
+    def c_sync(self, name: str, sub: Dict[str, str]) -> str:
         """Return C code to pack C types back into a ``PyObject``.
 
         The code returned from this function must be templated using
@@ -494,7 +494,7 @@ class CLinkerType(CLinkerObject):
 
         """
 
-    def c_element_type(self) -> Text:
+    def c_element_type(self) -> str:
         """Return the name of the primitive C type of items into variables handled by this type.
 
         e.g:
@@ -513,7 +513,7 @@ class CLinkerType(CLinkerObject):
         """
         return False
 
-    def c_literal(self, data: Constant) -> Text:
+    def c_literal(self, data: Constant) -> str:
         """Provide a C literal string value for the specified `data`.
 
         Parameters
@@ -525,8 +525,8 @@ class CLinkerType(CLinkerObject):
         return ""
 
     def c_extract_out(
-        self, name: Text, sub: Dict[Text, Text], check_input: bool = True, **kwargs
-    ) -> Text:
+        self, name: str, sub: Dict[str, str], check_input: bool = True, **kwargs
+    ) -> str:
         """Return C code to extract a ``PyObject *`` instance.
 
         Unlike :math:`CLinkerType.c_extract`, :meth:`CLinkerType.c_extract_out` has to
@@ -549,7 +549,7 @@ class CLinkerType(CLinkerObject):
             c_extract_code=self.c_extract(name, sub, check_input),
         )
 
-    def c_cleanup(self, name: Text, sub: Dict[Text, Text]) -> Text:
+    def c_cleanup(self, name: str, sub: Dict[str, str]) -> str:
         """Return C code to clean up after :meth:`CLinkerType.c_extract`.
 
         This returns C code that should deallocate whatever

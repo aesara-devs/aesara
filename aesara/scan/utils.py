@@ -710,7 +710,7 @@ class ScanArgs:
         from aesara.scan.op import Scan
 
         if not isinstance(node.op, Scan):
-            raise TypeError("{} is not a Scan node".format(node))
+            raise TypeError(f"{node} is not a Scan node")
         return ScanArgs(
             node.inputs,
             node.outputs,
@@ -885,9 +885,9 @@ class ScanArgs:
 
             field_prefix = field_name[:8]
             if field_prefix.endswith("in"):
-                agg_field_name = "{}puts".format(field_prefix)
+                agg_field_name = f"{field_prefix}puts"
             else:
-                agg_field_name = "{}tputs".format(field_prefix)
+                agg_field_name = f"{field_prefix}tputs"
 
             agg_list = getattr(self, agg_field_name)
 
@@ -933,12 +933,12 @@ class ScanArgs:
         field_info = self.find_among_fields(i)
 
         if field_info is None:
-            raise ValueError("{} not found among fields.".format(i))
+            raise ValueError(f"{i} not found among fields.")
 
         # Find the `var_mappings` key suffix that matches the field/set of
         # arguments containing our source node
         if field_info.name[:8].endswith("_in"):
-            map_key_suffix = "{}p".format(field_info.name[:8])
+            map_key_suffix = f"{field_info.name[:8]}p"
         else:
             map_key_suffix = field_info.name[:9]
 
@@ -961,9 +961,9 @@ class ScanArgs:
             # it either forms `"*_inputs"` or `"*_outputs"`.
             to_agg_field_prefix = k[:9]
             if to_agg_field_prefix.endswith("p"):
-                to_agg_field_name = "{}uts".format(to_agg_field_prefix)
+                to_agg_field_name = f"{to_agg_field_prefix}uts"
             else:
-                to_agg_field_name = "{}puts".format(to_agg_field_prefix)
+                to_agg_field_name = f"{to_agg_field_prefix}puts"
 
             to_agg_field = getattr(self, to_agg_field_name)
 
@@ -1044,29 +1044,29 @@ class ScanArgs:
 
     def __str__(self):
         inner_arg_strs = [
-            "\t{}={}".format(p, getattr(self, p))
+            f"\t{p}={getattr(self, p)}"
             for p in self.field_names
             if p.startswith("outer_in") or p == "n_steps"
         ]
         inner_arg_strs += [
-            "\t{}={}".format(p, getattr(self, p))
+            f"\t{p}={getattr(self, p)}"
             for p in self.field_names
             if p.startswith("inner_in")
         ]
         inner_arg_strs += [
-            "\tmit_mot_in_slices={}".format(self.mit_mot_in_slices),
-            "\tmit_sot_in_slices={}".format(self.mit_sot_in_slices),
+            f"\tmit_mot_in_slices={self.mit_mot_in_slices}",
+            f"\tmit_sot_in_slices={self.mit_sot_in_slices}",
         ]
         inner_arg_strs += [
-            "\t{}={}".format(p, getattr(self, p))
+            f"\t{p}={getattr(self, p)}"
             for p in self.field_names
             if p.startswith("inner_out")
         ]
         inner_arg_strs += [
-            "\tmit_mot_out_slices={}".format(self.mit_mot_out_slices),
+            f"\tmit_mot_out_slices={self.mit_mot_out_slices}",
         ]
         inner_arg_strs += [
-            "\t{}={}".format(p, getattr(self, p))
+            f"\t{p}={getattr(self, p)}"
             for p in self.field_names
             if p.startswith("outer_out")
         ]

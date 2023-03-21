@@ -1196,10 +1196,8 @@ class Scan(Op, ScanMethodsMixin, HasInnerGraph):
             new_inputs.append(outer_nonseq)
             if not outer_nonseq.type.in_same_class(inner_nonseq.type):
                 raise ValueError(
-                    (
-                        f"Argument {outer_nonseq} given to the scan node is not"
-                        f" compatible with its corresponding loop function variable {inner_nonseq}"
-                    )
+                    f"Argument {outer_nonseq} given to the scan node is not"
+                    f" compatible with its corresponding loop function variable {inner_nonseq}"
                 )
 
         for outer_nitsot in self.outer_nitsot(inputs):

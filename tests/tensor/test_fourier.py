@@ -24,7 +24,7 @@ class TestFourier(utt.InferShapeTester):
     def test_infer_shape(self):
         a = dvector()
         self._compile_and_check(
-            [a], [self.op(a, 16, 0)], [np.random.random((12))], self.op_class
+            [a], [self.op(a, 16, 0)], [np.random.random(12)], self.op_class
         )
         a = dmatrix()
         for var in [
@@ -60,7 +60,7 @@ class TestFourier(utt.InferShapeTester):
             np.random.random((5, 2, 4, 3)),
             np.random.random((2, 3, 4)),
             np.random.random((2, 5)),
-            np.random.random((5)),
+            np.random.random(5),
         ]
         for fft_test in [fft_test1, fft_test2, fft_test3, fft_test4]:
             for pt in pts:
