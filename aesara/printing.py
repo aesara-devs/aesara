@@ -316,7 +316,6 @@ N.B.:
     for var, profile, storage_map, topo_order in zip(
         outputs_to_print, profile_list, storage_maps, topo_orders
     ):
-
         if hasattr(var.owner, "op"):
             if isinstance(var.owner.op, HasInnerGraph) and var not in inner_graph_vars:
                 inner_graph_vars.append(var)
@@ -352,7 +351,6 @@ N.B.:
         print("Inner graphs:", file=_file)
 
         for ig_var in inner_graph_vars:
-
             # This is a work-around to maintain backward compatibility
             # (e.g. to only print inner graphs that have been compiled through
             # a call to `Op.prepare_node`)
@@ -431,7 +429,6 @@ N.B.:
                 inner_to_outer_inputs = None
 
             for out in inner_outputs:
-
                 if (
                     isinstance(getattr(out.owner, "op", None), HasInnerGraph)
                     and out not in inner_graph_vars
@@ -468,7 +465,6 @@ N.B.:
         inner_to_outer_inputs = {}
 
         for var in default_updates:
-
             print("", file=_file)
 
             update_var = var.default_update
@@ -750,7 +746,6 @@ def _debugprint(
                     default_updates=default_updates,
                 )
     else:
-
         id_str = get_id_str(var)
 
         if id_str:
@@ -786,7 +781,6 @@ def _debugprint(
             op_information.update(op_debug_information(var.owner.op, var.owner))
 
         if inner_to_outer_inputs is not None and var in inner_to_outer_inputs:
-
             outer_var = inner_to_outer_inputs[var]
 
             if outer_var.owner:
@@ -1225,7 +1219,6 @@ if use_ascii:
         epsilon="\\epsilon",
     )
 else:
-
     special = dict(middle_dot="\u00B7", big_sigma="\u03A3")
 
     greek = dict(
@@ -1509,7 +1502,6 @@ def pydotprint(
     # it, we must copy it.
     outputs = list(outputs)
     if isinstance(fct, Function):
-
         # TODO: Get rid of all this `expanded_inputs` nonsense and use
         # `fgraph.update_mapping`
         function_inputs = zip(fct.maker.expanded_inputs, fgraph.inputs)

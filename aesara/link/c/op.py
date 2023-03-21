@@ -389,7 +389,6 @@ class ExternalCOp(COp):
                 continue
 
             elif self.section_re.search(code):
-
                 # Check for code outside of the supported sections
                 split = self.section_re.split(code)
                 if split[0].strip() != "":

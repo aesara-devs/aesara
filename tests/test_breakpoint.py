@@ -30,7 +30,6 @@ class TestPdbBreakpoint(utt.InferShapeTester):
         ) = self.breakpointOp(self.condition, self.input1, self.input2, self.output)
 
     def test_infer_shape(self):
-
         input1_value = np.arange(6).reshape(2, 3).astype("float32")
         input2_value = 10.0
 
@@ -42,7 +41,6 @@ class TestPdbBreakpoint(utt.InferShapeTester):
         )
 
     def test_grad(self):
-
         input1_value = np.arange(9).reshape(3, 3).astype("float32")
         input2_value = 10.0
 
@@ -67,7 +65,6 @@ class TestPdbBreakpoint(utt.InferShapeTester):
             np.testing.assert_allclose(gradients[i], expected_gradients[i])
 
     def test_fprop(self):
-
         input1_value = np.arange(9).reshape(3, 3).astype("float32")
         input2_value = 10.0
         fct = function(
@@ -79,7 +76,6 @@ class TestPdbBreakpoint(utt.InferShapeTester):
         np.testing.assert_allclose(output[1], input2_value)
 
     def test_connection_pattern(self):
-
         node = self.monitored_output.owner
         connection_pattern = self.breakpointOp.connection_pattern(node)
         expected_pattern = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]]

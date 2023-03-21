@@ -41,7 +41,6 @@ class CheckAndRaise(COp):
     params_type = ParamsType(exc_type=exception_type)
 
     def __init__(self, exc_type, msg=""):
-
         if not issubclass(exc_type, Exception):
             raise ValueError("`exc_type` must be an Exception subclass")
 

@@ -22,7 +22,6 @@ from tests import unittest_tools as utt
 
 
 def test_BNComposite():
-
     with config.change_flags(compute_test_value="raise"):
 
         def bn_ref(x, G, B, M, V):
@@ -176,7 +175,6 @@ def test_bn_feature_maps():
 
 @pytest.mark.slow
 def test_batch_normalization_train():
-
     for axes in ("per-activation", "spatial", (1, 2, 3, 4)):
         for vartype in (tensor5, tensor3, vector):
             x, scale, bias, running_mean, running_var = (
@@ -356,7 +354,6 @@ def test_batch_normalization_train():
 
 @pytest.mark.slow
 def test_batch_normalization_train_grad_grad():
-
     for axes in ("per-activation", "spatial", (1, 2, 3, 4)):
         for vartype in (tensor5, tensor4, tensor3, matrix, vector):
             # run these experiments with float64 for sufficient numerical stability

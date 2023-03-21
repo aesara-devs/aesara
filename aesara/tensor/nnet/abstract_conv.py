@@ -2145,7 +2145,6 @@ class BaseAbstractConv(Op):
         num_groups=1,
         unshared=False,
     ):
-
         self.convdim = convdim
         if convdim not in (2, 3):
             raise ValueError("convolution dimension {} is not supported", convdim)

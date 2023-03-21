@@ -205,7 +205,6 @@ def test_speed_lazy(linker):
     "linker", [VMLinker(allow_partial_eval=True, use_cloop=False), "cvm"]
 )
 def test_partial_function(linker):
-
     x = scalar("input")
     y = x**2
     f = function(
@@ -291,7 +290,6 @@ def test_allow_gc_cvm():
 
 
 class RunOnce(Op):
-
     __props__ = ("nb_run",)
 
     def __init__(self):
@@ -361,7 +359,6 @@ def test_no_recycling():
         VMLinker(use_cloop=False, lazy=False, allow_gc=True),
         VMLinker(use_cloop=False, lazy=False, allow_gc=False),
     ]:
-
         mode = Mode(optimizer="fast_compile", linker=lnk)
         f = function([x], x + 1, mode=mode)
         f2 = function([x], (x + 1) * 2, mode=mode)
@@ -389,7 +386,6 @@ def test_VMLinker_make_vm_no_cvm():
     from unittest.mock import patch
 
     with config.change_flags(cxx=""):
-
         # Make sure that GXX isn't present
         with pytest.raises(MissingGXX):
             import aesara.link.c.cvm
@@ -441,7 +437,6 @@ def test_VM_exception():
 
 
 def test_Loop_exception():
-
     a = scalar()
     fg = FunctionGraph(outputs=[SomeOp()(a)])
 
@@ -472,7 +467,6 @@ def test_Loop_exception():
 
 
 def test_Loop_updates():
-
     a = scalar("a")
     a_plus_1 = a + 1
     fg = FunctionGraph(outputs=[a, a_plus_1], clone=False)
@@ -512,7 +506,6 @@ def test_Loop_updates():
 
 
 def test_Stack_updates():
-
     a = scalar("a")
     a_plus_1 = a + 1
     fg = FunctionGraph(outputs=[a, a_plus_1], clone=False)

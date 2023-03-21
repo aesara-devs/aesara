@@ -699,7 +699,6 @@ class CLinker(Linker):
         id = 1
 
         for variable in self.variables:
-
             if not isinstance(variable.type, CLinkerType):
                 raise NotImplementedError(f"Type of {variable} cannot produce C code")
 
@@ -797,7 +796,6 @@ class CLinker(Linker):
             id += 2
 
         for node_num, node in enumerate(self.node_order):
-
             op = node.op
 
             if not isinstance(op, CLinkerOp):
@@ -1300,7 +1298,6 @@ class CLinker(Linker):
         insert_config_hash=True,
         c_compiler=None,
     ):
-
         # Assemble a dummy fgraph using the provided inputs and outputs. It is
         # only used to compute the cmodule key so it only need to expose an
         # `inputs` and an `outputs` attribute as well as a toposort() method
@@ -1848,7 +1845,6 @@ class OpWiseCLinker(LocalLinker):
     def make_all(
         self, profiler=None, input_storage=None, output_storage=None, storage_map=None
     ):
-
         fgraph = self.fgraph
         order = self.schedule(fgraph)
         no_recycling = self.no_recycling

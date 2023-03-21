@@ -76,7 +76,6 @@ class TestMatrixInverse(utt.InferShapeTester):
         self.rng = np.random.default_rng(utt.fetch_seed())
 
     def test_inverse_correctness(self):
-
         r = self.rng.standard_normal((4, 4)).astype(config.floatX)
 
         x = matrix()
@@ -93,7 +92,6 @@ class TestMatrixInverse(utt.InferShapeTester):
         assert _allclose(np.identity(4), rri), rri
 
     def test_infer_shape(self):
-
         r = self.rng.standard_normal((4, 4)).astype(config.floatX)
 
         x = matrix()

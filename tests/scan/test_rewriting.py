@@ -575,7 +575,6 @@ class TestPushOutNonSeqScan:
         assert np.array_equal(res, np.repeat(3.0, 10))
 
     def test_nested_OpFromGraph_shared(self):
-
         y = aesara.shared(1.0, name="y")
 
         test_ofg = OpFromGraph([], [y])
@@ -936,7 +935,6 @@ class TestScanInplaceOptimizer:
         assert equal_computations([scan_out], fgraph.outputs)
 
     def test_inplace_basic(self):
-
         scan_out, _ = aesara.scan(
             lambda x: x + 1,
             outputs_info=[at.zeros(1)],

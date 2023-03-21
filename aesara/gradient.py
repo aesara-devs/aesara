@@ -229,7 +229,6 @@ def Rop(
     # Check that each element of wrt corresponds to an element
     # of eval_points with the same dimensionality.
     for i, (wrt_elem, eval_point) in enumerate(zip(_wrt, _eval_points)):
-
         try:
             if wrt_elem.type.ndim != eval_point.type.ndim:
                 raise ValueError(
@@ -266,7 +265,6 @@ def Rop(
                     # arguments, like for example random states
                     local_eval_points.append(None)
             elif inp.owner in seen_nodes:
-
                 local_eval_points.append(
                     seen_nodes[inp.owner][inp.owner.outputs.index(inp)]
                 )
@@ -941,7 +939,6 @@ def _populate_var_to_app_to_idx(outputs, wrt, consider_constant):
             var_idx = app.outputs.index(var)
 
             for i, ipt in enumerate(app.inputs):
-
                 # don't process ipt if it is not a true
                 # parent of var
                 if not connection_pattern[i][var_idx]:
@@ -1052,7 +1049,6 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
         """Populates term_dict[node] and returns it"""
 
         if node not in term_dict:
-
             inputs = node.inputs
 
             output_grads = [access_grad_cache(var) for var in node.outputs]
@@ -1267,7 +1263,6 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
             ]
 
             for i, term in enumerate(input_grads):
-
                 # Disallow Nones
                 if term is None:
                     # We don't know what None means. in the past it has been
@@ -1383,7 +1378,6 @@ def _populate_grad_dict(var_to_app_to_idx, grad_dict, wrt, cost_name=None):
                 node_to_idx = var_to_app_to_idx[var]
                 for node in node_to_idx:
                     for idx in node_to_idx[node]:
-
                         term = access_term_cache(node)[idx]
 
                         if not isinstance(term, Variable):
@@ -1868,7 +1862,6 @@ def verify_grad(
         )
 
         if max_abs_err > abs_tol and max_rel_err > rel_tol:
-
             raise GradientError(
                 max_arg,
                 max_err_pos,
@@ -2052,7 +2045,6 @@ def hessian(cost, wrt, consider_constant=None, disconnected_inputs="raise"):
 
     hessians = []
     for input in wrt:
-
         if not isinstance(input, Variable):
             raise TypeError("hessian expects a (list of) Variable as `wrt`")
 

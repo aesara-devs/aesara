@@ -13,7 +13,6 @@ _ = pytest.importorskip("scipy.signal")
 
 class TestSignalConv2D:
     def validate(self, image_shape, filter_shape, out_dim, verify_grad=True):
-
         image_dim = len(image_shape)
         filter_dim = len(filter_shape)
         input = TensorType("float64", shape=(None,) * image_dim)()
@@ -58,10 +57,8 @@ class TestSignalConv2D:
 
         # loop over mini-batches (if required)
         for b in range(bsize):
-
             # loop over filters (if required)
             for k in range(nkern):
-
                 image2d = image_data3d[b, :, :]
                 filter2d = filter_data3d[k, :, :]
                 output2d = np.zeros(ref_output.shape)

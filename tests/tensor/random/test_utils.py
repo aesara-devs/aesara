@@ -18,7 +18,6 @@ def set_aesara_flags():
 
 
 def test_broadcast_params():
-
     ndims_params = [0, 0]
 
     mean = np.array([0, 1, 2])
@@ -272,7 +271,7 @@ class TestSharedRandomStream:
         g2 = Graph(seed=987)
         f2 = function([], g2.y)
 
-        for (su1, su2) in zip(g1.rng.state_updates, g2.rng.state_updates):
+        for su1, su2 in zip(g1.rng.state_updates, g2.rng.state_updates):
             su2[0].set_value(su1[0].get_value())
 
         np.testing.assert_array_almost_equal(f1(), f2(), decimal=6)

@@ -268,7 +268,6 @@ def test_get_vector_length():
 
 
 def test_dense_types():
-
     x = matrix()
     assert isinstance(x, DenseTensorVariable)
     assert not isinstance(x, DenseTensorConstant)

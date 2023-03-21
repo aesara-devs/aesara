@@ -299,7 +299,6 @@ class ValidatingScratchpad(Scratchpad):
         object.__setattr__(self, "attr_filter", attr_filter)
 
     def __setattr__(self, attr, obj):
-
         if getattr(self, "attr", None) == attr:
             obj = self.attr_filter(obj)
 

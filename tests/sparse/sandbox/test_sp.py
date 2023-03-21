@@ -41,7 +41,6 @@ class TestSP:
             ttot, ntot = 0, 0
             for conv_mode in convmodes:
                 for ss in ssizes:
-
                     output, outshp = sp.convolve(
                         kerns, kshp, nkern, input, imshp, ss, bias=bias, mode=conv_mode
                     )
@@ -141,7 +140,6 @@ class TestSP:
         for mode in ("FAST_COMPILE", "FAST_RUN"):
             for conv_mode in convmodes:
                 for ss in ssizes:
-
                     l1hid, l1shp = sp.convolve(
                         kerns[0],
                         kshp[0],
@@ -186,7 +184,6 @@ class TestSP:
 
         images = dmatrix()
         for maxpoolshp in maxpoolshps:
-
             # symbolic stuff
             output, outshp = sp.max_pool(images, imval.shape[1:], maxpoolshp)
             f = function(

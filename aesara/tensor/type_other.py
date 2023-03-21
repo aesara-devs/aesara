@@ -25,7 +25,6 @@ def as_int_none_variable(x):
 
 
 class MakeSlice(Op):
-
     __props__ = ()
 
     def make_node(self, slc, stop=None, step=None):
@@ -114,7 +113,6 @@ SliceType.constant_type = SliceConstant
 
 @_as_symbolic.register(slice)
 def as_symbolic_slice(x, **kwargs):
-
     if any(isinstance(i, Variable) for i in (x.start, x.stop, x.step)):
         return make_slice(x)
 

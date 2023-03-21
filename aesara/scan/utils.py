@@ -908,7 +908,6 @@ class ScanArgs:
     def _remove_from_fields(
         self, i: Variable, field_filter: Callable[[str], bool] = default_filter
     ) -> Optional[FieldInfo]:
-
         field_info = self.find_among_fields(i, field_filter=field_filter)
 
         if field_info is None:
@@ -945,7 +944,6 @@ class ScanArgs:
 
         dependent_nodes = set()
         for k, v in var_mappings.items():
-
             if not k.endswith(map_key_suffix):
                 continue
 
@@ -998,7 +996,6 @@ class ScanArgs:
     def remove_from_fields(
         self, i: Variable, rm_dependents: bool = True
     ) -> List[Tuple[Variable, Optional[FieldInfo]]]:
-
         if rm_dependents:
             vars_to_remove = self.get_dependent_nodes(i) | {i}
         else:

@@ -17,7 +17,6 @@ from tests.graph.utils import MyType
 
 
 class CustomOp(Op):
-
     __props__ = ("a",)
 
     def __init__(self, a):
@@ -318,7 +317,6 @@ def test_ConstrainedVar():
 
 
 def test_convert_strs_to_vars():
-
     res = convert_strs_to_vars("a")
     assert isinstance(res, Var)
     assert res.token == "a"

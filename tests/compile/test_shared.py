@@ -26,7 +26,6 @@ from aesara.utils import PYTHON_INT_BITWIDTH
 
 class TestSharedVariable:
     def test_ctors(self):
-
         if PYTHON_INT_BITWIDTH == 32:
             assert shared(7).type == iscalar, shared(7).type
         else:
@@ -51,7 +50,6 @@ class TestSharedVariable:
             badfunc()
 
     def test_strict_generic(self):
-
         # this should work, because
         # generic can hold anything even when strict=True
 
@@ -62,7 +60,6 @@ class TestSharedVariable:
         v.set_value(88)
 
     def test_create_numpy_strict_false(self):
-
         # here the value is perfect, and we're not strict about it,
         # so creation should work
         SharedVariable(
@@ -104,7 +101,6 @@ class TestSharedVariable:
             pass
 
     def test_use_numpy_strict_false(self):
-
         # here the value is perfect, and we're not strict about it,
         # so creation should work
         u = SharedVariable(
@@ -231,7 +227,6 @@ class TestSharedVariable:
             f(b, np.random.random((5, 5)))
 
     def test_scalar_floatX(self):
-
         # the test should assure that floatX is not used in the shared
         # constructor for scalars Shared values can change, and since we don't
         # know the range they might take, we should keep the same

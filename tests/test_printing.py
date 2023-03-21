@@ -387,7 +387,6 @@ MyInnerGraphOp [id C]
 
 
 def test_get_var_by_id():
-
     r1, r2 = MyVariable("v1"), MyVariable("v2")
     o1 = MyOp("op1")(r1, r2)
     o1.name = "o1"
@@ -454,7 +453,6 @@ def test_Print(capsys):
 
 
 def test_debugprint_default_updates():
-
     op1 = MyOp("op1")
     op2 = MyOp("op2")
 

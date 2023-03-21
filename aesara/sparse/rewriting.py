@@ -961,7 +961,6 @@ register_specialize(local_usmm_csx, "cxx_only")
 
 
 class CSMGradC(_NoPythonCOp):
-
     __props__ = ()
 
     def make_node(self, a_val, a_ind, a_ptr, a_dim, b_val, b_ind, b_ptr, b_dim):
@@ -1149,7 +1148,6 @@ class MulSDCSC(_NoPythonCOp):
         return (3,)
 
     def c_code(self, node, name, inputs, outputs, sub):
-
         (
             _data,
             _indices,
@@ -1287,7 +1285,6 @@ class MulSDCSR(_NoPythonCOp):
         return (3,)
 
     def c_code(self, node, name, inputs, outputs, sub):
-
         (
             _data,
             _indices,

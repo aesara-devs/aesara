@@ -37,7 +37,6 @@ def subtensor_assert_indices_jax_compatible(node, idx_list):
 
     ilist = indices_from_subtensor(node.inputs[1:], idx_list)
     for idx in ilist:
-
         if isinstance(idx, TensorVariable):
             if idx.type.dtype == "bool":
                 raise NotImplementedError(BOOLEAN_MASK_ERROR)
@@ -51,7 +50,6 @@ def subtensor_assert_indices_jax_compatible(node, idx_list):
 @jax_funcify.register(AdvancedSubtensor)
 @jax_funcify.register(AdvancedSubtensor1)
 def jax_funcify_Subtensor(op, node, **kwargs):
-
     idx_list = getattr(op, "idx_list", None)
     subtensor_assert_indices_jax_compatible(node, idx_list)
 
@@ -68,7 +66,6 @@ def jax_funcify_Subtensor(op, node, **kwargs):
 @jax_funcify.register(IncSubtensor)
 @jax_funcify.register(AdvancedIncSubtensor1)
 def jax_funcify_IncSubtensor(op, node, **kwargs):
-
     idx_list = getattr(op, "idx_list", None)
 
     if getattr(op, "set_instead_of_inc", False):
@@ -93,7 +90,6 @@ def jax_funcify_IncSubtensor(op, node, **kwargs):
 
 @jax_funcify.register(AdvancedIncSubtensor)
 def jax_funcify_AdvancedIncSubtensor(op, node, **kwargs):
-
     if getattr(op, "set_instead_of_inc", False):
 
         def jax_fn(x, indices, y):

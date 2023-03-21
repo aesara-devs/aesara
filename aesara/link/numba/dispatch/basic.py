@@ -54,7 +54,6 @@ if TYPE_CHECKING:
 
 
 def numba_njit(*args, **kwargs):
-
     if len(args) > 0 and callable(args[0]):
         return numba.njit(*args[1:], cache=config.numba__cache, **kwargs)(args[0])
 
@@ -440,7 +439,6 @@ def numba_funcify_perform(op, node, storage_map=None, **kwargs) -> Callable:
 
 @_numba_funcify.register(OpFromGraph)
 def numba_funcify_OpFromGraph(op, node=None, **kwargs):
-
     _ = kwargs.pop("storage_map", None)
 
     fgraph_fn = numba_njit(numba_funcify(op.fgraph, **kwargs))
@@ -572,7 +570,6 @@ def {fn_name}({", ".join(input_names)}):
 @_numba_funcify.register(AdvancedSubtensor)
 @_numba_funcify.register(AdvancedSubtensor1)
 def numba_funcify_Subtensor(op, node, **kwargs):
-
     subtensor_def_src = create_index_func(
         node, objmode=isinstance(op, AdvancedSubtensor)
     )
@@ -589,7 +586,6 @@ def numba_funcify_Subtensor(op, node, **kwargs):
 @_numba_funcify.register(IncSubtensor)
 @_numba_funcify.register(AdvancedIncSubtensor)
 def numba_funcify_IncSubtensor(op, node, **kwargs):
-
     incsubtensor_def_src = create_index_func(
         node, objmode=isinstance(op, AdvancedIncSubtensor)
     )
@@ -638,7 +634,6 @@ def numba_funcify_AdvancedIncSubtensor1(op, node, **kwargs):
 
 @_numba_funcify.register(DeepCopyOp)
 def numba_funcify_DeepCopyOp(op, node, **kwargs):
-
     # Scalars are apparently returned as actual Python scalar types and not
     # NumPy scalars, so we need two separate Numba functions for each case.
 
@@ -689,7 +684,6 @@ def numba_funcify_Shape_i(op, node, **kwargs):
 
 @numba.extending.intrinsic
 def direct_cast(typingctx, val, typ):
-
     if isinstance(typ, numba.types.TypeRef):
         casted = typ.instance_type
     elif isinstance(typ, numba.types.DTypeSpec):
@@ -759,7 +753,6 @@ def int_to_float_fn(inputs, out_dtype):
     """Create a Numba function that converts integer and boolean ``ndarray``s to floats."""
 
     if any(i.type.numpy_dtype.kind in "ib" for i in inputs):
-
         args_dtype = np.dtype(f"f{out_dtype.itemsize}")
 
         @numba_njit(inline="always")
@@ -794,7 +787,6 @@ def numba_funcify_Dot(op, node, **kwargs):
 
 @_numba_funcify.register(Softplus)
 def numba_funcify_Softplus(op, node, **kwargs):
-
     x_dtype = np.dtype(node.inputs[0].dtype)
 
     @numba_njit
@@ -818,7 +810,6 @@ def numba_funcify_Cholesky(op, node, **kwargs):
     out_dtype = node.outputs[0].type.numpy_dtype
 
     if lower:
-
         inputs_cast = int_to_float_fn(node.inputs, out_dtype)
 
         @numba_njit(inline="always")
@@ -849,12 +840,10 @@ def numba_funcify_Cholesky(op, node, **kwargs):
 
 @_numba_funcify.register(Solve)
 def numba_funcify_Solve(op, node, **kwargs):
-
     assume_a = op.assume_a
     # check_finite = op.check_finite
 
     if assume_a != "gen":
-
         lower = op.lower
 
         warnings.warn(

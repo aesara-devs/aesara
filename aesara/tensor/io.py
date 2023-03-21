@@ -140,7 +140,6 @@ class MPIRecv(Op):
         )
 
     def perform(self, node, inp, out):
-
         data = np.zeros(self.shape, dtype=self.dtype)
         request = comm.Irecv(data, self.source, self.tag)
 
@@ -184,7 +183,6 @@ class MPIRecvWait(Op):
         )
 
     def perform(self, node, inp, out):
-
         request = inp[0]
         data = inp[1]
 
@@ -225,7 +223,6 @@ class MPISend(Op):
     view_map = {1: [0]}
 
     def perform(self, node, inp, out):
-
         data = inp[0]
 
         request = comm.Isend(data, self.dest, self.tag)

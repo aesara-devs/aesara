@@ -1250,7 +1250,6 @@ class TestBroadcastTo(utt.InferShapeTester):
 
     @pytest.mark.parametrize("linker", ["cvm", "py"])
     def test_perform(self, linker):
-
         a = aesara.shared(5)
         s_1 = iscalar("s_1")
         shape = (s_1, 1)

@@ -52,7 +52,6 @@ class MyType(Type):
 
 
 class MyOp(Op):
-
     __props__ = ()
 
     def make_node(self, *inputs):
@@ -83,7 +82,6 @@ class NoInputOp(Op):
 
 
 class TestOp:
-
     # Sanity tests
     def test_sanity_0(self):
         r1, r2 = MyType(1)(), MyType(2)()
@@ -159,7 +157,6 @@ def test_test_value_shared():
 
 @config.change_flags(compute_test_value="raise")
 def test_test_value_op():
-
     x = log(np.ones((5, 5)))
     v = op.get_test_value(x)
 
@@ -194,7 +191,6 @@ def test_get_test_values_success():
             iters = 0
 
             for x_val, y_val in op.get_test_values(x, y):
-
                 assert x_val.shape == (4,)
                 assert y_val.shape == (5, 5)
 

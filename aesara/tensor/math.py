@@ -1518,7 +1518,6 @@ class Mean(CAReduce):
         output[0] = np.asarray(np.mean(input, dtype="float64", axis=axis))
 
     def c_code(self, node, name, inames, onames, sub):
-
         ret = super().c_code(node, name, inames, onames, sub)
 
         if self.axis is not None:
@@ -1933,7 +1932,6 @@ class Dot(Op):
         z[0] = np.asarray(np.dot(x, y))
 
     def grad(self, inp, grads):
-
         x, y = inp
         (gz,) = grads
         xdim, ydim, gdim = x.type.ndim, y.type.ndim, gz.type.ndim
@@ -2624,7 +2622,6 @@ class Prod(CAReduce):
             # this handles inputs with zeros, but only certain input shapes
             return [grad_case_without_zeros]
         else:
-
             where_zeros = eq(prod_in, 0.0)
             sum_where_zeros = sum(where_zeros, axis=self.axis)
             groups_with_single_zero = eq(sum_where_zeros, 1).dimshuffle(new_dims)
@@ -2917,7 +2914,6 @@ class MatMul(Op):
                 )
             return x2_shape[:-2] + x1_shape[-2:-1] + x2_shape[-1:]
         else:
-
             if validate:
                 from aesara.tensor.random.basic import broadcast_shapes
 

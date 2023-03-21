@@ -50,7 +50,6 @@ def get_subprocess_lock_state(ctx, dir_name):
 
 
 def run_locking_test(ctx):
-
     with tempfile.TemporaryDirectory() as dir_name:
         assert get_subprocess_lock_state(ctx, dir_name) == "unlocked"
 

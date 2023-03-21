@@ -101,7 +101,6 @@ rng = np.random.default_rng(42849)
     ],
 )
 def test_Elemwise(inputs, input_vals, output_fn, exc):
-
     outputs = output_fn(*inputs)
 
     out_fg = FunctionGraph(

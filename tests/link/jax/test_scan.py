@@ -113,7 +113,6 @@ def test_jax_scan_multiple_output():
     reason="Omnistaging cannot be disabled",
 )
 def test_jax_scan_tap_output():
-
     a_at = scalar("a")
 
     def input_step_fn(y_tm1, y_tm3, a):

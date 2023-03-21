@@ -55,7 +55,6 @@ def test_function_name():
 
 class TestFunctionIn:
     def test_in_strict(self):
-
         a = dvector()
         b = shared(7)
         out = a + b

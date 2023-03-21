@@ -352,7 +352,6 @@ def numba_funcify_CategoricalRV(op, node, **kwargs):
 
 @_numba_funcify.register(aer.DirichletRV)
 def numba_funcify_DirichletRV(op, node, **kwargs):
-
     out_dtype = node.outputs[1].type.numpy_dtype
     alphas_ndim = node.inputs[3].type.ndim
     neg_ind_shape_len = -alphas_ndim + 1
@@ -362,7 +361,6 @@ def numba_funcify_DirichletRV(op, node, **kwargs):
 
         @numba_basic.numba_njit
         def dirichlet_rv(rng, size, dtype, alphas):
-
             if size_len > 0:
                 size_tpl = numba_ndarray.to_fixed_tuple(size, size_len)
                 if (

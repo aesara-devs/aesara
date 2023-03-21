@@ -33,7 +33,6 @@ def test_debugmode_basic():
 
 
 class BROKEN_ON_PURPOSE_Add(COp):
-
     __props__ = ("py_offset",)
 
     def __init__(self, py_offset):
@@ -277,7 +276,6 @@ def test_badoptimization_opt_err():
         if node.op == add:
             inputs = list(node.inputs)
             if inputs[-1].owner is None:
-
                 return [node.outputs[0].astype("float32")]
         return False
 
@@ -321,7 +319,6 @@ def test_badoptimization_opt_err():
 
 
 def test_stochasticoptimization():
-
     # this optimization alternates between triggering and not triggering.
 
     last_time_replaced = [False]
@@ -611,7 +608,6 @@ class TestCheckIsfinite:
 
 
 class BrokenCImplementationAdd(COp):
-
     __props__ = ()
 
     def make_node(self, a, b):

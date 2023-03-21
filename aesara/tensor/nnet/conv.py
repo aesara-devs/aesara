@@ -521,7 +521,6 @@ class ConvOp(OpenMPOp):
             and self.unroll_batch > 0
             and self.bsize % self.unroll_batch != 0
         ):
-
             if self.bsize <= self.unroll_batch:
                 self.unroll_batch = self.bsize
             else:
@@ -547,7 +546,6 @@ class ConvOp(OpenMPOp):
             and self.unroll_kern > 0
             and self.nkern % self.unroll_kern != 0
         ):
-
             if self.nkern <= self.unroll_kern:
                 self.unroll_kern = self.nkern
             else:

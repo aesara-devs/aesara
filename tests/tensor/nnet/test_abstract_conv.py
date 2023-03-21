@@ -468,7 +468,10 @@ class BaseTestConv:
             border_mode = tuple(d - 1 for d in dil_filters)
         batch_size = inputs_shape[0]
         num_filters = filters_shape[0]
-        return (batch_size, num_filters,) + tuple(
+        return (
+            batch_size,
+            num_filters,
+        ) + tuple(
             None
             if i is None or k is None
             else ((i + 2 * pad - ((k - 1) * fd + 1)) // d + 1)
@@ -753,7 +756,7 @@ class BaseTestConv:
         db = self.default_border_mode
         dflip = self.default_filter_flip
         dprovide_shape = self.default_provide_shape
-        for (i, f) in zip(self.inputs_shapes, self.filters_shapes):
+        for i, f in zip(self.inputs_shapes, self.filters_shapes):
             for provide_shape in self.provide_shape:
                 self.run_test_case(i, f, ds, db, dflip, provide_shape)
             if min(i) > 0 and min(f) > 0:
@@ -865,9 +868,9 @@ class BaseTestConv2d(BaseTestConv):
                     True,
                 )
 
-        for (i, k) in ((1, 1), (1, 2), (2, 1), (4, 2), (4, 3), (7, 3), (9, 5)):
+        for i, k in ((1, 1), (1, 2), (2, 1), (4, 2), (4, 3), (7, 3), (9, 5)):
             for border_mode in ("valid", "half", "full", (0, 2)):
-                for (s, d) in ((1, 1), (1, 2), (2, 1), (2, 2), (3, 1), (1, 3)):
+                for s, d in ((1, 1), (1, 2), (2, 1), (2, 2), (3, 1), (1, 3)):
                     image_shape = (1, 1, i, i)
                     kernel_shape = (1, 1, k, k)
 
@@ -1225,9 +1228,9 @@ class BaseTestConv3d(BaseTestConv):
                     True,
                 )
 
-        for (i, k) in ((1, 1), (1, 2), (2, 1), (4, 2), (4, 3), (7, 3), (9, 5)):
+        for i, k in ((1, 1), (1, 2), (2, 1), (4, 2), (4, 3), (7, 3), (9, 5)):
             for border_mode in ("valid", "half", "full", (0, 2, 1)):
-                for (s, d) in ((1, 1), (1, 2), (2, 1), (2, 2), (3, 1), (1, 3)):
+                for s, d in ((1, 1), (1, 2), (2, 1), (2, 2), (3, 1), (1, 3)):
                     image_shape = (1, 1, i, i, i)
                     kernel_shape = (1, 1, k, k, k)
 
@@ -1926,7 +1929,7 @@ class TestConv2dGrads:
         # the outputs of `aesara.tensor.nnet.conv` forward grads to make sure the
         # results are the same.
 
-        for (in_shape, fltr_shape) in zip(self.inputs_shapes, self.filters_shapes):
+        for in_shape, fltr_shape in zip(self.inputs_shapes, self.filters_shapes):
             for bm in self.border_modes:
                 for ss in self.subsamples:
                     for ff in self.filter_flip:
@@ -1992,7 +1995,7 @@ class TestConv2dGrads:
         # the outputs of `aesara.tensor.nnet.conv` forward grads to make sure the
         # results are the same.
 
-        for (in_shape, fltr_shape) in zip(self.inputs_shapes, self.filters_shapes):
+        for in_shape, fltr_shape in zip(self.inputs_shapes, self.filters_shapes):
             for bm in self.border_modes:
                 for ss in self.subsamples:
                     for ff in self.filter_flip:

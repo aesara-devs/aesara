@@ -953,7 +953,6 @@ class OpFromGraph(Op, HasInnerGraph):
         return list(map(list, cpmat_self))
 
     def infer_shape(self, fgraph, node, shapes):
-
         # TODO: Use `fgraph.shape_feature` to do this instead.
         out_shapes = infer_shape(self.inner_outputs, self.inner_inputs, shapes)
 

@@ -464,7 +464,6 @@ def push_out_seq_scan(fgraph, node):
             )
             and isinstance(nd.op, Elemwise)
         ):
-
             outside_ins = []
             depends_on_seqs = False
 
@@ -512,7 +511,6 @@ def push_out_seq_scan(fgraph, node):
             and isinstance(nd.op, DimShuffle)
             and (nd.inputs[0] in inner_seqs_set or nd.inputs[0].owner in to_remove_set)
         ):
-
             to_remove_set.add(nd)
             x = nd.inputs[0]
             if x in inner_seqs_set:
@@ -562,7 +560,6 @@ def push_out_seq_scan(fgraph, node):
             # and it may trigger an infinite loop.
             out.type.is_super(replace_with_in[idx].type)
         ):
-
             clean_to_replace.append(out)
             clean_replace_with_in.append(replace_with_in[idx])
             clean_replace_with_out.append(replace_with_out[idx])
@@ -681,7 +678,6 @@ def push_out_inner_vars(
     old_scan_node: Apply,
     old_scan_args: ScanArgs,
 ) -> Tuple[List[Variable], ScanArgs, Dict[Variable, Variable]]:
-
     tmp_outer_vars: List[Optional[Variable]] = []
     new_scan_node = old_scan_node
     new_scan_args = old_scan_args
@@ -690,7 +686,6 @@ def push_out_inner_vars(
     # For the inner_vars that already exist in the outer graph,
     # simply obtain a reference to them
     for idx in range(len(inner_vars)):
-
         var = inner_vars[idx]
 
         new_outer_var: Optional[Variable] = None
@@ -720,7 +715,6 @@ def push_out_inner_vars(
     new_outs: List[Variable] = []
 
     if len(add_as_nitsots) > 0:
-
         new_scan_node, replacements = add_nitsot_outputs(
             fgraph, old_scan_node, old_scan_args, add_as_nitsots
         )
@@ -755,7 +749,6 @@ def add_nitsot_outputs(
     old_scan_args: ScanArgs,
     new_outputs_inner,
 ) -> Tuple[Apply, Dict[Variable, Variable]]:
-
     assert isinstance(old_scan_node.op, Scan)
 
     nb_new_outs = len(new_outputs_inner)
@@ -848,12 +841,10 @@ def push_out_add_scan(fgraph, node):
             and nd.out in args.inner_out_sit_sot
             and inner_sitsot_only_last_step_used(fgraph, nd.out, args)
         ):
-
             # Ensure that one of the input to the add is the output of
             # the add from a previous iteration of the inner function
             sitsot_idx = args.inner_out_sit_sot.index(nd.out)
             if args.inner_in_sit_sot[sitsot_idx] in nd.inputs:
-
                 # Ensure that the other input to the add is a dot product
                 # between 2 matrices which will become a tensor3 and a
                 # matrix if pushed outside of the scan. Also make sure
@@ -877,7 +868,6 @@ def push_out_add_scan(fgraph, node):
                     and get_outer_ndim(dot_input.owner.inputs[0], args) == 3
                     and get_outer_ndim(dot_input.owner.inputs[1], args) == 3
                 ):
-
                     # The optimization can be be applied in this case.
 
                     # Move out of scan the two inputs to the Dot and
@@ -1026,9 +1016,7 @@ class ScanInplaceOptimizer(GraphRewriter):
             return None
 
     def apply(self, fgraph):
-
         for scan_idx, original_node in enumerate(reversed(fgraph.toposort())):
-
             if not isinstance(original_node.op, Scan):
                 continue
 
@@ -1218,7 +1206,6 @@ def save_mem_new_scan(fgraph, node):
         # look at all its clients
         slices[i] = []
         for cl, _ in fgraph.clients[out]:
-
             # 2.1 outputs of the function
             # => output needs all its intermediate values
             if isinstance(cl, str):
@@ -1414,7 +1401,6 @@ def save_mem_new_scan(fgraph, node):
         for idx, _val in enumerate(store_steps[op_info.n_mit_mot :]):
             i = idx + op_info.n_mit_mot
             if not (isinstance(_val, int) and _val <= 0 and i not in required):
-
                 if idx + op_info.n_mit_mot in required:
                     val = 1
                 else:
@@ -1435,7 +1421,6 @@ def save_mem_new_scan(fgraph, node):
                             nw_inputs[offset + idx].owner.op.idx_list[0], slice
                         )
                     ):
-
                         assert isinstance(
                             nw_inputs[offset + idx].owner.op, IncSubtensor
                         )
@@ -1464,7 +1449,6 @@ def save_mem_new_scan(fgraph, node):
                     ]
                 # If there is no memory pre-allocated for this output
                 elif idx < op_info.n_mit_sot + op_info.n_sit_sot + op_info.n_nit_sot:
-
                     pos = (
                         op_info.n_mit_mot
                         + idx
@@ -1678,7 +1662,6 @@ class ScanMerge(GraphRewriter):
         fgraph.attach_feature(ReplaceValidate())
 
     def merge(self, nodes):
-
         if nodes[0].op.info.as_while:
             as_while = True
             condition = nodes[0].op.inner_outputs[-1]
@@ -2138,7 +2121,6 @@ def scan_merge_inouts(fgraph, node):
                 and equal_computations(inner_omm, s_inner_omm, left, right)
                 and outer_imm == s_outer_imm
             ):
-
                 new_outer_out_mit_mot.append(s_outer_omm)
                 break
         else:
@@ -2172,7 +2154,6 @@ def push_out_dot1_scan(fgraph, node):
     outer_sitsot = op.outer_sitsot_outs(node.outputs)
     seqs = op.inner_seqs(op.inner_inputs)
     for inp, out, outer_out in zip(sitsot_ins, sitsot_outs, outer_sitsot):
-
         if (
             out.owner
             and isinstance(out.owner.op, Elemwise)
@@ -2183,7 +2164,6 @@ def push_out_dot1_scan(fgraph, node):
             and isinstance(fgraph.clients[outer_out][0][0].op, Subtensor)
             and fgraph.clients[outer_out][0][0].op.idx_list == (-1,)
         ):
-
             x = out.owner.inputs[0]
             if x == inp:
                 x = out.owner.inputs[1]
@@ -2194,7 +2174,6 @@ def push_out_dot1_scan(fgraph, node):
                 and x.owner.inputs[0].ndim == 2
                 and x.owner.inputs[1].ndim == 2
             ):
-
                 # We need to check if any of the inputs are a sequence
                 inp1 = x.owner.inputs[0]
                 inp2 = x.owner.inputs[1]

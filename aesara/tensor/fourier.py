@@ -161,9 +161,7 @@ class Fourier(Op):
         res = switch(
             lt(n, shape(a)[axis]),
             set_subtensor(
-                res[
-                    n::,
-                ],
+                res[n::,],
                 0,
                 False,
                 False,

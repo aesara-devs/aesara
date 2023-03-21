@@ -70,7 +70,6 @@ def MyVariable(thingy):
 
 
 class MyOp(Op):
-
     __props__ = ()
 
     def make_node(self, *inputs):
@@ -362,7 +361,6 @@ class TestAutoName:
 
 
 def test_equal_computations():
-
     a, b = iscalars(2)
 
     with pytest.raises(ValueError):
@@ -392,7 +390,6 @@ def test_equal_computations():
 
 
 def test_walk():
-
     r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
     o1 = MyOp(r1, r2)
     o1.name = "o1"
@@ -423,7 +420,6 @@ def test_walk():
 
 
 def test_ancestors():
-
     r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
     o1 = MyOp(r1, r2)
     o1.name = "o1"
@@ -445,7 +441,6 @@ def test_ancestors():
 
 
 def test_graph_inputs():
-
     r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
     o1 = MyOp(r1, r2)
     o1.name = "o1"
@@ -458,7 +453,6 @@ def test_graph_inputs():
 
 
 def test_variables_and_orphans():
-
     r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
     o1 = MyOp(r1, r2)
     o1.name = "o1"
@@ -475,7 +469,6 @@ def test_variables_and_orphans():
 
 
 def test_ops():
-
     r1, r2, r3, r4 = MyVariable(1), MyVariable(2), MyVariable(3), MyVariable(4)
     o1 = MyOp(r1, r2)
     o1.name = "o1"
@@ -490,7 +483,6 @@ def test_ops():
 
 
 def test_list_of_nodes():
-
     r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
     o1 = MyOp(r1, r2)
     o1.name = "o1"
@@ -502,7 +494,6 @@ def test_list_of_nodes():
 
 
 def test_is_in_ancestors():
-
     r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
     o1 = MyOp(r1, r2)
     o1.name = "o1"
@@ -523,7 +514,6 @@ def test_view_roots():
 
 
 def test_get_var_by_name():
-
     r1, r2, r3 = MyVariable(1), MyVariable(2), MyVariable(3)
     o1 = MyOp(r1, r2)
     o1.name = "o1"
@@ -736,7 +726,6 @@ def test_clone_get_equiv():
 
 
 def test_NominalVariable():
-
     type1 = MyType(1)
 
     nv1 = NominalVariable(1, type1)
@@ -784,7 +773,6 @@ def test_NominalVariable():
 
 
 def test_NominalVariable_create_variable_type():
-
     ttype = TensorType("float64", (None, None))
     ntv = NominalVariable(0, ttype)
 

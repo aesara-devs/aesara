@@ -278,7 +278,6 @@ def test_uniform():
         # test empty size (scalar)
         ((), (), [], []),
     ]:
-
         # TEST CPU IMPLEMENTATION
         # The python and C implementation are tested with DebugMode
         x = matrix()
@@ -728,7 +727,6 @@ def test_truncated_normal():
 def basic_multinomialtest(
     f, steps, sample_size, target_pvals, n_samples, prefix="", mean_rtol=0.04
 ):
-
     dt = 0.0
     avg_pvals = np.zeros(target_pvals.shape, dtype=config.floatX)
 
@@ -799,7 +797,6 @@ def test_multinomial_n_samples():
 
 class TestMRG:
     def test_bad_size(self):
-
         R = MRG_RandomStream(234)
 
         for size in [
@@ -807,7 +804,6 @@ class TestMRG:
             (-1, 100),
             (1, 0),
         ]:
-
             with pytest.raises(ValueError):
                 R.uniform(size)
             with pytest.raises(ValueError):
@@ -846,7 +842,7 @@ def test_random_state_transfer():
     f2 = function([], g2.y)
 
     g2.rng.rstate = g1.rng.rstate
-    for (su1, su2) in zip(g1.rng.state_updates, g2.rng.state_updates):
+    for su1, su2 in zip(g1.rng.state_updates, g2.rng.state_updates):
         su2[0].set_value(su1[0].get_value())
 
     np.testing.assert_array_almost_equal(f1(), f2(), decimal=6)

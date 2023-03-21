@@ -161,7 +161,6 @@ def test_local_dense_from_sparse_sparse_from_dense():
 
 
 def test_sd_csc():
-
     A = sp.sparse.random(4, 5, density=0.60, format="csc", dtype=np.float32)
     b = np.random.random((5, 2)).astype(np.float32)
     target = A * b

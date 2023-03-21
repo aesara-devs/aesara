@@ -69,7 +69,6 @@ class PdbBreakpoint(Op):
         self.name = name
 
     def make_node(self, condition, *monitored_vars):
-
         # Ensure that condition is an Aesara tensor
         if not isinstance(condition, Variable):
             condition = as_tensor_variable(condition)
@@ -150,7 +149,6 @@ class PdbBreakpoint(Op):
         return input_shapes[1:]
 
     def connection_pattern(self, node):
-
         nb_inp = len(node.inputs)
         nb_out = nb_inp - 1
 

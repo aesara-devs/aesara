@@ -75,7 +75,6 @@ class TestSparseVariable:
         ],
     )
     def test_unary(self, method, exp_type, cm, x):
-
         if x is None:
             x = at.dmatrix("x")
 

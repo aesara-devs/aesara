@@ -993,7 +993,6 @@ class MvNormalRV(RandomVariable):
 
     @classmethod
     def rng_fn(cls, rng, mean, cov, size):
-
         if mean.ndim > 1 or cov.ndim > 2:
             # Neither SciPy nor NumPy implement parameter broadcasting for
             # multivariate normals (or any other multivariate distributions),
@@ -2160,7 +2159,6 @@ class PermutationRV(RandomVariable):
         return rng.permutation(x if x.ndim > 0 else x.item())
 
     def _infer_shape(self, size, dist_params, param_shapes=None):
-
         param_shapes = param_shapes or [p.shape for p in dist_params]
 
         (x,) = dist_params

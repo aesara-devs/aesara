@@ -719,7 +719,6 @@ class Reshape(COp):
                 )
             return [requ]
         else:
-
             requ = [requ[i] for i in range(self.ndim)]
             # since new_dims can have negative value (-1), the
             # multiplication of all values should be negated

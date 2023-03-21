@@ -1,4 +1,9 @@
-from setuptools._distutils.errors import CompileError as BaseCompileError
+# isort: off
+from setuptools._distutils.errors import (  # type: ignore[attr-defined]
+    CompileError as BaseCompileError,
+)
+
+# isort: on
 
 
 class MissingGXX(Exception):

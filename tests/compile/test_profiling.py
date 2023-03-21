@@ -17,7 +17,6 @@ class TestProfiling:
     # Test of Aesara profiling with min_peak_memory=True
 
     def test_profiling(self):
-
         config1 = config.profile
         config2 = config.profile_memory
         config3 = config.profiling__min_peak_memory

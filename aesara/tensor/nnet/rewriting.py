@@ -258,7 +258,6 @@ def local_abstractconv3d_gradinputs_gemm(fgraph, node):
 
 @node_rewriter([AbstractConv2d])
 def local_conv2d_cpu(fgraph, node):
-
     if not isinstance(node.op, AbstractConv2d) or node.inputs[0].dtype == "float16":
         return None
 

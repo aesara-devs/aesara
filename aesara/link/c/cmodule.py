@@ -2540,7 +2540,6 @@ class GCC_compiler(Compiler):
 
         cppfilename = os.path.join(location, "mod.cpp")
         with open(cppfilename, "w") as cppfile:
-
             _logger.debug(f"Writing module C++ code to {cppfilename}")
 
             cppfile.write(src_code)

@@ -468,7 +468,6 @@ def test_random_dirichlet(parameter, size):
 
 
 def test_random_choice():
-
     # Elements are picked at equal frequency
     num_samples = 10000
     rng = shared(np.random.RandomState(123))

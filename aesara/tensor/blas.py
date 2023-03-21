@@ -1464,7 +1464,6 @@ def _gemm_from_factored_list(fgraph, lst):
             )
             # print 'GOT IT', gemm_of_sM_list
             if gemm_of_sM_list:
-
                 assert len(gemm_of_sM_list) == 1
                 add_inputs = [
                     item_to_var(input) for k, input in enumerate(lst) if k not in (i, j)
@@ -1965,7 +1964,6 @@ class Dot22Scalar(GemmRelated):
     check_input = False
 
     def make_node(self, x, y, a):
-
         if any(not isinstance(i.type, DenseTensorType) for i in (x, y, a)):
             raise NotImplementedError("Only dense tensor types are supported")
 

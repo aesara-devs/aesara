@@ -244,7 +244,6 @@ def test_no_more_dotting():
 
 
 def test_mode_apply():
-
     assert configdefaults._filter_mode("DebugMode") == "DebugMode"
 
     with pytest.raises(ValueError, match="Expected one of"):

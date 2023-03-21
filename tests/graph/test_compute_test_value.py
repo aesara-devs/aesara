@@ -188,7 +188,6 @@ class TestComputeTestValue:
             dot(x, y)
 
     def test_incorrect_type(self):
-
         x = vector("x")
         with pytest.raises(TypeError):
             # Incorrect shape for test value

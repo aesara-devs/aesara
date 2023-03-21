@@ -57,7 +57,6 @@ def assert_shape_argument_jax_compatible(shape):
 
 @jax_funcify.register(Reshape)
 def jax_funcify_Reshape(op, node, **kwargs):
-
     shape = node.inputs[1]
 
     if isinstance(shape, Constant):

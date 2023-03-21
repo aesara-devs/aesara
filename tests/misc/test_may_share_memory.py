@@ -47,7 +47,6 @@ def may_share_memory_core(a, b):
         (ta, b, False),
         (a, tb, False),
     ]:
-
         assert may_share_memory(a_, b_, False) == rep
         assert may_share_memory(b_, a_, False) == rep
 
@@ -112,7 +111,6 @@ if scipy_imported:
             (b.indices, a, False),
             (as_ar(b.shape), a, False),
         ]:
-
             assert may_share_memory(a_, b_) == rep
             assert may_share_memory(b_, a_) == rep
 

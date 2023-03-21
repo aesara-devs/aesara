@@ -659,7 +659,6 @@ def test_ViewOp(v):
     ],
 )
 def test_perform(inputs, op, exc):
-
     g = op()(*inputs)
 
     if isinstance(g, list):
@@ -965,7 +964,6 @@ y = np.array(
     ],
 )
 def test_IfElse(inputs, cond_fn, true_vals, false_vals):
-
     out = ifelse(cond_fn(*inputs), true_vals, false_vals)
 
     if not isinstance(out, list):

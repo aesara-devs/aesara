@@ -66,7 +66,6 @@ def apply_local_rewrite_to_rv(
 
 
 def test_inplace_rewrites():
-
     out = normal(0, 1)
     out.owner.inputs[0].default_update = out.owner.outputs[0]
 
@@ -348,7 +347,6 @@ def test_local_rv_size_lift(dist_op, dist_params, size):
 )
 @config.change_flags(compute_test_value_opt="raise", compute_test_value="raise")
 def test_DimShuffle_lift(ds_order, lifted, dist_op, dist_params, size, rtol):
-
     rng = shared(np.random.default_rng(1233532), borrow=False)
 
     new_out, f_inputs, dist_st, f_rewritten = apply_local_rewrite_to_rv(
@@ -614,7 +612,6 @@ def test_Dimshuffle_lift_restrictions():
     ],
 )
 def test_Dimshuffle_lift_rename(ds_order, lifted, dist_op, dist_params, size, rtol):
-
     rng = shared(np.random.default_rng(1233532), borrow=False)
 
     new_out, *_ = apply_local_rewrite_to_rv(

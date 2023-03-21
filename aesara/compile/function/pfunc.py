@@ -176,7 +176,7 @@ def rebuild_collect_shared(
     # Fill update_d and update_expr with provided updates
     if updates is None:
         updates = []
-    for (store_into, update_val) in iter_over_pairs(updates):
+    for store_into, update_val in iter_over_pairs(updates):
         if not isinstance(store_into, SharedVariable):
             raise TypeError("update target must be a SharedVariable", store_into)
         if store_into in update_d:
@@ -471,7 +471,6 @@ def construct_pfunc_ins_and_outs(
             )
 
     if not fgraph:
-
         # Extend the outputs with the updates on input variables so they are
         # also cloned
         additional_outputs = [i.update for i in inputs if i.update]

@@ -23,7 +23,6 @@ from aesara.tensor.shape import Unbroadcast
 
 @_numba_funcify.register(AllocEmpty)
 def numba_funcify_AllocEmpty(op, node, **kwargs):
-
     global_env = {
         "np": np,
         "to_scalar": numba_basic.to_scalar,
@@ -61,7 +60,6 @@ def allocempty({", ".join(shape_var_names)}):
 
 @_numba_funcify.register(Alloc)
 def numba_funcify_Alloc(op, node, **kwargs):
-
     global_env = {"np": np, "to_scalar": numba_basic.to_scalar}
 
     unique_names = unique_name_generator(

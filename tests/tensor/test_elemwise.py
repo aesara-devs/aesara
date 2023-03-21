@@ -100,7 +100,6 @@ class TestDimShuffle(unittest_tools.InferShapeTester):
         self.with_linker(OpWiseCLinker())
 
     def test_infer_shape(self):
-
         for xsh, shuffle in [
             ((2, 3), (1, "x", 0)),
             ((1, 2, 3), (1, 2)),
@@ -730,7 +729,6 @@ class TestElemwise(unittest_tools.InferShapeTester):
         dx, dy = aesara.grad(z, [x, y])
 
     def test_infer_shape(self):
-
         for s_left, s_right in [
             ((5, 6), (5, 6)),
             ((5, 6), (5, 1)),

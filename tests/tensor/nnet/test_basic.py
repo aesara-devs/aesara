@@ -517,7 +517,6 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
             at_sum(-log(softmax(x))[at.arange(y.shape[0]), y]),
         ]
         for expr in expressions:
-
             fgraph = FunctionGraph([x, y], [expr])
             optdb.query(OPT_FAST_RUN).rewrite(fgraph)
 
@@ -570,7 +569,6 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         ]
 
         for expr in mean_expressions:
-
             fgraph = FunctionGraph([x, y], [expr])
             optdb.query(OPT_FAST_RUN).rewrite(fgraph)
 
@@ -598,7 +596,6 @@ class TestCrossEntropyCategorical1Hot(utt.InferShapeTester):
         ]
 
         for expr in mean_bias_expressions:
-
             fgraph = FunctionGraph([x, b, y], [expr])
             optdb.query(OPT_FAST_RUN).rewrite(fgraph)
 
@@ -819,7 +816,6 @@ def test_asymptotic_32():
         xval = np.zeros((5, 5), dtype=dtype)
         x2val = np.zeros(5, dtype=xval.dtype)
         for i in range(100):
-
             cval, gxval = f(xval, np.arange(5), x2val)
             xval += 100000.3 * gxval
 
@@ -1145,7 +1141,6 @@ def test_binary_crossentropy_reshape():
         binary_crossentropy(sigmoid(a.reshape((-1, 1))), 1).sum(),
         binary_crossentropy(sigmoid(a).reshape((-1, 1)), 1).sum(),
     ):
-
         ga = aesara.grad(c, a)
         # This only works when "specialize" options are included
         mode = aesara.compile.get_default_mode().including("fast_run")

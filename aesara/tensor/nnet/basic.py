@@ -573,7 +573,6 @@ class CrossentropySoftmaxArgmax1HotWithBias(COp):
         return [nll_shp, sm_shp, am_shp]
 
     def connection_pattern(self, node):
-
         return [
             [True, True, True],  # x
             [True, True, True],  # b
@@ -921,7 +920,6 @@ def crossentropy_softmax_max_and_argmax_1hot(x, y_idx, **kwargs):
 
 
 class CrossentropyCategorical1HotGrad(Op):
-
     __props__ = ()
 
     def make_node(self, g_y, coding_dist, true_one_of_n):
@@ -1655,7 +1653,6 @@ def categorical_crossentropy(coding_dist, true_dist):
 
 
 class Prepend_scalar_constant_to_each_row(Op):
-
     __props__ = ()
 
     def __init__(self, val=0):
@@ -1708,7 +1705,6 @@ class Prepend_scalar_constant_to_each_row(Op):
 
 
 class Prepend_scalar_to_each_row(Op):
-
     __props__ = ()
 
     def make_node(self, val, mat):
@@ -1952,7 +1948,6 @@ def h_softmax(
     class_probs = softmax(dot(x, W1) + b1)
 
     if target is None:  # Computes the probabilities of all the outputs
-
         # Second softmax that computes the output probabilities
         activations = tensordot(x, W2, (1, 1)) + b2
         output_probs = softmax(activations.reshape((-1, n_outputs_per_class)))
@@ -1965,7 +1960,6 @@ def h_softmax(
         output_probs = output_probs[:, :n_outputs]
 
     else:  # Computes the probabilities of the outputs specified by the targets
-
         target = target.flatten()
 
         # Classes to which belong each target

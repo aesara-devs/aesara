@@ -60,7 +60,6 @@ def test_none_Constant():
 
 
 def test_as_symbolic():
-
     res = as_symbolic(None)
     assert res is NoneConst
 

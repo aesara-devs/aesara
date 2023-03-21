@@ -87,7 +87,6 @@ def double(name):
 
 
 class MyOp(COp):
-
     __props__ = ("nin", "name")
 
     def __init__(self, nin, name):

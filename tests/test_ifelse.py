@@ -326,7 +326,6 @@ class TestIfelse(utt.OptimizationTestMixin):
             ifelse(cond, y, x)
 
     def test_sparse_conversions(self):
-
         from aesara.sparse import matrix
 
         rng = np.random.default_rng(utt.fetch_seed())
@@ -543,7 +542,6 @@ class TestIfelse(utt.OptimizationTestMixin):
         ],
     )
     def test_static_branch_shapes(self, x_shape, y_shape, x_val, y_val, exp_shape):
-
         x = at.tensor(dtype=self.dtype, shape=x_shape, name="x")
         y = at.tensor(dtype=self.dtype, shape=y_shape, name="y")
         c = iscalar("c")
@@ -579,7 +577,6 @@ class IfElseIfElseIf(Op):
         return Apply(self, [c1, t1, c2, t2, c3, t3, f3], [t1.type()])
 
     def make_thunk(self, node, storage_map, compute_map, no_recycling, impl):
-
         input_computed = [compute_map[v] for v in node.inputs]
         output_computed = [compute_map[v] for v in node.outputs]
         input_registers = [storage_map[v] for v in node.inputs]

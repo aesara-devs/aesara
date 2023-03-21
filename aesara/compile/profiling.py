@@ -65,7 +65,6 @@ def _atexit_print_fn():
             destination_file = config.profiling__destination
 
         with extended_open(destination_file, mode="w"):
-
             # Reverse sort in the order of compile+exec time
             for ps in sorted(
                 _atexit_print_list, key=lambda a: a.compile_time + a.fct_call_time
@@ -358,7 +357,7 @@ class ProfileStats:
         """
         # timing is stored by node, we compute timing by class on demand
         rval = {}
-        for (fgraph, node) in self.apply_callcount:
+        for fgraph, node in self.apply_callcount:
             typ = type(node.op)
             if self.apply_cimpl[node]:
                 impl = "C "
@@ -401,7 +400,7 @@ class ProfileStats:
 
         """
         rval = {}
-        for (fgraph, node) in self.apply_time:
+        for fgraph, node in self.apply_time:
             if node not in rval:
                 self.fill_node_total_time(fgraph, node, rval)
         return rval
@@ -437,7 +436,7 @@ class ProfileStats:
         """
         # timing is stored by node, we compute timing by Op on demand
         rval = {}
-        for (fgraph, node) in self.apply_callcount:
+        for fgraph, node in self.apply_callcount:
             if self.apply_cimpl[node]:
                 rval[node.op] = "C "
             else:
@@ -711,7 +710,7 @@ class ProfileStats:
 
         atimes.sort(reverse=True, key=lambda t: (t[1], t[3]))
         tot = 0
-        for (f, t, a, nd_id, nb_call) in atimes[:N]:
+        for f, t, a, nd_id, nb_call in atimes[:N]:
             tot += t
             ftot = tot * 100 / local_time
             if nb_call == 0:
@@ -840,7 +839,7 @@ class ProfileStats:
         var_mem = {}  # variable->size in bytes; don't include input variables
         node_mem = {}  # (fgraph, node)->total outputs size (only dense outputs)
 
-        for (fgraph, node) in self.apply_callcount:
+        for fgraph, node in self.apply_callcount:
             fct_memory.setdefault(fgraph, {})
             fct_memory[fgraph].setdefault(node, [])
             fct_shapes.setdefault(fgraph, {})
@@ -1611,7 +1610,7 @@ class ProfileStats:
             printed_tip = True
 
         # tip 4
-        for (fgraph, a) in self.apply_time:
+        for fgraph, a in self.apply_time:
             node = a
             if isinstance(node.op, Dot) and all(
                 len(i.type.broadcastable) == 2 for i in node.inputs
@@ -1628,7 +1627,7 @@ class ProfileStats:
                 printed_tip = True
 
         # tip 5
-        for (fgraph, a) in self.apply_time:
+        for fgraph, a in self.apply_time:
             node = a
             if isinstance(node.op, RandomVariable):
                 printed_tip = True
@@ -1642,7 +1641,7 @@ class ProfileStats:
                 break
 
         # tip 6
-        for (fgraph, a) in self.apply_time:
+        for fgraph, a in self.apply_time:
             node = a
             if isinstance(node.op, Dot) and len({i.dtype for i in node.inputs}) != 1:
                 print(

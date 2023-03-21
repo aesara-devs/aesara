@@ -49,7 +49,6 @@ def test_CheckAndRaise_equal():
 
 
 def test_CheckAndRaise_validation():
-
     with pytest.raises(ValueError):
         CheckAndRaise(str)
 
@@ -144,7 +143,6 @@ class TestCheckAndRaiseInferShape(utt.InferShapeTester):
         super().setup_method()
 
     def test_infer_shape(self):
-
         adscal = at.dscalar()
         bdscal = at.dscalar()
         adscal_val = np.random.random()

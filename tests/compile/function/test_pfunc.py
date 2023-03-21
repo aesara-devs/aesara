@@ -79,7 +79,6 @@ class TestPfunc:
         assert f2(4) == 32
 
     def test_shared(self):
-
         # CHECK: two functions (f1 and f2) can share w
         w = shared(np.random.random((2, 2)), "w")
         wval = w.get_value(borrow=False)
@@ -138,7 +137,6 @@ class TestPfunc:
         assert f() == 1
 
     def test_param_strict(self):
-
         a = dvector()
         b = shared(7)
         out = a + b
@@ -808,7 +806,6 @@ class TestAliasingRules:
         assert np.allclose(vals.todense(), bogus_vals.todense())
 
     def test_input_aliasing_affecting_inplace_operations(self):
-
         # Note: to trigger this bug with aesara rev 4586:2bc6fc7f218b,
         #        you need to make in inputs mutable (so that inplace
         #        operations are used) and to break the elemwise composition
@@ -862,7 +859,6 @@ class TestAliasingRules:
         assert np.allclose(vals, bogus_vals)
 
     def test_partial_input_aliasing_affecting_inplace_operations(self):
-
         # Note: to trigger this bug with aesara rev 4586:2bc6fc7f218b,
         #        you need to make in inputs mutable ( so that inplace
         #        operations are used) and to break the elemwise composition
@@ -909,7 +905,6 @@ class TestAliasingRules:
         assert np.allclose(vals, bogus_vals)
 
     def test_potential_output_aliasing_induced_by_updates(self):
-
         A = self.shared(np.zeros((2, 2)))
         B = self.shared(np.zeros((2, 2)))
         C = np.zeros((2, 2))
@@ -1066,7 +1061,6 @@ class TestRebuildStrict:
 
 
 def test_rebuild_collect_shared_validation():
-
     x, y = ivectors("x", "y")
     z = x * y
 

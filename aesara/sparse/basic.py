@@ -593,7 +593,6 @@ class CSMProperties(Op):
         out[3][0] = _asarray(csm.shape, dtype="int32")
 
     def grad(self, inputs, g):
-
         # g[1:] is all integers, so their Jacobian in this op
         # is 0. We thus don't need to worry about what their values
         # are.
@@ -1137,7 +1136,6 @@ get_item_list = GetItemList()
 
 
 class GetItemListGrad(Op):
-
     __props__ = ()
 
     def infer_shape(self, fgraph, node, shapes):
@@ -1229,7 +1227,6 @@ get_item_2lists = GetItem2Lists()
 
 
 class GetItem2ListsGrad(Op):
-
     __props__ = ()
 
     def infer_shape(self, fgraph, node, shapes):
@@ -1435,7 +1432,6 @@ class GetItemScalar(Op):
         input_op = [x]
 
         for ind in index:
-
             if isinstance(ind, slice):
                 raise Exception("GetItemScalar called with a slice as index!")
 
@@ -2518,14 +2514,12 @@ def mul(x, y):
 
     assert x_is_sparse_variable or y_is_sparse_variable
     if x_is_sparse_variable and y_is_sparse_variable:
-
         # mul_s_s is not implemented if the types differ
         if y.dtype == "float64" and x.dtype == "float32":
             x = x.astype("float64")
 
         return mul_s_s(x, y)
     elif x_is_sparse_variable and not y_is_sparse_variable:
-
         # mul is unimplemented if the dtypes differ
         if y.dtype == "float64" and x.dtype == "float32":
             x = x.astype("float64")
@@ -2653,7 +2647,6 @@ def __ComparisonSwitch(SS, SD, DS):
     """
 
     def helper(x, y):
-
         scipy_ver = [int(n) for n in scipy.__version__.split(".")[:2]]
 
         assert scipy_ver >= [0, 13]
@@ -3290,7 +3283,6 @@ conj = conjugate
 
 
 class TrueDot(Op):
-
     # TODO
     # Simplify code by splitting into DotSS and DotSD.
 
@@ -3433,7 +3425,6 @@ class StructuredDot(Op):
     __props__ = ()
 
     def make_node(self, a, b):
-
         a = as_sparse_variable(a)
         assert a.format in ("csr", "csc", "bsr")
 
@@ -3607,7 +3598,6 @@ class StructuredDotGradCSC(COp):
         return (1,)
 
     def c_code(self, node, name, inputs, outputs, sub):
-
         (_indices, _indptr, _d, _g) = inputs
         (_zout,) = outputs
         if node.inputs[2].type.dtype in ("complex64", "complex128"):
@@ -3743,7 +3733,6 @@ class StructuredDotGradCSR(COp):
         return (1,)
 
     def c_code(self, node, name, inputs, outputs, sub):
-
         (_indices, _indptr, _d, _g) = inputs
         (_zout,) = outputs
         if node.inputs[2].type.dtype in ("complex64", "complex128"):
@@ -3837,7 +3826,6 @@ sdg_csr = StructuredDotGradCSR()
 
 def structured_dot_grad(sparse_A, dense_B, ga):
     if sparse_A.type.format in ("csc", "csr"):
-
         if sparse_A.type.format == "csc":
             sdgcsx = sdg_csc
             CSx = CSC
@@ -4246,7 +4234,6 @@ class ConstructSparseFromList(Op):
         return self.make_node(eval_points[0], eval_points[1], *inputs[2:]).outputs
 
     def connection_pattern(self, node):
-
         rval = [[True], [True], [False]]
         return rval
 

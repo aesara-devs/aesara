@@ -305,13 +305,11 @@ class AttemptManyTimes:
         self.n_req_successes = n_req_successes
 
     def __call__(self, fct):
-
         # Wrap fct in a function that will attempt to run it multiple
         # times and return the result if the test passes enough times
         # of propagate the raised exception if it doesn't.
         @wraps(fct)
         def attempt_multiple_times(*args, **kwargs):
-
             # Keep a copy of the current seed for unittests so that we can use
             # a different seed for every run of the decorated test and restore
             # the original after

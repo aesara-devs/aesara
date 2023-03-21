@@ -567,7 +567,6 @@ def _check_viewmap(fgraph, node, storage_map):
     """
 
     for oi, onode in enumerate(node.outputs):
-
         good_alias, bad_alias = {}, {}
         outstorage = storage_map[onode][0]
 
@@ -590,13 +589,11 @@ def _check_viewmap(fgraph, node, storage_map):
             if hasattr(inode.type, "may_share_memory") and inode.type.may_share_memory(
                 outstorage, in_storage
             ):
-
                 nodeid = id(inode)
                 bad_alias[nodeid] = ii
 
                 # check that the aliasing was declared in [view|destroy]_map
                 if [ii] == view_map.get(oi, None) or [ii] == destroy_map.get(oi, None):
-
                     good_alias[nodeid] = bad_alias.pop(nodeid)
 
         # TODO: make sure this is correct
@@ -1010,7 +1007,7 @@ def _check_preallocated_output(
                 aliased_inputs.add(r)
 
         _logger.debug("starting preallocated output checking")
-        for (name, out_map) in _get_preallocated_maps(
+        for name, out_map in _get_preallocated_maps(
             node,
             thunk,
             prealloc_modes,
@@ -1180,7 +1177,6 @@ class _VariableEquivalenceTracker(Feature):
     """
 
     def on_attach(self, fgraph):
-
         if hasattr(fgraph, "_eq_tracker_equiv"):
             raise AlreadyThere()
 
@@ -1675,7 +1671,6 @@ class _Linker(LocalLinker):
                         sys.stdout.flush()
 
                     if thunk_c:
-
                         clobber = True
                         if thunk_py:
                             dmap = node.op.destroy_map

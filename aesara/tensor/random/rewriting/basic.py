@@ -184,7 +184,6 @@ def local_dimshuffle_rv_lift(fgraph, node):
     )
 
     if ds_in_ind_space or (not ds_ind_new_dims and not ds_reps_new_dims):
-
         # Update the `size` array to reflect the `DimShuffle`d dimensions,
         # since the trailing dimensions in `size` represent the independent
         # variates dimensions (for univariate distributions, at least)
