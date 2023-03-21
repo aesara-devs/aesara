@@ -49,7 +49,6 @@ try:
     if version != getattr(scan_perform, "_version", None):
         raise ImportError("Scan code version mismatch")
 except ImportError:
-
     dirname = "scan_perform"
     loc = os.path.join(config.compiledir, dirname)
 

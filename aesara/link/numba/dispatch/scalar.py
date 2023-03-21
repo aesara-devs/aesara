@@ -160,7 +160,6 @@ def {binary_op_name}({input_signature}):
 
 @_numba_funcify.register(Add)
 def numba_funcify_Add(op, node, **kwargs):
-
     signature = create_numba_signature(node, force_scalar=True)
 
     nary_add_fn = binary_to_nary_func(node.inputs, "add", "+")
@@ -172,7 +171,6 @@ def numba_funcify_Add(op, node, **kwargs):
 
 @_numba_funcify.register(Mul)
 def numba_funcify_Mul(op, node, **kwargs):
-
     signature = create_numba_signature(node, force_scalar=True)
 
     nary_mul_fn = binary_to_nary_func(node.inputs, "mul", "*")
@@ -184,7 +182,6 @@ def numba_funcify_Mul(op, node, **kwargs):
 
 @_numba_funcify.register(Cast)
 def numba_funcify_Cast(op, node, **kwargs):
-
     dtype = np.dtype(op.o_type.dtype)
 
     @numba_basic.numba_njit(inline="always")

@@ -134,7 +134,6 @@ def test_ScanArgs():
 
 
 def test_ScanArgs_basics_mit_sot():
-
     srng = at.random.RandomStream()
 
     N_tt = at.iscalar("N")
@@ -200,7 +199,6 @@ def test_ScanArgs_basics_mit_sot():
 
 
 def test_ScanArgs_remove_inner_input():
-
     hmm_model_env = create_test_hmm()
     scan_args = hmm_model_env["scan_args"]
     hmm_model_env["scan_op"]
@@ -271,7 +269,6 @@ def test_ScanArgs_remove_inner_input():
 
 
 def test_ScanArgs_remove_outer_input():
-
     hmm_model_env = create_test_hmm()
     scan_args = hmm_model_env["scan_args"]
     hmm_model_env["scan_op"]
@@ -318,7 +315,6 @@ def test_ScanArgs_remove_outer_input():
 
 
 def test_ScanArgs_remove_inner_output():
-
     hmm_model_env = create_test_hmm()
     scan_args = hmm_model_env["scan_args"]
     hmm_model_env["scan_op"]
@@ -357,7 +353,6 @@ def test_ScanArgs_remove_inner_output():
 
 
 def test_ScanArgs_remove_outer_output():
-
     hmm_model_env = create_test_hmm()
     scan_args = hmm_model_env["scan_args"]
     hmm_model_env["scan_op"]
@@ -395,7 +390,6 @@ def test_ScanArgs_remove_outer_output():
 
 
 def test_ScanArgs_remove_nonseq_outer_input():
-
     hmm_model_env = create_test_hmm()
     scan_args = hmm_model_env["scan_args"]
     hmm_model_env["scan_op"]
@@ -433,7 +427,6 @@ def test_ScanArgs_remove_nonseq_outer_input():
 
 
 def test_ScanArgs_remove_nonseq_inner_input():
-
     hmm_model_env = create_test_hmm()
     scan_args = hmm_model_env["scan_args"]
     hmm_model_env["scan_op"]
@@ -470,7 +463,6 @@ def test_ScanArgs_remove_nonseq_inner_input():
 
 
 def test_ScanArgs_remove_shared_inner_output():
-
     hmm_model_env = create_test_hmm()
     scan_args = hmm_model_env["scan_args"]
     hmm_model_env["scan_op"]

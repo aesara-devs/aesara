@@ -164,7 +164,6 @@ def deprecated(message: str = ""):
                 traceback.format_stack(inspect.currentframe())
             )
             if current_call_source not in function_wrapper.last_call_source:
-
                 if not message:
                     message = f"Function {func.__name__} is deprecated."
 

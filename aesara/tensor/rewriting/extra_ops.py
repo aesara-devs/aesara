@@ -167,7 +167,6 @@ def local_Unique_second(fgraph, node):
 @register_canonicalize
 @node_rewriter([BroadcastTo])
 def local_remove_scalar_BroadcastTo(fgraph, node):
-
     bcast_shape = node.inputs[1:]
 
     if not bcast_shape:

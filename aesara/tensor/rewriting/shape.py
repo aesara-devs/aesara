@@ -510,7 +510,6 @@ class ShapeFeature(Feature):
         return as_tensor_variable(r_shape, ndim=1, dtype="int64")
 
     def on_attach(self, fgraph):
-
         if hasattr(fgraph, "shape_feature"):
             raise AlreadyThere("This FunctionGraph already has a ShapeFeature")
 
@@ -611,7 +610,7 @@ class ShapeFeature(Feature):
         # replace the shape_i of r with the shape of new_r.  Say that
         # r is *scheduled*.
         # At that point, node is no longer a client of r, but of new_r
-        for (shpnode, idx) in fgraph.clients[r] + [(node, i)]:
+        for shpnode, idx in fgraph.clients[r] + [(node, i)]:
             if isinstance(getattr(shpnode, "op", None), Shape_i):
                 idx = shpnode.op.i
                 repl = self.shape_of[new_r][idx]

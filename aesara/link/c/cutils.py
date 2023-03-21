@@ -112,7 +112,6 @@ try:
                 # and when we receive the lock
                 from cutils_ext.cutils_ext import *  # noqa
             except ImportError:
-
                 compile_cutils()
                 from cutils_ext.cutils_ext import *  # noqa
 finally:

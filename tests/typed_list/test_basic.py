@@ -55,7 +55,6 @@ def random_lil(shape, dtype, nnz):
 
 class TestGetItem:
     def test_sanity_check_slice(self):
-
         mySymbolicMatricesList = TypedListType(
             TensorType(aesara.config.floatX, shape=(None, None))
         )()
@@ -73,7 +72,6 @@ class TestGetItem:
         assert np.array_equal(f([x], slice(0, 1, 1)), [x])
 
     def test_sanity_check_single(self):
-
         mySymbolicMatricesList = TypedListType(
             TensorType(aesara.config.floatX, shape=(None, None))
         )()

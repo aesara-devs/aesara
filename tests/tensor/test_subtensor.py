@@ -1443,7 +1443,6 @@ class TestIncSubtensor:
         sl2 = slice(sl2_end)
 
         for do_set in [False, True]:
-
             if do_set:
                 resut = set_subtensor(a[sl1, sl2], increment)
             else:
@@ -1516,7 +1515,6 @@ class TestIncSubtensor:
         val_sl2_end = 2
 
         for method in [set_subtensor, inc_subtensor]:
-
             resut = method(a[sl1, sl3, sl2], increment)
             f = aesara.function([a, increment, sl2_end], resut)
 

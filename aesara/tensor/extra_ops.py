@@ -693,7 +693,6 @@ class Repeat(Op):
         z[0] = np.repeat(x, repeats=repeats, axis=self.axis)
 
     def connection_pattern(self, node):
-
         return [[True], [False]]
 
     def grad(self, inputs, gout):

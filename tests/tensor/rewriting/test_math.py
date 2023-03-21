@@ -843,7 +843,6 @@ class TestAlgebraicCanonizer:
                 ),
             ]
         ):
-
             if isinstance(out_dtype, dict):
                 out_dtype = out_dtype[config.cast_policy]
             f = function(list(sym_inputs), g, mode=mode)
@@ -907,7 +906,7 @@ class TestAlgebraicCanonizer:
         mode = mode.__class__(linker=mode.linker, optimizer=rewrites)
         # test fail!
         # test x / y / z -> x / (y * z)
-        for (g, sym_inputs, val_inputs, out_dtype) in [
+        for g, sym_inputs, val_inputs, out_dtype in [
             ((dx / dy) / dz, [dx, dy, dz], [dxv, dyv, dzv], "float64"),
             ((fx / fy) / fz, [fx, fy, fz], [fxv, fyv, fzv], "float32"),
         ]:
@@ -922,7 +921,7 @@ class TestAlgebraicCanonizer:
             assert out_dtype == out.dtype
 
         # test x / (y / z) -> (x * z) / y
-        for (g, sym_inputs, val_inputs, out_dtype) in [
+        for g, sym_inputs, val_inputs, out_dtype in [
             (dx / (dy / dz), [dx, dy, dz], [dxv, dyv, dzv], "float64"),
             (fx / (fy / fz), [fx, fy, fz], [fxv, fyv, fzv], "float32"),
         ]:
@@ -1091,6 +1090,7 @@ class TestFusion:
         verify that the elemwise fusion work
         Test with and without DimShuffle
         """
+
         # TODO: disable the canonizer?
         def my_init(shp, dtype="float64", num=0):
             ret = np.zeros(shp, dtype=dtype) + num
@@ -1779,7 +1779,6 @@ class TestFusion:
         return times
 
     def test_add_mul_fusion_inplace(self):
-
         rewrites_query = RewriteDatabaseQuery(
             include=[
                 "local_elemwise_fusion",
@@ -3104,7 +3103,6 @@ class TestLocalErfc:
         assert f.maker.fgraph.outputs[0].dtype == config.floatX
 
     def speed_local_log_erfc(self):
-
         val = np.random.random((1e6))
         x = vector()
         mode = get_mode("FAST_RUN")

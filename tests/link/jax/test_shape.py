@@ -71,7 +71,6 @@ def test_jax_Reshape_shape_graph_input():
 
 
 def test_jax_compile_ops():
-
     x = DeepCopyOp()(at.as_tensor_variable(1.1))
     x_fg = FunctionGraph([], [x])
 

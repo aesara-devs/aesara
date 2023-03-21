@@ -720,7 +720,6 @@ def scan(
         # they would always had to shape_padleft the initial state ..
         # which is ugly
         if init_out.get("taps", None) == [-1]:
-
             actual_arg = init_out["initial"]
             if not isinstance(actual_arg, Variable):
                 actual_arg = at.as_tensor_variable(actual_arg)
@@ -764,7 +763,6 @@ def scan(
             n_sit_sot += 1
 
         elif init_out.get("taps", None):
-
             if np.any(np.array(init_out.get("taps", [])) > 0):
                 # Make sure we do not have requests for future values of a
                 # sequence we can not provide such values

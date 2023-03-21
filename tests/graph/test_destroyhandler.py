@@ -487,7 +487,6 @@ def test_pickle():
 
 
 def test_fast_inplace_check():
-
     x, y = MyVariable("x"), MyVariable("y")
     e = add_in_place(x, y)
     fg = FunctionGraph(outputs=[e], clone=False)

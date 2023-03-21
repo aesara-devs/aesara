@@ -129,7 +129,6 @@ cholesky = Cholesky()
 
 
 class CholeskySolve(Op):
-
     __props__ = ("lower", "check_finite")
 
     def __init__(

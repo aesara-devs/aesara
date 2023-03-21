@@ -457,7 +457,6 @@ def test_debugprint_mitsot():
 
 @config.change_flags(floatX="float64")
 def test_debugprint_mitmot():
-
     k = iscalar("k")
     A = dvector("A")
 
@@ -581,7 +580,6 @@ def test_debugprint_mitmot():
 
 
 def test_debugprint_compiled_fn():
-
     M = at.tensor(np.float64, shape=(20000, 2, 2))
     one = at.as_tensor(1, dtype=np.int64)
     zero = at.as_tensor(0, dtype=np.int64)

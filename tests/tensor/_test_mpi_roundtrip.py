@@ -54,7 +54,6 @@ with config.change_flags(compute_test_value="off"):
         stdout.write(str(same))
 
     if rank == 1:
-
         y = recv(shape, dtype, 0, 11)
         z = y * 2
         send_request = send(z, 0, 12)

@@ -196,7 +196,6 @@ def test_fgraph_to_python_constant_inputs():
 
 
 def test_unique_name_generator():
-
     unique_names = unique_name_generator(["blah"], suffix_sep="_")
 
     x = vector("blah")

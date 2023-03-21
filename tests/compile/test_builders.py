@@ -633,7 +633,6 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         assert np.array_equal(z_res_next, exp_res_next)
 
     def test_default_updates_inlined(self):
-
         srng = at.random.RandomStream(1290984)
         x = srng.gamma(0.5, 0.5, name="x")
 

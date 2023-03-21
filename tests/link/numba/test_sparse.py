@@ -85,7 +85,6 @@ def test_sparse_copy():
 
 
 def test_sparse_objmode():
-
     x = SparseTensorType("csc", dtype=config.floatX)()
     y = SparseTensorType("csc", dtype=config.floatX)()
 

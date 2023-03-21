@@ -184,7 +184,6 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
                 f()
 
     def test_neibs_wrap_centered_step_manual(self):
-
         expected1 = [
             [24, 20, 21, 4, 0, 1, 9, 5, 6],
             [21, 22, 23, 1, 2, 3, 6, 7, 8],
@@ -245,9 +244,7 @@ class TestImages2Neibs(unittest_tools.InferShapeTester):
                 [(1, 1, 1045, 5), (3, 3), (3, 3), None],
             ]
         ):
-
             for dtype in self.dtypes:
-
                 images = shared(
                     np.asarray(np.arange(np.prod(shape)).reshape(shape), dtype=dtype)
                 )

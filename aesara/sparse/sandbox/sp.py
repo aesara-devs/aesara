@@ -151,13 +151,11 @@ class ConvolutionIndices(Op):
         for fmapi in range(inshp[0]):  # loop over input features
             # loop over number of kernels (nkern=1 for weight sharing)
             for n in range(nkern):
-
                 # FOR EACH OUTPUT PIXEL...
                 # loop over output image height
                 for oy in np.arange(lbound[0], ubound[0], dy):
                     # loop over output image width
                     for ox in np.arange(lbound[1], ubound[1], dx):
-
                         # kern[l] is filter value to apply at (oj,oi)
                         # for (iy,ix)
                         l = 0  # noqa: E741
@@ -165,14 +163,12 @@ class ConvolutionIndices(Op):
                         # ... ITERATE OVER INPUT UNITS IN RECEPTIVE FIELD
                         for ky in oy + np.arange(kshp[0]):
                             for kx in ox + np.arange(kshp[1]):
-
                                 # verify if we are still within image
                                 # boundaries. Equivalent to
                                 # zero-padding of the input image
                                 if all((ky, kx) >= topleft) and all(
                                     (ky, kx) < botright
                                 ):
-
                                     # convert to "valid" input space
                                     # coords used to determine column
                                     # index to write to in sparse mat

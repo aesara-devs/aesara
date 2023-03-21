@@ -15,7 +15,6 @@ class TypedListType(CType):
     """
 
     def __init__(self, ttype, depth=0):
-
         if depth < 0:
             raise ValueError("Please specify a depth superior or" "equal to 0")
         if not isinstance(ttype, Type):
@@ -129,7 +128,6 @@ class TypedListType(CType):
         )
 
     def c_sync(self, name, sub):
-
         return """
         Py_XDECREF(py_%(name)s);
         py_%(name)s = (PyObject*)(%(name)s);

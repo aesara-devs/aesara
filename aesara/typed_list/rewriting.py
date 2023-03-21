@@ -9,7 +9,6 @@ def typed_list_inplace_rewrite(fgraph, node):
         isinstance(node.op, (Append, Extend, Insert, Reverse, Remove))
         and not node.op.inplace
     ):
-
         new_op = node.op.__class__(inplace=True)
         new_node = new_op(*node.inputs)
         return [new_node]

@@ -38,7 +38,6 @@ def test_map():
 
 
 def test_reduce_memory_consumption():
-
     x = shared(np.asarray(np.random.uniform(size=(10,)), dtype=config.floatX))
     o, _ = at_reduce(
         lambda v, acc: acc + v,
@@ -104,7 +103,6 @@ def test_foldl_memory_consumption():
 
 
 def test_foldr_memory_consumption():
-
     x = shared(np.asarray(np.random.uniform(size=(10,)), dtype=config.floatX))
     o, _ = foldr(
         lambda v, acc: acc + v,

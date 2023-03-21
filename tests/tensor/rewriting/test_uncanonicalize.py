@@ -122,7 +122,6 @@ class TestMinMax:
 
 
 def test_local_alloc_dimshuffle():
-
     alloc_dimshuffle = out2in(local_alloc_dimshuffle)
 
     x = vector("x")
@@ -139,7 +138,6 @@ def test_local_alloc_dimshuffle():
 
 
 def test_local_reshape_dimshuffle():
-
     reshape_dimshuffle = out2in(local_reshape_dimshuffle)
 
     x = matrix("x")
@@ -155,7 +153,6 @@ def test_local_reshape_dimshuffle():
 
 
 def test_local_dimshuffle_alloc():
-
     reshape_dimshuffle = out2in(local_dimshuffle_alloc)
 
     x = vector("x")
@@ -176,7 +173,6 @@ def test_local_dimshuffle_alloc():
 
 
 def test_local_dimshuffle_subtensor():
-
     dimshuffle_subtensor = out2in(local_dimshuffle_subtensor)
 
     x = dtensor4("x")

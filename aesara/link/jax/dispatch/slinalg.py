@@ -16,7 +16,6 @@ def jax_funcify_Cholesky(op, **kwargs):
 
 @jax_funcify.register(Solve)
 def jax_funcify_Solve(op, **kwargs):
-
     if op.assume_a != "gen" and op.lower:
         lower = True
     else:

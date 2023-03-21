@@ -425,7 +425,6 @@ def create_axis_apply_fn(fn, axis, ndim, dtype):
 
 @_numba_funcify.register(Elemwise)
 def numba_funcify_Elemwise(op, node, **kwargs):
-
     scalar_op_fn = numba_funcify(op.scalar_op, node=node, inline="always", **kwargs)
     elemwise_fn = create_vectorize_func(scalar_op_fn, node, use_signature=False)
     elemwise_fn_name = elemwise_fn.__name__
@@ -593,7 +592,6 @@ def numba_funcify_DimShuffle(op, **kwargs):
 
 @_numba_funcify.register(Softmax)
 def numba_funcify_Softmax(op, node, **kwargs):
-
     x_at = node.inputs[0]
     x_dtype = x_at.type.numpy_dtype
     x_dtype = numba.np.numpy_support.from_dtype(x_dtype)
@@ -630,7 +628,6 @@ def numba_funcify_Softmax(op, node, **kwargs):
 
 @_numba_funcify.register(SoftmaxGrad)
 def numba_funcify_SoftmaxGrad(op, node, **kwargs):
-
     sm_at = node.inputs[1]
     sm_dtype = sm_at.type.numpy_dtype
     sm_dtype = numba.np.numpy_support.from_dtype(sm_dtype)
@@ -661,7 +658,6 @@ def numba_funcify_SoftmaxGrad(op, node, **kwargs):
 
 @_numba_funcify.register(LogSoftmax)
 def numba_funcify_LogSoftmax(op, node, **kwargs):
-
     x_at = node.inputs[0]
     x_dtype = x_at.type.numpy_dtype
     x_dtype = numba.np.numpy_support.from_dtype(x_dtype)
@@ -708,7 +704,6 @@ def numba_funcify_MaxAndArgmax(op, node, **kwargs):
             return x, 0
 
     else:
-
         axes = tuple(int(ax) for ax in axis)
 
         # NumPy does not support multiple axes for argmax; this is a

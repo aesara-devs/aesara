@@ -698,7 +698,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
             ((2, 2, 3), (2, 1, 3, 3, 4)),
         )
 
-        for (maxpoolshp, inputsize) in examples:
+        for maxpoolshp, inputsize in examples:
             imval = rng.random(inputsize) * 10.0
             # more variance means numeric gradient will be more accurate
             for ignore_border in [True, False]:
@@ -737,7 +737,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
             ((2, 2, 3), (2, 3, 3, 4)),
         )
 
-        for (avgpoolshp, inputsize) in examples:
+        for avgpoolshp, inputsize in examples:
             imval = rng.random(inputsize) * 10.0
             # more variance means numeric gradient will be more accurate
             for ignore_border in [True, False]:
@@ -856,7 +856,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
             ((3, 3, 5), (2, 2, 3), (2, 2, 1), (1, 1, 5, 5, 10)),
         )
 
-        for (maxpoolshp, stridesize, padsize, inputsize) in examples:
+        for maxpoolshp, stridesize, padsize, inputsize in examples:
             imval = rng.random(inputsize) * 10.0
 
             grad_shape = Pool.out_shape(
@@ -908,7 +908,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
             ((5, 3, 2), (3, 2, 1), (2, 2, 2), (1, 1, 10, 5, 5)),
         )
 
-        for (avgpoolshp, stridesize, padsize, inputsize) in examples:
+        for avgpoolshp, stridesize, padsize, inputsize in examples:
             imval = rng.random(inputsize) * 10.0
 
             # 'average_exc_pad' with non-zero padding is not implemented
@@ -978,7 +978,7 @@ class TestDownsampleFactorMax(utt.InferShapeTester):
             ((3, 3, 5), (2, 2, 3), (2, 2, 1), (1, 1, 5, 5, 10)),
         )
 
-        for (maxpoolshp, stridesize, padsize, inputsize) in examples:
+        for maxpoolshp, stridesize, padsize, inputsize in examples:
             imval1 = rng.random(inputsize) * 10.0
             imval2 = rng.random(inputsize) * 10.0
 

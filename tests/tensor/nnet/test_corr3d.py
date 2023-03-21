@@ -369,7 +369,6 @@ class TestCorr3D(utt.InferShapeTester):
         reason="Need cxx for this test",
     )
     def test_infer_shape_forward(self):
-
         rng = np.random.default_rng(28483)
 
         def rand(*shape):
@@ -420,7 +419,6 @@ class TestCorr3D(utt.InferShapeTester):
         reason="Need cxx for this test",
     )
     def test_infer_shape_gradW(self):
-
         rng = np.random.default_rng(28483)
 
         def rand(*shape):
@@ -483,7 +481,6 @@ class TestCorr3D(utt.InferShapeTester):
         reason="Need cxx for this test",
     )
     def test_infer_shape_gradI(self):
-
         rng = np.random.default_rng(28483)
 
         def rand(*shape):

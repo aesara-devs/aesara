@@ -98,7 +98,7 @@ def make_checks(loop_orders, dtypes, sub):
         non1size_dim_check = f"""
             npy_intp non1size_dim{xl};
             non1size_dim{xl} = """
-        for (j, x) in to_compare[:-1]:
+        for j, x in to_compare[:-1]:
             non1size_dim_check += f"(%(lv{j})s_n{x} != 1) ? %(lv{j})s_n{x} : "
         non1size_dim_check += f"%(lv{jl})s_n{xl};"
         check += non1size_dim_check
@@ -109,7 +109,7 @@ def make_checks(loop_orders, dtypes, sub):
             if (non1size_dim{xl} != 1)
             {{
         """
-        for (j, x) in to_compare:
+        for j, x in to_compare:
             check += f"""
                 if ((%(lv{j})s_n{x} != non1size_dim{x}) && (%(lv{j})s_n{x} != 1))
                 {{
@@ -162,7 +162,7 @@ def compute_broadcast_dimensions(array_name: str, loop_orders, sub) -> str:
 
         # In this case any non-size 1 variable will define the right size
         dims_c_code += f"{array_name}[{i}] = "
-        for (idx, candidate) in nonx_candidates[:-1]:
+        for idx, candidate in nonx_candidates[:-1]:
             var = sub[f"lv{int(idx)}"]
             dims_c_code += f"({var}_n{candidate} != 1)? {var}_n{candidate}: "
         idx, candidate = nonx_candidates[-1]

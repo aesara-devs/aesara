@@ -902,7 +902,7 @@ class TestPicklefunction:
         assert f.maker.fgraph.name == g.maker.fgraph.name
         # print 'f.defaults = %s' % (f.defaults, )
         # print 'g.defaults = %s' % (g.defaults, )
-        for ((f_req, f_feed, f_val), (g_req, g_feed, g_val)) in zip(
+        for (f_req, f_feed, f_val), (g_req, g_feed, g_val) in zip(
             f.defaults, g.defaults
         ):
             assert f_req == g_req and f_feed == g_feed and f_val == g_val
@@ -1206,7 +1206,6 @@ class TestPicklefunction:
         fp2.close()
 
     def test_pickle_class_with_functions(self):
-
         blah = SomethingToPickle()
         assert blah.f2.container[blah.s].storage is blah.f1.container[blah.s].storage
 

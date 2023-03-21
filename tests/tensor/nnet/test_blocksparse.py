@@ -19,7 +19,6 @@ from aesara.tensor.type import fmatrix, ftensor3, ftensor4, imatrix
 
 class TestBlockSparseGemvAndOuter(utt.InferShapeTester):
     def setup_method(self):
-
         mode = None
         if aesara.config.mode == "FAST_COMPILE":
             mode = "FAST_RUN"
@@ -32,7 +31,6 @@ class TestBlockSparseGemvAndOuter(utt.InferShapeTester):
 
     @staticmethod
     def gemv_data():
-
         nInputBlock = 8
         nOutputBlock = 7
         inputSize = 6
@@ -210,7 +208,6 @@ class TestBlockSparseGemvAndOuter(utt.InferShapeTester):
         utt.assert_allclose(ref_out, th_out)
 
     def test_sparseblockgemv_grad(self):
-
         W_val, h_val, iIdx_val, b_val, oIdx_val = self.gemv_data()
 
         iIdx = at.constant(iIdx_val)

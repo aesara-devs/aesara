@@ -183,7 +183,6 @@ def test_shared_updates():
 
 
 def test_jax_ifelse():
-
     true_vals = np.r_[1, 2, 3]
     false_vals = np.r_[-1, -2, -3]
 

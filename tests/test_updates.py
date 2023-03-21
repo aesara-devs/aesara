@@ -15,7 +15,6 @@ class TestUpdates:
         OrderedUpdates({sv: 3})
 
     def test_updates_setitem(self):
-
         up = OrderedUpdates()
 
         # keys have to be SharedVariables
@@ -28,7 +27,6 @@ class TestUpdates:
         up[aesara.shared(88)] = 7
 
     def test_updates_add(self):
-
         up1 = OrderedUpdates()
         up2 = OrderedUpdates()
 

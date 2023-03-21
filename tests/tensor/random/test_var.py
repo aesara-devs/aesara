@@ -103,7 +103,6 @@ def test_set_value_borrow(rng_ctor):
 
 
 def test_RandomTypeSharedVariable_str():
-
     s_rng = shared(np.random.RandomState(123))
 
     assert str(s_rng).startswith("RandomStateSharedVariable(")

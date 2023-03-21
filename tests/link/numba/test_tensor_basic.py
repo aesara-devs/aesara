@@ -45,7 +45,6 @@ def test_Alloc(v, shape):
 
 
 def test_AllocEmpty():
-
     x = at.empty((2, 3), dtype="float32")
     x_fg = FunctionGraph([], [x])
 

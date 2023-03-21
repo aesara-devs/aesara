@@ -46,7 +46,6 @@ def test_default_supp_shape_from_params():
 
 
 def test_RandomVariable_basics():
-
     str_res = str(
         RandomVariable(
             "normal",

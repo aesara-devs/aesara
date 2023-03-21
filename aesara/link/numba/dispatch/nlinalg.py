@@ -27,7 +27,6 @@ def numba_funcify_SVD(op, node, **kwargs):
     compute_uv = op.compute_uv
 
     if not compute_uv:
-
         warnings.warn(
             (
                 "Numba will use object mode to allow the "
@@ -45,7 +44,6 @@ def numba_funcify_SVD(op, node, **kwargs):
             return ret
 
     else:
-
         out_dtype = node.outputs[0].type.numpy_dtype
         inputs_cast = int_to_float_fn(node.inputs, out_dtype)
 
@@ -58,7 +56,6 @@ def numba_funcify_SVD(op, node, **kwargs):
 
 @_numba_funcify.register(Det)
 def numba_funcify_Det(op, node, **kwargs):
-
     out_dtype = node.outputs[0].type.numpy_dtype
     inputs_cast = int_to_float_fn(node.inputs, out_dtype)
 
@@ -71,7 +68,6 @@ def numba_funcify_Det(op, node, **kwargs):
 
 @_numba_funcify.register(Eig)
 def numba_funcify_Eig(op, node, **kwargs):
-
     out_dtype_1 = node.outputs[0].type.numpy_dtype
     out_dtype_2 = node.outputs[1].type.numpy_dtype
 
@@ -90,7 +86,6 @@ def numba_funcify_Eigh(op, node, **kwargs):
     uplo = op.UPLO
 
     if uplo != "L":
-
         warnings.warn(
             (
                 "Numba will use object mode to allow the "
@@ -125,7 +120,6 @@ def numba_funcify_Eigh(op, node, **kwargs):
 
 @_numba_funcify.register(Inv)
 def numba_funcify_Inv(op, node, **kwargs):
-
     out_dtype = node.outputs[0].type.numpy_dtype
     inputs_cast = int_to_float_fn(node.inputs, out_dtype)
 
@@ -138,7 +132,6 @@ def numba_funcify_Inv(op, node, **kwargs):
 
 @_numba_funcify.register(MatrixInverse)
 def numba_funcify_MatrixInverse(op, node, **kwargs):
-
     out_dtype = node.outputs[0].type.numpy_dtype
     inputs_cast = int_to_float_fn(node.inputs, out_dtype)
 
@@ -151,7 +144,6 @@ def numba_funcify_MatrixInverse(op, node, **kwargs):
 
 @_numba_funcify.register(MatrixPinv)
 def numba_funcify_MatrixPinv(op, node, **kwargs):
-
     out_dtype = node.outputs[0].type.numpy_dtype
     inputs_cast = int_to_float_fn(node.inputs, out_dtype)
 
@@ -189,7 +181,6 @@ def numba_funcify_QRFull(op, node, **kwargs):
             return ret
 
     else:
-
         out_dtype = node.outputs[0].type.numpy_dtype
         inputs_cast = int_to_float_fn(node.inputs, out_dtype)
 

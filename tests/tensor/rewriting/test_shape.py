@@ -264,9 +264,7 @@ class TestLocalUselessReshape:
     def test_0(self):
         mode = get_default_mode().including("local_useless_reshape")
         i = iscalar("i")
-        m = at.mgrid[
-            0:i,
-        ]
+        m = at.mgrid[0:i,]
         f = function([i], m, mode=mode)
         topo = f.maker.fgraph.toposort()
         assert not any(isinstance(n.op, Reshape) for n in topo)

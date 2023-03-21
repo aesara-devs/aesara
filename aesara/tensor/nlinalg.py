@@ -583,7 +583,6 @@ def svd(a, full_matrices=1, compute_uv=1):
 
 
 class Lstsq(Op):
-
     __props__ = ()
 
     def make_node(self, x, y, rcond):

@@ -47,7 +47,6 @@ class TestRandomStateType:
         assert repr(random_state_type) == "RandomStateType"
 
     def test_filter(self):
-
         rng_type = random_state_type
 
         rng = np.random.RandomState()
@@ -69,7 +68,6 @@ class TestRandomStateType:
         assert rng_type.is_valid_value(rng_dict, strict=False) is False
 
     def test_values_eq(self):
-
         rng_type = random_state_type
 
         rng_a = np.random.RandomState(12)
@@ -140,7 +138,6 @@ class TestRandomGeneratorType:
         assert repr(random_generator_type) == "RandomGeneratorType"
 
     def test_filter(self):
-
         rng_type = random_generator_type
 
         rng = np.random.default_rng()
@@ -162,7 +159,6 @@ class TestRandomGeneratorType:
         assert rng_type.is_valid_value(rng_dict, strict=False) is False
 
     def test_values_eq(self):
-
         rng_type = random_generator_type
         bg_1 = np.random.PCG64()
         bg_2 = np.random.Philox()

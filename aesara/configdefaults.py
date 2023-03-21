@@ -278,7 +278,6 @@ def short_platform(r=None, p=None):
 
 
 def add_basic_configvars():
-
     config.add(
         "floatX",
         "Default floating-point precision for python casts.\n"
@@ -388,7 +387,6 @@ def _is_greater_or_equal_0(x):
 
 
 def add_compile_configvars():
-
     config.add(
         "mode",
         "Default compilation mode",
@@ -631,7 +629,6 @@ def _is_valid_cmp_sloppy(v):
 
 
 def add_tensor_configvars():
-
     # This flag is used when we import Aesara to initialize global variables.
     # So changing it after import will not modify these global variables.
     # This could be done differently... but for now we simply prevent it from being
@@ -717,7 +714,6 @@ def add_experimental_configvars():
 
 
 def add_error_and_warning_configvars():
-
     ###
     # To disable some warning about old bug that are fixed now.
     ###
@@ -1196,7 +1192,6 @@ def add_vm_configvars():
 
 
 def add_deprecated_configvars():
-
     # TODO: remove this?
     config.add(
         "unittests__rseed",

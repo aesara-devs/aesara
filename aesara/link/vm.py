@@ -627,7 +627,7 @@ class Stack(UpdatingVM):
                             # Computing the memory footprint of the the op
                             # ?? What about inplace .. if the op is inplace
                             # you don't actually ask for more memory!
-                            for (idx, o) in enumerate(
+                            for idx, o in enumerate(
                                 thunks[self.node_idx[current_apply]].outputs
                             ):
                                 var = self.nodes[current_idx].outputs[idx]
@@ -721,7 +721,7 @@ class Stack(UpdatingVM):
                             apply_stack.append(current_apply.inputs[r].owner)
                 else:
                     if config.profile or config.print_global_stats:
-                        for (idx, o) in enumerate(
+                        for idx, o in enumerate(
                             thunks[self.node_idx[current_apply]].outputs
                         ):
                             var = self.nodes[self.node_idx[current_apply]].outputs[idx]
@@ -1014,7 +1014,6 @@ class VMLinker(LocalLinker):
         compute_map,
         updated_vars,
     ):
-
         pre_call_clear = [storage_map[v] for v in self.no_recycling]
 
         try:
@@ -1028,7 +1027,6 @@ class VMLinker(LocalLinker):
             or ((config.profile or config.print_global_stats) and config.profile_memory)
             or (self.allow_partial_eval and not self.use_cloop)
         ):
-
             if self.use_cloop and (
                 self.callback is not None or self.callback_input is not None
             ):
@@ -1057,7 +1055,6 @@ class VMLinker(LocalLinker):
                 callback_input=self.callback_input,
             )
         elif self.use_cloop and CVM is not None:
-
             # create a map from nodes to ints and vars to ints
             nodes_idx = {}
             vars_idx = {}
@@ -1070,9 +1067,9 @@ class VMLinker(LocalLinker):
 
             nodes_idx_inv = {}
             vars_idx_inv = {}
-            for (node, i) in nodes_idx.items():
+            for node, i in nodes_idx.items():
                 nodes_idx_inv[i] = node
-            for (var, i) in vars_idx.items():
+            for var, i in vars_idx.items():
                 vars_idx_inv[i] = var
 
             # put storage_map and compute_map into a int-based scheme
@@ -1111,7 +1108,7 @@ class VMLinker(LocalLinker):
 
             # build the var owner array
             var_owner = [None] * len(vars_idx)
-            for (var, i) in vars_idx.items():
+            for var, i in vars_idx.items():
                 if var.owner:
                     var_owner[i] = nodes_idx[var.owner]
 

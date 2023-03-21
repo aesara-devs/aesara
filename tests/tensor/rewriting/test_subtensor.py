@@ -84,7 +84,6 @@ z = create_aesara_param(np.random.default_rng().integers(0, 4, size=(2, 2)))
     ],
 )
 def test_local_replace_AdvancedSubtensor(indices, is_none):
-
     X_val = np.random.normal(size=(4, 4, 4))
     X = tensor(np.float64, shape=(None, None, None), name="X")
     X.tag.test_value = X_val
@@ -661,7 +660,6 @@ class TestSubtensorIncSubtensor:
 
 
 class TestLocalSubtensorMakeVector:
-
     mode = get_mode("FAST_RUN").including("local_subtensor_make_vector")
 
     def test_scalar_idx(self):
@@ -1461,7 +1459,6 @@ class TestLocalSubtensorMerge:
 
 class TestLocalAdvSub1AdvIncSub1:
     def setup_method(self):
-
         mode = get_default_mode()
         self.mode = mode.including(
             "local_replace_AdvancedSubtensor",
@@ -1854,7 +1851,6 @@ def test_local_set_to_inc_subtensor():
 
 
 def test_local_subtensor_of_alloc():
-
     # DebugMode should detect if something goes wrong.
     # test shape combination of odd and event shape.
     for s in [(3, 5), (4, 6), (3, 8), (4, 7), (1, 5), (5, 1)]:
@@ -1867,7 +1863,6 @@ def test_local_subtensor_of_alloc():
         yval = np.arange(s[1], dtype=config.floatX)
 
         for y in [shared(yval), at.constant([1.0])]:
-
             # The rows of yx are copies of y
             yx = at.alloc(y, x.shape[0], x.shape[1])
 

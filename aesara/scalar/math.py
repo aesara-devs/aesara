@@ -685,7 +685,6 @@ class GammaIncDer(BinaryScalarOp):
     """
 
     def impl(self, k, x):
-
         if x == 0:
             return 0
 

@@ -498,7 +498,6 @@ class ScalarType(CType, HasDataType, HasShape):
         return ""
 
     def c_support_code(self, **kwargs):
-
         if self.dtype.startswith("complex"):
             cplx_types = ["aesara_complex64", "aesara_complex128"]
             real_types = [
@@ -1081,7 +1080,6 @@ def real_out(type):
 
 
 class ScalarOp(COp):
-
     nin = -1
     nout = 1
 
@@ -2010,7 +2008,6 @@ class TrueDivide(BinaryScalarOp):
         return f"{z} = {x} / {y};"
 
     def grad(self, inputs, gout):
-
         (x, y) = inputs
         (gz,) = gout
         if x.type in complex_types:
@@ -2391,14 +2388,12 @@ class Second(BinaryScalarOp):
         return f"{z} = {y};"
 
     def connection_pattern(self, node):
-
         # x is never connected because its elements are never used
         # y is connected because its elements are copied over
 
         return [[False], [True]]
 
     def grad(self, inputs, gout):
-
         (x, y) = inputs
         (gz,) = gout
         if y.type in continuous_types:
@@ -4313,7 +4308,6 @@ class Composite(ScalarOp, HasInnerGraph):
         return self._c_code
 
     def c_code(self, node, nodename, inames, onames, sub):
-
         d = dict(
             chain(
                 zip((f"i{int(i)}" for i in range(len(inames))), inames),

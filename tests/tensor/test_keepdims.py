@@ -69,7 +69,6 @@ class TestKeepDims:
         [max_and_argmax],
     )
     def test_max_and_argmax(self, axis, op):
-
         x = dtensor3()
         a = np.random.random((3, 2, 4))
         # We don't need to test all opt and C code, as this is tested
@@ -181,7 +180,6 @@ class TestKeepDims:
         ],
     )
     def test_free_axis(self, axis, op):
-
         x = dtensor3()
         a = np.random.random((3, 2, 4))
         # We don't need to test all opt and C code, as this is tested
@@ -225,7 +223,6 @@ class TestKeepDims:
         ],
     )
     def test_norm(self, axis):
-
         x = dtensor3()
         a = np.random.random((3, 2, 4)).astype(aesara.config.floatX)
         mode = Mode(optimizer="fast_compile", linker="py")

@@ -10,7 +10,6 @@ from aesara.tensor.type import TensorType, integer_dtypes
 
 
 class RFFTOp(Op):
-
     __props__ = ()
 
     def output_type(self, inp):
@@ -71,7 +70,6 @@ rfft_op = RFFTOp()
 
 
 class IRFFTOp(Op):
-
     __props__ = ()
 
     def output_type(self, inp):

@@ -1356,7 +1356,6 @@ def _check_size(size):
 
 @node_rewriter((mrg_uniform_base,))
 def mrg_random_make_inplace(fgraph, node):
-
     op = node.op
     if isinstance(op, mrg_uniform_base) and not op.inplace:
         # op might be gpu version

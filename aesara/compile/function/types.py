@@ -597,6 +597,7 @@ class Function:
         aesara.Function
             Copied aesara.Function
         """
+
         # helper function
         def checkSV(sv_ori, sv_rpl):
             """
@@ -761,7 +762,6 @@ class Function:
         for in_ori, in_cpy, ori, cpy in zip(
             maker.inputs, f_cpy.maker.inputs, self.input_storage, f_cpy.input_storage
         ):
-
             # Share immutable ShareVariable and constant input's storage
             swapped = swap is not None and in_ori.variable in swap
 
@@ -911,7 +911,6 @@ class Function:
                 if hasattr(i_var.type, "may_share_memory"):
                     is_aliased = False
                     for j in range(len(args_share_memory)):
-
                         group_j = zip(
                             [
                                 self.maker.inputs[k].variable
@@ -929,7 +928,6 @@ class Function:
                             )
                             for (var, val) in group_j
                         ):
-
                             is_aliased = True
                             args_share_memory[j].append(i)
                             break
@@ -1057,9 +1055,7 @@ class Function:
         elif self.unpack_single and len(outputs) == 1 and output_subset is None:
             return outputs[0]
         else:
-
             if self.output_keys is not None:
-
                 assert len(self.output_keys) == len(outputs)
 
                 if output_subset is None:
@@ -1452,7 +1448,6 @@ class FunctionMaker:
                     update = fgraph_outputs[out_idx]
 
                     if update.owner and update.owner.op == update_placeholder:
-
                         # TODO: Consider removing the corresponding
                         # `FunctionGraph` input when it has no other
                         # references?
@@ -1479,7 +1474,6 @@ class FunctionMaker:
                 # Add deep copy to respect the memory interface
                 insert_deepcopy(fgraph, inputs, outputs + additional_outputs)
         finally:
-
             # If the rewriter got interrupted
             if rewrite_time is None:
                 end_rewriter = time.perf_counter()
@@ -1658,7 +1652,6 @@ class FunctionMaker:
         for i, ((input, indices, subinputs), input_storage_i) in enumerate(
             zip(self.indices, input_storage)
         ):
-
             # Replace any default value given as a variable by its
             # container.  Note that this makes sense only in the
             # context of shared variables, but for now we avoid

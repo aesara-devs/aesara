@@ -19,7 +19,6 @@ else:
 keys: Dict = {}  # key -> nb seen
 mods: Dict = {}
 for dir in dirs:
-
     key = None
     try:
         with open(os.path.join(dir, "key.pkl")) as f:

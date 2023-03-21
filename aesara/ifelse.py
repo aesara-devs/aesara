@@ -169,7 +169,6 @@ class IfElse(_NoPythonOp):
         new_inputs_true_branch = []
         new_inputs_false_branch = []
         for input_t, input_f in zip(inputs_true_branch, inputs_false_branch):
-
             if not isinstance(input_t, Variable):
                 input_t = as_symbolic(input_t)
             if not isinstance(input_f, Variable):
@@ -195,7 +194,6 @@ class IfElse(_NoPythonOp):
             if isinstance(input_t.type, HasShape) and isinstance(
                 input_f.type, HasShape
             ):
-
                 if input_t.type.ndim != input_f.type.ndim:
                     raise TypeError(
                         "IfElse requires compatible ndim values for both branches: got "
@@ -235,7 +233,6 @@ class IfElse(_NoPythonOp):
         return self(inputs[0], *eval_points[1:], return_list=True)
 
     def grad(self, ins, grads):
-
         condition = ins[0]
         inputs_true_branch = ins[1:][: self.n_outs]
         inputs_false_branch = ins[1:][self.n_outs :]

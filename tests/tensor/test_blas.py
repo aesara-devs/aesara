@@ -1577,7 +1577,6 @@ class BaseGemv:
         assert_array_almost_equal(desired_oy, oy_val)
 
     def test_default_beta_y(self):
-
         vs = self.get_data()
         alpha_v, beta_v, a_v, x_v, y_v = vs
         a = shared(a_v)

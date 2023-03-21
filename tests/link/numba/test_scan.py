@@ -248,7 +248,6 @@ def test_scan_multiple_output(benchmark):
 
 @config.change_flags(compute_test_value="raise")
 def test_scan_tap_output():
-
     a_at = at.scalar("a")
     a_at.tag.test_value = 10.0
 
@@ -394,7 +393,6 @@ def test_grad_sitsot():
 
 
 def test_mitmots_basic():
-
     init_x = at.dvector()
     seq = at.dvector()
 

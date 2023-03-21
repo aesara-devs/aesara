@@ -292,7 +292,6 @@ class TestScan:
         assert len(set(z_res)) == 1
 
     def test_clone(self):
-
         a = vector()
         output, _ = scan(fn=lambda x: x**2, sequences=[a])
 
@@ -585,7 +584,6 @@ class TestScan:
         assert np.allclose(aesara_values, v_out)
 
     def test_oinp_iinp_iout_oout_mappings(self):
-
         rng = RandomStream(123)
 
         def inner_fct(seq, mitsot, sitsot, nitsot, nseq):
@@ -1139,7 +1137,6 @@ class TestScan:
 
     def test_grad_sitsot(self):
         def get_sum_of_grad(inp):
-
             scan_outputs, updates = scan(
                 fn=lambda x: x * 2, outputs_info=[inp], n_steps=5
             )
@@ -2019,7 +2016,6 @@ class TestScan:
         v_eh0 = np.array(rng.uniform(size=(5,)) - 0.5, dtype=floatX)
 
         def rnn_fn(_u, _y, _W):
-
             srng = RandomStream(seed)
             tmp_val = (
                 _u + _y + srng.uniform(size=v_h0.shape) * np.asarray(1e-6, dtype=floatX)
@@ -2179,7 +2175,6 @@ def test_cvm_exception_handling(mode):
     not config.cxx, reason="G++ not available, so we need to skip this test."
 )
 def test_cython_performance(benchmark):
-
     # This implicitly confirms that the Cython version is being used
     from aesara.scan import scan_perform_ext  # noqa: F401
 
@@ -2535,7 +2530,6 @@ def test_inner_get_vector_length():
 
 @config.change_flags(mode=Mode("cvm", None))
 def test_profile_info():
-
     from aesara.scan.utils import ScanProfileStats
 
     z, updates = scan(fn=lambda u: u + 1, sequences=[at.arange(10)], profile=True)
@@ -3066,7 +3060,6 @@ class TestExamples:
 
         def loss_outer(sum_outer, W):
             def loss_inner(sum_inner, W):
-
                 return sum_inner + (W**2).sum()
 
             result_inner, _ = scan(

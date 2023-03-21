@@ -760,7 +760,7 @@ class TestAlloc:
         ones_scalar = aesara.function([], [at.ones(x.shape)], mode=self.mode)
         assert np.allclose(ones_scalar(), np.ones(shp))
 
-        for (typ, shp) in [(vector, [3]), (matrix, [3, 4])]:
+        for typ, shp in [(vector, [3]), (matrix, [3, 4])]:
             x = typ()
             ones_tensor = aesara.function([x], [at.ones(x.shape)], mode=self.mode)
             inp = np.zeros(shp, dtype=config.floatX)
@@ -782,7 +782,7 @@ class TestAlloc:
         zeros_scalar = aesara.function([], [at.zeros(x.shape)], mode=self.mode)
         assert np.allclose(zeros_scalar(), np.zeros(shp))
 
-        for (typ, shp) in [(vector, [3]), (matrix, [3, 4])]:
+        for typ, shp in [(vector, [3]), (matrix, [3, 4])]:
             x = typ()
             zeros_tensor = aesara.function([x], [at.zeros(x.shape)], mode=self.mode)
             inp = np.zeros(shp, dtype=config.floatX)
@@ -1396,7 +1396,6 @@ class TestJoinAndSplit:
         assert (out == want).all()
 
     def test_roll(self):
-
         for get_shift in [lambda a: a, lambda x: aesara.shared(x)]:
             # Test simple 1D example
             a = self.shared(np.array([1, 2, 3, 4, 5, 6], dtype=self.floatX))
@@ -3224,7 +3223,6 @@ def test_dimshuffle_duplicate():
 
 class TestGetScalarConstantValue:
     def test_basic(self):
-
         with pytest.raises(NotScalarConstantError):
             get_scalar_constant_value(aes.int64())
 
@@ -4001,7 +3999,6 @@ class TestChoose(utt.InferShapeTester):
     rng = np.random.default_rng(utt.fetch_seed())
 
     def test_numpy_compare(self):
-
         a = vector(dtype="int32")
         b = matrix(dtype="float32")
 
@@ -4127,7 +4124,6 @@ class TestChoose(utt.InferShapeTester):
 
     @pytest.mark.skip(reason="Not implemented")
     def test_infer_shape_tuple(self):
-
         a = tensor3(dtype="int32")
         b = tensor3(dtype="int32")
         c = tensor3(dtype="int32")

@@ -120,7 +120,7 @@ def local_det_chol(fgraph, node):
     """
     if isinstance(node.op, Det):
         (x,) = node.inputs
-        for (cl, xpos) in fgraph.clients[x]:
+        for cl, xpos in fgraph.clients[x]:
             if isinstance(cl.op, Cholesky):
                 L = cl.outputs[0]
                 return [prod(at.extract_diag(L) ** 2)]

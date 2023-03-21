@@ -595,7 +595,6 @@ class TestConv2D(utt.InferShapeTester):
                     filter_shapes = [(1, 5, 4, 4), (2, 5, 4, 4), (5, 5, 4, 4)]
                     print("filter_shapes", filter_shapes)
                     for filter_shape in filter_shapes:
-
                         input = aesara.shared(np.random.random(image_shape))
                         filters = aesara.shared(np.random.random(filter_shape))
 

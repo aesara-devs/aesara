@@ -1184,7 +1184,6 @@ def local_sum_prod_mul_by_scalar(fgraph, node):
             # If `node.op` is a `Prod`, then the scalars need to be raised to
             # the power of the number of elements in the input to the `Prod`
             if isinstance(node.op, Prod) and new_op_input_nb_elements != 1:
-
                 scalars = [s**new_op_input_nb_elements for s in scalars]
 
             # Scale the output of the op by the scalars and return as
@@ -1580,7 +1579,6 @@ def local_op_of_op(fgraph, node):
         # computations.
         if len(fgraph.clients[node_inps]) == 1:
             if node_inps.owner and (isinstance(node_inps.owner.op, node.op.__class__)):
-
                 # check to see either the inner or outer prod is doing a
                 # product over all axis, in which case we can remove it
                 if node_inps.owner.op.axis is None or node.op.axis is None:
@@ -1865,7 +1863,6 @@ def local_add_neg_to_sub(fgraph, node):
 
     # Rewrite is only applicable when there are two inputs to add
     if node.op == add and len(node.inputs) == 2:
-
         # Look for pattern with either input order
         for first, second in (node.inputs, reversed(node.inputs)):
             if second.owner:
@@ -3186,7 +3183,6 @@ def local_exp_over_1_plus_exp(fgraph, node):
     # This rewrite should be done for numerical stability
     # so we don't care to check client counts
     if node.op == true_divide:
-
         # find all the exp() terms in the numerator
         num, denom = node.inputs
         num_exp_x, num_rest, num_neg = partition_num_or_denom(num, is_exp)

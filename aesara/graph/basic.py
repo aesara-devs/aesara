@@ -823,7 +823,6 @@ def walk(
         node_hash: int = hash_fn(node)
 
         if node_hash not in rval_set:
-
             rval_set.add(node_hash)
 
             new_nodes: Optional[Iterable[T]] = expand(node)
@@ -1241,7 +1240,6 @@ def general_toposort(
 
     """
     if compute_deps_cache is None:
-
         if deps_cache is None:
             deps_cache = {}
 
@@ -1378,7 +1376,6 @@ def io_toposort(
             return rval
 
     else:
-
         # the inputs are used only here in the function that decides what
         # 'predecessors' to explore
         def compute_deps(obj):
@@ -1429,7 +1426,6 @@ def io_connection_pattern(inputs, outputs):
     # inputs and, for every node, infer their connection pattern to
     # every input from the connection patterns of their parents.
     for n in inner_nodes:
-
         # Get the connection pattern of the inner node's op. If the op
         # does not define a connection_pattern method, assume that
         # every node output is connected to every node input
@@ -1764,7 +1760,6 @@ def equal_computations(
             # Compare the individual inputs for equality
             for dx, dy in zip(nd_x.inputs, nd_y.inputs):
                 if (dx, dy) not in common:
-
                     # Equality between the variables is unknown, compare
                     # their respective owners, if they have some
                     if (
@@ -1772,7 +1767,6 @@ def equal_computations(
                         and dy.owner
                         and dx.owner.outputs.index(dx) == dy.owner.outputs.index(dy)
                     ):
-
                         nodes_equal = compare_nodes(
                             dx.owner, dy.owner, common, different
                         )
@@ -1783,7 +1777,6 @@ def equal_computations(
                     # If both variables don't have an owner, then they are
                     # inputs and can be directly compared
                     elif dx.owner is None and dy.owner is None:
-
                         if dx != dy:
                             if isinstance(dx, Constant) and isinstance(dy, Constant):
                                 if not dx.equals(dy):

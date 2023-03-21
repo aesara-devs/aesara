@@ -931,7 +931,6 @@ class TestFusion:
         topo = f.maker.fgraph.toposort()
         topo_ = [n for n in topo if not isinstance(n.op, self.topo_exclude)]
         if assert_len_topo:
-
             assert len(topo_) == nb_elemwise
 
             if nb_elemwise == 1:
@@ -1007,7 +1006,6 @@ class TestFusion:
         )
 
     def test_add_mul_fusion_inplace(self):
-
         rewrites = RewriteDatabaseQuery(
             include=[
                 "local_elemwise_fusion",

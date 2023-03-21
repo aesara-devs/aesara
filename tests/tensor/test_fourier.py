@@ -8,7 +8,6 @@ from tests import unittest_tools as utt
 
 
 class TestFourier(utt.InferShapeTester):
-
     rng = np.random.default_rng(43)
 
     def setup_method(self):
