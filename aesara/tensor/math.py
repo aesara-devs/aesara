@@ -1912,7 +1912,7 @@ class Dot(Op):
                 "aesara.tensor.dot instead."
             )
 
-        sx, sy = [input.type.shape for input in inputs]
+        sx, sy = (input.type.shape for input in inputs)
         if len(sy) == 2:
             sz = sx[:-1] + sy[-1:]
         elif len(sy) == 1:

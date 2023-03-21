@@ -15,9 +15,7 @@ from functools import _compose_mro, partial, reduce  # type: ignore
 from itertools import chain
 from typing import TYPE_CHECKING, Callable, Dict
 from typing import Iterable as IterableType
-from typing import List, Optional, Sequence, Tuple, Union, cast
-
-from typing_extensions import Literal
+from typing import List, Literal, Optional, Sequence, Tuple, Union, cast
 
 import aesara
 from aesara.configdefaults import config
@@ -1189,7 +1187,7 @@ class OpToRewriterTracker:
                 matches.extend(match)
         return matches
 
-    @functools.lru_cache()
+    @functools.lru_cache
     def get_trackers(self, op: Op) -> List[NodeRewriter]:
         """Get all the rewrites applicable to `op`."""
         return (

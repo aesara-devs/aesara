@@ -941,7 +941,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
 
         x = tensor4("x", dtype=self.dtype)
         indexes = aesara.shared(np.int32([1, 2, 3, 4]))
-        W = self.shared(np.random.random(((10, 10, 3, 3))).astype(self.dtype))
+        W = self.shared(np.random.random((10, 10, 3, 3)).astype(self.dtype))
 
         h = x + W
         h = set_subtensor(h[indexes], h[indexes])
@@ -954,7 +954,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
             N = 3
         f = self.function([x], g, op=AdvancedIncSubtensor1, N=N)
 
-        f(np.random.random(((10, 10, 3, 3))).astype(self.dtype))
+        f(np.random.random((10, 10, 3, 3)).astype(self.dtype))
 
     def test_adv_sub1_idx_broadcast(self):
         # The idx can be a broadcastable vector.
@@ -1483,7 +1483,7 @@ class TestIncSubtensor:
         rng = np.random.default_rng(utt.fetch_seed())
 
         def rng_randX(*shape):
-            return rng.random((shape)).astype(aesara.config.floatX)
+            return rng.random(shape).astype(aesara.config.floatX)
 
         for op in (set_subtensor, inc_subtensor):
             for base in (a[:], a[0]):
@@ -1826,7 +1826,7 @@ class TestAdvancedSubtensor:
     def test_adv_subtensor_w_int_and_matrix(self):
         subt = self.ft4[0, :, self.ix2, :]
         f = aesara.function([self.ft4, self.ix2], subt, mode=self.mode)
-        ft4v = np.random.random(((2, 3, 4, 5))).astype("float32")
+        ft4v = np.random.random((2, 3, 4, 5)).astype("float32")
         ix2v = np.asarray([[0, 1], [1, 0]])
         aval = f(ft4v, ix2v)
         rval = ft4v[0, :, ix2v, :]
@@ -1835,7 +1835,7 @@ class TestAdvancedSubtensor:
     def test_adv_subtensor_w_none_and_matrix(self):
         subt = self.ft4[:, None, :, self.ix2, :]
         f = aesara.function([self.ft4, self.ix2], subt, mode=self.mode)
-        ft4v = np.random.random(((2, 3, 4, 5))).astype("float32")
+        ft4v = np.random.random((2, 3, 4, 5)).astype("float32")
         ix2v = np.asarray([[0, 1], [1, 0]])
         aval = f(ft4v, ix2v)
         rval = ft4v[:, None, :, ix2v, :]
@@ -1844,7 +1844,7 @@ class TestAdvancedSubtensor:
     def test_adv_subtensor_w_slice_and_matrix(self):
         subt = self.ft4[:, 0:1, self.ix2, :]
         f = aesara.function([self.ft4, self.ix2], subt, mode=self.mode)
-        ft4v = np.random.random(((2, 3, 4, 5))).astype("float32")
+        ft4v = np.random.random((2, 3, 4, 5)).astype("float32")
         ix2v = np.asarray([[0, 1], [1, 0]])
         aval = f(ft4v, ix2v)
         rval = ft4v[:, 0:1, ix2v, :]
@@ -1853,7 +1853,7 @@ class TestAdvancedSubtensor:
     def test_adv_subtensor_w_matrix_and_int(self):
         subt = self.ft4[:, :, self.ix2, 0]
         f = aesara.function([self.ft4, self.ix2], subt, mode=self.mode)
-        ft4v = np.random.random(((2, 3, 4, 5))).astype("float32")
+        ft4v = np.random.random((2, 3, 4, 5)).astype("float32")
         ix2v = np.asarray([[0, 1], [1, 0]])
         aval = f(ft4v, ix2v)
         rval = ft4v[:, :, ix2v, 0]
@@ -1862,7 +1862,7 @@ class TestAdvancedSubtensor:
     def test_adv_subtensor_w_matrix_and_none(self):
         subt = self.ft4[:, :, self.ix2, None, :]
         f = aesara.function([self.ft4, self.ix2], subt, mode=self.mode)
-        ft4v = np.random.random(((2, 3, 4, 5))).astype("float32")
+        ft4v = np.random.random((2, 3, 4, 5)).astype("float32")
         ix2v = np.asarray([[0, 1], [1, 0]])
         aval = f(ft4v, ix2v)
         rval = ft4v[:, :, ix2v, None, :]
@@ -2093,7 +2093,7 @@ class TestAdvancedSubtensor:
             fun,
             [
                 np.random.random((5, 5)).astype(self.dtype),
-                np.random.random((2)).astype(self.dtype),
+                np.random.random(2).astype(self.dtype),
             ],
             mode=self.mode,
         )
@@ -2105,7 +2105,7 @@ class TestAdvancedSubtensor:
             fun,
             [
                 np.random.random((5, 5)).astype(self.dtype),
-                np.random.random((2)).astype(self.dtype),
+                np.random.random(2).astype(self.dtype),
             ],
             mode=self.mode,
         )
@@ -2120,7 +2120,7 @@ class TestAdvancedSubtensor:
             fun,
             [
                 np.random.random((2, 2)).astype(self.dtype),
-                np.random.random((2)).astype(self.dtype),
+                np.random.random(2).astype(self.dtype),
             ],
             mode=self.mode,
         )
@@ -2134,7 +2134,7 @@ class TestAdvancedSubtensor:
             fun,
             [
                 np.random.random((2, 2)).astype(self.dtype),
-                np.random.random((2)).astype(self.dtype),
+                np.random.random(2).astype(self.dtype),
             ],
             mode=self.mode,
         )

@@ -264,10 +264,7 @@ class Params(dict):
 
     def __repr__(self):
         return "Params(%s)" % ", ".join(
-            [
-                ("{}:{}:{}".format(k, type(self[k]).__name__, self[k]))
-                for k in sorted(self.keys())
-            ]
+            [(f"{k}:{type(self[k]).__name__}:{self[k]}") for k in sorted(self.keys())]
         )
 
     def __getattr__(self, key):
@@ -430,10 +427,7 @@ class ParamsType(CType):
 
     def __repr__(self):
         return "ParamsType<%s>" % ", ".join(
-            [
-                ("{}:{}".format(self.fields[i], self.types[i]))
-                for i in range(self.length)
-            ]
+            [(f"{self.fields[i]}:{self.types[i]}") for i in range(self.length)]
         )
 
     def __eq__(self, other):

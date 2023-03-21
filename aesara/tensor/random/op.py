@@ -76,10 +76,8 @@ def default_supp_shape_from_params(
         ref_param = dist_params[rep_param_idx]
         if ref_param.ndim < ndim_supp:
             raise ValueError(
-                (
-                    "Reference parameter does not match the "
-                    f"expected dimensions; {ref_param} has less than {ndim_supp} dim(s)."
-                )
+                "Reference parameter does not match the "
+                f"expected dimensions; {ref_param} has less than {ndim_supp} dim(s)."
             )
         return ref_param.shape[-ndim_supp:]
 
@@ -166,7 +164,7 @@ class RandomVariable(Op):
         return getattr(rng, self.name)(*args, **kwargs)
 
     def __str__(self):
-        props_str = ", ".join((f"{getattr(self, prop)}" for prop in self.__props__[1:]))
+        props_str = ", ".join(f"{getattr(self, prop)}" for prop in self.__props__[1:])
         return f"{self.name}_rv{{{props_str}}}"
 
     def _infer_shape(

@@ -489,8 +489,7 @@ class EnumType(CType, dict):
             type(self).__name__,
             self.ctype,
             ", ".join(
-                "{}{}:{}".format(k, names_to_aliases[k], self[k])
-                for k in sorted(self.keys())
+                f"{k}{names_to_aliases[k]}:{self[k]}" for k in sorted(self.keys())
             ),
         )
 

@@ -245,9 +245,7 @@ class MetaType(ABCMeta):
                     def __str__(self):
                         return "{}{{{}}}".format(
                             self.__class__.__name__,
-                            ", ".join(
-                                "{}={!r}".format(p, getattr(self, p)) for p in props
-                            ),
+                            ", ".join(f"{p}={getattr(self, p)!r}" for p in props),
                         )
 
                 dct["__str__"] = __str__

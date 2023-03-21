@@ -158,7 +158,7 @@ def test_misc():
     assert str(g) == "FunctionGraph(Dot(AddInPlace(x, y), TransposeView(x)))"
     assert not g.consistent()
 
-    (dh,) = [f for f in g._features if isinstance(f, DestroyHandler)]
+    (dh,) = (f for f in g._features if isinstance(f, DestroyHandler))
     g.remove_feature(dh)
     assert not hasattr(g, "destroyers")
 

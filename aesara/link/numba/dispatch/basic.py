@@ -236,7 +236,7 @@ def enable_slice_literals():
             default_stop_pos,
             default_stop_neg,
             default_step,
-        ) = [context.get_constant(types.intp, x) for x in get_defaults(context)]
+        ) = (context.get_constant(types.intp, x) for x in get_defaults(context))
 
         step = pyval.step
         if step is None:

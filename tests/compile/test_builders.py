@@ -590,9 +590,9 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         assert isinstance(z_fn.maker.fgraph.outputs[0].owner.inputs[0], Constant)
 
         # There should be placeholder default updates in the resulting graph
-        (shared_variable,) = [
+        (shared_variable,) = (
             v for v in z_fn.maker.fgraph.variables if isinstance(v, SharedVariable)
-        ]
+        )
 
         placeholder_var = shared_variable.default_update
         assert placeholder_var.owner.op == update_placeholder
@@ -613,9 +613,9 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         srng_exp = at.random.RandomStream(239)
         exp_fn = function([], srng_exp.normal(x_val, name="y"), mode=mode)
 
-        (exp_shared_variable,) = [
+        (exp_shared_variable,) = (
             v for v in exp_fn.maker.fgraph.variables if isinstance(v, SharedVariable)
-        ]
+        )
         assert exp_shared_variable.default_update is not None
 
         z_res = z_fn()
@@ -658,9 +658,9 @@ class TestOpFromGraph(unittest_tools.InferShapeTester):
         srng_exp = at.random.RandomStream(239)
         exp_fn = function([], srng_exp.normal(x_val, name="y"), mode=mode)
 
-        (exp_shared_variable,) = [
+        (exp_shared_variable,) = (
             v for v in exp_fn.maker.fgraph.variables if isinstance(v, SharedVariable)
-        ]
+        )
         assert exp_shared_variable.default_update is not None
 
         z_res = z_fn()

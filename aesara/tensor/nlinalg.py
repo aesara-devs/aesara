@@ -250,7 +250,7 @@ class Eig(Op):
     def perform(self, node, inputs, outputs):
         (x,) = inputs
         (w, v) = outputs
-        w[0], v[0] = [z.astype(x.dtype) for z in self._numop(x)]
+        w[0], v[0] = (z.astype(x.dtype) for z in self._numop(x))
 
     def infer_shape(self, fgraph, node, shapes):
         n = shapes[0][0]

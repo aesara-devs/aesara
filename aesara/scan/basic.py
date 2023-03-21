@@ -609,11 +609,9 @@ def scan(
                             # No need to print a warning or raise an error now,
                             # it will be done when fn will be called.
                             warnings.warn(
-                                (
-                                    "Cannot compute test value for "
-                                    "the inner function of scan, input value "
-                                    f"missing {_seq_val_slice}"
-                                )
+                                "Cannot compute test value for "
+                                "the inner function of scan, input value "
+                                f"missing {_seq_val_slice}"
                             )
 
                 # Add names to slices for debugging and pretty printing ..
@@ -736,10 +734,8 @@ def scan(
                 except TestValueError:
                     if config.compute_test_value != "ignore":
                         warnings.warn(
-                            (
-                                "Cannot compute test value for the "
-                                f"inner function of scan, test value missing: {actual_arg}"
-                            )
+                            "Cannot compute test value for the "
+                            f"inner function of scan, test value missing: {actual_arg}"
                         )
 
             if getattr(init_out["initial"], "name", None) is not None:
@@ -793,11 +789,9 @@ def scan(
                     except TestValueError:
                         if config.compute_test_value != "ignore":
                             warnings.warn(
-                                (
-                                    "Cannot compute test value for "
-                                    "the inner function of scan, test value "
-                                    f"missing: {_init_out_var_slice}"
-                                )
+                                "Cannot compute test value for "
+                                "the inner function of scan, test value "
+                                f"missing: {_init_out_var_slice}"
                             )
 
                 # give it a name or debugging and pretty printing

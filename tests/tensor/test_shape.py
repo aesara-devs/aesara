@@ -438,12 +438,12 @@ class TestSpecifyShape(utt.InferShapeTester):
         specify_shape = SpecifyShape()
 
         x = vector()
-        xval = np.random.random((2)).astype(config.floatX)
+        xval = np.random.random(2).astype(config.floatX)
         f = aesara.function([x], specify_shape(x, 2), mode=self.mode)
 
         assert np.array_equal(f(xval), xval)
 
-        xval = np.random.random((3)).astype(config.floatX)
+        xval = np.random.random(3).astype(config.floatX)
         with pytest.raises(AssertionError, match="SpecifyShape:.*"):
             f(xval)
 

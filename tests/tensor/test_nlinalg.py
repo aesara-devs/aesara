@@ -329,7 +329,7 @@ class TestEig(utt.InferShapeTester):
         A = matrix(dtype=self.dtype)
         assert [e.eval({A: [[1]]}) for e in self.op(A)] == [[1.0], [[1.0]]]
         x = [[0, 1], [1, 0]]
-        w, v = [e.eval({A: x}) for e in self.op(A)]
+        w, v = (e.eval({A: x}) for e in self.op(A))
         assert_array_almost_equal(np.dot(x, v), w * v)
 
 
@@ -339,8 +339,8 @@ class TestEigh(TestEig):
     def test_uplo(self):
         S = self.S
         a = matrix(dtype=self.dtype)
-        wu, vu = [out.eval({a: S}) for out in self.op(a, "U")]
-        wl, vl = [out.eval({a: S}) for out in self.op(a, "L")]
+        wu, vu = (out.eval({a: S}) for out in self.op(a, "U"))
+        wl, vl = (out.eval({a: S}) for out in self.op(a, "L"))
         assert_array_almost_equal(wu, wl)
         assert_array_almost_equal(vu * np.sign(vu[0, :]), vl * np.sign(vl[0, :]))
 
@@ -449,7 +449,7 @@ class TestNormTests:
         V = vector("V", dtype=config.floatX)
 
         a = rng.random((4, 4)).astype(config.floatX)
-        b = rng.random((4)).astype(config.floatX)
+        b = rng.random(4).astype(config.floatX)
 
         A = (
             [None, "fro", "inf", "-inf", 1, -1, None, "inf", "-inf", 0, 1, -1, 2, -2],

@@ -61,7 +61,7 @@ class TestSoftmax(utt.InferShapeTester):
             return softmax(a, axis=None)
 
         rng = np.random.default_rng(utt.fetch_seed())
-        utt.verify_grad(f, [rng.random((4))])
+        utt.verify_grad(f, [rng.random(4)])
 
     def test_valid_axis(self):
         with pytest.raises(TypeError):

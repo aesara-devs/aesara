@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Generic, Optional, Text, Tuple, TypeVar, Union
+from typing import Any, Generic, Optional, Tuple, TypeVar, Union
 
 from typing_extensions import TypeAlias
 
@@ -188,7 +188,7 @@ class Type(MetaObject, Generic[D]):
         except (TypeError, ValueError):
             return False
 
-    def make_variable(self, name: Optional[Text] = None) -> variable_type:
+    def make_variable(self, name: Optional[str] = None) -> variable_type:
         """Return a new `Variable` instance of this `Type`.
 
         Parameters
@@ -199,7 +199,7 @@ class Type(MetaObject, Generic[D]):
         """
         return self.variable_type(self, None, name=name)
 
-    def make_constant(self, value: D, name: Optional[Text] = None) -> constant_type:
+    def make_constant(self, value: D, name: Optional[str] = None) -> constant_type:
         """Return a new `Constant` instance of this `Type`.
 
         Parameters
@@ -216,7 +216,7 @@ class Type(MetaObject, Generic[D]):
         """Clone a copy of this type with the given arguments/keyword values, if any."""
         return type(self)(*args, **kwargs)
 
-    def __call__(self, name: Optional[Text] = None) -> variable_type:
+    def __call__(self, name: Optional[str] = None) -> variable_type:
         """Return a new `Variable` instance of Type `self`.
 
         Parameters

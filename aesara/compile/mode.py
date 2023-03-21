@@ -5,9 +5,7 @@ WRITEME
 
 import logging
 import warnings
-from typing import Optional, Tuple, Union
-
-from typing_extensions import Literal
+from typing import Literal, Optional, Tuple, Union
 
 from aesara.compile.function.types import Supervisor
 from aesara.configdefaults import config

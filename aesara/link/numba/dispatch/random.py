@@ -32,7 +32,7 @@ from aesara.tensor.random.type import RandomStateType
 
 class RandomStateNumbaType(types.Type):
     def __init__(self):
-        super(RandomStateNumbaType, self).__init__(name="RandomState")
+        super().__init__(name="RandomState")
 
 
 random_state_numba_type = RandomStateNumbaType()

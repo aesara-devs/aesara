@@ -1011,7 +1011,7 @@ class Elemwise(OpenMPOp):
                 # No loops
                 task_decl = "".join(
                     [
-                        "{}& {}_i = *{}_iter;\n".format(dtype, name, name)
+                        f"{dtype}& {name}_i = *{name}_iter;\n"
                         for name, dtype in zip(
                             inames + list(real_onames), idtypes + list(real_odtypes)
                         )

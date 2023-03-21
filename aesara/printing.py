@@ -10,10 +10,20 @@ from contextlib import contextmanager
 from copy import copy
 from functools import reduce, singledispatch
 from io import StringIO
-from typing import Any, Callable, Dict, List, Optional, Sequence, TextIO, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    TextIO,
+    Tuple,
+    Union,
+)
 
 import numpy as np
-from typing_extensions import Literal
 
 from aesara.compile import Function, SharedVariable
 from aesara.compile.io import In, Out

@@ -943,7 +943,7 @@ class Gemm(GemmRelated):
             )
         z, a, x, y, b = inputs
 
-        zr, xr, yr = [set(view_roots(i)) for i in (z, x, y)]
+        zr, xr, yr = (set(view_roots(i)) for i in (z, x, y))
 
         # We want the gemm to be inplace. When this op is inplace, it
         # declare to be inplace only on z. So to make it safe, we
@@ -2361,8 +2361,7 @@ class BatchedDot(COp):
                     ),
                     "(%s)"
                     % " || ".join(
-                        "{strides}[{i}] == type_size".format(strides=strides, i=i)
-                        for i in range(1, ndim)
+                        f"{strides}[{i}] == type_size" for i in range(1, ndim)
                     ),
                 ]
             )

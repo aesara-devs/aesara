@@ -82,7 +82,7 @@ def exec_multilayer_conv_nnet_old(
             print(conv_mode, ss, n_layer, kshp, nkern)
 
         # actual values
-        w = global_rng.random((np.r_[nkern, imshp[0], kshp]))
+        w = global_rng.random(np.r_[nkern, imshp[0], kshp])
         w_flip = flip(w, kshp).reshape(w.shape)
 
         # manual implementation
@@ -216,7 +216,7 @@ def exec_multilayer_conv_nnet(
             print(conv_mode, ss, n_layer, kshp, nkern)
 
         # actual values
-        w = global_rng.random((np.r_[nkern, imshp[0], kshp]))
+        w = global_rng.random(np.r_[nkern, imshp[0], kshp])
         w_flip = flip(w, kshp).reshape(w.shape)
 
         outshp = np.hstack(

@@ -160,7 +160,7 @@ class TestReplaceValidate:
         fg_pkld = pickle.dumps(fg)
         fg_unpkld = pickle.loads(fg_pkld)
 
-        assert ReplaceValidate in set(type(ft) for ft in fg_unpkld._features)
+        assert ReplaceValidate in {type(ft) for ft in fg_unpkld._features}
         assert all(
             hasattr(fg, attr)
             for attr in (

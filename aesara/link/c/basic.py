@@ -1695,16 +1695,14 @@ class CLinker(Linker):
         print("    return NULL;", file=code)
         print("  }", file=code)
         print(
-            """\
+            f"""\
     PyObject* thunk = PyCapsule_New((void*)(&{struct_name}_executor), NULL, {struct_name}_destructor);
     if (thunk != NULL && PyCapsule_SetContext(thunk, struct_ptr) != 0) {{
         PyErr_Clear();
         Py_DECREF(thunk);
         thunk = NULL;
     }}
-""".format(
-                **locals()
-            ),
+""",
             file=code,
         )
         print("  return thunk; }", file=code)

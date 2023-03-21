@@ -648,10 +648,8 @@ class Reshape(COp):
         (out,) = out_
         if len(shp) != self.ndim:
             raise ValueError(
-                (
-                    "Shape argument to Reshape has incorrect"
-                    f" length: {len(shp)}, should be {self.ndim}"
-                )
+                "Shape argument to Reshape has incorrect"
+                f" length: {len(shp)}, should be {self.ndim}"
             )
         out[0] = np.reshape(x, shp)
 

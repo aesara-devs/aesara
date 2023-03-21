@@ -43,36 +43,36 @@ class QuadraticOpFunc(COp):
         float_type = node.inputs[0].type.dtype_specs()[1]
         return """
         /* Computes: x = a*x*x + b*x + c for x in tensor. */
-        int quadratic_%(name)s(PyArrayObject* tensor, %(float_type)s a, %(float_type)s b, %(float_type)s c) {
+        int quadratic_{name}(PyArrayObject* tensor, {float_type} a, {float_type} b, {float_type} c) {{
             NpyIter* iterator = NpyIter_New(tensor,
                 NPY_ITER_READWRITE | NPY_ITER_EXTERNAL_LOOP | NPY_ITER_REFS_OK,
                 NPY_KEEPORDER, NPY_NO_CASTING, NULL);
-            if(iterator == NULL) {
+            if(iterator == NULL) {{
                 PyErr_SetString(PyExc_RuntimeError, "Unable to iterate over a tensor for an elemwise operation.");
                 return -1;
-            }
+            }}
             NpyIter_IterNextFunc* get_next = NpyIter_GetIterNext(iterator, NULL);
             char** data_ptr = NpyIter_GetDataPtrArray(iterator);
             npy_intp* stride_ptr = NpyIter_GetInnerStrideArray(iterator);
             npy_intp* innersize_ptr = NpyIter_GetInnerLoopSizePtr(iterator);
-            do {
+            do {{
                 char* data = *data_ptr;
                 npy_intp stride = *stride_ptr;
                 npy_intp count = *innersize_ptr;
-                while(count) {
-                    %(float_type)s x = *((%(float_type)s*)data);
-                    *((%(float_type)s*)data) = a*x*x + b*x + c;
+                while(count) {{
+                    {float_type} x = *(({float_type}*)data);
+                    *(({float_type}*)data) = a*x*x + b*x + c;
                     data += stride;
                     --count;
-                }
-            } while(get_next(iterator));
+                }}
+            }} while(get_next(iterator));
             NpyIter_Deallocate(iterator);
             return 0;
-        }
-        """ % {
-            "name": name,
-            "float_type": float_type,
-        }
+        }}
+        """.format(
+            name=name,
+            float_type=float_type,
+        )
 
     def c_code(self, node, name, inputs, outputs, sub):
         return """
