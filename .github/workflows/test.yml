@@ -67,7 +67,9 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.7", "3.9"]
+        # Numba doesn't yet support 3.11, so we test primarly on 3.10, and
+        # below we add an include for 3.11 without Numba.
+        python-version: ["3.8", "3.10"]
         fast-compile: [0]
         float32: [0]
         install-numba: [1]
@@ -78,12 +80,12 @@ jobs:
           - "tests/tensor/test_elemwise.py tests/tensor/rewriting/test_basic.py tests/tensor/rewriting/test_math.py"
           - "tests/tensor/nnet/test_conv.py"
         include:
-          - python-version: "3.7"
+          - python-version: "3.8"
             fast-compile: 1
             float32: 1
             install-numba: 1
             part: "tests --ignore=tests/tensor/nnet --ignore=tests/tensor/signal"
-          - python-version: "3.7"
+          - python-version: "3.8"
             fast-compile: 1
             float32: 0
             install-numba: 1

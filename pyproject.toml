@@ -29,7 +29,6 @@ classifiers = [
     "Operating System :: MacOS",
     "Operating System :: MacOS :: MacOS X",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -46,7 +45,7 @@ keywords = [
     "differentiation",
 ]
 urls = {Homepage = "https://github.com/aesara-devs/aesara"}
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 dependencies = [
     "numpy >=1.17.0",
     "scipy >=0.14",
