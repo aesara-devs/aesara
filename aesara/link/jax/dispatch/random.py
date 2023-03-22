@@ -7,6 +7,7 @@ from numpy.random.bit_generator import (  # type: ignore[attr-defined]
 )
 
 import aesara.tensor.random.basic as aer
+from aesara.graph.basic import Constant
 from aesara.link.jax.dispatch.basic import jax_funcify, jax_typify
 from aesara.link.jax.dispatch.shape import JAXShapeTuple
 from aesara.tensor.shape import Shape, Shape_i
@@ -37,6 +38,10 @@ def assert_size_argument_jax_compatible(node):
 
     """
     size = node.inputs[1]
+
+    if isinstance(size, Constant):
+        return
+
     size_op = size.owner.op
     if not isinstance(size_op, (Shape, Shape_i, JAXShapeTuple)):
         raise NotImplementedError(SIZE_NOT_COMPATIBLE)
@@ -451,5 +456,35 @@ def jax_sample_fn_gengamma(op):
 
         rng["jax_state"] = rng_key
         return (rng, samples)
+
+    return sample_fn
+
+
+@jax_sample_fn.register(aer.MultinomialRV)
+def jax_sample_fn_multinomial(op):
+    """JAX implementation of `MultinomialRV`."""
+
+    def _categorical(key, p, shape):
+        s = jax.numpy.cumsum(p, axis=-1)
+        r = jax.random.uniform(key, shape=shape + (1,))
+        return jax.numpy.sum(s < r, axis=-1)
+
+    def sample_fn(rng, size, dtype, *parameters):
+        rng_key = rng["jax_state"]
+        rng_key, sampling_key = jax.random.split(rng_key, 2)
+
+        # TODO: These parameters probably need to be broadcasted to
+        # complementary shapes (in accordance with `size`, as well).
+        n, p = parameters
+        size = tuple(size or p.shape[:-1])
+
+        outcomes = _categorical(sampling_key, p, (n,) + size)
+
+        one_hot = jax.nn.one_hot(outcomes, num_classes=p.shape[0])
+        sample = jax.numpy.sum(one_hot, axis=0, dtype=dtype)
+
+        rng["jax_state"] = rng_key
+
+        return (rng, sample)
 
     return sample_fn
