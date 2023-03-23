@@ -5,7 +5,7 @@ import warnings
 from contextlib import contextmanager
 from functools import singledispatch
 from textwrap import dedent
-from typing import TYPE_CHECKING, Callable, Optional, Union, cast, Dict
+from typing import TYPE_CHECKING, Callable, Dict, Optional, Union, cast
 
 import numba
 import numba.np.unsafe.ndarray as numba_ndarray
@@ -364,7 +364,9 @@ def numba_funcify(obj, node=None, storage_map=None, **kwargs) -> Callable:
             # We could only ever return the function source in our dispatch
             # implementations. That way, we can compile directly to the on-disk
             # modules only once.
-            numba_py_fn = _numba_funcify(obj, node=node, storage_map=storage_map, **kwargs)
+            numba_py_fn = _numba_funcify(
+                obj, node=node, storage_map=storage_map, **kwargs
+            )
 
             # This will determine on-disk module name to be generated for
             # `numba_py_src` and return the corresponding Python function
@@ -387,9 +389,11 @@ def make_node_key(node):
     """
     if not isinstance(node, Apply):
         return None
-    key = (node.op,)
-    key = tuple(inp.type for inp in node.inputs)
-    key += tuple(inp.type for inp in node.outputs)
+    # TODO: Add a stronger hashing mechanism
+    key = str(node)
+    # key = (node.op,)
+    # key = tuple(inp.type for inp in node.inputs)
+    # key += tuple(inp.type for inp in node.outputs)
 
     hash_key = hashlib.sha256(pickle.dumps(key)).hexdigest()
 

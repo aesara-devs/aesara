@@ -380,9 +380,7 @@ def add_basic_configvars():
 
     config.add(
         "DISABLE_NUMBA_CACHE",
-        (
-            "Disable numba caching in the backend"
-        ),
+        ("Disable numba caching in the backend"),
         BoolParam(False),
         in_c_key=False,
     )
