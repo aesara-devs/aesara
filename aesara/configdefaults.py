@@ -379,8 +379,8 @@ def add_basic_configvars():
     )
 
     config.add(
-        "DISABLE_NUMBA_CACHE",
-        ("Disable numba caching in the backend"),
+        "DISABLE_NUMBA_PYTHON_IR_CACHING",
+        ("Disable caching of the Aesara-generated Python IR used by the Numba backend"),
         BoolParam(False),
         in_c_key=False,
     )

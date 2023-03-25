@@ -353,7 +353,7 @@ def numba_const_convert(data, dtype=None, **kwargs):
 def numba_funcify(obj, node=None, storage_map=None, **kwargs) -> Callable:
     """Convert `obj` to a Numba-JITable object."""
     numba_py_fn = None
-    if config.DISABLE_NUMBA_CACHE:
+    if config.DISABLE_NUMBA_PYTHON_IR_CACHING:
         numba_py_fn = _numba_funcify(obj, node=node, storage_map=storage_map, **kwargs)
     else:
         node_key = make_node_key(node)
