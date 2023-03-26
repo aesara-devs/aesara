@@ -1,6 +1,6 @@
 import builtins
 import warnings
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, List, Literal, Optional, Tuple
 
 import numpy as np
 
@@ -22,10 +22,12 @@ from aesara.tensor.basic import (
     cast,
     concatenate,
     constant,
+    get_scalar_constant_value,
     stack,
     switch,
 )
 from aesara.tensor.elemwise import CAReduce, DimShuffle, Elemwise, scalar_elemwise
+from aesara.tensor.exceptions import NotScalarConstantError
 from aesara.tensor.shape import shape, specify_broadcastable
 from aesara.tensor.type import (
     DenseTensorType,
@@ -45,6 +47,8 @@ from aesara.tensor.var import TensorConstant
 
 if TYPE_CHECKING:
     from numpy.typing import ArrayLike, DTypeLike
+
+    from aesara.tensor.var import TensorVariable
 
 # We capture the builtins that we are going to replace to follow the numpy API
 _abs = builtins.abs
@@ -2998,6 +3002,108 @@ def matmul(x1: "ArrayLike", x2: "ArrayLike", dtype: Optional["DTypeLike"] = None
     return MatMul(dtype=dtype)(x1, x2)
 
 
+class Convolve(Op):
+    __props__ = ("mode",)
+
+    def __init__(self, mode="full"):
+        self.mode = mode
+
+    @classmethod
+    def _get_output_shape(cls, a, v, shapes, mode, validate=False):
+        a_shape, v_shape = shapes
+        from aesara.tensor.math import maximum, minimum
+
+        if a.ndim == 1 and v.ndim == 1:
+            m, n = a_shape[0], v_shape[0]
+            if n is None or m is None:
+                return (None,)
+            if mode == "full":
+                return (m + n - 1,)
+            elif mode == "same":
+                return (maximum(m, n),)
+            elif mode == "valid":
+                return (maximum(m, n) - minimum(m, n) + 1,)
+            if validate:
+                raise ValueError("Invalid mode - must be full, valid or same")
+            return ()
+        else:
+            if validate:
+                raise ValueError("`a` and `v` must be 1-dim.")
+            return ()
+
+    def make_node(self, a, v):
+        a = as_tensor_variable(a)
+        v = as_tensor_variable(v)
+
+        if a.ndim != 1 or v.ndim != 1:
+            raise ValueError("inputs to `convolve` must be 1-dim.")
+
+        out_shape = self._get_output_shape(
+            a, v, (a.type.shape, v.type.shape), self.mode, validate=True
+        )
+
+        static_out_shape = ()
+        for s in out_shape:
+            try:
+                s_val = get_scalar_constant_value(s)
+            except (NotScalarConstantError, AttributeError):
+                s_val = None
+
+            if s_val:
+                static_out_shape += (s_val,)
+            else:
+                static_out_shape += (None,)
+
+        out = TensorType(
+            aes.upcast(a.type.dtype, v.type.dtype), shape=static_out_shape
+        )()
+        return Apply(self, [a, v], [out])
+
+    def perform(self, node, inputs, outputs):
+        a, v = inputs
+        outputs[0][0] = np.convolve(a, v, mode=self.mode)
+
+    def infer_shape(self, fgraph, node, shapes):
+        a, v = node.inputs
+        return [self._get_output_shape(a, v, shapes, self.mode)]
+
+
+def convolve(
+    a: "ArrayLike", v: "ArrayLike", mode: Literal["full", "same", "valid"] = "full"
+) -> "TensorVariable":
+    """Compute the discrete, linear convolution of two one-dimensional sequences.
+
+    Parameters
+    ----------
+    a, v
+        Input arrays, both should be one dimensional.
+    mode
+       'full':
+            By default, mode is 'full'. This returns the convolution
+            at each point of overlap.
+
+        'same':
+            Mode 'same'. Boundary effects are still visible.
+
+        'valid':
+            The convolution product is only given for points
+            where the signals overlap completely.
+            Values outside the signal boundary have no effect.
+
+    Returns
+    -------
+    out
+        Discrete, linear convolution of a and v.
+
+    Raises
+    ------
+    ValueError
+        If the a and v are not one-dimensional.
+
+    """
+    return Convolve(mode=mode)(a, v)
+
+
 __all__ = [
     "max_and_argmax",
     "max",
@@ -3126,6 +3232,7 @@ __all__ = [
     "logsumexp",
     "hyp2f1",
     "hyp2f1_der",
+    "convolve",
 ]
 
 DEPRECATED_NAMES: List[Tuple[str, str, object]] = [

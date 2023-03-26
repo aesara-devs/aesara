@@ -33,6 +33,7 @@ from aesara.tensor.basic import (
 from aesara.tensor.elemwise import CAReduce, Elemwise
 from aesara.tensor.math import (
     Argmax,
+    Convolve,
     Dot,
     MatMul,
     MaxAndArgmax,
@@ -59,6 +60,7 @@ from aesara.tensor.math import (
     clip,
     complex_from_polar,
     conj,
+    convolve,
     cos,
     cosh,
     cov,
@@ -3576,3 +3578,93 @@ def test_deprecations():
 
     with pytest.deprecated_call():
         from aesara.tensor.math import sqr  # noqa: F401 F811
+
+
+class TestConvolve(utt.InferShapeTester):
+    @pytest.mark.parametrize(
+        "a, v, mode",
+        [
+            (
+                np.arange(3).astype(config.floatX),
+                np.arange(6).astype(config.floatX),
+                "full",
+            ),
+            (
+                np.arange(5).astype(config.floatX),
+                np.arange(3).astype(config.floatX),
+                "valid",
+            ),
+            (
+                np.arange(8).astype(config.floatX),
+                np.arange(9).astype(config.floatX),
+                "same",
+            ),
+            (np.arange(3).astype(int), np.arange(6).astype(int), "full"),
+            (
+                np.random.normal(size=4).astype(config.floatX),
+                np.random.uniform(size=8).astype(int),
+                "valid",
+            ),
+        ],
+    )
+    def test_op(self, a, v, mode):
+        aesara_sol = convolve(a, v, mode=mode).eval()
+        numpy_sol = np.convolve(a, v, mode=mode)
+        assert np.allclose(numpy_sol, aesara_sol)
+
+    def test_scalar_error(self):
+        with pytest.raises(ValueError, match="must be 1-dim"):
+            convolve(4, [4, 1])
+
+    @pytest.mark.parametrize(
+        "a_shape, v_shape, mode, error_regex",
+        [
+            ((2,), (3, 1), "full", "must be 1-dim"),
+            ((2,), (3,), "val", "must be full, valid or same"),
+        ],
+    )
+    def test_get_output_shape_error(self, a_shape, v_shape, mode, error_regex):
+        a = tensor(dtype=np.float64, shape=a_shape)
+        v = tensor(dtype=np.float64, shape=v_shape)
+
+        with pytest.raises(ValueError, match=error_regex):
+            Convolve._get_output_shape(a, v, (a_shape, v_shape), mode, validate=True)
+        assert (
+            Convolve._get_output_shape(a, v, (a_shape, v_shape), mode, validate=False)
+            == ()
+        )
+
+    @pytest.mark.parametrize(
+        "a_shape, v_shape, a1_shape, v1_shape",
+        [
+            ((5,), (5,), (5,), (5,)),
+            ((1,), (5,), (1,), (5,)),
+            ((1,), (1,), (1,), (1,)),
+            ((3,), (1,), (3,), (1,)),
+            ((None,), (3,), (4,), (3,)),
+            ((None,), (None,), (4,), (2,)),
+            ((2,), (None,), (2,), (3,)),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "mode",
+        [
+            "full",
+            "valid",
+            "same",
+        ],
+    )
+    def test_infer_shape(self, a_shape, v_shape, a1_shape, v1_shape, mode):
+        a = tensor(dtype=config.floatX, shape=a_shape)
+        v = tensor(dtype=config.floatX, shape=v_shape)
+
+        rng = np.random.default_rng(utt.fetch_seed())
+        a1 = rng.random(a1_shape).astype(config.floatX)
+        v1 = rng.random(v1_shape).astype(config.floatX)
+
+        self._compile_and_check(
+            [a, v],
+            [convolve(a, v, mode)],
+            [a1, v1],
+            Convolve,
+        )
