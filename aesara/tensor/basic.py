@@ -3811,7 +3811,7 @@ class Choose(Op):
         static_out_shape = ()
         for s in out_shape:
             try:
-                s_val = aesara.get_scalar_constant_value(s)
+                s_val = get_scalar_constant_value(s)
             except (NotScalarConstantError, AttributeError):
                 s_val = None
 
