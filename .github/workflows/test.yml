@@ -51,11 +51,13 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ needs.changes.outputs.changes == 'true' }}
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
-    - uses: pre-commit/action@v3.0.0
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+          cache: "pip"
+          cache-dependency-path: "pyproject.toml"
+      - uses: pre-commit/action@v3.0.0
 
   test:
     name: "Test py${{ matrix.python-version }}: ${{ matrix.part }}"
@@ -231,6 +233,8 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: 3.7
+          cache: "pip"
+          cache-dependency-path: "pyproject.toml"
 
       - name: Install dependencies
         run: |

@@ -27,6 +27,8 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
+          cache: "pip"
+          cache-dependency-path: "pyproject.toml"
       - name: Build the sdist and the wheel
         run: |
           python -m pip install -U pip
