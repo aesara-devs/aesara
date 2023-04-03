@@ -23,7 +23,7 @@ repos:
     - id: pyupgrade
       args: ["--py38-plus"] 
   - repo: https://github.com/psf/black
-    rev: 23.1.0
+    rev: 23.3.0
     hooks:
       - id: black
         language_version: python3
@@ -32,7 +32,7 @@ repos:
     hooks:
       - id: flake8
   - repo: https://github.com/pycqa/isort
-    rev: 5.11.5
+    rev: 5.12.0
     hooks:
       - id: isort
   - repo: https://github.com/humitos/mirrors-autoflake.git
