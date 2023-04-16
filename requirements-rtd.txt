@@ -8,7 +8,6 @@ pytest
 numpy
 gnumpy
 pydot
-pydot2
 pydot-ng
 Cython
 scipy>=0.13
