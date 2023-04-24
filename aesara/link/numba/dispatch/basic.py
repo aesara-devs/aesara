@@ -1,9 +1,11 @@
+import hashlib
 import operator
+import pickle
 import warnings
 from contextlib import contextmanager
 from functools import singledispatch
 from textwrap import dedent
-from typing import TYPE_CHECKING, Callable, Optional, Union, cast
+from typing import TYPE_CHECKING, Callable, Dict, Optional, Union, cast
 
 import numba
 import numba.np.unsafe.ndarray as numba_ndarray
@@ -349,7 +351,63 @@ def numba_const_convert(data, dtype=None, **kwargs):
 
 def numba_funcify(obj, node=None, storage_map=None, **kwargs) -> Callable:
     """Convert `obj` to a Numba-JITable object."""
-    return _numba_funcify(obj, node=node, storage_map=storage_map, **kwargs)
+    numba_py_fn = None
+    if config.DISABLE_NUMBA_PYTHON_IR_CACHING:
+        numba_py_fn = _numba_funcify(obj, node=node, storage_map=storage_map, **kwargs)
+    else:
+        node_key = make_node_key(node)
+
+        if node_key:
+            numba_py_fn = check_cache(node_key)
+        if node_key is None or numba_py_fn is None:
+            # We could only ever return the function source in our dispatch
+            # implementations. That way, we can compile directly to the on-disk
+            # modules only once.
+            numba_py_fn = _numba_funcify(
+                obj, node=node, storage_map=storage_map, **kwargs
+            )
+
+            # This will determine on-disk module name to be generated for
+            # `numba_py_src` and return the corresponding Python function
+            # object using steps similar to
+            # `aesara.link.utils.compile_function_src`.
+            if node_key:
+                numba_py_fn = add_to_cache(node_key, numba_py_fn)
+
+        # TODO: Presently numba_py_fn is already jitted.
+        # numba_fn = numba_njit(numba_py_fn)
+    return cast(Callable, numba_py_fn)
+
+
+numba_db: Dict[str, Callable] = {}
+
+
+def make_node_key(node):
+    """Create a cache key for `node`.
+    TODO: Currently this works only with Apply Node
+    """
+    if not isinstance(node, Apply):
+        return None
+    # TODO: Add a stronger hashing mechanism
+    key = str(node)
+    # key = (node.op,)
+    # key = tuple(inp.type for inp in node.inputs)
+    # key += tuple(inp.type for inp in node.outputs)
+
+    hash_key = hashlib.sha256(pickle.dumps(key)).hexdigest()
+
+    return hash_key
+
+
+def check_cache(node_key):
+    """Check disk-backed cache."""
+    return numba_db.get(node_key, None)
+
+
+def add_to_cache(node_key, numba_py_fn):
+    """Add the numba generated function to the cache."""
+    numba_db[node_key] = numba_py_fn
+    return numba_py_fn
 
 
 @singledispatch

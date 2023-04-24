@@ -164,17 +164,18 @@ def eval_python_only(fn_inputs, fn_outputs, inputs, mode=numba_mode):
         mock.patch("numba.np.unsafe.ndarray.to_fixed_tuple", lambda x, n: tuple(x)),
     ]
 
-    with contextlib.ExitStack() as stack:
-        for ctx in mocks:
-            stack.enter_context(ctx)
+    with config.change_flags(DISABLE_NUMBA_PYTHON_IR_CACHING=True):
+        with contextlib.ExitStack() as stack:
+            for ctx in mocks:
+                stack.enter_context(ctx)
 
-        aesara_numba_fn = function(
-            fn_inputs,
-            fn_outputs,
-            mode=mode,
-            accept_inplace=True,
-        )
-        _ = aesara_numba_fn(*inputs)
+            aesara_numba_fn = function(
+                fn_inputs,
+                fn_outputs,
+                mode=mode,
+                accept_inplace=True,
+            )
+            _ = aesara_numba_fn(*inputs)
 
 
 def compare_numba_and_py(
@@ -997,16 +998,20 @@ def test_config_options_cached():
     x = at.dvector()
 
     with config.change_flags(numba__cache=True):
-        aesara_numba_fn = function([x], x * 2, mode=numba_mode)
-        numba_mul_fn = aesara_numba_fn.vm.jit_fn.py_func.__globals__["mul"]
-        assert not isinstance(
-            numba_mul_fn._dispatcher.cache, numba.core.caching.NullCache
-        )
+        with config.change_flags(DISABLE_NUMBA_PYTHON_IR_CACHING=True):
+            aesara_numba_fn = function([x], x * 2, mode=numba_mode)
+            numba_mul_fn = aesara_numba_fn.vm.jit_fn.py_func.__globals__["mul"]
+            assert not isinstance(
+                numba_mul_fn._dispatcher.cache, numba.core.caching.NullCache
+            )
 
     with config.change_flags(numba__cache=False):
-        aesara_numba_fn = function([x], x * 2, mode=numba_mode)
-        numba_mul_fn = aesara_numba_fn.vm.jit_fn.py_func.__globals__["mul"]
-        assert isinstance(numba_mul_fn._dispatcher.cache, numba.core.caching.NullCache)
+        with config.change_flags(DISABLE_NUMBA_PYTHON_IR_CACHING=True):
+            aesara_numba_fn = function([x], x * 2, mode=numba_mode)
+            numba_mul_fn = aesara_numba_fn.vm.jit_fn.py_func.__globals__["mul"]
+            assert isinstance(
+                numba_mul_fn._dispatcher.cache, numba.core.caching.NullCache
+            )
 
 
 def test_scalar_return_value_conversion():

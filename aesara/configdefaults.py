@@ -377,6 +377,13 @@ def add_basic_configvars():
         in_c_key=False,
     )
 
+    config.add(
+        "DISABLE_NUMBA_PYTHON_IR_CACHING",
+        ("Disable caching of the Aesara-generated Python IR used by the Numba backend"),
+        BoolParam(False),
+        in_c_key=False,
+    )
+
 
 def _is_gt_0(x):
     return x > 0
