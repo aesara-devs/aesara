@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """
 Contains a wrapper function for tensor.nnet.ConvOp, which can be used to perform
 generic 2D convolution.

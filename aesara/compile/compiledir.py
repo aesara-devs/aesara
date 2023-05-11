@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """
 This module contains housekeeping functions for cleaning/purging the "compiledir".
 It is used by the "aesara-cache" CLI tool, located in the /bin folder of the repository.

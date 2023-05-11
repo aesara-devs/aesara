@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 import itertools as it
 
 from aesara.scalar.basic import Apply, ScalarOp, as_scalar, float32, float64, int64

@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 from typing import Callable, Iterator, List, Optional, Union
 
 from etuples.core import ExpressionTuple

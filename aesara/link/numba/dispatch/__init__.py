@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 # isort: off
 from aesara.link.numba.dispatch.basic import (
     numba_funcify,

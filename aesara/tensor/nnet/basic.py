@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """
 Provides neural-network specific Ops.
 
@@ -50,7 +52,7 @@ from aesara.tensor.rewriting.basic import (
 from aesara.tensor.rewriting.math import local_mul_canonizer
 from aesara.tensor.shape import Shape, shape_padleft
 from aesara.tensor.special import Softmax, SoftmaxGrad, log_softmax, softmax
-from aesara.tensor.subtensor import AdvancedIncSubtensor, AdvancedSubtensor
+from aesara.tensor.subtracttensor import AdvancedIncSubtensor, AdvancedSubtensor
 from aesara.tensor.type import TensorType, discrete_dtypes, float_dtypes, integer_dtypes
 
 

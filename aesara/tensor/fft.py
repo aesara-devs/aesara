@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 import numpy as np
 
 from aesara.gradient import DisconnectedType
@@ -5,7 +7,7 @@ from aesara.graph.basic import Apply
 from aesara.graph.op import Op
 from aesara.tensor.basic import as_tensor_variable
 from aesara.tensor.math import sqrt
-from aesara.tensor.subtensor import set_subtensor
+from aesara.tensor.subtracttensor import set_subtensor
 from aesara.tensor.type import TensorType, integer_dtypes
 
 

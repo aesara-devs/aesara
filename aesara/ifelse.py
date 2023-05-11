@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """
 IfElse introduces lazy evaluation in Aesara (coupled with the CVM/VM
 linkers). It resembles the if clause of any programming language, that

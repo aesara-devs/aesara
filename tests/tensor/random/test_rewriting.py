@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 import numpy as np
 import pytest
 
@@ -24,7 +26,7 @@ from aesara.tensor.random.rewriting import (
     local_rv_size_lift,
     local_subtensor_rv_lift,
 )
-from aesara.tensor.subtensor import AdvancedSubtensor, AdvancedSubtensor1, Subtensor
+from aesara.tensor.subtracttensor import AdvancedSubtensor, AdvancedSubtensor1, Subtensor
 from aesara.tensor.type import iscalar, vector
 
 
@@ -461,7 +463,7 @@ def test_DimShuffle_lift(ds_order, lifted, dist_op, dist_params, size, rtol):
 )
 @config.change_flags(compute_test_value_opt="raise", compute_test_value="raise")
 def test_Subtensor_lift(indices, lifted, dist_op, dist_params, size):
-    from aesara.tensor.subtensor import as_index_constant
+    from aesara.tensor.subtracttensor import as_index_constant
 
     rng = shared(np.random.default_rng(1233532), borrow=False)
 

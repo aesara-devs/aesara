@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """
 This file contains auxiliary Ops, used during the compilation phase and Ops
 building class (:class:`FromFunctionOp`) and decorator (:func:`as_op`) that

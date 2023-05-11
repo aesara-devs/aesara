@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 import math
 
 import numpy as np
@@ -14,7 +16,7 @@ from aesara.tensor.basic import (
 )
 from aesara.tensor.math import exp, lt, outer, tensordot
 from aesara.tensor.shape import shape
-from aesara.tensor.subtensor import set_subtensor
+from aesara.tensor.subtracttensor import set_subtensor
 from aesara.tensor.type import TensorType, integer_dtypes
 from aesara.tensor.var import TensorConstant
 

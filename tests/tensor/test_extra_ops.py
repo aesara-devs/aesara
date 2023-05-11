@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 import re
 
 import numpy as np
@@ -46,7 +48,7 @@ from aesara.tensor.extra_ops import (
     to_one_hot,
     unravel_index,
 )
-from aesara.tensor.subtensor import AdvancedIncSubtensor
+from aesara.tensor.subtracttensor import AdvancedIncSubtensor
 from aesara.tensor.type import (
     TensorType,
     dmatrix,

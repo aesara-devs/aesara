@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 from abc import ABC, abstractmethod
 from typing import Any, Generic, Optional, Tuple, TypeVar, Union
 

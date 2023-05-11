@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """This module provides optimizations for the `Scan` `Op`."""
 
 import copy
@@ -49,7 +51,7 @@ from aesara.tensor.rewriting.basic import constant_folding, local_useless_switch
 from aesara.tensor.rewriting.elemwise import local_upcast_elemwise_constant_inputs
 from aesara.tensor.rewriting.math import local_abs_merge, local_mul_switch_sink
 from aesara.tensor.shape import shape
-from aesara.tensor.subtensor import (
+from aesara.tensor.subtracttensor import (
     IncSubtensor,
     Subtensor,
     get_canonical_form_slice,

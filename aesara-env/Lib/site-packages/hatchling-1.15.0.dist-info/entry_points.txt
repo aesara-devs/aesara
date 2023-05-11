@@ -1,0 +1,2 @@
+[console_scripts]
+hatchling = hatchling.cli:hatchling

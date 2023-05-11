@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 # Run using
 # mpiexec -np 2 python _test_mpi_roundtrip.py
 

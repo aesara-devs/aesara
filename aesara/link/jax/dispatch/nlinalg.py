@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 import jax.numpy as jnp
 
 from aesara.link.jax.dispatch import jax_funcify

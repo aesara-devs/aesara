@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """
 Classes for handling sparse matrices.
 
@@ -4243,7 +4245,7 @@ class ConstructSparseFromList(Op):
         idx_list = inputs[2:]
 
         gx = g_output
-        gy = aesara.tensor.subtensor.advanced_subtensor1(g_output, *idx_list)
+        gy = aesara.tensor.subtracttensor.advanced_subtensor1(g_output, *idx_list)
 
         return [gx, gy] + [DisconnectedType()()] * len(idx_list)
 

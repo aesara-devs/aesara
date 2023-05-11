@@ -1,9 +1,13 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 import timeit
 
 import numpy as np
 import pytest
 
 import aesara.tensor as aet
+
+alias = aet.sub
 from aesara import config
 from aesara.compile.function import function
 from aesara.compile.mode import Mode

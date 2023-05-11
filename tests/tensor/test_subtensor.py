@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 import logging
 import sys
 from io import StringIO
@@ -20,7 +22,7 @@ from aesara.tensor import get_vector_length
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.math import exp, isinf
 from aesara.tensor.math import sum as at_sum
-from aesara.tensor.subtensor import (
+from aesara.tensor.subtracttensor import (
     AdvancedIncSubtensor,
     AdvancedIncSubtensor1,
     AdvancedIndexingError,

@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 from aesara.compile.function.pfunc import pfunc, rebuild_collect_shared
 from aesara.compile.function.types import (
     AliasedMemoryError,

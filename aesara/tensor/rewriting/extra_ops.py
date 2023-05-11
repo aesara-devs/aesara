@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 import aesara.scalar.basic as aes
 from aesara.graph.rewriting.basic import node_rewriter
 from aesara.tensor.basic import Alloc, as_tensor_variable

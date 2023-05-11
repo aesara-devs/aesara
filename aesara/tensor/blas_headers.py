@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """ Header text for the C and Fortran BLAS interfaces.
 
 There is no standard name or location for this header, so we just insert it

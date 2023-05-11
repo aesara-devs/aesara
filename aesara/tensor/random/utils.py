@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 from collections.abc import Sequence
 from functools import partial, wraps
 from itertools import zip_longest

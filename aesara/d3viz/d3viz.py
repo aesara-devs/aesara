@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """Dynamic visualization of Aesara graphs.
 
 Author: Christof Angermueller <cangermueller@gmail.com>

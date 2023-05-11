@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """
 If you have two expressions containing unification variables, these expressions
 can be "unified" if there exists an assignment to all unification variables

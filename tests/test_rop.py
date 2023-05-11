@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """
 WRITE ME
 
@@ -207,19 +209,19 @@ class TestRopLop(RopLopChecker):
     def test_incsubtensor1(self):
         tv = np.asarray(self.rng.uniform(size=(3,)), aesara.config.floatX)
         t = aesara.shared(tv)
-        out = aesara.tensor.subtensor.inc_subtensor(self.x[:3], t)
+        out = aesara.tensor.subtracttensor.inc_subtensor(self.x[:3], t)
         self.check_rop_lop(out, self.in_shape)
 
     def test_incsubtensor2(self):
         tv = np.asarray(self.rng.uniform(size=(10,)), aesara.config.floatX)
         t = aesara.shared(tv)
-        out = aesara.tensor.subtensor.inc_subtensor(t[:4], self.x[:4])
+        out = aesara.tensor.subtracttensor.inc_subtensor(t[:4], self.x[:4])
         self.check_rop_lop(out, (10,))
 
     def test_setsubtensor1(self):
         tv = np.asarray(self.rng.uniform(size=(3,)), aesara.config.floatX)
         t = aesara.shared(tv)
-        out = aesara.tensor.subtensor.set_subtensor(self.x[:3], t)
+        out = aesara.tensor.subtracttensor.set_subtensor(self.x[:3], t)
         self.check_rop_lop(out, self.in_shape)
 
     def test_print(self):
@@ -229,7 +231,7 @@ class TestRopLop(RopLopChecker):
     def test_setsubtensor2(self):
         tv = np.asarray(self.rng.uniform(size=(10,)), aesara.config.floatX)
         t = aesara.shared(tv)
-        out = aesara.tensor.subtensor.set_subtensor(t[:4], self.x[:4])
+        out = aesara.tensor.subtracttensor.set_subtensor(t[:4], self.x[:4])
         self.check_rop_lop(out, (10,))
 
     def test_dimshuffle(self):

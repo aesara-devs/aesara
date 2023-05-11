@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 import aesara
 from aesara import tensor as at
 from aesara.gradient import DisconnectedType
@@ -295,7 +297,7 @@ def conv3d(
             out_tmp_padded = at.zeros(
                 dtype=out_tmp.dtype, shape=(Ns, Ts + 2 * Tpad, Nf, Tf, Hout, Wout)
             )
-            out_tmp_padded = aesara.tensor.subtensor.set_subtensor(
+            out_tmp_padded = aesara.tensor.subtracttensor.set_subtensor(
                 out_tmp_padded[:, Tpad : (Ts + Tpad), :, :, :, :], out_tmp
             )
             out_5d = diagonal_subtensor(out_tmp_padded, 1, 3).sum(axis=3)
