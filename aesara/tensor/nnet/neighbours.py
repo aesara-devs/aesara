@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """
 TODO: implement Images2Neibs.infer_shape() methods
 
@@ -11,7 +13,7 @@ from aesara.link.c.op import COp
 from aesara.link.c.type import EnumList
 from aesara.tensor.basic import arange, as_tensor_variable, concatenate, stack, zeros
 from aesara.tensor.math import ceil_intdiv
-from aesara.tensor.subtensor import inc_subtensor, set_subtensor
+from aesara.tensor.subtracttensor import inc_subtensor, set_subtensor
 from aesara.tensor.type import matrix
 
 

@@ -1,8 +1,10 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 import aesara.tensor.basic as at
 from aesara.scan.basic import scan
 from aesara.tensor.basic import Join
 from aesara.tensor.math import ceil, eq
-from aesara.tensor.subtensor import set_subtensor
+from aesara.tensor.subtracttensor import set_subtensor
 
 
 def scan_checkpoints(

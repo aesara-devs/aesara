@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """
 Locking mechanism to ensure no two compilations occur simultaneously
 in the same compilation directory (which can cause crashes).

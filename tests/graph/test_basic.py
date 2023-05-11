@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 import pickle
 from itertools import count
 

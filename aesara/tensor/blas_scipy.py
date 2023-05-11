@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """
 Implementations of BLAS Ops based on scipy's BLAS bindings.
 """

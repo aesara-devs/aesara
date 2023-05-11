@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 from aesara.compile import optdb
 from aesara.graph.rewriting.basic import WalkingGraphRewriter, node_rewriter
 from aesara.typed_list.basic import Append, Extend, Insert, Remove, Reverse

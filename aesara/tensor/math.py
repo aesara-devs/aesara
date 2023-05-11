@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 import builtins
 import warnings
 from typing import TYPE_CHECKING, List, Literal, Optional, Tuple

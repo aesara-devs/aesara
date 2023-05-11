@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 import logging
 import sys
 from itertools import chain, groupby
@@ -51,7 +53,7 @@ from aesara.tensor.type import (
 from aesara.tensor.type_other import NoneConst, NoneTypeT, SliceType, make_slice
 
 
-_logger = logging.getLogger("aesara.tensor.subtensor")
+_logger = logging.getLogger("aesara.tensor.subtracttensor")
 
 invalid_scal_types = (aes.float64, aes.float32, aes.float16)
 scal_types = (
@@ -2800,7 +2802,7 @@ def _get_vector_length_Subtensor(op, var):
     # If we take a slice, we know how many elements it will result in
     # TODO: We can cover more `*Subtensor` cases.
     try:
-        indices = aesara.tensor.subtensor.get_idx_list(
+        indices = aesara.tensor.subtracttensor.get_idx_list(
             var.owner.inputs, var.owner.op.idx_list
         )
         start = (

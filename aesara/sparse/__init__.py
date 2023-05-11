@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 from aesara.sparse import rewriting, sharedvar
 from aesara.sparse.basic import *
 from aesara.sparse.sharedvar import sparse_constructor as shared
@@ -13,7 +15,7 @@ def sparse_grad(var):
 
     .. versionadded:: 0.6rc4
     """
-    from aesara.tensor.subtensor import AdvancedSubtensor, AdvancedSubtensor1
+    from aesara.tensor.subtracttensor import AdvancedSubtensor, AdvancedSubtensor1
 
     if var.owner is None or not isinstance(
         var.owner.op, (AdvancedSubtensor, AdvancedSubtensor1)

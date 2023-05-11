@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """
   Questions and notes about scan that should be answered :
 
@@ -46,7 +48,7 @@ from aesara.tensor.random import normal
 from aesara.tensor.random.utils import RandomStream
 from aesara.tensor.shape import Shape_i, reshape, specify_shape
 from aesara.tensor.sharedvar import SharedVariable
-from aesara.tensor.subtensor import Subtensor
+from aesara.tensor.subtracttensor import Subtensor
 from aesara.tensor.type import (
     dcol,
     dmatrix,

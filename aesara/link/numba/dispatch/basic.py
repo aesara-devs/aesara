@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 import operator
 import warnings
 from contextlib import contextmanager
@@ -36,7 +38,7 @@ from aesara.tensor.blas import BatchedDot
 from aesara.tensor.math import Dot
 from aesara.tensor.shape import Reshape, Shape, Shape_i, SpecifyShape
 from aesara.tensor.slinalg import Cholesky, Solve
-from aesara.tensor.subtensor import (
+from aesara.tensor.subtracttensor import (
     AdvancedIncSubtensor,
     AdvancedIncSubtensor1,
     AdvancedSubtensor,

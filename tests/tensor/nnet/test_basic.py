@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 from contextlib import ExitStack as does_not_raise
 
 import numpy as np
@@ -55,7 +57,7 @@ from aesara.tensor.nnet.basic import (
     softsign,
 )
 from aesara.tensor.shape import shape_padleft
-from aesara.tensor.subtensor import AdvancedSubtensor
+from aesara.tensor.subtracttensor import AdvancedSubtensor
 from aesara.tensor.type import (
     dmatrix,
     dvector,

@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """
 Convolution-like operations with sparse matrix multiplication.
 
@@ -19,7 +21,7 @@ from aesara.graph.op import Op
 from aesara.tensor.math import dot
 from aesara.tensor.math import max as at_max
 from aesara.tensor.shape import reshape
-from aesara.tensor.subtensor import DimShuffle
+from aesara.tensor.subtracttensor import DimShuffle
 
 
 def register_specialize(lopt, *tags, **kwargs):

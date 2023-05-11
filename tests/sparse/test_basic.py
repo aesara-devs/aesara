@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 import time
 from itertools import product
 
@@ -94,7 +96,7 @@ from aesara.tensor.basic import MakeVector
 from aesara.tensor.elemwise import DimShuffle, Elemwise
 from aesara.tensor.math import sum as at_sum
 from aesara.tensor.shape import Shape_i
-from aesara.tensor.subtensor import AdvancedIncSubtensor, AdvancedSubtensor1, Subtensor
+from aesara.tensor.subtracttensor import AdvancedIncSubtensor, AdvancedSubtensor1, Subtensor
 from aesara.tensor.type import (
     TensorType,
     float_dtypes,

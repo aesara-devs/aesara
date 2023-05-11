@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """Ops and optimizations for using BLAS calls
 
 BLAS = Basic Linear Algebra Subroutines

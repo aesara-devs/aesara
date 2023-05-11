@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """
 Contains an Op for convolving input images with a set of filters. This was
 developed especially for Convolutional Neural Networks.

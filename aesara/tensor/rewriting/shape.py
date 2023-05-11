@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 import traceback
 from typing import (
     TYPE_CHECKING,
@@ -55,7 +57,7 @@ from aesara.tensor.shape import (
     specify_shape,
     unbroadcast,
 )
-from aesara.tensor.subtensor import Subtensor, get_idx_list
+from aesara.tensor.subtracttensor import Subtensor, get_idx_list
 from aesara.tensor.type import HasShape, TensorType, discrete_dtypes, integer_dtypes
 from aesara.tensor.type_other import NoneConst
 

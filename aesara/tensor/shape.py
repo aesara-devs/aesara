@@ -1,4 +1,6 @@
 import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
+import warnings
 from numbers import Number
 from textwrap import dedent
 from typing import Dict, List, Tuple, Union

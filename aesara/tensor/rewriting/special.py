@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 from aesara import scalar as aes
 from aesara.graph.rewriting.basic import copy_stack_trace, node_rewriter
 from aesara.tensor.elemwise import DimShuffle, Elemwise
@@ -7,7 +9,7 @@ from aesara.tensor.math import true_divide
 from aesara.tensor.rewriting.basic import register_specialize
 from aesara.tensor.rewriting.math import local_mul_canonizer
 from aesara.tensor.special import LogSoftmax, Softmax, SoftmaxGrad
-from aesara.tensor.subtensor import AdvancedIncSubtensor
+from aesara.tensor.subtracttensor import AdvancedIncSubtensor
 from aesara.tensor.type import values_eq_approx_remove_inf, values_eq_approx_remove_nan
 
 

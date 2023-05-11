@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """This module provides utility functions for the `Scan` `Op`."""
 
 import copy
@@ -25,7 +27,7 @@ from aesara.graph.op import get_test_value
 from aesara.graph.type import HasDataType
 from aesara.graph.utils import TestValueError
 from aesara.tensor.basic import AllocEmpty, cast
-from aesara.tensor.subtensor import set_subtensor
+from aesara.tensor.subtracttensor import set_subtensor
 from aesara.tensor.var import TensorConstant
 
 

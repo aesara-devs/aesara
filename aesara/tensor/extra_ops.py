@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 from collections.abc import Collection
 from functools import reduce
 from typing import Iterable, Set, Tuple, Union
@@ -31,7 +33,7 @@ from aesara.tensor.math import abs as at_abs
 from aesara.tensor.math import all as at_all
 from aesara.tensor.math import ge, lt, maximum, minimum, prod
 from aesara.tensor.math import sum as at_sum
-from aesara.tensor.subtensor import advanced_inc_subtensor1, set_subtensor
+from aesara.tensor.subtracttensor import advanced_inc_subtensor1, set_subtensor
 from aesara.tensor.type import TensorType, dvector, int_dtypes, integer_dtypes, vector
 from aesara.tensor.var import TensorVariable
 from aesara.utils import LOCAL_BITWIDTH, PYTHON_INT_BITWIDTH

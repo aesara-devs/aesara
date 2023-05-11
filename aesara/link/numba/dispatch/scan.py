@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 from textwrap import dedent, indent
 from typing import Dict, List, Optional, Tuple
 

@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """
 This file implement specialization optimization that break the
 canonization form of the graph.
@@ -38,7 +40,7 @@ from aesara.tensor.elemwise import CAReduce, DimShuffle
 from aesara.tensor.math import Argmax, Max, MaxAndArgmax, Min, neg
 from aesara.tensor.rewriting.basic import register_uncanonicalize
 from aesara.tensor.shape import Reshape, reshape
-from aesara.tensor.subtensor import Subtensor
+from aesara.tensor.subtracttensor import Subtensor
 
 
 @register_uncanonicalize

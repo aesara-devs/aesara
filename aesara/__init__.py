@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """
 Aesara is an optimizing compiler in Python, built to evaluate
 complicated expressions (especially matrix-valued ones) as quickly as

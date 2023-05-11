@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """Symbolic tensor types and constructor functions."""
 
 from functools import singledispatch
@@ -142,7 +144,7 @@ from aesara.tensor.math import *  # noqa
 # We import as `_shared` instead of `shared` to avoid confusion between
 # `aesara.shared` and `tensor._shared`.
 from aesara.tensor.sort import argsort, argtopk, sort, topk, topk_and_argtopk  # noqa
-from aesara.tensor.subtensor import *  # noqa
+from aesara.tensor.subtracttensor import *  # noqa
 from aesara.tensor.type import *  # noqa
 from aesara.tensor.type_other import *  # noqa
 from aesara.tensor.var import TensorConstant, TensorVariable  # noqa

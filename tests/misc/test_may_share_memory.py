@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """
 test the tensor and sparse type. (gpuarray is tested in the gpuarray folder).
 """

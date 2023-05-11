@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 from aesara import printing
 from aesara.printing import pprint
 from aesara.tensor.elemwise import DimShuffle, scalar_elemwise

@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 r"""`Op` classes for working with ``numpy.ndarrays`` symbolically.
 
 This module primarily defines `Op`\s for the creation, conversion, and
@@ -406,11 +408,11 @@ def get_scalar_constant_value(
                     v.owner.op.perform(v.owner, const, ret)
                     return np.asarray(ret[0][0].copy())
             elif (
-                isinstance(v.owner.op, aesara.tensor.subtensor.Subtensor)
+                isinstance(v.owner.op, aesara.tensor.subtracttensor.Subtensor)
                 and v.ndim == 0
             ):
                 if isinstance(v.owner.inputs[0], TensorConstant):
-                    from aesara.tensor.subtensor import get_constant_idx
+                    from aesara.tensor.subtracttensor import get_constant_idx
 
                     cdata = tuple(get_constant_idx(v.owner.op.idx_list, v.owner.inputs))
                     try:
@@ -1560,9 +1562,9 @@ class Alloc(COp):
                         # Not doing the constant folding could also lower
                         # the peak memory usage, as we the "constant" won't
                         # always exists.
-                        aesara.tensor.subtensor.IncSubtensor,
-                        aesara.tensor.subtensor.AdvancedIncSubtensor1,
-                        aesara.tensor.subtensor.AdvancedIncSubtensor,
+                        aesara.tensor.subtracttensor.IncSubtensor,
+                        aesara.tensor.subtracttensor.AdvancedIncSubtensor1,
+                        aesara.tensor.subtracttensor.AdvancedIncSubtensor,
                         aesara.tensor.blas.Gemv,
                         aesara.tensor.blas_c.CGemv,
                         aesara.tensor.blas.Ger,
@@ -1962,7 +1964,7 @@ class Split(COp):
         out_shapes = []
         for i in range(self.len_splits):
             temp = as_tensor_variable(shp_x)
-            temp = aesara.tensor.subtensor.set_subtensor(temp[axis], splits[i])
+            temp = aesara.tensor.subtracttensor.set_subtensor(temp[axis], splits[i])
             temp = [temp[i] for i in range(len(shp_x))]
             out_shapes.append(temp)
         return out_shapes
@@ -3417,7 +3419,7 @@ class ExtractDiag(Op):
             x = zeros_like(x)
             xdiag = AllocDiag(offset=self.offset)(gz)
             return [
-                aesara.tensor.subtensor.set_subtensor(
+                aesara.tensor.subtracttensor.set_subtensor(
                     x[: xdiag.shape[0], : xdiag.shape[1]], xdiag
                 )
             ]

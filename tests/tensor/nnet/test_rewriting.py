@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 import aesara
 from aesara.graph.rewriting.basic import check_stack_trace
 from aesara.tensor.nnet.blocksparse import (

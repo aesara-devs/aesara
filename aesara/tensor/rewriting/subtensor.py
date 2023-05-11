@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 import sys
 from collections.abc import Iterable
 
@@ -60,7 +62,7 @@ from aesara.tensor.shape import (
     unbroadcast,
 )
 from aesara.tensor.sharedvar import TensorSharedVariable
-from aesara.tensor.subtensor import (
+from aesara.tensor.subtracttensor import (
     AdvancedIncSubtensor,
     AdvancedIncSubtensor1,
     AdvancedSubtensor,

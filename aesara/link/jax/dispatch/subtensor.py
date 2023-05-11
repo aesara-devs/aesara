@@ -1,5 +1,7 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 from aesara.link.jax.dispatch.basic import jax_funcify
-from aesara.tensor.subtensor import (
+from aesara.tensor.subtracttensor import (
     AdvancedIncSubtensor,
     AdvancedIncSubtensor1,
     AdvancedSubtensor,

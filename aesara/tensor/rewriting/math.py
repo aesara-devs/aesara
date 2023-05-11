@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 r"""Rewrites for the `Op`\s in `aesara.tensor.math`."""
 
 import itertools
@@ -93,7 +95,7 @@ from aesara.tensor.rewriting.basic import (
 )
 from aesara.tensor.rewriting.elemwise import FusionOptimizer, fuse_seqopt
 from aesara.tensor.shape import Shape, Shape_i
-from aesara.tensor.subtensor import Subtensor
+from aesara.tensor.subtracttensor import Subtensor
 from aesara.tensor.type import (
     complex_dtypes,
     uint_dtypes,

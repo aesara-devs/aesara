@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """
 Function to detect memory sharing for ndarray AND sparse type.
 numpy version support only ndarray.

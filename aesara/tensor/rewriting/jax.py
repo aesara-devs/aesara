@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 import aesara.tensor as at
 from aesara.compile import optdb
 from aesara.graph.rewriting.basic import in2out, node_rewriter
@@ -5,7 +7,7 @@ from aesara.tensor.basic import MakeVector
 from aesara.tensor.elemwise import DimShuffle
 from aesara.tensor.math import Sum
 from aesara.tensor.shape import Reshape
-from aesara.tensor.subtensor import AdvancedIncSubtensor, AdvancedSubtensor
+from aesara.tensor.subtracttensor import AdvancedIncSubtensor, AdvancedSubtensor
 from aesara.tensor.var import TensorVariable
 
 

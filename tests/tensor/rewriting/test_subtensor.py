@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 import numpy as np
 import pytest
 
@@ -24,7 +26,7 @@ from aesara.tensor.rewriting.subtensor import (
     local_subtensor_shape_constant,
 )
 from aesara.tensor.shape import SpecifyShape, Unbroadcast, _shape, shape, specify_shape
-from aesara.tensor.subtensor import (
+from aesara.tensor.subtracttensor import (
     AdvancedIncSubtensor,
     AdvancedIncSubtensor1,
     AdvancedSubtensor,
@@ -2158,7 +2160,7 @@ def test_local_join_subtensors(axis, slices_fn, expected_nodes):
 def test_deprecations():
     """Make sure we can import from deprecated modules."""
     with pytest.deprecated_call():
-        from aesara.tensor.subtensor_opt import get_advsubtensor_axis  # noqa: F401 F811
+        from aesara.tensor.subtracttensor_opt import get_advsubtensor_axis  # noqa: F401 F811
 
 
 def test_local_uint_constant_indices():

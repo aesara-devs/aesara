@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 """Define new Ops from existing Ops"""
 from collections import OrderedDict
 from copy import copy

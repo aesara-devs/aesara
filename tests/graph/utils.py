@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 import numpy as np
 
 from aesara.graph.basic import Apply, Constant, NominalVariable, Variable, clone_replace

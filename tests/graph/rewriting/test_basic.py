@@ -1,3 +1,5 @@
+import warnings
+warnings.warn("Please replace 'aesara.tensor.sub' with 'aesara.tensor.subtract'.", DeprecationWarning)
 import sys
 
 import pytest
@@ -25,7 +27,7 @@ from aesara.graph.rewriting.basic import (
 from aesara.raise_op import assert_op
 from aesara.tensor.math import Dot, add, dot
 from aesara.tensor.rewriting.basic import constant_folding
-from aesara.tensor.subtensor import AdvancedSubtensor
+from aesara.tensor.subtracttensor import AdvancedSubtensor
 from aesara.tensor.type import matrix, values_eq_approx_always_true
 from aesara.tensor.type_other import MakeSlice, SliceConstant, slicetype
 from tests.graph.utils import (
