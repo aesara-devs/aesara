@@ -1392,6 +1392,152 @@ class TestSaveMem:
         rng = np.random.default_rng(utt.fetch_seed())
         my_f(rng.uniform(size=(3,)), 4, np.int64([2, 2, 3]))
 
+    def test_init_vals_no_broadcast_case(self):
+        """The output storage is a `set_subtensor` with initial tap values that don't need to be broadcasted."""
+        m, n = (10, 2)
+        A = at.zeros((m, n), dtype=config.floatX)
+
+        taps = (-1,)
+        initial = at.arange(len(taps) * n, dtype=config.floatX).reshape((len(taps), n))
+
+        def fn(i0, im1):
+            return at.switch(im1, 0, i0)
+
+        out, _ = aesara.scan(
+            fn=fn,
+            sequences=A,
+            outputs_info={"taps": taps, "initial": initial},
+        )
+
+        unopt_output_storage = out.owner.inputs[0].owner.inputs[-1]
+
+        # The unoptimized output storage is `len(taps) + n_steps` (i.e. 11)
+        assert unopt_output_storage.shape[0].eval() == 11
+
+        f = function([], out, mode=self.mode)
+
+        out_val = f()
+        exp_out = function(
+            [],
+            out,
+            mode=get_default_mode().excluding(
+                "scan", "scan_save_mem", "save_mem_new_scan"
+            ),
+        )()
+        assert np.array_equal(exp_out, out_val)
+
+        scan_node = next(
+            n for n in f.maker.fgraph.apply_nodes if isinstance(n.op, Scan)
+        )
+        opt_output_storage = scan_node.inputs[1]
+
+        # The optimized output storage only needs `n_steps` (i.e. 10) of
+        # storage, as long as `len(n_steps) > len(taps)`.
+        assert function([], opt_output_storage.shape[0], accept_inplace=True)() <= 10
+
+    def test_init_vals_broadcast_case(self):
+        """The output storage is a `set_subtensor` with initial tap values that must be broadcasted."""
+        m, n = (10, 2)
+        A = at.zeros((m, n), dtype=config.floatX)
+
+        taps = (-1,)
+        # Because we're using `zeros` here, `save_mem_new_scan` can get an
+        # output storage array as follows:
+        # |IncSubtensor{Set;:int64:} [id C] <TensorType(float64, (11, 2))> (outer_in_mit_sot-0)
+        #   |AllocEmpty{dtype='float64'} [id D] <TensorType(float64, (11, 2))>
+        #   | |TensorConstant{11} [id E] <TensorType(int64, ())>
+        #   | |TensorConstant{2} [id F] <TensorType(int64, ())>
+        #   |TensorConstant{0.0} [id G] <TensorType(float64, ())>
+        #   |ScalarConstant{1} [id H] <int64>
+        # The `Subtensor` "set" value is a scalar (i.e. id G), so it can't be naively
+        # reused by `save_mem_new_scan`; it needs the implicit broadcast dimensions.
+        initial = at.zeros((len(taps), n), dtype=config.floatX)
+
+        def fn(i0, im1):
+            return at.switch(im1, 0, i0)
+
+        out, _ = aesara.scan(
+            fn=fn,
+            sequences=A,
+            outputs_info={"taps": taps, "initial": initial},
+        )
+
+        unopt_output_storage = out.owner.inputs[0].owner.inputs[-1]
+
+        # The unoptimized output storage is `tap_spread + n_steps` (i.e. 11)
+        assert unopt_output_storage.shape[0].eval() == 11
+
+        f = function(inputs=[], outputs=out, mode=self.mode)
+
+        out_val = f()
+        exp_out = function(
+            [],
+            out,
+            mode=get_default_mode().excluding(
+                "scan", "scan_save_mem", "save_mem_new_scan"
+            ),
+        )()
+        assert np.array_equal(exp_out, out_val)
+
+        scan_node = next(
+            n for n in f.maker.fgraph.apply_nodes if isinstance(n.op, Scan)
+        )
+        opt_output_storage = scan_node.inputs[1]
+
+        # The optimized output storage only needs `n_steps` (i.e. 10) of
+        # storage, as long as `len(n_steps) > len(taps)`.
+        assert function([], opt_output_storage.shape[0], accept_inplace=True)() <= 10
+
+    @pytest.mark.parametrize(
+        "n_steps, tap_spread, opt_storage_shapes",
+        [
+            # TODO FIXME: The first storage array shape seems too large.
+            (3, 4, (9, 3)),
+            (10, 4, (9, 10)),
+        ],
+    )
+    def test_n_steps_taps(self, n_steps, tap_spread, opt_storage_shapes):
+        inp = np.arange(n_steps).reshape(-1, 1).astype(config.floatX)
+
+        def onestep(x, x_tm4):
+            return x, x_tm4
+
+        seq = at.as_tensor(inp)
+        initial_value = at.as_tensor(
+            np.arange(-tap_spread, 0, dtype=config.floatX).reshape((tap_spread, 1))
+        )
+
+        results, _ = scan(
+            fn=onestep,
+            sequences=seq,
+            outputs_info=[{"initial": initial_value, "taps": [-tap_spread]}, None],
+        )
+
+        # TODO: Alternate the tested output.
+        f = function([], results[1], mode=self.mode)
+        out = f()
+
+        exp_out = function(
+            [],
+            results[1],
+            mode=get_default_mode().excluding(
+                "scan", "scan_save_mem", "save_mem_new_scan"
+            ),
+        )()
+        assert np.array_equal(exp_out, out)
+
+        scan_node = next(
+            n for n in f.maker.fgraph.apply_nodes if isinstance(n.op, Scan)
+        )
+
+        storage_shape_1 = function(
+            [], scan_node.inputs[-2].shape[0], accept_inplace=True
+        )()
+        assert storage_shape_1 <= opt_storage_shapes[0]
+
+        storage_shape_2 = function([], scan_node.inputs[-1], accept_inplace=True)()
+        assert storage_shape_2 <= opt_storage_shapes[1]
+
 
 def test_inner_replace_dot():
     """
