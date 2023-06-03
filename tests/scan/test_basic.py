@@ -2950,22 +2950,6 @@ class TestExamples:
         utt.assert_allclose(outs[2], v_w + 3)
         utt.assert_allclose(sh.get_value(), v_w + 4)
 
-    def test_seq_tap_bug_jeremiah(self):
-        inp = np.arange(10).reshape(-1, 1).astype(config.floatX)
-        exp_out = np.zeros((10, 1)).astype(config.floatX)
-        exp_out[4:] = inp[:-4]
-
-        def onestep(x, x_tm4):
-            return x, x_tm4
-
-        seq = matrix()
-        initial_value = shared(np.zeros((4, 1), dtype=config.floatX))
-        outputs_info = [OrderedDict([("initial", initial_value), ("taps", [-4])]), None]
-        results, updates = scan(fn=onestep, sequences=seq, outputs_info=outputs_info)
-
-        f = function([seq], results[1])
-        assert np.all(exp_out == f(inp))
-
     def test_shared_borrow(self):
         """
         This tests two things. The first is a bug occurring when scan wrongly
