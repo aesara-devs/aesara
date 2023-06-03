@@ -4031,3 +4031,27 @@ def test_output_storage_reuse(linker_mode):
     res = f_cvm()
 
     assert np.array_equal(res, np.array([3, 1, 0]))
+
+
+@pytest.mark.xfail(reason="Need to fix overly strict tensor type checking")
+def test_bad_broadcast_check():
+    inp = np.arange(10).reshape(-1, 1).astype(config.floatX)
+
+    def onestep(x, x_tm4):
+        return x, x_tm4
+
+    # This will have a broadcastable last dimension
+    seq = at.as_tensor(inp)
+
+    # This won't, so it will fail
+    initial_value = shared(np.zeros((4, 1), dtype=config.floatX))
+
+    outputs_info = ([{"initial": initial_value, "taps": [-4]}, None],)
+    results, updates = scan(fn=onestep, sequences=seq, outputs_info=outputs_info)
+
+    exp_out = np.zeros((10, 1)).astype(config.floatX)
+    exp_out[4:] = inp[:-4]
+
+    f = function([], results[1])
+    out = f()
+    assert np.array_equal(exp_out, out)
