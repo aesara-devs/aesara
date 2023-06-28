@@ -55,7 +55,7 @@ def test_extra_ops():
         fgraph = FunctionGraph([a], [out])
         compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
 
-    indices = np.arange(np.product((3, 4)))
+    indices = np.arange(np.prod((3, 4)))
     out = at_extra_ops.unravel_index(indices, (3, 4), order="C")
     fgraph = FunctionGraph([], out)
     compare_jax_and_py(
@@ -100,7 +100,7 @@ def test_extra_ops_omni():
     fgraph = FunctionGraph([], [out])
     compare_jax_and_py(fgraph, [get_test_value(i) for i in fgraph.inputs])
 
-    multi_index = np.unravel_index(np.arange(np.product((3, 4))), (3, 4))
+    multi_index = np.unravel_index(np.arange(np.prod((3, 4))), (3, 4))
     out = at_extra_ops.ravel_multi_index(multi_index, (3, 4))
     fgraph = FunctionGraph([], [out])
     compare_jax_and_py(

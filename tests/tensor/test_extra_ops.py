@@ -923,7 +923,7 @@ class TestUnique(utt.InferShapeTester):
 class TestUnravelIndex(utt.InferShapeTester):
     def test_unravel_index(self):
         def check(shape, index_ndim, order):
-            indices = np.arange(np.product(shape))
+            indices = np.arange(np.prod(shape))
             # test with scalars and higher-dimensional indices
             if index_ndim == 0:
                 indices = indices[-1]
@@ -994,7 +994,7 @@ class TestRavelMultiIndex(utt.InferShapeTester):
     def test_ravel_multi_index(self):
         def check(shape, index_ndim, mode, order):
             multi_index = np.unravel_index(
-                np.arange(np.product(shape)), shape, order=order
+                np.arange(np.prod(shape)), shape, order=order
             )
             # create some invalid indices to test the mode
             if mode in ("wrap", "clip"):

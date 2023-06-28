@@ -1151,7 +1151,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
             for inplace in (False, True):
                 for data_shape in ((10,), (4, 5), (1, 2, 3), (4, 5, 6, 7)):
                     data_n_dims = len(data_shape)
-                    data_size = np.product(data_shape)
+                    data_size = np.prod(data_shape)
                     # Corresponding numeric variable.
                     data_num_init = np.arange(data_size, dtype=self.dtype)
                     data_num_init = data_num_init.reshape(data_shape)
@@ -1203,7 +1203,7 @@ class TestSubtensor(utt.OptimizationTestMixin):
                         # The param dtype is needed when inc_shape is empty.
                         # By default, it would return a float and rng.uniform
                         # with NumPy 1.10 will raise a Deprecation warning.
-                        inc_size = np.product(inc_shape, dtype="int")
+                        inc_size = np.prod(inc_shape, dtype="int")
                         # Corresponding numeric variable.
                         inc_num = rng.uniform(size=inc_size).astype(self.dtype)
                         inc_num = inc_num.reshape(inc_shape)
