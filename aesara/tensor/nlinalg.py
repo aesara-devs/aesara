@@ -237,7 +237,6 @@ class Eig(Op):
 
     """
 
-    _numop = staticmethod(np.linalg.eig)
     __props__: Union[Tuple, Tuple[str]] = ()
 
     def make_node(self, x):
@@ -250,7 +249,7 @@ class Eig(Op):
     def perform(self, node, inputs, outputs):
         (x,) = inputs
         (w, v) = outputs
-        w[0], v[0] = (z.astype(x.dtype) for z in self._numop(x))
+        w[0], v[0] = (z.astype(x.dtype) for z in np.linalg.eig(x))
 
     def infer_shape(self, fgraph, node, shapes):
         n = shapes[0][0]
@@ -266,7 +265,6 @@ class Eigh(Eig):
 
     """
 
-    _numop = staticmethod(np.linalg.eigh)
     __props__ = ("UPLO",)
 
     def __init__(self, UPLO="L"):
@@ -281,7 +279,7 @@ class Eigh(Eig):
         # LAPACK.  Rather than trying to reproduce the (rather
         # involved) logic, we just probe linalg.eigh with a trivial
         # input.
-        w_dtype = self._numop([[np.dtype(x.dtype).type()]])[0].dtype.name
+        w_dtype = np.linalg.eigh([[np.dtype(x.dtype).type()]])[0].dtype.name
         w = vector(dtype=w_dtype)
         v = matrix(dtype=w_dtype)
         return Apply(self, [x], [w, v])
@@ -289,7 +287,7 @@ class Eigh(Eig):
     def perform(self, node, inputs, outputs):
         (x,) = inputs
         (w, v) = outputs
-        w[0], v[0] = self._numop(x, self.UPLO)
+        w[0], v[0] = np.linalg.eigh(x, self.UPLO)
 
     def grad(self, inputs, g_outputs):
         r"""The gradient function should return
@@ -412,7 +410,6 @@ class QRFull(Op):
 
     """
 
-    _numop = staticmethod(np.linalg.qr)
     __props__ = ("mode",)
 
     def __init__(self, mode):
@@ -444,7 +441,7 @@ class QRFull(Op):
     def perform(self, node, inputs, outputs):
         (x,) = inputs
         assert x.ndim == 2, "The input of qr function should be a matrix."
-        res = self._numop(x, self.mode)
+        res = np.linalg.qr(x, self.mode)
         if self.mode != "r":
             outputs[0][0], outputs[1][0] = res
         else:
@@ -513,7 +510,6 @@ class SVD(Op):
     """
 
     # See doc in the docstring of the function just after this class.
-    _numop = staticmethod(np.linalg.svd)
     __props__ = ("full_matrices", "compute_uv")
 
     def __init__(self, full_matrices=True, compute_uv=True):
@@ -541,10 +537,10 @@ class SVD(Op):
         assert x.ndim == 2, "The input of svd function should be a matrix."
         if self.compute_uv:
             u, s, vt = outputs
-            u[0], s[0], vt[0] = self._numop(x, self.full_matrices, self.compute_uv)
+            u[0], s[0], vt[0] = np.linalg.svd(x, self.full_matrices, self.compute_uv)
         else:
             (s,) = outputs
-            s[0] = self._numop(x, self.full_matrices, self.compute_uv)
+            s[0] = np.linalg.svd(x, self.full_matrices, self.compute_uv)
 
     def infer_shape(self, fgraph, node, shapes):
         (x_shape,) = shapes
@@ -696,7 +692,6 @@ class TensorInv(Op):
     Aesara utilization of numpy.linalg.tensorinv;
     """
 
-    _numop = staticmethod(np.linalg.tensorinv)
     __props__ = ("ind",)
 
     def __init__(self, ind=2):
@@ -710,7 +705,7 @@ class TensorInv(Op):
     def perform(self, node, inputs, outputs):
         (a,) = inputs
         (x,) = outputs
-        x[0] = self._numop(a, self.ind)
+        x[0] = np.linalg.tensorinv(a, self.ind)
 
     def infer_shape(self, fgraph, node, shapes):
         sp = shapes[0][self.ind :] + shapes[0][: self.ind]
@@ -756,7 +751,6 @@ class TensorSolve(Op):
 
     """
 
-    _numop = staticmethod(np.linalg.tensorsolve)
     __props__ = ("axes",)
 
     def __init__(self, axes=None):
@@ -770,12 +764,9 @@ class TensorSolve(Op):
         return Apply(self, [a, b], [x])
 
     def perform(self, node, inputs, outputs):
-        (
-            a,
-            b,
-        ) = inputs
+        (a, b) = inputs
         (x,) = outputs
-        x[0] = self._numop(a, b, self.axes)
+        x[0] = np.linalg.tensorsolve(a, b, self.axes)
 
 
 def tensorsolve(a, b, axes=None):
