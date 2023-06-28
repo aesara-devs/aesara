@@ -1892,7 +1892,7 @@ class Mul(ScalarOp):
     nfunc_variadic = "product"
 
     def impl(self, *inputs):
-        return np.product(inputs)
+        return np.prod(inputs)
 
     def c_code(self, node, name, inputs, outputs, sub):
         (z,) = outputs
