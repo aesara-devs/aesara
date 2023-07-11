@@ -1,0 +1,66 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: Aesara
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Brandon
+    family-names: Willard
+    name-particle: T
+    email: bwillard@uchicago.edu
+    affiliation: University of Chicago
+    orcid: 'https://orcid.org/0000-0002-0951-3289'
+  - given-names: Rémi
+    family-names: Louf
+  - given-names: Kaustubh
+    family-names: Chaudhari
+  - given-names: Ben
+    family-names: Mares
+  - given-names: Smit
+    family-names: Lunagariya
+  - given-names: Dan
+    family-names: Foreman-Mackey
+  - given-names: Daniel
+    family-names: Gerlanc
+repository-code: 'https://github.com/aesara-devs/aesara'
+url: 'https://github.com/aesara-devs'
+abstract: >-
+  Aesara is a Python library for defining, optimizing, and
+  efficiently evaluating mathematical expressions involving
+  multi-dimensional arrays.
+keywords:
+  - automatic differentiation
+  - symbolic computation
+  - tensors
+  - Theano
+  - transpilation
+license: BSD-3-Clause
+commit: e02b23e
+version: rel-2.9.1
+date-released: '2023-06-28'
+references:
+  - authors:
+      - family-names: Bergstra
+        given-names: James
+      - family-names: Breuleux
+        given-names: Oliver
+      - family-names: Bastien
+        given-names: Frédéric
+      - family-names: Lamblin
+        given-names: Pascal
+      - family-names: Pascanu
+        given-names: Razvan
+      - family-names: Desjardins
+        given-names: Guillaume
+      - family-names: Turian
+        given-names: Joseph
+      - family-names: Warde-Farley
+        given-names: David
+      - family-names: Bengio
+        given-names: Yoshua
+    title: "Theano: a CPU and GPU Math Expression Compiler"
+    type: software
