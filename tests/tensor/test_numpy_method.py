@@ -7,7 +7,7 @@ from hypothesis import given, settings
 
 import aesara
 import tests.unittest_tools as utt
-from aesara.tensor.type import cscalar, dscalar, zscalar
+from aesara.tensor.type import dscalar, zscalar
 
 
 pytestmark = pytest.mark.filterwarnings("error")
@@ -46,7 +46,7 @@ REAL_FUNCTIONS = [
 
 
 # tests calling a function with a real value
-def do_real_test(fct, value : float):
+def do_real_test(fct, value: float):
     # set up
     x = dscalar("x")
     y = fct(x)

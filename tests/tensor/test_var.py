@@ -5,7 +5,6 @@ import pytest
 from numpy.testing import assert_array_equal, assert_equal, assert_string_equal
 
 import aesara
-import tests.unittest_tools as utt
 from aesara.compile.mode import get_default_mode
 from aesara.graph.basic import Constant, equal_computations
 from aesara.tensor import get_vector_length
@@ -17,7 +16,6 @@ from aesara.tensor.type import (
     TensorType,
     cscalar,
     dmatrix,
-    dscalar,
     dvector,
     iscalar,
     ivector,
