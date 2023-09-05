@@ -27,6 +27,7 @@ from aesara.tensor.random.basic import (
     choice,
     dirichlet,
     exponential,
+    f,
     gamma,
     gengamma,
     geometric,
@@ -1513,3 +1514,16 @@ def test_pickle():
     a_unpkl = pickle.loads(a_pkl)
 
     assert a_unpkl.owner.op._props() == sample_a.owner.op._props()
+
+
+@pytest.mark.parametrize(
+    "dfn, dfd",
+    [
+        (1, 1),
+        (2, 2),
+        (5, 10),
+        (10, 5),
+    ],
+)
+def test_f_samples(dfn, dfd):
+    compare_sample_values(f, dfn, dfd)
