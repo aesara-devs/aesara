@@ -2194,6 +2194,51 @@ permutation = PermutationRV()
 random = uniform
 
 
+class FRV(RandomVariable):
+    r"""An F-distribution continuous random variable.
+
+    The probability density function for `F` in terms of its degrees of freedom parameters `dfn` and `dfd` is:
+
+    .. math::
+
+        f(x; dfn, dfd) = \frac{\sqrt{\frac{(dfn \cdot x)^{dfn} \cdot dfd^{dfd}}{(dfn \cdot x + dfd)^{dfn + dfd}}}}{x \cdot \text{Beta}(\frac{dfn}{2}, \frac{dfd}{2})}
+
+    for :math:`x > 0`, :math:`dfn > 0`, and :math:`dfd > 0`.
+
+    """
+    name = "f"
+    ndim_supp = 0
+    ndims_params = [0, 0]
+    dtype = "floatX"
+    _print_name = ("F", "\\operatorname{F}")
+
+    def __call__(self, dfn=1, dfd=1, size=None, **kwargs):
+        r"""Draw samples from an F-distribution.
+
+        Signature
+        ---------
+
+        `() -> ()`
+
+        Parameters
+        ----------
+        dfn
+            Degrees of freedom parameter for the numerator. Must be positive.
+        dfd
+            Degrees of freedom parameter for the denominator. Must be positive.
+        size
+            Sample shape. If the given size is, e.g. `(m, n, k)` then `m * n * k`
+            independent, identically distributed random variables are
+            returned. Default is `None` in which case a single random variable
+            is returned.
+
+        """
+        return super().__call__(dfn, dfd, size=size, **kwargs)
+
+
+f = FRV()
+
+
 __all__ = [
     "permutation",
     "choice",
@@ -2242,4 +2287,5 @@ __all__ = [
     "rayleigh",
     "power",
     "zipf",
+    "f",
 ]
