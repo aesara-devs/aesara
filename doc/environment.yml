@@ -9,7 +9,7 @@ dependencies:
   - numpy
   - scipy
   - six
-  - sphinx>=3
+  - sphinx>=3,<7
   - sphinx-book-theme
   - sphinx-design
   - sphinx_rtd_theme
