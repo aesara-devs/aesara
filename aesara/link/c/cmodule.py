@@ -2722,7 +2722,12 @@ def default_blas_ldflags():
     """
     warn_record = []
     try:
-        blas_info = np.__config__.get_info("blas_opt")
+        try:
+            blas_info = np.__config__.get_info("blas_opt")
+        except AttributeError:
+            import numpy.distutils.system_info
+
+            blas_info = numpy.distutils.system_info.get_info("blas_opt")
 
         # If we are in a EPD installation, mkl is available
         if "EPD" in sys.version:
