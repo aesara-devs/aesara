@@ -577,16 +577,15 @@ class TensorFromScalar(COp):
         return (
             """
             %(z)s = (PyArrayObject*)PyArray_FromScalar(py_%(x)s, NULL);
-            if(py_%(z)s == NULL){
+            if(%(z)s == NULL){
                 %(fail)s;
             }
-            Py_XINCREF(%(z)s);
             """
             % locals()
         )
 
     def c_code_cache_version(self):
-        return (1,)
+        return (2,)
 
 
 tensor_from_scalar = TensorFromScalar()
