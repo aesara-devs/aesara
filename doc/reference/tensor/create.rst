@@ -16,8 +16,7 @@ for a 0-dimensional `ndarray` of integers with the name ``'myvar'``:
 >>> x = at.scalar('myvar', dtype='int32')
 >>> x = at.iscalar('myvar')
 >>> x = at.tensor(dtype='int32', shape=(), name='myvar')
->>> from aesara.tensor.type import TensorType
->>> x = TensorType(dtype='int32', shape=())('myvar')
+>>> x = at.TensorType(dtype='int32', shape=())('myvar')
 
 Basic constructors
 ------------------
