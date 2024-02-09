@@ -18,12 +18,12 @@ repos:
           )$
       - id: check-merge-conflict
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.3.1
+    rev: v3.9.0
     hooks:
     - id: pyupgrade
       args: ["--py38-plus"] 
   - repo: https://github.com/psf/black
-    rev: 23.3.0
+    rev: 23.7.0
     hooks:
       - id: black
         language_version: python3
@@ -50,7 +50,7 @@ repos:
           )$
         args: ['--in-place', '--remove-all-unused-imports', '--remove-unused-variable']
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.2.0
+    rev: v1.4.1
     hooks:
       - id: mypy
         additional_dependencies:
