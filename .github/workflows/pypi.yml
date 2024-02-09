@@ -56,7 +56,7 @@ jobs:
           test -n "$(find . -name lazylinker_c.c)" && echo "Found lazylinker_c.c"
           echo "Checking for d3viz template.html..."
           test -n "$(find . -name template.html | grep d3viz)" && echo "Found template.html"
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: artifact
           path: dist/*
