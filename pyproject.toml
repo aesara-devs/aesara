@@ -56,6 +56,7 @@ dependencies = [
     "cons",
     "typing_extensions",
     "setuptools >=48.0.0",
+    "hypothesis",
 ]
 dynamic = ["version"]
 

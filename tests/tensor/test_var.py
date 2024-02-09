@@ -5,7 +5,6 @@ import pytest
 from numpy.testing import assert_array_equal, assert_equal, assert_string_equal
 
 import aesara
-import tests.unittest_tools as utt
 from aesara.compile.mode import get_default_mode
 from aesara.graph.basic import Constant, equal_computations
 from aesara.tensor import get_vector_length
@@ -17,7 +16,6 @@ from aesara.tensor.type import (
     TensorType,
     cscalar,
     dmatrix,
-    dscalar,
     dvector,
     iscalar,
     ivector,
@@ -37,40 +35,6 @@ from tests.tensor.utils import random
 
 
 pytestmark = pytest.mark.filterwarnings("error")
-
-
-@pytest.mark.parametrize(
-    "fct, value",
-    [
-        (np.arccos, 0.5),
-        (np.arccosh, 1.0),
-        (np.arcsin, 0.5),
-        (np.arcsinh, 0.5),
-        (np.arctan, 0.5),
-        (np.arctanh, 0.5),
-        (np.cos, 0.5),
-        (np.cosh, 0.5),
-        (np.deg2rad, 0.5),
-        (np.exp, 0.5),
-        (np.exp2, 0.5),
-        (np.expm1, 0.5),
-        (np.log, 0.5),
-        (np.log10, 0.5),
-        (np.log1p, 0.5),
-        (np.log2, 0.5),
-        (np.rad2deg, 0.5),
-        (np.sin, 0.5),
-        (np.sinh, 0.5),
-        (np.sqrt, 0.5),
-        (np.tan, 0.5),
-        (np.tanh, 0.5),
-    ],
-)
-def test_numpy_method(fct, value):
-    x = dscalar("x")
-    y = fct(x)
-    f = aesara.function([x], y)
-    utt.assert_allclose(np.nan_to_num(f(value)), np.nan_to_num(fct(value)))
 
 
 def test_infix_dot_method():

@@ -1,3 +1,4 @@
+.hypothesis
 *.pkl
 _build
 __pycache__
