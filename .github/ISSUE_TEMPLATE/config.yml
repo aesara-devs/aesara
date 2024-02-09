@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Official Documentation
+    url: https://aesara.readthedocs.io/en/latest/
+    about: "Provides basic Aesara setup and usage information, as well as design and development outlines"
+  - name: Visit our Gitter/Matrix Chat
+    url: https://gitter.im/aesara-devs/aesara
+    about: "Discuss Aesara in real-time with community members via Gitter/Matrix"
+  - name: Visit our Discord
+    url: https://discord.gg/h3sjmPYuGJ
+    about: "Discuss Aesara in real-time with community members via Discord"

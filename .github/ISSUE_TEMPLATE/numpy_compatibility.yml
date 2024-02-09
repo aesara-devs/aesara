@@ -1,0 +1,33 @@
+---
+name: NumPy API Enhancement
+description: Propose changes to Aesara's NumPy support
+labels: ["enhancement", "NumPy compatibility"]
+body:
+- type: markdown
+  attributes:
+    value: |
+      First, carefully read [CONTRIBUTING.md](https://github.com/aesara-devs/aesara/blob/main/.github/CONTRIBUTING.md) and the following:
+
+      - Is there already a GitHub Issue requesting this feature?
+
+      If so, please contribute to the existing Issue.
+
+- type: markdown
+  attributes:
+    value: "-----"
+- type: textarea
+  attributes:
+    label: Expected behavior
+    description: |
+      A concise description of the new/missing NumPy compatibility feature.
+
+      Try to include:
+
+      - Minimal and self-contained pseudocode examples.
+      - Precise details about the expected output/results (e.g. "The output should consist of the values...").
+
+    placeholder: |
+      Aesara is missing support for the NumPy function `numpy...`.
+
+  validations:
+    required: true

@@ -1,0 +1,52 @@
+---
+name: New Feature Request
+description: Propose a new feature
+labels: ["enhancement"]
+body:
+- type: markdown
+  attributes:
+    value: |
+      First, carefully read [CONTRIBUTING.md](https://github.com/aesara-devs/aesara/blob/main/.github/CONTRIBUTING.md) and the following to determine whether or not you have a valid Aesara feature proposal:
+
+      - Is there already a GitHub Issue/Discussion requesting this feature?
+
+      If so, please contribute to the existing Issue/Discussion.
+
+      - Does the proposed feature involve large-scale, core, and/or design changes to Aesara?
+
+      If so, please open a Discussion first so that the Aesara team can provide advice on how to proceed.
+
+- type: markdown
+  attributes:
+    value: "-----"
+- type: textarea
+  attributes:
+    label: Expected behavior
+    description: |
+      A concise description of the feature.
+
+      Try to include:
+
+      - Minimal, self-contained, and reproducible pseudocode examples (i.e. an [MWE](https://en.wikipedia.org/wiki/Minimal_reproducible_example)).
+      - Precise details about the expected output/results (e.g. "The output should consist of the values...").
+
+    placeholder: |
+      An Aesara function that performs ... would be useful for ...
+
+      Here's some pseudocode illustrating the proposed function:
+      ```python
+      import aesara
+      import aesara.tensor as at
+
+      x = at.vector("x")
+      ...
+
+
+      fn = aesara.function([x], ...)
+
+      fn(...)
+      ```
+
+      The results should be the value...
+  validations:
+    required: true

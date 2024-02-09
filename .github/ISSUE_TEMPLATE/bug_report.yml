@@ -1,0 +1,117 @@
+---
+# Inspired by https://github.com/doomemacs/doomemacs/blob/master/.github/ISSUE_TEMPLATE/bug_report.yml
+name: 📝 Bug Report
+description: Report something that isn't working as intended
+labels: ["bug"]
+body:
+- type: markdown
+  attributes:
+    value: |
+      First, carefully read [CONTRIBUTING.md](https://github.com/aesara-devs/aesara/blob/main/.github/CONTRIBUTING.md) and the following to determine whether or not you have a valid Aesara issue:
+
+      - Is there already a GitHub Issue or Discussion for this issue?
+
+      If so, please expand upon any specifics of your issue in the existing Issue/Discussion.
+
+      - Does your issue only arise in a library that uses Aesara?
+
+      If so, please submit your issue to that library's issue tracker first.  From there, the Aesara-specific details can be worked out and a valid Aesara issue can be identified.  **Issues framed primarily in third-party libraries are liable to being marked as invalid and closed.**
+
+      - Does your issue involve OS and/or environment-specific settings (e.g. installation and/or compilation issues)?
+
+      If so, please create a [Discussion](https://github.com/aesara-devs/aesara/discussions) instead.  From there, we can help determine whether or not the issue is due to faulty logic in Aesara (i.e. a valid issue) or something specific to your local setup.
+
+- type: markdown
+  attributes:
+    value: "-----"
+- type: textarea
+  attributes:
+    label: Expected behavior
+    description: |
+      A concise description of what you're trying to do and what you expect to see.
+
+      Try to include:
+
+      - Minimal, self-contained, and reproducible examples (i.e. an [MWE](https://en.wikipedia.org/wiki/Minimal_reproducible_example)).
+      - Precise details about the expected output/results (e.g. "The output should consist of the values...").
+
+    placeholder: |
+      I'm trying to compute the ... of ... as follows:
+
+      ```python
+      import aesara
+      import aesara.tensor as at
+
+      x = at.vector("x")
+      ...
+
+      fn = aesara.function([x], ...)
+
+      fn(...)
+      ```
+
+      The results should be the value...
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Current behavior
+    description: |
+      A concise description of the issue(s) you're observing.
+
+      Try to include:
+
+      - Any associated output and/or error messages.
+      - Any attempts you made to resolve the issue yourself, and their result.
+    placeholder: |
+      The example above does not return a value and instead raises a `ValueError` error.
+
+      Here is the backtrace:
+
+      ```
+      ValueError: ...
+      ```
+  validations:
+    required: true
+- type: input
+  id: aesara-version
+  attributes:
+    label: Aesara Version
+    description: |
+      Provide the version of Aesara obtained from `pip show aesara`.
+    placeholder: 2.x.x
+  validations:
+    required: true
+- type: input
+  id: python-version
+  attributes:
+    label: Python Version
+    description: |
+      Provide the version of Python obtained from `python --version`.
+    placeholder: 3.8.x
+  validations:
+    required: true
+- type: input
+  id: os
+  attributes:
+    label: Operating System
+    description: |
+      Provide the name of your operating system (e.g. Ubuntu, OSX, Windows).
+    placeholder: Ubuntu
+  validations:
+    required: true
+- type: checkboxes
+  attributes:
+    label: In which type of virtual environment is Aesara installed?
+    options:
+      - label: conda
+      - label: pip
+- type: input
+  id: aesara-config
+  attributes:
+    label: Aesara Config
+    description: |
+      Upload the contents of `python -c "import aesara; print(aesara.config)"` to [pastebin](https://pastebin.com), [gist](https://gist.github.com), or a similar service, then provide the link to it here.
+    placeholder: https://pastebin.com/fakeurl
+  validations:
+    required: true

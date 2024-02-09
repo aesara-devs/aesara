@@ -1,0 +1,28 @@
+---
+name: JAX Op Implementation
+description: Propose a Numba Op implementation
+labels: ["enhancement", "JAX", "Op implementation"]
+body:
+- type: markdown
+  attributes:
+    value: |
+      First, carefully read [CONTRIBUTING.md](https://github.com/aesara-devs/aesara/blob/main/.github/CONTRIBUTING.md) and the following:
+
+      - Is there already a GitHub Issue requesting this feature?
+
+      If so, please contribute to the existing Issue.
+
+- type: markdown
+  attributes:
+    value: "-----"
+- type: textarea
+  attributes:
+    label: Expected behavior
+    description: |
+      A concise description of the new/missing JAX `Op` implementation.
+
+    placeholder: |
+      Aesara is missing support for the `Op` ... in JAX.
+
+  validations:
+    required: true
