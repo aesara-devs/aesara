@@ -6,6 +6,7 @@ from numpy.testing import assert_array_almost_equal
 
 import aesara
 from aesara import function
+from aesara import tensor as at
 from aesara.configdefaults import config
 from aesara.graph.basic import Constant
 from aesara.tensor.math import _allclose
@@ -13,6 +14,7 @@ from aesara.tensor.nlinalg import (
     SVD,
     Eig,
     MatrixInverse,
+    Solve,
     TensorInv,
     det,
     eig,
@@ -24,6 +26,7 @@ from aesara.tensor.nlinalg import (
     norm,
     pinv,
     qr,
+    solve,
     svd,
     tensorinv,
     tensorsolve,
@@ -505,3 +508,94 @@ class TestTensorInv(utt.InferShapeTester):
         t_binv1 = tf_b1(self.b1)
         assert _allclose(t_binv, n_binv)
         assert _allclose(t_binv1, n_binv1)
+
+
+class TestSolve(utt.InferShapeTester):
+    @pytest.mark.parametrize(
+        "a_shape, b_shape",
+        [
+            ((5, 5), (5,)),
+            ((5, 5), (5, 1)),
+            ((2, 5, 5), (1, 5)),
+            ((3, 5, 5), (1, 5, 3)),
+        ],
+    )
+    def test_infer_shape(self, a_shape, b_shape):
+        rng = np.random.default_rng(utt.fetch_seed())
+        A = matrix() if len(a_shape) == 2 else tensor3()
+        b_val = np.asarray(rng.random(b_shape), dtype=config.floatX)
+        b = at.as_tensor_variable(b_val).type()
+        self._compile_and_check(
+            [A, b],
+            [solve(A, b)],
+            [
+                np.asarray(rng.random(a_shape), dtype=config.floatX),
+                b_val,
+            ],
+            Solve,
+            warn=False,
+        )
+
+    def test_correctness(self):
+        rng = np.random.default_rng(utt.fetch_seed())
+        A = matrix()
+        b = matrix()
+        y = solve(A, b)
+        solve_func = aesara.function([A, b], y)
+
+        b_val = np.asarray(rng.random((5, 1)), dtype=config.floatX)
+        A_val = np.asarray(rng.random((5, 5)), dtype=config.floatX)
+        A_val = np.dot(A_val.transpose(), A_val)
+
+        assert np.allclose(numpy.linalg.solve(A_val, b_val), solve_func(A_val, b_val))
+
+        A_undef = np.array(
+            [
+                [1, 0, 0, 0, 0],
+                [0, 1, 0, 0, 0],
+                [0, 0, 1, 0, 0],
+                [0, 0, 0, 1, 1],
+                [0, 0, 0, 1, 0],
+            ],
+            dtype=config.floatX,
+        )
+        assert np.allclose(
+            numpy.linalg.solve(A_undef, b_val), solve_func(A_undef, b_val)
+        )
+
+        # test for batched data
+        A = tensor3()
+        b = matrix()
+        y = solve(A, b)
+        solve_func = aesara.function([A, b], y)
+
+        A_val = np.full((2, 3, 3), np.eye(3))
+        b_val = np.arange(2 * 3).reshape(2, 3)
+
+        assert np.allclose(numpy.linalg.solve(A_val, b_val), solve_func(A_val, b_val))
+
+    @pytest.mark.parametrize(
+        "a_shape, b_shape",
+        [
+            ((2, 2), (2,)),
+            ((3, 3), (3, 1)),
+            # ((2, 3, 3), (2, 3)),
+            # ((3, 5, 5), (1, 5, 3)),
+        ],
+    )
+    def test_solve_grad(self, a_shape, b_shape):
+        rng = np.random.default_rng(utt.fetch_seed())
+
+        # Ensure diagonal elements of `A` are relatively large to avoid
+        # numerical precision issues
+        A_val = (rng.normal(size=a_shape) * 0.5 + np.eye(a_shape[-1])).astype(
+            config.floatX
+        )
+        b_val = rng.normal(size=b_shape).astype(config.floatX)
+
+        eps = None
+        if config.floatX == "float64":
+            eps = 2e-8
+
+        solve_op = Solve()
+        utt.verify_grad(solve_op, [A_val, b_val], 3, rng, eps=eps)
