@@ -95,6 +95,10 @@ class KanrenRelationSub(NodeRewriter):
             else:
                 new_outputs = [eval_if_etuple(chosen_res)]
 
+            new_outputs = [
+                _new_out.astype(_inp_expr.dtype)
+                for _inp_expr, _new_out in zip(node.outputs, new_outputs)
+            ]
             return new_outputs
         else:
             return False
