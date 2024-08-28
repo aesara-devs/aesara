@@ -47,8 +47,8 @@ keywords = [
 urls = {Homepage = "https://github.com/aesara-devs/aesara"}
 requires-python = ">=3.8"
 dependencies = [
-    "numpy >=1.17.0",
-    "scipy >=0.14",
+    "numpy >=1.17.0,<2.0.0",
+    "scipy >=0.14,<=1.12.0",
     "filelock",
     "etuples",
     "logical-unification",

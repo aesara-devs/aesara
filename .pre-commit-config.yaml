@@ -21,7 +21,7 @@ repos:
     rev: v3.3.1
     hooks:
     - id: pyupgrade
-      args: ["--py38-plus"] 
+      args: ["--py38-plus"]
   - repo: https://github.com/psf/black
     rev: 23.3.0
     hooks:
@@ -54,6 +54,6 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies:
-        - numpy>=1.20
+        - numpy>=1.20,<2.0.0
         - types-filelock
         - types-setuptools
