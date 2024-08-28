@@ -10,8 +10,8 @@ channels:
 dependencies:
   - python
   - compilers
-  - numpy>=1.17.0
-  - scipy>=0.14
+  - numpy>=1.17.0,<2.0.0
+  - scipy>=0.14,<=1.12.0
   - filelock
   - etuples
   - logical-unification
@@ -22,7 +22,7 @@ dependencies:
   - openblas
   - libblas=*=*openblas
   # numba backend
-  - numba>=0.57.0
+  - numba>=0.57.0,<0.58.0
   - llvmlite>=0.38.1
   - numba-scipy
   # For testing
@@ -45,5 +45,5 @@ dependencies:
   # optional
   - sympy
   - cython
-  - jax
+  - jax<=0.4.16
   - jaxlib

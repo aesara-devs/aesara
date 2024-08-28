@@ -27,6 +27,9 @@ arrays.
 
 </div>
 
+> [!IMPORTANT]
+> This project is no longer actively maintained.  See https://github.com/aesara-devs/aesara/discussions/1521#discussioncomment-7687831 and https://x.com/BrandonTWillard/status/1729350499793588249 for more details.
+
 ## Features
 
 - A hackable, pure-Python codebase
