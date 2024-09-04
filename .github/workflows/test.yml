@@ -152,7 +152,7 @@ jobs:
           FLOAT32: ${{ matrix.float32 }}
 
       - name: Upload coverage file
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage
           path: coverage/coverage-${{ steps.matrix-id.outputs.id }}.xml
