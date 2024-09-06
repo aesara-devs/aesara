@@ -6,6 +6,7 @@ import re
 import socket
 import sys
 import textwrap
+import threading
 
 import numpy as np
 from setuptools._distutils.spawn import find_executable
@@ -1334,6 +1335,7 @@ _compiledir_format_dict = {
     "numpy_version": np.__version__,
     "gxx_version": "xxx",
     "hostname": socket.gethostname(),
+    "thread_id": threading.get_ident(),
 }
 
 
