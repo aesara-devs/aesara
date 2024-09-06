@@ -13,7 +13,7 @@ dependencies:
   - numpy>=1.17.0,<2.0.0
   - scipy>=0.14,<=1.12.0
   - filelock
-  - etuples
+  - etuples>=0.3.8
   - logical-unification
   - miniKanren
   - cons

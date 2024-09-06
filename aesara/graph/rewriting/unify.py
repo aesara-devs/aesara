@@ -12,17 +12,18 @@ that satisfies the constraints. That's useful for pattern matching.
 
 from collections.abc import Mapping
 from numbers import Number
-from typing import Dict, Optional, Tuple, Union
+from typing import Callable, Dict, Optional, Tuple, Union
 
 import numpy as np
 from cons.core import ConsError, _car, _cdr
 from etuples import apply, etuple, etuplize
-from etuples.core import ExpressionTuple
+from etuples.core import ExpressionTuple, etuple
+from etuples.dispatch import etuplize_fn
 from unification.core import _unify, assoc
 from unification.utils import transitive_get as walk
 from unification.variable import Var, isvar, var
 
-from aesara.graph.basic import Constant, Variable
+from aesara.graph.basic import Apply, Constant, Variable
 from aesara.graph.op import Op
 from aesara.graph.type import Type
 
@@ -72,9 +73,70 @@ class ConstrainedVar(Var):
         return f"{type(self).__name__}({repr(self.constraint)}, {self.token})"
 
 
-def car_Variable(x):
+class OpExpressionTuple(ExpressionTuple):
+    r"""Etuple form for `Op`s.
+
+    Some `Op.__call__` signatures (e.g `RandomVariable`s) do not match their
+    `Op.make_node` signatures, causing `ExpressionTuple.eval_if_etuple` to
+    fail. To circumvent this constraint we subclass `ExpressionTuple`, and
+    overload the `_eval_apply` method to use `Op.make_node` instead of
+     `Op.__call__`.
+
+    """
+
+    def _eval_apply_fn(self, op: Op) -> Callable:
+        """We evaluate the etuple to the resulting `Apply` node's outputs."""
+
+        def eval_op(*inputs, **kwargs):
+            node = op.make_node(*inputs, **kwargs)
+            if node.nout == 1:
+                return node.outputs[0]
+            else:
+                return node.outputs
+
+        return eval_op
+
+    def __repr__(self):
+        return "Op" + super().__repr__()
+
+    def __str__(self):
+        return "o" + super().__repr__()
+
+
+@etuple.register(Op, [object])
+def etuple_Op(*args, **kwargs) -> OpExpressionTuple:
+    return OpExpressionTuple(args, **kwargs)
+
+
+@etuplize_fn.register(Op)
+def etuplize_fn_Op(_: Op):
+    return etuple_Op
+
+
+def nth(n: int, node: Apply) -> Variable:
+    """Function that selects the nth output of an `Apply` node."""
+    return node.outputs[n]
+
+
+def car_Variable(x: Variable):
+    """Return the `car` of a `Variable`.
+
+    The outputs of `Apply` nodes are stored in lists, but the `__call__`
+    function of the `Op` that creates this `Op` will return the single
+    output variable instead of the list. We can thus simply return the
+    `Op` as `car`.
+
+    When there are several outputs, however, `__call__` will return a list, so
+    returning the `Op` here would return an expression tuple that evaluates to
+    the list of outputs of the `Apply` node. We thus need to preprend a `nth`
+    operator that will return the output stored at the specified index.
+
+    """
     if x.owner:
-        return x.owner.op
+        if x.owner.nout == 1:
+            return x.owner.op
+        else:
+            return nth
     else:
         raise ConsError("Not a cons pair.")
 
@@ -82,9 +144,19 @@ def car_Variable(x):
 _car.add((Variable,), car_Variable)
 
 
-def cdr_Variable(x):
+def cdr_Variable(x: Variable):
+    """Return the `cdr` of a `Variable`
+
+    For a variable created by a single output `Apply` node the `cdr` is defined as the input list. For
+    a multiple output `Apply` node the `cdr` is the index of the variable in the
+    node's outputs list, and the `Apply` node.
+
+    """
     if x.owner:
-        x_e = etuple(_car(x), *x.owner.inputs, evaled_obj=x)
+        if x.owner.nout == 1:
+            x_e = etuple(_car(x), *x.owner.inputs, evaled_obj=x)
+        else:
+            x_e = etuple(_car(x), x.index, x.owner, evaled_obj=x)
     else:
         raise ConsError("Not a cons pair.")
 
@@ -94,7 +166,32 @@ def cdr_Variable(x):
 _cdr.add((Variable,), cdr_Variable)
 
 
-def car_Op(x):
+def car_Apply(x: Apply):
+    """Return the `car` of an `Apply` node.
+
+    This will only be called for multiple-output nodes.
+
+    """
+    return x.op
+
+
+_car.add((Apply,), car_Apply)
+
+
+def cdr_Apply(x: Apply):
+    """Return the `car` of an `Apply` node.
+
+    This will only be called for multiple-output nodes.
+
+    """
+    x_e = etuple(_car(x), *x.inputs, evaled_obj=x.outputs)
+    return x_e[1:]
+
+
+_cdr.add((Apply,), cdr_Apply)
+
+
+def car_Op(x: Op):
     if hasattr(x, "__props__"):
         return type(x)
 
@@ -104,7 +201,7 @@ def car_Op(x):
 _car.add((Op,), car_Op)
 
 
-def cdr_Op(x):
+def cdr_Op(x: Op):
     if not hasattr(x, "__props__"):
         raise ConsError("Not a cons pair.")
 
@@ -201,12 +298,27 @@ _unify.add((Constant, Constant, Mapping), _unify_Constant_Constant)
 
 
 def _unify_Variable_ExpressionTuple(u, v, s):
-    # `Constant`s are "atomic"
+    """Unify a `Variable` with an `ExpressionTuple`.
+
+    If the `Variable`'s owner only has one output we can etuplize the `Variable`
+    and unify both expression tuple.
+
+    If the owner has multiple outputs, but the `Op`'s `default_output` is not
+    `None` we unify the etuplized version of the `Variable` with an expanded
+    expression tuple that account for the variable selection. We only do this
+    for nodes with a default output (we otherwise expect the caller to use
+    the `nth` operator in the expression tuple).
+
+    """
     if not u.owner:
         yield False
         return
-
-    yield _unify(etuplize(u, shallow=True), v, s)
+    if u.owner.nout == 1:
+        yield _unify(etuplize(u, shallow=True), v, s)
+    elif u.owner.nout == 2 and u.owner.op.default_output is not None:
+        u_et = etuplize(u)
+        v_et = etuple(nth, u_et[1], v)
+        yield _unify(u_et, v_et, s)
 
 
 _unify.add(

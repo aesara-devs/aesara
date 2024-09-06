@@ -11,7 +11,11 @@ import aesara.scalar as aes
 import aesara.tensor as at
 from aesara.graph.basic import Apply, Constant, equal_computations
 from aesara.graph.op import Op
-from aesara.graph.rewriting.unify import ConstrainedVar, convert_strs_to_vars
+from aesara.graph.rewriting.unify import (
+    ConstrainedVar,
+    OpExpressionTuple,
+    convert_strs_to_vars,
+)
 from aesara.tensor.type import TensorType
 from tests.graph.utils import MyType
 
@@ -97,7 +101,7 @@ def test_cons():
     assert cdr_res == [atype_at.dtype, atype_at.shape]
 
 
-def test_etuples():
+def test_etuples_Op():
     x_at = at.vector("x")
     y_at = at.vector("y")
 
@@ -109,10 +113,19 @@ def test_etuples():
     assert res.owner.inputs == [x_at, y_at]
 
     w_at = etuple(at.add, x_at, y_at)
+    assert isinstance(w_at, OpExpressionTuple)
 
+    w_at._evaled_obj = w_at.null
     res = w_at.evaled_obj
     assert res.owner.op == at.add
     assert res.owner.inputs == [x_at, y_at]
+
+
+def test_etuples_atomic_Op():
+    x_at = at.vector("x")
+    y_at = at.vector("y")
+
+    z_at = etuple(x_at, y_at)
 
     # This `Op` doesn't expand into an `etuple` (i.e. it's "atomic")
     op1_np = CustomOpNoProps(1)
@@ -121,12 +134,20 @@ def test_etuples():
     assert res.owner.op == op1_np
 
     q_at = op1_np(x_at, y_at)
-    res = etuplize(q_at)
-    assert res[0] == op1_np
+    q_et = etuplize(q_at)
+    assert isinstance(q_et, ExpressionTuple)
+    assert isinstance(q_et[0], CustomOpNoProps)
+    assert q_et[0] == op1_np
+
+    q_et._evaled_obj = q_et.null
+    res = q_et.evaled_obj
+    assert isinstance(res.owner.op, CustomOpNoProps)
 
     with pytest.raises(TypeError):
         etuplize(op1_np)
 
+
+def test_etuples_multioutput_Op():
     class MyMultiOutOp(Op):
         def make_node(self, *inputs):
             outputs = [MyType()(), MyType()()]
@@ -142,6 +163,52 @@ def test_etuples():
     assert len(res) == 2
     assert res[0].owner.op == op1_np
     assert res[1].owner.op == op1_np
+
+    # If we etuplize one of the outputs we should recover this output when
+    # evaluating
+    q_at, _ = op1_np(x_at)
+    q_et = etuplize(q_at)
+    q_et._evaled_obj = q_et.null
+    res = q_et.evaled_obj
+    assert res == q_at
+
+    # TODO: If the caller etuplizes the output list, it should recover the list
+    # when evaluating.
+    # q_at = op1_np(x_at)
+    # q_et = etuplize(q_at)
+    # q_et._evaled_obj = q_et.null
+    # res = q_et.evaled_obj
+
+
+def test_etuples_default_output_op():
+    class MyDefaultOutputOp(Op):
+        default_output = 1
+
+        def make_node(self, *inputs):
+            outputs = [MyType()(), MyType()()]
+            return Apply(self, list(inputs), outputs)
+
+        def perform(self, node, inputs, outputs):
+            outputs[0] = np.array(np.array(inputs[0]))
+            outputs[1] = np.array(np.array(inputs[1]))
+
+    x_at = at.vector("x")
+    y_at = at.vector("y")
+    op1_np = MyDefaultOutputOp()
+    res = apply(op1_np, etuple(x_at, y_at))
+    assert res.owner.op == op1_np
+    assert res.owner.inputs[0] == x_at
+    assert res.owner.inputs[1] == y_at
+
+    # We should recover the default output when evaluting its etuplized
+    # counterpart.
+    q_at = op1_np(x_at, y_at)
+    q_et = etuplize(q_at)
+    q_et._evaled_obj = q_et.null
+    res = q_et.evaled_obj
+    assert isinstance(res.owner.op, MyDefaultOutputOp)
+    assert res.owner.inputs[0] == x_at
+    assert res.owner.inputs[1] == y_at
 
 
 def test_unify_Variable():
@@ -188,7 +255,7 @@ def test_unify_Variable():
     res = reify(z_pat_et, s)
 
     assert isinstance(res, ExpressionTuple)
-    assert equal_computations([res.evaled_obj], [z_et.evaled_obj])
+    assert equal_computations([res.evaled_obj[0]], [z_et.evaled_obj[0]])
 
     # `ExpressionTuple`, `Variable`
     s = unify(z_et, x_at, {})
@@ -206,6 +273,33 @@ def test_unify_Variable():
 
     assert s[a_lv] == x_at
     assert s[b_lv] == y_at
+
+
+def test_unify_default_output_Variable():
+    """Make sure that we can unify with the default output of an Apply node."""
+
+    class MyDefaultOutputOp(Op):
+        default_output = 1
+
+        def make_node(self, *inputs):
+            outputs = [MyType()(), MyType()()]
+            return Apply(self, list(inputs), outputs)
+
+        def perform(self, node, inputs, outputs):
+            outputs[0] = np.array(np.array(inputs[0]))
+            outputs[1] = np.array(np.array(inputs[1]))
+
+    x_at = at.vector("x")
+    y_at = at.vector("y")
+    op1_np = MyDefaultOutputOp()
+    q_at = op1_np(x_at, y_at)
+
+    x_lv, y_lv = var("x"), var("y")
+    q_et = etuple(op1_np, x_lv, y_lv)
+
+    s = unify(q_et, q_at)
+    assert s[x_lv] == x_at
+    assert s[y_lv] == y_at
 
 
 def test_unify_Op():
