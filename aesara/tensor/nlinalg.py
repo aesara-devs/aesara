@@ -1,4 +1,5 @@
 from functools import partial
+from itertools import zip_longest
 from typing import Tuple, Union
 
 import numpy as np
@@ -9,8 +10,9 @@ from aesara.graph.basic import Apply
 from aesara.graph.op import Op
 from aesara.tensor import basic as at
 from aesara.tensor import math as tm
-from aesara.tensor.basic import as_tensor_variable, extract_diag
-from aesara.tensor.type import dvector, lscalar, matrix, scalar, vector
+from aesara.tensor.basic import as_tensor_variable, extract_diag, swapaxes
+from aesara.tensor.extra_ops import broadcast_shape
+from aesara.tensor.type import dvector, lscalar, matrix, scalar, tensor, vector
 
 
 class MatrixPinv(Op):
@@ -803,6 +805,176 @@ def tensorsolve(a, b, axes=None):
     return TensorSolve(axes)(a, b)
 
 
+class Solve(Op):
+    """
+    Aesara utilization of numpy.linalg.solve
+    Class wrapper for solve function.
+    """
+
+    _numop = staticmethod(np.linalg.solve)
+    __props__ = ()
+
+    def make_node(self, a, b):
+        a = as_tensor_variable(a)
+        b = as_tensor_variable(b)
+
+        # check for stacked 2d
+        if a.ndim < 2:
+            raise ValueError(
+                "%d-dimensional array given. Array must be "
+                "at least two-dimensional" % a.ndim
+            )
+
+        # We use the b = (..., M,) logic, only if the number of extra dimensions match
+        # exactly i.e when b.ndim == a.ndim - 1, else we will use b = (..., M, K) logic
+        if b.ndim == a.ndim - 1:
+            # a : (..., M, M), b : (..., M) -> (..., M)
+            a_batch = a.broadcastable[:-2]
+            b_batch = b.broadcastable[:-1]
+            broadcastable = [
+                aa and bb
+                for aa, bb in zip_longest(a_batch[::-1], b_batch[::-1], fillvalue=True)
+            ]
+            out_shape = broadcastable[::-1] + list(b.broadcastable[-1:])
+        else:
+            # a : (..., M, M), b : (..., M, K) -> (..., M, K)
+            a_batch = a.broadcastable[:-2]
+            b_batch = b.broadcastable[:-2]
+            broadcastable = [
+                aa and bb
+                for aa, bb in zip_longest(a_batch[::-1], b_batch[::-1], fillvalue=True)
+            ]
+            out_shape = broadcastable[::-1] + list(b.broadcastable[-2:])
+
+        # Infer dtype by solving the most simple case with 1x1 matrices
+        out_dtype = np.linalg.solve(
+            np.eye(1).astype(a.dtype), np.eye(1).astype(b.dtype)
+        ).dtype
+
+        x = tensor(shape=out_shape, dtype=out_dtype)
+        return Apply(self, [a, b], [x])
+
+    def perform(self, node, inputs, outputs):
+        (
+            a,
+            b,
+        ) = inputs
+        (x,) = outputs
+        x[0] = self._numop(a, b)
+
+    def infer_shape(self, fgraph, node, shapes):
+        a_shape = shapes[0]
+        b_shape = shapes[1]
+
+        if len(b_shape) == len(a_shape) - 1:
+            # a : (..., M, M), b : (..., M) -> (..., M)
+            a_batch_shape = a_shape[:-2]
+            b_batch_shape = b_shape[:-1]
+            batch_shape = broadcast_shape(
+                a_batch_shape, b_batch_shape, arrays_are_shapes=True
+            )
+            return [batch_shape + b_shape[-1:]]
+        else:
+            # a : (..., M, M), b : (..., M, K) -> (..., M, K)
+            a_batch_shape = a_shape[:-2]
+            b_batch_shape = b_shape[:-2]
+            batch_shape = broadcast_shape(
+                a_batch_shape, b_batch_shape, arrays_are_shapes=True
+            )
+            return [batch_shape + b_shape[-2:]]
+
+    def L_op(self, inputs, outputs, output_gradients):
+        r"""Reverse-mode gradient updates for matrix solve operation :math:`c = A^{-1} b`.
+
+        Symbolic expression for updates taken from [#]_.
+
+        References
+        ----------
+        .. [#] M. B. Giles, "An extended collection of matrix derivative results
+          for forward and reverse mode automatic differentiation",
+          https://people.maths.ox.ac.uk/gilesm/files/NA-08-01.pdf
+
+        """
+        A, b = inputs
+        c = outputs[0]
+
+        # C is a scalar representing the entire graph
+        # `output_gradients` is (dC/dc,)
+        # We need to return (dC/d[inv(A)], dC/db)
+        c_bar = output_gradients[0]
+
+        trans_solve_op = type(self)()
+        b_bar = trans_solve_op(swapaxes(A, -1, -2), c_bar)
+        A_bar = -tm.outer(b_bar, c) if c.ndim == 1 else -b_bar @ swapaxes(c, -1, -2)
+
+        return [A_bar, b_bar]
+
+
+def solve(a, b):
+    """
+    Solve a linear matrix equation, or system of linear scalar equations.
+
+    Computes the "exact" solution, `x`, of the well-determined, i.e., full
+    rank, linear matrix equation `ax = b`.
+
+    Parameters
+    ----------
+    a : (..., M, M) array_like
+        Coefficient matrix.
+    b : {(..., M,), (..., M, K)}, array_like
+        Ordinate or "dependent variable" values.
+
+    Returns
+    -------
+    x : {(..., M,), (..., M, K)} ndarray
+        Solution to the system a x = b.  Returned shape is identical to `b`.
+
+    Raises
+    ------
+    LinAlgError
+        If `a` is singular or not square.
+
+    See Also
+    --------
+    `numpy.linalg.solve <https://numpy.org/doc/stable/reference/generated/numpy.linalg.solve.html>`_:
+        Similar function in Numpy.
+
+    Notes
+    -----
+    Broadcasting rules apply, see the `numpy.linalg <https://numpy.org/doc/stable/reference/routines.linalg.html>`_
+    documentation for details.
+
+    The solutions are computed using LAPACK routine ``_gesv``.
+
+    `a` must be square and of full-rank, i.e., all rows (or, equivalently,
+    columns) must be linearly independent; if either is not true, use
+    `lstsq` for the least-squares best "solution" of the
+    system/equation.
+
+    References
+    ----------
+    .. [1] G. Strang, *Linear Algebra and Its Applications*, 2nd Ed., Orlando,
+           FL, Academic Press, Inc., 1980, pg. 22.
+
+    Examples
+    --------
+    Solve the system of equations ``x0 + 2 * x1 = 1`` and ``3 * x0 + 5 * x1 = 2``:
+
+    >>> a = np.array([[1, 2], [3, 5]])
+    >>> b = np.array([1, 2])
+    >>> x = at.linalg.solve(a, b)
+    >>> x.eval()
+    array([-1.,  1.])
+
+    Check that the solution is correct:
+
+    >>> np.allclose(np.dot(a, x.eval()), b)
+    True
+
+    """
+    return Solve()(a, b)
+
+
 __all__ = [
     "pinv",
     "inv",
@@ -818,4 +990,5 @@ __all__ = [
     "norm",
     "tensorinv",
     "tensorsolve",
+    "solve",
 ]
